@@ -61,21 +61,11 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
    1. Variables & Configuration
    ========================================= */
 /* =========================================
-   2. Base Styles
-   ========================================= */
-body {
-  font-family: "Inter", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 50px;
-  gap: 20px;
-  flex-wrap: wrap; }
-
-/* =========================================
    3. Widget Component
    ========================================= */
+.influencer-search-filter-holder {
+  font-family: Inter; }
+
 .filter-widget {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }

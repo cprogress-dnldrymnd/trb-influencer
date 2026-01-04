@@ -94,26 +94,14 @@ $accent-color: #0f766e; // Teal
 $guide-pink: #f9a8d4;
 
 /* =========================================
-   2. Base Styles
-   ========================================= */
-body {
-    font-family: $font-stack;
-    background-color: $bg-body;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 50px;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-/* =========================================
    3. Widget Component
    ========================================= */
+.influencer-search-filter-holder {
+    font-family: Inter;
+}
 .filter-widget {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-
     // --- Header Section ---
     .header {
         display: flex;
@@ -230,7 +218,6 @@ body {
         }
     }
 
-
     // --- Tags Display Area ---
     .tags-container {
         display: flex;
@@ -249,7 +236,7 @@ body {
             border-radius: 999px; // Pill shape
             font-size: 0.9rem;
             font-weight: 500;
-            
+
             .tag-close {
                 margin-left: 8px;
                 cursor: pointer;
