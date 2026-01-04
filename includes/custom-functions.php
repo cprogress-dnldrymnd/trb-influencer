@@ -139,7 +139,7 @@ function select_filter($name, $label, $options = [])
             </div>
         </div>
 
-        <div class="tags-container"></div>
+        <div class="tags-container" style="display: none;"></div>
     </div>
 
 <?php

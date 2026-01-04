@@ -161,6 +161,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-top: 15px;
     min-height: 10px; }
     .filter-widget .tags-container .tag {
       display: inline-flex;
