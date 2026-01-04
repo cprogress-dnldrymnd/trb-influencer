@@ -86,6 +86,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       padding: 0; }
       .filter-widget .header .reset-btn:hover {
         opacity: 0.7; }
+  .filter-widget.select-filter {
+    display: none; }
+    .filter-widget.select-filter .checkbox-lists.show {
+      display: block; }
   .filter-widget .dropdown-container {
     position: relative; }
     .filter-widget .dropdown-container .dropdown-button {
@@ -120,10 +124,6 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       .filter-widget .dropdown-container .dropdown-button.open .arrow {
         transform: rotate(-135deg);
         margin-top: 4px; }
-    .filter-widget .dropdown-container.select-filter {
-      display: none; }
-      .filter-widget .dropdown-container.select-filter .checkbox-lists.show {
-        display: block; }
     .filter-widget .dropdown-container .checkbox-lists {
       position: absolute;
       top: 100%;
