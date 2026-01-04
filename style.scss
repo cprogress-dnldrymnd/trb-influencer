@@ -69,3 +69,176 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         height: 100%;
     }
 }
+
+// 1. Variables (Easy to change theme colors here)
+$font-stack:     'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$bg-body:        #f0f2f5;
+$bg-widget:      #e5e7eb;
+$bg-dropdown:    #f3f4f6;
+$border-color:   #d1d5db;
+$border-hover:   #9ca3af;
+$text-color:     #333;
+
+// The Teal Theme
+$teal-primary:   #0f766e;
+$teal-bg:        #d1fae5;
+$teal-hover:     #115e59;
+$pink-dashed:    #f9a8d4;
+
+// 2. Base Layout
+body {
+  font-family: $font-stack;
+  background-color: $bg-body;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding-top: 50px;
+  flex-wrap: wrap;
+}
+
+// 3. Widget Styles
+.filter-widget {
+  background: $bg-widget;
+  padding: 20px;
+  width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative; // Important for absolute positioning context
+
+  // Header Area
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #000;
+
+    .reset-btn {
+      font-size: 0.9rem;
+      text-decoration: underline;
+      cursor: pointer;
+      color: #000;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+  }
+
+  // Dropdown Logic
+  .dropdown-container {
+    position: relative;
+
+    .dropdown-button {
+      width: 100%;
+      padding: 12px 15px;
+      background-color: $bg-dropdown;
+      border: 1px solid $border-color;
+      border-radius: 6px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      color: $text-color;
+
+      &:hover {
+        border-color: $border-hover;
+      }
+
+      .arrow {
+        border: solid $text-color;
+        border-width: 0 2px 2px 0;
+        display: inline-block;
+        padding: 3px;
+        transform: rotate(45deg);
+        transition: transform 0.3s;
+        margin-top: -4px;
+      }
+
+      // State: Open
+      &.open .arrow {
+        transform: rotate(-135deg);
+        margin-top: 4px;
+      }
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid $border-color;
+      border-radius: 6px;
+      margin-top: 5px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      &.show {
+        display: block;
+      }
+
+      .dropdown-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        &:hover {
+          background-color: $bg-dropdown;
+        }
+
+        input[type="checkbox"] {
+          transform: scale(1.2);
+          accent-color: $teal-primary;
+        }
+      }
+    }
+  }
+
+  // Decorative Line
+  .guide-line {
+    border-top: 1px dashed $pink-dashed;
+    margin: 10px 0;
+    opacity: 0.5;
+  }
+
+  // Tag/Chip Area
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      background-color: $teal-bg;
+      border: 1px solid $teal-primary;
+      color: $teal-primary;
+      padding: 6px 14px;
+      border-radius: 999px; // Pill shape
+      font-size: 0.9rem;
+      font-weight: 500;
+
+      .tag-close {
+        margin-left: 8px;
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+
+        &:hover {
+          color: $teal-hover;
+        }
+      }
+    }
+  }
+}
