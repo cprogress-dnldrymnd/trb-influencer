@@ -112,6 +112,266 @@ function wp_custom_number_format_short($number, $precision = 1)
 }
 
 
+
+/**
+ * Helper function: Map 3-letter codes to 2-letter codes
+ */
+function iso_alpha3_to_alpha2($alpha3)
+{
+    $mapping = array(
+        'afg' => 'af',
+        'alb' => 'al',
+        'dza' => 'dz',
+        'asm' => 'as',
+        'and' => 'ad',
+        'ago' => 'ao',
+        'aia' => 'ai',
+        'ata' => 'aq',
+        'atg' => 'ag',
+        'arg' => 'ar',
+        'arm' => 'am',
+        'abw' => 'aw',
+        'aus' => 'au',
+        'aut' => 'at',
+        'aze' => 'az',
+        'bhs' => 'bs',
+        'bhr' => 'bh',
+        'bgd' => 'bd',
+        'brb' => 'bb',
+        'blr' => 'by',
+        'bel' => 'be',
+        'blz' => 'bz',
+        'ben' => 'bj',
+        'bmu' => 'bm',
+        'btn' => 'bt',
+        'bol' => 'bo',
+        'bes' => 'bq',
+        'bih' => 'ba',
+        'bwa' => 'bw',
+        'bvt' => 'bv',
+        'bra' => 'br',
+        'iot' => 'io',
+        'brn' => 'bn',
+        'bgr' => 'bg',
+        'bfa' => 'bf',
+        'bdi' => 'bi',
+        'cpv' => 'cv',
+        'khm' => 'kh',
+        'cmr' => 'cm',
+        'can' => 'ca',
+        'cym' => 'ky',
+        'caf' => 'cf',
+        'tcd' => 'td',
+        'chl' => 'cl',
+        'chn' => 'cn',
+        'cxr' => 'cx',
+        'cck' => 'cc',
+        'col' => 'co',
+        'com' => 'km',
+        'cod' => 'cd',
+        'cog' => 'cg',
+        'cok' => 'ck',
+        'cri' => 'cr',
+        'hrv' => 'hr',
+        'cub' => 'cu',
+        'cuw' => 'cw',
+        'cyp' => 'cy',
+        'cze' => 'cz',
+        'dnk' => 'dk',
+        'dji' => 'dj',
+        'DMA' => 'dm',
+        'dom' => 'do',
+        'ecu' => 'ec',
+        'egy' => 'eg',
+        'slv' => 'sv',
+        'gnq' => 'gq',
+        'eri' => 'er',
+        'est' => 'ee',
+        'eth' => 'et',
+        'flk' => 'fk',
+        'fro' => 'fo',
+        'fji' => 'fj',
+        'fin' => 'fi',
+        'fra' => 'fr',
+        'guf' => 'gf',
+        'pyf' => 'pf',
+        'atf' => 'tf',
+        'gab' => 'ga',
+        'gmb' => 'gm',
+        'geo' => 'ge',
+        'deu' => 'de',
+        'gha' => 'gh',
+        'gib' => 'gi',
+        'grc' => 'gr',
+        'grl' => 'gl',
+        'grd' => 'gd',
+        'glp' => 'gp',
+        'gum' => 'gu',
+        'gtm' => 'gt',
+        'ggy' => 'gg',
+        'gin' => 'gn',
+        'gnb' => 'gw',
+        'guy' => 'gy',
+        'hti' => 'ht',
+        'hmd' => 'hm',
+        'vat' => 'va',
+        'hnd' => 'hn',
+        'hkg' => 'hk',
+        'hun' => 'hu',
+        'isl' => 'is',
+        'ind' => 'in',
+        'idn' => 'id',
+        'irn' => 'ir',
+        'irq' => 'iq',
+        'irl' => 'ie',
+        'imn' => 'im',
+        'isr' => 'il',
+        'ita' => 'it',
+        'jam' => 'jm',
+        'jpn' => 'jp',
+        'jey' => 'je',
+        'jor' => 'jo',
+        'kaz' => 'kz',
+        'ken' => 'ke',
+        'kir' => 'ki',
+        'prk' => 'kp',
+        'kor' => 'kr',
+        'kwt' => 'kw',
+        'kgz' => 'kg',
+        'lao' => 'la',
+        'lva' => 'lv',
+        'lbn' => 'lb',
+        'lso' => 'ls',
+        'lbr' => 'lr',
+        'lby' => 'ly',
+        'lie' => 'li',
+        'ltu' => 'lt',
+        'lux' => 'lu',
+        'mac' => 'mo',
+        'mkd' => 'mk',
+        'mdg' => 'mg',
+        'mwi' => 'mw',
+        'mys' => 'my',
+        'mdv' => 'mv',
+        'mli' => 'ml',
+        'mlt' => 'mt',
+        'mhl' => 'mh',
+        'mtq' => 'mq',
+        'mrt' => 'mr',
+        'mus' => 'mu',
+        'myt' => 'yt',
+        'mex' => 'mx',
+        'fsm' => 'fm',
+        'mda' => 'md',
+        'mco' => 'mc',
+        'mng' => 'mn',
+        'mne' => 'me',
+        'msr' => 'ms',
+        'mar' => 'ma',
+        'moz' => 'mz',
+        'mmr' => 'mm',
+        'nam' => 'na',
+        'nru' => 'nr',
+        'npl' => 'np',
+        'nld' => 'nl',
+        'ncl' => 'nc',
+        'nzl' => 'nz',
+        'nic' => 'ni',
+        'ner' => 'ne',
+        'nga' => 'ng',
+        'niu' => 'nu',
+        'nfk' => 'nf',
+        'mnp' => 'mp',
+        'nor' => 'no',
+        'omn' => 'om',
+        'pak' => 'pk',
+        'plw' => 'pw',
+        'pse' => 'ps',
+        'pan' => 'pa',
+        'png' => 'pg',
+        'pry' => 'py',
+        'per' => 'pe',
+        'phl' => 'ph',
+        'pcn' => 'pn',
+        'pol' => 'pl',
+        'prt' => 'pt',
+        'pri' => 'pr',
+        'qat' => 'qa',
+        'rou' => 'ro',
+        'rus' => 'ru',
+        'rwa' => 'rw',
+        'reu' => 're',
+        'blm' => 'bl',
+        'shn' => 'sh',
+        'kna' => 'kn',
+        'lca' => 'lc',
+        'maf' => 'mf',
+        'spm' => 'pm',
+        'vct' => 'vc',
+        'wsm' => 'ws',
+        'smr' => 'sm',
+        'stp' => 'st',
+        'sau' => 'sa',
+        'sen' => 'sn',
+        'srb' => 'rs',
+        'syc' => 'sc',
+        'sle' => 'sl',
+        'sgp' => 'sg',
+        'sxm' => 'sx',
+        'svk' => 'sk',
+        'svn' => 'si',
+        'slb' => 'sb',
+        'som' => 'so',
+        'zaf' => 'za',
+        'dgs' => 'gs',
+        'ssd' => 'ss',
+        'esp' => 'es',
+        'lka' => 'lk',
+        'sdn' => 'sd',
+        'sur' => 'sr',
+        'sjm' => 'sj',
+        'swz' => 'sz',
+        'swe' => 'se',
+        'che' => 'ch',
+        'syr' => 'sy',
+        'twn' => 'tw',
+        'tjk' => 'tj',
+        'tza' => 'tz',
+        'tha' => 'th',
+        'tls' => 'tl',
+        'tgo' => 'tg',
+        'tkl' => 'tk',
+        'ton' => 'to',
+        'tto' => 'tt',
+        'tun' => 'tn',
+        'tur' => 'tr',
+        'tkm' => 'tm',
+        'tca' => 'tc',
+        'tuv' => 'tv',
+        'uga' => 'ug',
+        'ukr' => 'ua',
+        'are' => 'ae',
+        'gbr' => 'gb',
+        'usa' => 'us',
+        'umi' => 'um',
+        'ury' => 'uy',
+        'uzb' => 'uz',
+        'vut' => 'vu',
+        'ven' => 've',
+        'vnm' => 'vn',
+        'vgb' => 'vg',
+        'vir' => 'vi',
+        'wlf' => 'wf',
+        'esh' => 'eh',
+        'yem' => 'ye',
+        'zmb' => 'zm',
+        'zwe' => 'zw'
+    );
+
+    return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
+}
+
+
 function select_filter($name, $label, $options = [])
 {
     ob_start();
@@ -139,7 +399,7 @@ function select_filter($name, $label, $options = [])
             </div>
         </div>
 
-        <div class="tags-container" ></div>
+        <div class="tags-container"></div>
     </div>
 
 <?php
@@ -170,4 +430,64 @@ function checkbox_filter($name, $label, $options = [])
 
 <?php
     return ob_get_clean();
+}
+
+
+/**
+ * Get sorted array of unique countries from 'influencers' post type.
+ * * Returns: array( 'alpha3' => 'Country Name' )
+ */
+function get_unique_influencer_countries() {
+    global $wpdb;
+
+    // 1. Efficiently query only the unique meta values from the database
+    // We join with the posts table to ensure we only get data from 'influencers' that are 'published'
+    $results = $wpdb->get_col( $wpdb->prepare( "
+        SELECT DISTINCT pm.meta_value 
+        FROM {$wpdb->postmeta} pm
+        INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+        WHERE p.post_type = %s
+        AND pm.meta_key = %s
+        AND p.post_status = 'publish'
+    ", 'influencers', 'country' ) );
+
+    $country_list = array();
+
+    // 2. Loop through results and format
+    foreach ( $results as $original_val ) {
+        
+        // Ensure we match the lowercase keys in your mapping function
+        $alpha3 = strtolower( trim( $original_val ) );
+
+        // Convert 3-letter to 2-letter using your helper function
+        if ( function_exists( 'iso_alpha3_to_alpha2' ) ) {
+            $alpha2 = iso_alpha3_to_alpha2( $alpha3 );
+        } else {
+            continue; // Skip if helper is missing
+        }
+
+        if ( $alpha2 ) {
+            // Convert 2-letter code to Full Name
+            // We use PHP's native Locale class (requires php-intl extension, standard on most hosts)
+            if ( class_exists( 'Locale' ) ) {
+                $country_name = Locale::getDisplayRegion( '-' . $alpha2, 'en' );
+            } elseif ( class_exists( 'WC_Countries' ) ) {
+                // Fallback: If you have WooCommerce installed
+                $wc_countries = new WC_Countries();
+                $countries    = $wc_countries->get_countries();
+                $country_name = isset( $countries[ strtoupper( $alpha2 ) ] ) ? $countries[ strtoupper( $alpha2 ) ] : $alpha2;
+            } else {
+                // Fallback: If no libraries exist, just use the code
+                $country_name = strtoupper( $alpha2 ); 
+            }
+
+            // Populate Array: Key = Original 3-digit Meta, Value = Country Name
+            $country_list[ $original_val ] = $country_name;
+        }
+    }
+
+    // 3. Sort alphabetically by the Country Name (the array value)
+    asort( $country_list );
+
+    return $country_list;
 }
