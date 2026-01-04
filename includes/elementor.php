@@ -13,7 +13,7 @@ function recently_view_influencers( $query ) {
     // 2. Check if we actually have IDs to show
     if ( ! empty( $recently_viewed ) ) {
         // Only fetch posts that match these IDs
-        $query->set( 'post__in', array(1) );
+        $query->set( 'post__in', $recently_viewed );
 
         // Optional: Ensure they display in the order they were viewed
         $query->set( 'orderby', 'post__in' );
