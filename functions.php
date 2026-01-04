@@ -112,7 +112,7 @@ function acf_elementor_global_colours($field)
 
     foreach ($global_colours as $global_colour) {
 
-        $field['choices'][$global_colour['css_var']] = $global_colour['color'].'['.$global_colour['title'].']';
+        $field['choices'][$global_colour['css_var']] = $global_colour['color'] . '[' . $global_colour['title'] . ']';
     }
 
     return $field;
@@ -137,7 +137,7 @@ function action_wp_head()
             }
             ?>
         </style>
-<?php
+    <?php
     }
 }
 
@@ -145,16 +145,27 @@ add_action('wp_head', 'action_wp_head');
 /**
  * Disable Elementor Pro / Pro Elements Header & Footer on Dashboard Template
  */
-add_filter( 'elementor/theme/get_location_templates/template_id', function( $template_id, $location ) {
+add_filter('elementor/theme/get_location_templates/template_id', function ($template_id, $location) {
     // Check if we are on the specific page template
-    if ( is_page_template( 'templates/page-dashboard.php' ) ) {
+    if (is_page_template('templates/page-dashboard.php')) {
         // If the location is header or footer, return 0 to skip the Elementor template
-        if ( in_array( $location, [ 'header', 'footer' ] ) ) {
+        if (in_array($location, ['header', 'footer'])) {
             return 0;
         }
     }
 
     return $template_id;
-}, 10, 2 );
+}, 10, 2);
 
 
+function influencers_meta()
+{
+    ob_start();
+    ?>
+    <pre>
+    <?php var_dump(get_post_meta(get_the_ID())); ?>
+</pre>
+<?php
+    return ob_get_clean();
+}
+add_shortcode('influencers_meta', 'influencers_meta');
