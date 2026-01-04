@@ -83,12 +83,24 @@ function influencer_select_filters() {
         // Function to Render Tags
         function updateTags() {
             tagsContainer.innerHTML = ''; // Clear only this widget's container
+            
+            let hasSelection = false; // Track if we have active tags
 
             checkboxes.forEach(checkbox => {
                 if (checkbox.checked) {
                     createTag(checkbox.dataset.label, checkbox);
+                    hasSelection = true;
                 }
             });
+
+            // --- VISIBILITY TOGGLE ---
+            // If selections exist, remove inline 'none' (reverting to CSS default like block or flex). 
+            // If empty, set display to 'none'.
+            if (hasSelection) {
+                tagsContainer.style.display = ''; 
+            } else {
+                tagsContainer.style.display = 'none';
+            }
         }
 
         // Create individual Tag
@@ -113,6 +125,10 @@ function influencer_select_filters() {
             tag.appendChild(closeBtn);
             tagsContainer.appendChild(tag);
         }
+
+        // --- INITIALIZATION ---
+        // Run once on load to ensure container is hidden if empty
+        updateTags();
     });
 
     // 2. Global "Click Outside" Listener
