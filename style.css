@@ -43,4 +43,9 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   margin-left: 10px;
   margin-bottom: -3px; }
 
+.meta-country-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px; }
+
 /*# sourceMappingURL=style.css.map */
