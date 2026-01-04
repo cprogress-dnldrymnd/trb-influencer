@@ -455,6 +455,16 @@ function shortcode_influencer_search_filter()
     foreach ($platform as $term) {
         $platform_options[$term->slug] = $term->name;
     }
+
+    $followers_options = array(
+        '1000-10000' => '1K - 10K',
+        '10000-50000' => '10K - 50K',
+        '50000-100000' => '50K - 100K',
+        '100000-500000' => '100K - 500K',
+        '500000-1000000' => '500K - 1M',
+        '1000000+' => '1M-10M',
+        '10000000' => '10M+',
+    );
 ?>
     <div class="influencer-search-filter-holder">
         <div class="influencer-search-item">
@@ -463,6 +473,10 @@ function shortcode_influencer_search_filter()
 
         <div class="influencer-search-item">
             <?= checkbox_filter('platform', 'Platform', $platform_options) ?>
+        </div>
+
+        <div class="influencer-search-item">
+            <?= checkbox_filter('followers', 'Follower Range', $followers_options) ?>
         </div>
     </div>
 <?php
