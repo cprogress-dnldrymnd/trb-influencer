@@ -124,7 +124,7 @@ function select_filter($name, $label, $options = [])
 
         <div class="dropdown-container">
             <button class="dropdown-button">
-                Select tags (Group A)
+                Select your <?= strtolower($label) ?>
                 <span class="arrow-holder">
                     <span class="arrow"></span>
                 </span>
