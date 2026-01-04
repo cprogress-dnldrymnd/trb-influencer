@@ -11,11 +11,7 @@ function my_custom_loop_filter_handler()
     $country   = isset($_POST['country']) ? $_POST['country'] : '';
     $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
     $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
-    ob_start();
-    echo '<pre>';
-    var_dump($followers);
-    echo '</pre>';
-    wp_send_json_success(ob_get_clean());
+
     // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
@@ -97,6 +93,12 @@ function my_custom_loop_filter_handler()
         $meta_query['relation'] = 'AND';
         $args['meta_query'] = $meta_query;
     }
+
+    ob_start();
+    echo '<pre>';
+    var_dump($args);
+    echo '</pre>';
+    wp_send_json_success(ob_get_clean());
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
