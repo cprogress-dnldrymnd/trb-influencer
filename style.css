@@ -13,16 +13,18 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 */
 /* Add your custom styles here */
 /* Basic styling to make them look like tags - Customize as needed */
-.influencer-niche-container .niche-term {
-  background: #f1f1f1;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-right: 5px;
-  display: inline-block;
-  margin-bottom: 5px;
-  font-size: 0.9em; }
-
-.influencer-niche-container .niche-toggle:hover {
-  text-decoration: underline; }
+.influencer-niche-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px; }
+  .influencer-niche-container .niche-term {
+    background: var(--e-global-color-c9360c1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 5px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--e-global-color-primary); }
 
 /*# sourceMappingURL=style.css.map */

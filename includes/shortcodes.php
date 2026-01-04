@@ -206,7 +206,7 @@ function shortcode_influencer_niche() {
 
         // 5. Add the Plus Sign if needed
         if ( $count > $display_limit ) : ?>
-            <span class="niche-toggle" style="cursor:pointer; color: blue; font-weight:bold;" onclick="toggleNiches('<?php echo esc_js( $unique_id ); ?>', this)">
+            <span class="niche-toggle" onclick="toggleNiches('<?php echo esc_js( $unique_id ); ?>', this)">
                 + <?php echo ( $count - $display_limit ); ?>
             </span>
         <?php endif; ?>
