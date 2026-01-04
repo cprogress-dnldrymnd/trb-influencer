@@ -79,7 +79,7 @@ function my_custom_loop_filter_handler()
             ];
             ob_start();
             // 4. RENDER ELEMENTOR LOOP
-            echo $followers[0] . 'xx2';
+            echo $range . 'xx2';
             wp_send_json_success(ob_get_clean());
         } else {
             // No hyphen, assumed to be the top tier (e.g., "10000000")
