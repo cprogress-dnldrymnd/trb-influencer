@@ -103,7 +103,6 @@ $guide-pink: #f9a8d4;
 }
 .filter-widget {
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     // --- Header Section ---
     .header {
         display: flex;
@@ -129,6 +128,7 @@ $guide-pink: #f9a8d4;
     }
     &.select-filter {
         .checkbox-lists {
+
             display: none; // Hidden by default
             position: absolute;
             top: 100%;
@@ -198,7 +198,6 @@ $guide-pink: #f9a8d4;
     }
     // The Dropdown Menu List
     .checkbox-lists {
-
         .checkbox-list-item {
             padding: 5px 10px;
             cursor: pointer;

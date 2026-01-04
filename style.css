@@ -67,8 +67,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   font-family: Inter; }
 
 .filter-widget {
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+  border-radius: 8px; }
   .filter-widget .header {
     display: flex;
     justify-content: space-between;
