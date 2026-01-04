@@ -2,6 +2,7 @@ jQuery(document).ready(function () {
     nicheToggle();
     fetch_posts();
     influencer_select_filters();
+    saved_search();
 
 });
 
@@ -83,7 +84,7 @@ function influencer_select_filters() {
         // Function to Render Tags
         function updateTags() {
             tagsContainer.innerHTML = ''; // Clear only this widget's container
-            
+
             let hasSelection = false; // Track if we have active tags
 
             checkboxes.forEach(checkbox => {
@@ -97,7 +98,7 @@ function influencer_select_filters() {
             // If selections exist, remove inline 'none' (reverting to CSS default like block or flex). 
             // If empty, set display to 'none'.
             if (hasSelection) {
-                tagsContainer.style.display = ''; 
+                tagsContainer.style.display = '';
             } else {
                 tagsContainer.style.display = 'none';
             }
@@ -156,4 +157,84 @@ function influencer_select_filters() {
             }
         });
     }
+}
+
+function saved_search() {
+    /**
+     * Helper Function: Get Checked Values
+     * * Iterates through all checkboxes that share a specific "name" attribute
+     * (e.g., name="niche" or name="niche[]") and returns an array of their values.
+     * * @param {string} name - The name attribute of the input field.
+     * @returns {Array} - An array of values from checked boxes.
+     */
+    function getCheckedValues(name) {
+        var values = [];
+        // Selector explanation:
+        // input[name^="..."] selects inputs where the name STARTS with the string provided.
+        // This handles cases where the name might be "niche" or "niche[]".
+        $('input[name^="' + name + '"]:checked').each(function () {
+            values.push($(this).val());
+        });
+        return values;
+    }
+
+    /**
+     * Event Listener: Save Button Click
+     * * Listens for a click on any element with class '.save-search-trigger'.
+     * Gathers data and sends it to the server.
+     */
+    $('.save-search-trigger').on('click', function (e) {
+
+        // Prevent the link from jumping to the top of the page or reloading.
+        e.preventDefault();
+
+        var $btn = $(this);
+        var originalText = $btn.text();
+
+        // UX: Change button text to indicate processing.
+        $btn.text('Saving...');
+
+        // 1. Collect Data Object
+        // We use our helper function for checkboxes and standard .val() for the range slider.
+        var searchData = {
+            'niche': getCheckedValues('niche'),
+            'platform': getCheckedValues('platform'),
+            'followers': getCheckedValues('followers'),
+            'country': getCheckedValues('country'),
+            'lang': getCheckedValues('lang'),
+            'gender': getCheckedValues('gender'),
+            'score': $('input[name="score"]').val() // Range slider usually has a single value
+        };
+
+        // 2. AJAX Request
+        // Sends the collected data to the PHP function 'handle_save_search_ajax'.
+        $.ajax({
+            url: search_vars.ajax_url, // URL passed from PHP via wp_localize_script
+            type: 'POST',
+            data: {
+                action: 'save_user_search', // Must match the wp_ajax_{action} hook in PHP
+                security: search_vars.nonce,  // Security token passed from PHP
+                search_data: searchData          // The object containing our form values
+            },
+
+            // 3. Handle Success
+            success: function (response) {
+                if (response.success) {
+                    $btn.text('Saved!');
+                    // Optional: Revert text back to original after 2 seconds
+                    setTimeout(function () { $btn.text(originalText); }, 2000);
+                } else {
+                    // If PHP sent wp_send_json_error()
+                    alert(response.data.message);
+                    $btn.text(originalText);
+                }
+            },
+
+            // 4. Handle Server/Network Errors
+            error: function () {
+                alert('Server error. Please try again.');
+                $btn.text(originalText);
+            }
+        });
+    });
 }
