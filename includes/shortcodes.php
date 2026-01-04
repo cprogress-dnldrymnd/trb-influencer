@@ -259,7 +259,7 @@ function shortcode_influencer_search_filter()
                 </div>
             </div>
             <div class="influencer-search-item">
-                <button type="submit" class="elementor-button elementor-button-link elementor-size-sm">
+                <button type="submit" class="influencer-search-button elementor-button elementor-button-link elementor-size-sm">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text">REFINE SEARCH</span>
                     </span>
