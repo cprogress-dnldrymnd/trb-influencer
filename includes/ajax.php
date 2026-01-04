@@ -38,10 +38,7 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    ob_start();
-    echo '<pre>';
-    var_dump($args);
-    echo '</pre>';
+  
     wp_send_json_success(ob_get_clean());
     // If we have more than one taxonomy or just one, we add it to args
     if (!empty($tax_query)) {
@@ -52,6 +49,11 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
+
+      ob_start();
+    echo '<pre>';
+    var_dump($args);
+    echo '</pre>';
     // --- Meta Query (Country, Lang, Followers) ---
     $meta_query = [];
 
