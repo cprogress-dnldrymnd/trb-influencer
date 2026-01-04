@@ -44,7 +44,6 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     }
 }
 
-
 .is-verified {
     .influencer-name .elementor-heading-title {
         &:after {
@@ -73,199 +72,201 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 /* =========================================
    1. Variables & Configuration
    ========================================= */
-$font-stack: 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+$font-stack: "Inter", Tahoma, Geneva, Verdana, sans-serif;
 
 // Colors (extracted for easy theming)
-$bg-body:       #f0f2f5;
-$bg-widget:     #e5e7eb;
-$bg-input:      #f3f4f6;
-$bg-white:      #ffffff;
-$bg-tag:        #d1fae5;
+$bg-body: #f0f2f5;
+$bg-widget: #e5e7eb;
+$bg-input: #f3f4f6;
+$bg-white: #ffffff;
+$bg-tag: #d1fae5;
 
-$border-color:  #d1d5db;
-$border-hover:  #9ca3af;
-$border-tag:    #0f766e;
+$border-color: #d1d5db;
+$border-hover: #9ca3af;
+$border-tag: #0f766e;
 
-$text-main:     #333333;
-$text-header:   #000000;
-$text-teal:     #0f766e;
-$text-teal-dark:#115e59;
+$text-main: #333333;
+$text-header: #000000;
+$text-teal: #0f766e;
+$text-teal-dark: #115e59;
 
-$accent-color:  #0f766e; // Teal
-$guide-pink:    #f9a8d4;
+$accent-color: #0f766e; // Teal
+$guide-pink: #f9a8d4;
 
 /* =========================================
    2. Base Styles
    ========================================= */
 body {
-  font-family: $font-stack;
-  background-color: $bg-body;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 50px;
-  gap: 20px;
-  flex-wrap: wrap;
+    font-family: $font-stack;
+    background-color: $bg-body;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 50px;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 /* =========================================
    3. Widget Component
    ========================================= */
 .filter-widget {
-  background: $bg-widget;
-  padding: 20px;
-  width: 350px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
-  // --- Header Section ---
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-weight: 600;
-    color: $text-header;
-
-    .reset-btn {
-      font-size: 0.9rem;
-      text-decoration: underline;
-      cursor: pointer;
-      color: $text-header;
-      background: none;
-      border: none;
-      padding: 0;
-
-      &:hover {
-        opacity: 0.7;
-      }
-    }
-  }
-
-  // --- Dropdown Section ---
-  .dropdown-container {
-    position: relative;
-
-    // The Trigger Button
-    .dropdown-button {
-      width: 100%;
-      padding: 12px 15px;
-      background-color: $bg-input;
-      border: 1px solid $border-color;
-      border-radius: 6px;
-      text-align: left;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 1rem;
-      color: $text-main;
-      box-sizing: border-box;
-      transition: border-color 0.2s;
-
-      &:hover {
-        border-color: $border-hover;
-      }
-
-      // Arrow Icon
-      .arrow {
-        border: solid $text-main;
-        border-width: 0 2px 2px 0;
-        display: inline-block;
-        padding: 3px;
-        transform: rotate(45deg);
-        transition: transform 0.3s;
-        margin-top: -4px;
-      }
-
-      // State: Open
-      &.open {
-        .arrow {
-          transform: rotate(-135deg);
-          margin-top: 4px;
-        }
-      }
-    }
-
-    // The Dropdown Menu List
-    .dropdown-menu {
-      display: none; // Hidden by default
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: $bg-white;
-      border: 1px solid $border-color;
-      border-radius: 6px;
-      margin-top: 5px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 10;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-      // State: Show
-      &.show {
-        display: block;
-      }
-
-      .dropdown-item {
-        padding: 10px 15px;
-        cursor: pointer;
+    // --- Header Section ---
+    .header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 10px;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: $text-header;
 
-        &:hover {
-          background-color: $bg-input;
-        }
+        .reset-btn {
+            font-size: 0.9rem;
+            text-decoration: underline;
+            cursor: pointer;
+            color: $text-header;
+            background: none;
+            border: none;
+            padding: 0;
 
-        input[type="checkbox"] {
-          transform: scale(1.2);
-          accent-color: $accent-color;
+            &:hover {
+                opacity: 0.7;
+            }
         }
-      }
     }
-  }
 
-  // --- Decorative Line ---
-  .guide-line {
-    border-top: 1px dashed $guide-pink;
-    margin: 10px 0;
-    opacity: 0.5;
-  }
+    // --- Dropdown Section ---
+    .dropdown-container {
+        position: relative;
 
-  // --- Tags Display Area ---
-  .tags-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 15px;
-    min-height: 10px;
+        // The Trigger Button
+        .dropdown-button {
+            width: 100%;
+            padding: 12px 0 15px;
+            background-color: $bg-input;
+            border: 1px solid $border-color;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1rem;
+            color: $text-main;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
 
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      background-color: $bg-tag;
-      border: 1px solid $border-tag;
-      color: $text-teal;
-      padding: 6px 14px;
-      border-radius: 999px; // Pill shape
-      font-size: 0.9rem;
-      font-weight: 500;
+            &:hover {
+                border-color: $border-hover;
+            }
 
-      .tag-close {
-        margin-left: 8px;
-        cursor: pointer;
-        font-size: 1.1rem;
-        line-height: 1;
+            // Arrow Icon
+            .arrow-holder {
+                padding-right: 11px;
+                padding-left: 11px;
+                border-left: 1px solid $border-color;
+            }
+            .arrow {
+                border: solid $text-main;
+                border-width: 0 2px 2px 0;
+                display: inline-block;
+                padding: 3px;
+                transform: rotate(45deg);
+                transition: transform 0.3s;
+                margin-top: -4px;
+            }
+
+            // State: Open
+            &.open {
+                .arrow {
+                    transform: rotate(-135deg);
+                    margin-top: 4px;
+                }
+            }
+        }
+
+        // The Dropdown Menu List
+        .dropdown-menu {
+            display: none; // Hidden by default
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: $bg-white;
+            border: 1px solid $border-color;
+            border-radius: 6px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+            // State: Show
+            &.show {
+                display: block;
+            }
+
+            .dropdown-item {
+                padding: 10px 15px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+
+                &:hover {
+                    background-color: $bg-input;
+                }
+
+                input[type="checkbox"] {
+                    transform: scale(1.2);
+                    accent-color: $accent-color;
+                }
+            }
+        }
+    }
+
+    // --- Decorative Line ---
+    .guide-line {
+        border-top: 1px dashed $guide-pink;
+        margin: 10px 0;
+        opacity: 0.5;
+    }
+
+    // --- Tags Display Area ---
+    .tags-container {
         display: flex;
-        align-items: center;
-        transition: color 0.2s;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 15px;
+        min-height: 10px;
 
-        &:hover {
-          color: $text-teal-dark;
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: $bg-tag;
+            border: 1px solid $border-tag;
+            color: $text-teal;
+            padding: 6px 14px;
+            border-radius: 999px; // Pill shape
+            font-size: 0.9rem;
+            font-weight: 500;
+
+            .tag-close {
+                margin-left: 8px;
+                cursor: pointer;
+                font-size: 1.1rem;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                transition: color 0.2s;
+
+                &:hover {
+                    color: $text-teal-dark;
+                }
+            }
         }
-      }
     }
-  }
 }

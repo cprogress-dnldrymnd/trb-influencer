@@ -77,9 +77,6 @@ body {
    3. Widget Component
    ========================================= */
 .filter-widget {
-  background: #e5e7eb;
-  padding: 20px;
-  width: 350px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
   .filter-widget .header {
@@ -103,7 +100,7 @@ body {
     position: relative; }
     .filter-widget .dropdown-container .dropdown-button {
       width: 100%;
-      padding: 12px 15px;
+      padding: 12px 0 15px;
       background-color: #f3f4f6;
       border: 1px solid #d1d5db;
       border-radius: 6px;
@@ -118,6 +115,10 @@ body {
       transition: border-color 0.2s; }
       .filter-widget .dropdown-container .dropdown-button:hover {
         border-color: #9ca3af; }
+      .filter-widget .dropdown-container .dropdown-button .arrow-holder {
+        padding-right: 11px;
+        padding-left: 11px;
+        border-left: 1px solid #d1d5db; }
       .filter-widget .dropdown-container .dropdown-button .arrow {
         border: solid #333333;
         border-width: 0 2px 2px 0;
