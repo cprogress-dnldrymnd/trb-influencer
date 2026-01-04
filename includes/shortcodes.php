@@ -441,7 +441,7 @@ function shortcode_influencer_search_filter()
     ob_start();
     $niche = get_terms(array(
         'taxonomy'   => 'niche',
-        'hide_empty' => true,
+        'hide_empty' => false,
     ));
     foreach ($niche as $term) {
         $niche_options[$term->slug] = $term->name;
@@ -449,7 +449,7 @@ function shortcode_influencer_search_filter()
 
     $platform = get_terms(array(
         'taxonomy'   => 'platform',
-        'hide_empty' => true,
+        'hide_empty' => false,
     ));
 
     foreach ($platform as $term) {
