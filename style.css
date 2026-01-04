@@ -151,16 +151,15 @@ body {
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 10px; }
+        gap: 10px;
+        font-family: "Inter";
+        font-size: 11px;
+        color: #000; }
         .filter-widget .dropdown-container .dropdown-menu .dropdown-item:hover {
           background-color: #f3f4f6; }
         .filter-widget .dropdown-container .dropdown-menu .dropdown-item input[type="checkbox"] {
           transform: scale(1.2);
           accent-color: #0f766e; }
-  .filter-widget .guide-line {
-    border-top: 1px dashed #f9a8d4;
-    margin: 10px 0;
-    opacity: 0.5; }
   .filter-widget .tags-container {
     display: flex;
     flex-wrap: wrap;

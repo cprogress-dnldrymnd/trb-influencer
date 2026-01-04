@@ -215,7 +215,9 @@ body {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-
+                font-family: "Inter";
+                font-size: 11px;
+                color: #000;
                 &:hover {
                     background-color: $bg-input;
                 }
@@ -228,12 +230,6 @@ body {
         }
     }
 
-    // --- Decorative Line ---
-    .guide-line {
-        border-top: 1px dashed $guide-pink;
-        margin: 10px 0;
-        opacity: 0.5;
-    }
 
     // --- Tags Display Area ---
     .tags-container {
@@ -253,7 +249,7 @@ body {
             border-radius: 999px; // Pill shape
             font-size: 0.9rem;
             font-weight: 500;
-
+            
             .tag-close {
                 margin-left: 8px;
                 cursor: pointer;

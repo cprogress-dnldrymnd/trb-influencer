@@ -140,7 +140,6 @@ function select_filter($name, $label, $options = [])
             </div>
         </div>
 
-        <div class="guide-line"></div>
         <div class="tags-container"></div>
     </div>
 
