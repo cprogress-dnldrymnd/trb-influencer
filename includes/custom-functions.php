@@ -508,7 +508,7 @@ function get_unique_influencer_languages() {
         WHERE p.post_type = %s
         AND pm.meta_key = %s
         AND p.post_status = 'publish'
-    ", 'influencers', 'lang' ) );
+    ", 'influencer', 'lang' ) );
 
     $language_list = array();
 
