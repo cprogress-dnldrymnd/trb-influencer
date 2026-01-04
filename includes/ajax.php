@@ -104,6 +104,7 @@ function my_custom_loop_filter_handler()
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
+                echo $followers;
                 echo do_shortcode('[elementor-template id="1839"]');
             }
         }
