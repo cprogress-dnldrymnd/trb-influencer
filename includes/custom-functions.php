@@ -371,7 +371,7 @@ function iso_alpha3_to_alpha2($alpha3)
     return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
 }
 
-select_filter($name, $label, $options = [])
+function select_filter($name, $label, $options = [])
 {
     // Check URL parameters for this field
     $selected_values = [];
