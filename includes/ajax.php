@@ -47,7 +47,6 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
-
     // --- Meta Query (Country, Lang, Followers) ---
     $meta_query = [];
 
@@ -67,20 +66,12 @@ function my_custom_loop_filter_handler()
         ];
     }
 
+   
+
     if (!empty($meta_query)) {
         $meta_query['relation'] = 'AND';
         $args['meta_query'] = $meta_query;
     }
-    ob_start();
-    echo '<pre>';
-    var_dump($args);
-    echo '</pre>';
-    wp_send_json_success(ob_get_clean());
-
-  
-
-
-
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
@@ -89,7 +80,20 @@ function my_custom_loop_filter_handler()
     echo '<pre>';
     var_dump($args);
     echo '</pre>';
+    // 4. RENDER ELEMENTOR LOOP
+    if ($query->have_posts()) {
 
+        while ($query->have_posts()) {
+            $query->the_post();
+            if (class_exists('\Elementor\Plugin')) {
+                echo do_shortcode('[elementor-template id="1839"]');
+            }
+        }
+        wp_reset_postdata();
+        wp_send_json_success(ob_get_clean());
+    } else {
+        wp_send_json_error('No posts found');
+    }
 
     wp_die();
 }
