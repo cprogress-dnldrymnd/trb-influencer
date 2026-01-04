@@ -38,6 +38,11 @@ function my_custom_loop_filter_handler()
         ];
     }
 
+       ob_start();
+    echo '<pre>';
+    var_dump($args);
+    echo '</pre>';
+    wp_send_json_success(ob_get_clean());
     // If we have more than one taxonomy or just one, we add it to args
     if (!empty($tax_query)) {
         // If both exist, relation AND is default, but good to be explicit
@@ -94,11 +99,7 @@ function my_custom_loop_filter_handler()
         $args['meta_query'] = $meta_query;
     }
 
-    ob_start();
-    echo '<pre>';
-    var_dump($args);
-    echo '</pre>';
-    wp_send_json_success(ob_get_clean());
+ 
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
