@@ -199,9 +199,9 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     color: #fff;
     border-color: var(--e-global-color-accent); }
 
-.save-this-search-button {
+.save-this-search {
   text-align: center; }
-  .save-this-search-button span {
+  .save-this-search span {
     text-decoration: underline;
     cursor: pointer;
     font-weight: 500;
