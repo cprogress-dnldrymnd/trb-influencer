@@ -28,7 +28,7 @@ function fetch_posts(category = '') {
     container.css('opacity', '0.5');
 
     jQuery.ajax({
-        url: '/wp-admin/admin-ajax.php', // Or use localized variable
+        url: search_vars.ajax_url, // Or use localized variable
         type: 'POST',
         data: {
             action: 'my_custom_loop_filter', // Matches PHP action
