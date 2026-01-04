@@ -1,8 +1,9 @@
 jQuery(document).ready(function () {
     nicheToggle();
-    fetch_posts();
+    fetch_influencers();
     influencer_select_filters();
-    saved_search();
+    influencer_search_trigger();
+    saved_search_trigger();
 
 });
 
@@ -15,32 +16,50 @@ function nicheToggle() {
 }
 
 
-// 2. Listen for filter changes
-jQuery('#my-cat-filter').on('change', function () {
-    var category_slug = $(this).val();
-    fetch_posts(category_slug);
-});
+function influencer_search_trigger() {
+    jQuery('.influencer-search-trigger').on('click', function (e) {
+        e.preventDefault();
+        fetch_influencers();
+    });
+}
 
-function fetch_posts(category = '') {
-    var container = jQuery('#my-loop-grid-container');
 
-    // Add loading opacity
+
+function fetch_influencers() {
+    var container = $('#my-loop-grid-container');
+
+    // Gather values from inputs
+    // Adjust selectors if your inputs use IDs (e.g. #niche) instead of names
+    var filter_niche = $('[name="niche"]').val();
+    var filter_platform = $('[name="platform"]').val();
+    var filter_country = $('[name="country"]').val();
+    var filter_lang = $('[name="lang"]').val();
+    var filter_followers = $('[name="followers"]').val();
+
+    // UI Feedback
     container.css('opacity', '0.5');
 
-    jQuery.ajax({
-        url: search_vars.ajax_url, // Or use localized variable
+    $.ajax({
+        url: search_vars.ajax_url,
         type: 'POST',
         data: {
-            action: 'my_custom_loop_filter', // Matches PHP action
-            category: category,
-            // nonce: '...' // Recommended for security
+            action: 'my_custom_loop_filter',
+            niche: filter_niche,
+            platform: filter_platform,
+            country: filter_country,
+            lang: filter_lang,
+            followers: filter_followers
         },
         success: function (response) {
             if (response.success) {
                 container.html(response.data);
             } else {
-                container.html('<p>No posts found.</p>');
+                container.html('<p>No influencers found matching your criteria.</p>');
             }
+            container.css('opacity', '1');
+        },
+        error: function () {
+            container.html('<p>An error occurred. Please try again.</p>');
             container.css('opacity', '1');
         }
     });
@@ -159,7 +178,7 @@ function influencer_select_filters() {
     }
 }
 
-function saved_search() {
+function saved_search_trigger() {
     /**
      * Helper Function: Get Checked Values
      * * Iterates through all checkboxes that share a specific "name" attribute

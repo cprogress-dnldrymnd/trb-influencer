@@ -5,50 +5,108 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
 function my_custom_loop_filter_handler()
 {
     // 1. SECURITY & INPUTS
-    $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+    // We use santize_text_field for all, as even the numbers come in as strings initially
+    $niche     = isset($_POST['niche']) ? sanitize_text_field($_POST['niche']) : '';
+    $platform  = isset($_POST['platform']) ? sanitize_text_field($_POST['platform']) : '';
+    $country   = isset($_POST['country']) ? sanitize_text_field($_POST['country']) : '';
+    $lang      = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : '';
+    $followers = isset($_POST['followers']) ? sanitize_text_field($_POST['followers']) : '';
 
-    // 2. CONFIGURATION
-
-    // 3. BUILD THE QUERY
+    // 2. BUILD THE QUERY ARGS
     $args = [
-        'post_type'      => 'influencer', // or your custom post type
+        'post_type'      => 'influencer',
         'posts_per_page' => -1,
         'post_status'    => 'publish',
     ];
 
-    if (!empty($category)) {
-        $args['tax_query'] = [
-            [
-                'taxonomy' => 'category', // or your custom taxonomy
-                'field'    => 'slug',
-                'terms'    => $category,
-            ]
+    // --- Taxonomy Query (Niche & Platform) ---
+    $tax_query = [];
+
+    if (!empty($niche)) {
+        $tax_query[] = [
+            'taxonomy' => 'niche',
+            'field'    => 'slug', // Assuming values passed are slugs
+            'terms'    => $niche,
         ];
     }
 
+    if (!empty($platform)) {
+        $tax_query[] = [
+            'taxonomy' => 'platform',
+            'field'    => 'slug',
+            'terms'    => $platform,
+        ];
+    }
+
+    // If we have more than one taxonomy or just one, we add it to args
+    if (!empty($tax_query)) {
+        // If both exist, relation AND is default, but good to be explicit
+        if (count($tax_query) > 1) {
+            $tax_query['relation'] = 'AND';
+        }
+        $args['tax_query'] = $tax_query;
+    }
+
+    // --- Meta Query (Country, Lang, Followers) ---
+    $meta_query = [];
+
+    if (!empty($country)) {
+        $meta_query[] = [
+            'key'     => 'country',
+            'value'   => $country,
+            'compare' => '=',
+        ];
+    }
+
+    if (!empty($lang)) {
+        $meta_query[] = [
+            'key'     => 'lang',
+            'value'   => $lang,
+            'compare' => '=',
+        ];
+    }
+
+    // Followers Logic
+    if (!empty($followers)) {
+        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
+        if (strpos($followers, '-') !== false) {
+            $range = explode('-', $followers);
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $range, // array(min, max)
+                'compare' => 'BETWEEN',
+                'type'    => 'NUMERIC',
+            ];
+        } else {
+            // No hyphen, assumed to be the top tier (e.g., "10000000")
+            // Requirement: search for value GREATER THAN selected
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $followers,
+                'compare' => '>',
+                'type'    => 'NUMERIC',
+            ];
+        }
+    }
+
+    if (!empty($meta_query)) {
+        $meta_query['relation'] = 'AND';
+        $args['meta_query'] = $meta_query;
+    }
+
+    // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
     // 4. RENDER ELEMENTOR LOOP
     if ($query->have_posts()) {
-        // Start Output Buffering
         ob_start();
-
         while ($query->have_posts()) {
             $query->the_post();
-
-            // This is the Elementor magic method
-            // It renders the specific template ID with the current post's data
             if (class_exists('\Elementor\Plugin')) {
                 echo do_shortcode('[elementor-template id="1839"]');
-            } else {
-                echo 'Elementor not loaded.';
             }
         }
-
-        // Reset Post Data
         wp_reset_postdata();
-
-        // Send back the HTML
         wp_send_json_success(ob_get_clean());
     } else {
         wp_send_json_error('No posts found');
@@ -56,7 +114,6 @@ function my_custom_loop_filter_handler()
 
     wp_die();
 }
-
 
 /**
  * AJAX Handler: Save User Search
