@@ -184,46 +184,44 @@ $guide-pink: #f9a8d4;
                 }
             }
         }
+    }
+    // The Dropdown Menu List
+    .checkbox-lists {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: $bg-white;
+        border: 1px solid $border-color;
+        border-radius: 6px;
+        margin-top: 5px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
-        // The Dropdown Menu List
-        .checkbox-lists {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: $bg-white;
-            border: 1px solid $border-color;
-            border-radius: 6px;
-            margin-top: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 10;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        // State: Show
 
-            // State: Show
+        .checkbox-list-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: "Inter";
+            font-size: 14px;
+            color: #000;
+            &:hover {
+                background-color: $bg-input;
+            }
 
-            .checkbox-list-item {
-                padding: 5px 10px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                font-family: "Inter";
-                font-size: 14px;
-                color: #000;
-                &:hover {
-                    background-color: $bg-input;
-                }
-
-                input[type="checkbox"] {
-                    margin: 0;
-                    transform: scale(1.2);
-                    accent-color: $accent-color;
-                }
+            input[type="checkbox"] {
+                margin: 0;
+                transform: scale(1.2);
+                accent-color: $accent-color;
             }
         }
     }
-
     // --- Tags Display Area ---
     .tags-container {
         display: flex;
