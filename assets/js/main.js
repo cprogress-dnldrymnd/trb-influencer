@@ -20,7 +20,7 @@ jQuery('#my-cat-filter').on('change', function () {
 });
 
 function fetch_posts(category = '') {
-    var container = $('#my-loop-grid-container');
+    var container = jQuery('#my-loop-grid-container');
 
     // Add loading opacity
     container.css('opacity', '0.5');
