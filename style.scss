@@ -197,7 +197,7 @@ $guide-pink: #f9a8d4;
             }
 
             .dropdown-item {
-                padding: 10px 15px;
+                padding: 5px 10px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
@@ -210,6 +210,7 @@ $guide-pink: #f9a8d4;
                 }
 
                 input[type="checkbox"] {
+                    margin: 0;
                     transform: scale(1.2);
                     accent-color: $accent-color;
                 }
