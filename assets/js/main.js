@@ -188,7 +188,7 @@ function saved_search() {
         // Prevent the link from jumping to the top of the page or reloading.
         e.preventDefault();
 
-        var $btn = $(this);
+        var $btn = jQuery(this);
         var originalText = $btn.text();
 
         // UX: Change button text to indicate processing.
