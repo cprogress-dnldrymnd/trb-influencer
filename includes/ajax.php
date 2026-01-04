@@ -77,11 +77,6 @@ function my_custom_loop_filter_handler()
                 'compare' => 'BETWEEN',
                 'type'    => 'NUMERIC',
             ];
-            ob_start();
-            // 4. RENDER ELEMENTOR LOOP
-            var_dump($range);
-            echo  'xx2';
-            wp_send_json_success(ob_get_clean());
         } else {
             // No hyphen, assumed to be the top tier (e.g., "10000000")
             // Requirement: search for value GREATER THAN selected
@@ -103,12 +98,12 @@ function my_custom_loop_filter_handler()
     $query = new WP_Query($args);
 
 
-
     if ($query->have_posts()) {
 
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
+                echo do_shortcode('[elementor-template id="1839"]');
             }
         }
         wp_reset_postdata();
