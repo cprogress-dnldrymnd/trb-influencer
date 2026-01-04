@@ -254,7 +254,7 @@ function shortcode_influencer_search_filter()
                         <span>Match Score</span>
                     </div>
 
-                    <input type="range" id="score" name="score" min="0" max="100">
+                    <input type="range" id="score" value="<?= isset($_GET['score']) ? $_GET['score'] : 0 ?>" name="score" min="0" max="100">
                 </div>
             </div>
             <div class="influencer-search-item">
