@@ -225,22 +225,6 @@ function shortcode_influencer_niche() {
                 btn.style.display = 'none';
             }
         </script>
-
-        <style>
-            /* Basic styling to make them look like tags - Customize as needed */
-            .influencer-niche-container .niche-term {
-                background: #f1f1f1;
-                padding: 2px 8px;
-                border-radius: 4px;
-                margin-right: 5px;
-                display: inline-block;
-                margin-bottom: 5px;
-                font-size: 0.9em;
-            }
-            .influencer-niche-container .niche-toggle:hover {
-                text-decoration: underline;
-            }
-        </style>
     </div>
 
     <?php
