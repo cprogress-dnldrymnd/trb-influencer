@@ -128,3 +128,39 @@ function iso_alpha3_to_alpha2( $alpha3 ) {
 
     return isset( $mapping[ $alpha3 ] ) ? $mapping[ $alpha3 ] : false;
 }
+
+/**
+ * Get language name from 'lang' meta key using PHP Intl
+ */
+function get_lang_name_from_meta( $post_id = null ) {
+    // Get current post ID if none is provided
+    if ( ! $post_id ) {
+        $post_id = get_the_ID();
+    }
+
+    // Get the language code from the 'lang' meta key
+    $lang_code = get_post_meta( $post_id, 'lang', true );
+
+    // If meta is empty, return nothing
+    if ( empty( $lang_code ) ) {
+        return '';
+    }
+
+    // Check if the Intl extension is loaded (standard on most hosts)
+    if ( class_exists( 'Locale' ) ) {
+        // locale_get_display_language converts 'eng' -> 'English', 'de' -> 'German'
+        // 'en_US' is the locale for the output language (so the result is in English)
+        $display_name = Locale::getDisplayLanguage( $lang_code, 'en_US' );
+        
+        // Ensure we capitalize the first letter
+        return ucfirst( $display_name );
+    }
+
+    // Fallback if Intl is not enabled on server: Return code as uppercase
+    return strtoupper( $lang_code );
+}
+
+/**
+ * Shortcode usage: [post_language]
+ */
+add_shortcode( 'post_language', 'get_lang_name_from_meta' );
