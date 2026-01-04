@@ -53,5 +53,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   grid-template-columns: repeat(3, 1fr);
   /* 3 Columns */
   gap: 20px; }
+  .influencer-loop-grid > div > div {
+    height: 100%; }
 
 /*# sourceMappingURL=style.css.map */
