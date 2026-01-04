@@ -77,6 +77,11 @@ function my_custom_loop_filter_handler()
                 'compare' => 'BETWEEN',
                 'type'    => 'NUMERIC',
             ];
+
+            ob_start();
+            // 4. RENDER ELEMENTOR LOOP
+            echo $followers . 'xx2';
+            wp_send_json_success(ob_get_clean());
         } else {
             // No hyphen, assumed to be the top tier (e.g., "10000000")
             // Requirement: search for value GREATER THAN selected
@@ -97,17 +102,13 @@ function my_custom_loop_filter_handler()
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
-    ob_start();
-    // 4. RENDER ELEMENTOR LOOP
-   echo $followers.'xx2';
-        wp_send_json_success(ob_get_clean());
-    
+
+
     if ($query->have_posts()) {
 
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
-             
             }
         }
         wp_reset_postdata();
