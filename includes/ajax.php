@@ -104,7 +104,7 @@ function my_custom_loop_filter_handler()
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
-                echo $followers;
+                echo $followers.'xx2';
             }
         }
         wp_reset_postdata();
