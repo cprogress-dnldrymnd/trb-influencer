@@ -32,11 +32,15 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     width: 27px;
     height: 27px;
     border-radius: 50%;
-    background-color: #EBEBEB;
+    background-color: #ebebeb;
     color: #898989;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer; }
+
+.influencer-name .elementor-heading-title svg {
+  margin-left: 15px;
+  margin-bottom: -3px; }
 
 /*# sourceMappingURL=style.css.map */
