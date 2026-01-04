@@ -120,7 +120,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       .filter-widget .dropdown-container .dropdown-button.open .arrow {
         transform: rotate(-135deg);
         margin-top: 4px; }
-    .filter-widget .dropdown-container .dropdown-menu {
+    .filter-widget .dropdown-container .checkbox-lists {
       display: none;
       position: absolute;
       top: 100%;
@@ -134,9 +134,9 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       overflow-y: auto;
       z-index: 10;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-      .filter-widget .dropdown-container .dropdown-menu.show {
+      .filter-widget .dropdown-container .checkbox-lists.show {
         display: block; }
-      .filter-widget .dropdown-container .dropdown-menu .dropdown-item {
+      .filter-widget .dropdown-container .checkbox-lists .checkbox-list-item {
         padding: 5px 10px;
         cursor: pointer;
         display: flex;
@@ -145,9 +145,9 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         font-family: "Inter";
         font-size: 14px;
         color: #000; }
-        .filter-widget .dropdown-container .dropdown-menu .dropdown-item:hover {
+        .filter-widget .dropdown-container .checkbox-lists .checkbox-list-item:hover {
           background-color: #f3f4f6; }
-        .filter-widget .dropdown-container .dropdown-menu .dropdown-item input[type="checkbox"] {
+        .filter-widget .dropdown-container .checkbox-lists .checkbox-list-item input[type="checkbox"] {
           margin: 0;
           transform: scale(1.2);
           accent-color: #0f766e; }

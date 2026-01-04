@@ -130,9 +130,9 @@ function select_filter($name, $label, $options = [])
                 </span>
             </button>
 
-            <div class="dropdown-menu">
+            <div class="dropdown-menu checkbox-lists">
                 <?php foreach ($options as $key => $option) {  ?>
-                    <label class="dropdown-item">
+                    <label class="dropdown-item checkbox-list-item">
                         <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>"> <?= $option ?>
                     </label>
                 <?php } ?>

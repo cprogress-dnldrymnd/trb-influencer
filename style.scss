@@ -178,7 +178,7 @@ $guide-pink: #f9a8d4;
         }
 
         // The Dropdown Menu List
-        .dropdown-menu {
+        .checkbox-lists {
             display: none; // Hidden by default
             position: absolute;
             top: 100%;
@@ -198,7 +198,7 @@ $guide-pink: #f9a8d4;
                 display: block;
             }
 
-            .dropdown-item {
+            .checkbox-list-item {
                 padding: 5px 10px;
                 cursor: pointer;
                 display: flex;
