@@ -90,7 +90,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     position: relative; }
     .filter-widget .dropdown-container .dropdown-button {
       width: 100%;
-      padding-left: 15px;
+      padding: 0 0 0 15px;
       background-color: #f3f4f6;
       border: 1px solid #d1d5db;
       border-radius: 6px;
