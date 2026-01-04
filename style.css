@@ -122,7 +122,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         margin-top: 4px; }
     .filter-widget .dropdown-container.select-filter {
       display: none; }
-      .filter-widget .dropdown-container.select-filter.show {
+      .filter-widget .dropdown-container.select-filter .checkbox-lists.show {
         display: block; }
     .filter-widget .dropdown-container .checkbox-lists {
       position: absolute;
