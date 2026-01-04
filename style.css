@@ -187,16 +187,24 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 .range-filter input {
   width: 100%; }
 
-.influencer-search-button button {
+.influencer-search-button {
   width: 100%;
   background-color: transparent;
   color: var(--e-global-color-accent);
   font-size: 14px;
   letter-spacing: 0.7px;
   font-weight: 600; }
-  .influencer-search-button button:hover, .influencer-search-button button:active, .influencer-search-button button:focus {
+  .influencer-search-button:hover, .influencer-search-button:active, .influencer-search-button:focus {
     background-color: var(--e-global-color-accent);
     color: #fff;
     border-color: var(--e-global-color-accent); }
+
+.save-this-search-button {
+  text-align: center; }
+  .save-this-search-button span {
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px; }
 
 /*# sourceMappingURL=style.css.map */

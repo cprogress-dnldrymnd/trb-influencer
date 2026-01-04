@@ -266,9 +266,11 @@ function shortcode_influencer_search_filter()
                 </button>
             </div>
             <div class="influencer-search-item">
-                <span class="save-this-search">
-                    Save this search
-                </span>
+                <div class="save-this-search-button">
+                    <span class="Save this search">
+
+                    </span>
+                </div>
             </div>
         </div>
     </form>
