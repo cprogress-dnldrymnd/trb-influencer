@@ -60,4 +60,4 @@ function get_country_flag_from_meta() {
 
     return $output;
 }
-add_shortcode( 'country_with_flag', 'get_country_flag_from_meta' );
+add_shortcode( 'influencer_country_with_flag', 'get_country_flag_from_meta' );
