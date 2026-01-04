@@ -219,36 +219,45 @@ function shortcode_influencer_search_filter()
         'Prefer not to say' => 'Prefer not to say',
     );
 ?>
-    <div class="influencer-search-filter-holder">
-        <div class="influencer-search-item">
-            <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
-        </div>
-
-        <div class="influencer-search-item">
-            <?= checkbox_filter('platform', 'Platform', $lang_options) ?>
-        </div>
-
-        <div class="influencer-search-item">
-            <?= checkbox_filter('followers', 'Follower Range', $followers_options) ?>
-        </div>
-
-        <div class="influencer-search-item">
+    <form class="influencer-search" action="<?= get_the_permalink(1949) ?>" method="GET">
+        <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('country', 'Location', $country_options) ?>
+                <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
+            </div>
+
+            <div class="influencer-search-item">
+                <?= checkbox_filter('platform', 'Platform', $lang_options) ?>
+            </div>
+
+            <div class="influencer-search-item">
+                <?= checkbox_filter('followers', 'Follower Range', $followers_options) ?>
+            </div>
+
+            <div class="influencer-search-item">
+                <div class="influencer-search-item">
+                    <?= select_filter('country', 'Location', $country_options) ?>
+                </div>
+            </div>
+
+            <div class="influencer-search-item">
+                <div class="influencer-search-item">
+                    <?= select_filter('lang', 'Language', $lang_options) ?>
+                </div>
+            </div>
+            <div class="influencer-search-item">
+                <div class="influencer-search-item">
+                    <?= select_filter('gender', 'Gender', $gender_options) ?>
+                </div>
+            </div>
+            <div class="influencer-search-item">
+                <button type="submit" class="elementor-button elementor-button-link elementor-size-sm" >
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-text">REFINE SEARCH</span>
+                    </span>
+                </button>
             </div>
         </div>
-
-        <div class="influencer-search-item">
-            <div class="influencer-search-item">
-                <?= select_filter('lang', 'Language', $lang_options) ?>
-            </div>
-        </div>
-         <div class="influencer-search-item">
-            <div class="influencer-search-item">
-                <?= select_filter('gender', 'Gender', $gender_options) ?>
-            </div>
-        </div>
-    </div>
+    </form>
 
 
 
