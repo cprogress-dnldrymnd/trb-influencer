@@ -42,10 +42,9 @@
         var filter_platform = get_filter_values('platform[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
-        var filter_followers = get_filter_values('followers[]');
+        var filter_followers = get_filter_values('followers');
         // UI Feedback
         container.css('opacity', '0.5');
-
         $.ajax({
             url: search_vars.ajax_url,
             type: 'POST',
