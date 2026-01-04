@@ -97,7 +97,7 @@ function my_custom_loop_filter_handler()
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
-
+    ob_start();
     if ($query->have_posts()) {
 
         while ($query->have_posts()) {
