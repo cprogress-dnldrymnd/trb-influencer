@@ -442,7 +442,7 @@ function shortcode_influencer_search_filter()
 ?>
 <div class="influencer-search-filter-holder">
     <div class="influencer-search-item">
-        
+        <?= select_filter('influencer_tags', array('Instagram' => 'Instagram', 'Female' => 'Female')) ?>
     </div>
 </div>
 <?php

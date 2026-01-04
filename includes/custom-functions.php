@@ -110,3 +110,39 @@ function wp_custom_number_format_short($number, $precision = 1)
     // Fallback for numbers smaller than 1000
     return number_format($number);
 }
+
+
+function select_filter($name, $options = [])
+{
+    ob_start();
+?>
+    <div class="filter-widget">
+        <div class="header">
+            <span>Filter Group A</span>
+            <button class="reset-btn">Reset</button>
+        </div>
+
+        <div class="dropdown-container">
+            <button class="dropdown-button">
+                Select tags (Group A)
+                <span class="arrow"></span>
+            </button>
+
+            <div class="dropdown-menu">
+                <?php foreach ($options as $key => $option) {  ?>
+                    <label class="dropdown-item">
+                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name ?> ?>"> <?= $option ?>
+                    </label>
+                <?php } ?>
+
+            </div>
+        </div>
+
+        <div class="guide-line"></div>
+        <div class="tags-container"></div>
+    </div>
+
+<?php
+
+    return ob_get_clean();
+}
