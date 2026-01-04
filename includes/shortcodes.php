@@ -164,3 +164,86 @@ function get_lang_name_from_meta( $post_id = null ) {
  * Shortcode usage: [post_language]
  */
 add_shortcode( 'influencer_language', 'get_lang_name_from_meta' );
+
+
+function shortcode_influencer_niche() {
+    // 1. Get terms from the current post for taxonomy 'niche'
+    $terms = get_the_terms( get_the_ID(), 'niche' );
+
+    // 2. Check if terms exist and are not errors
+    if ( empty( $terms ) || is_wp_error( $terms ) ) {
+        return '';
+    }
+
+    // 3. Settings
+    $display_limit = 3;
+    $count = count( $terms );
+    $unique_id = uniqid( 'niche_' ); // Create unique ID for JS targeting
+
+    // 4. Start Output Buffer
+    ob_start(); 
+    ?>
+
+    <div class="influencer-niche-container" id="<?php echo esc_attr( $unique_id ); ?>">
+        <?php
+        $i = 0;
+        foreach ( $terms as $term ) {
+            $i++;
+            
+            // Determine if this term should be hidden initially
+            $is_hidden = $i > $display_limit;
+            $style = $is_hidden ? 'display:none;' : '';
+            $class = $is_hidden ? 'niche-term term-hidden' : 'niche-term';
+
+            // Output the term (You can change <span> to <a> if you want links)
+            echo sprintf(
+                '<span class="%s" style="%s">%s</span>',
+                esc_attr( $class ),
+                esc_attr( $style ),
+                esc_html( $term->name )
+            );
+        }
+
+        // 5. Add the Plus Sign if needed
+        if ( $count > $display_limit ) : ?>
+            <span class="niche-toggle" style="cursor:pointer; color: blue; font-weight:bold;" onclick="toggleNiches('<?php echo esc_js( $unique_id ); ?>', this)">
+                + <?php echo ( $count - $display_limit ); ?>
+            </span>
+        <?php endif; ?>
+        
+        <script>
+            function toggleNiches(containerId, btn) {
+                var container = document.getElementById(containerId);
+                var hiddenTerms = container.querySelectorAll('.term-hidden');
+                
+                // Show all hidden terms
+                hiddenTerms.forEach(function(term) {
+                    term.style.display = 'inline-block'; // Or 'inline' depending on your styling
+                });
+
+                // Hide the plus button
+                btn.style.display = 'none';
+            }
+        </script>
+
+        <style>
+            /* Basic styling to make them look like tags - Customize as needed */
+            .influencer-niche-container .niche-term {
+                background: #f1f1f1;
+                padding: 2px 8px;
+                border-radius: 4px;
+                margin-right: 5px;
+                display: inline-block;
+                margin-bottom: 5px;
+                font-size: 0.9em;
+            }
+            .influencer-niche-container .niche-toggle:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </div>
+
+    <?php
+    return ob_get_clean();
+}
+add_shortcode( 'influencer_niche', 'shortcode_influencer_niche' );
