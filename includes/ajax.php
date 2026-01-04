@@ -68,10 +68,27 @@ function my_custom_loop_filter_handler()
 
     // Followers Logic
     if (!empty($followers)) {
-        ob_start();
-            // 4. RENDER ELEMENTOR LOOP
-            echo $followers . 'xx2';
-            wp_send_json_success(ob_get_clean());
+        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
+        if (strpos($followers[0], '-') !== false) {
+            $range = explode('-', $followers[0]);
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $range, // array(min, max)
+                'compare' => 'BETWEEN',
+                'type'    => 'NUMERIC',
+            ];
+
+           
+        } else {
+            // No hyphen, assumed to be the top tier (e.g., "10000000")
+            // Requirement: search for value GREATER THAN selected
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $followers[0],
+                'compare' => '>',
+                'type'    => 'NUMERIC',
+            ];
+        }
     }
 
     if (!empty($meta_query)) {
