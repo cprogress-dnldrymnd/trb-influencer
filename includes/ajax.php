@@ -12,8 +12,9 @@ function my_custom_loop_filter_handler()
     $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
     $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
     ob_start();
-
-    echo $followers;
+    echo '<pre>';
+    var_dump($followers);
+    echo '</pre>';
     wp_send_json_success(ob_get_clean());
     // 2. BUILD THE QUERY ARGS
     $args = [
