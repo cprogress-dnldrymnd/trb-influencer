@@ -73,7 +73,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     font-weight: 600;
     color: #000000; }
     .filter-widget .header .reset-btn {
