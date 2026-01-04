@@ -98,6 +98,8 @@ $guide-pink: #f9a8d4;
    ========================================= */
 .influencer-search-filter-holder {
     display: flex;
+    flex-direction: column;
+    gap: 20px;
     * {
         font-family: Inter;
     }
