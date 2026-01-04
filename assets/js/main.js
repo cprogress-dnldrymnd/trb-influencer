@@ -48,7 +48,7 @@ function fetch_posts(category = '') {
 function influencer_select_filters() {
 
     // 1. Initialize all widgets independently
-    document.querySelectorAll('.filter-widget').forEach(widget => {
+    document.querySelectorAll('.select-filter').forEach(widget => {
 
         // Scope elements to THIS specific widget instance
         const dropdownBtn = widget.querySelector('.dropdown-button');
@@ -117,7 +117,7 @@ function influencer_select_filters() {
 
     // 2. Global "Click Outside" Listener
     document.addEventListener('click', (e) => {
-        document.querySelectorAll('.filter-widget').forEach(widget => {
+        document.querySelectorAll('.select-filter').forEach(widget => {
             const dropdownBtn = widget.querySelector('.dropdown-button');
             const dropdownMenu = widget.querySelector('.dropdown-menu');
 
@@ -130,7 +130,7 @@ function influencer_select_filters() {
 
     // Helper: Close all widgets except the one currently clicked
     function closeAllOtherDropdowns(currentMenu, currentBtn) {
-        document.querySelectorAll('.filter-widget').forEach(widget => {
+        document.querySelectorAll('.select-filter').forEach(widget => {
             const menu = widget.querySelector('.dropdown-menu');
             const btn = widget.querySelector('.dropdown-button');
 

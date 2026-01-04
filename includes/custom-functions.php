@@ -116,7 +116,7 @@ function select_filter($name, $label, $options = [])
 {
     ob_start();
 ?>
-    <div class="filter-widget">
+    <div class="filter-widget select-filter">
         <div class="header">
             <span><?= $label ?></span>
             <button class="reset-btn">Reset</button>
@@ -136,7 +136,6 @@ function select_filter($name, $label, $options = [])
                         <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>"> <?= $option ?>
                     </label>
                 <?php } ?>
-
             </div>
         </div>
 
@@ -145,5 +144,30 @@ function select_filter($name, $label, $options = [])
 
 <?php
 
+    return ob_get_clean();
+}
+
+function checkbox_filter($name, $label, $options = [])
+{
+    ob_start();
+?>
+
+    <div class="filter-widget checkbox-filter">
+        <div class="header">
+            <span><?= $label ?></span>
+            <button class="reset-btn">Reset</button>
+        </div>
+
+
+        <div class="dropdown-menu checkbox-lists">
+            <?php foreach ($options as $key => $option) {  ?>
+                <label class="dropdown-item checkbox-list-item">
+                    <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>"> <?= $option ?>
+                </label>
+            <?php } ?>
+        </div>
+    </div>
+
+<?php
     return ob_get_clean();
 }

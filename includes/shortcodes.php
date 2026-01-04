@@ -450,7 +450,11 @@ function shortcode_influencer_search_filter()
 ?>
     <div class="influencer-search-filter-holder">
         <div class="influencer-search-item">
-            <?= select_filter('influencer_tags', 'Tag Filter', $niche_options) ?>
+            <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
+        </div>
+
+         <div class="influencer-search-item">
+            <?= checkbox_filter('platform', 'Platform', $niche_options) ?>
         </div>
     </div>
 <?php
