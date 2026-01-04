@@ -172,7 +172,7 @@ function saved_search() {
         // Selector explanation:
         // input[name^="..."] selects inputs where the name STARTS with the string provided.
         // This handles cases where the name might be "niche" or "niche[]".
-        $('input[name^="' + name + '"]:checked').each(function () {
+        jQuery('input[name^="' + name + '"]:checked').each(function () {
             values.push($(this).val());
         });
         return values;
@@ -183,7 +183,7 @@ function saved_search() {
      * * Listens for a click on any element with class '.save-search-trigger'.
      * Gathers data and sends it to the server.
      */
-    $('.save-search-trigger').on('click', function (e) {
+    jQuery('.save-search-trigger').on('click', function (e) {
 
         // Prevent the link from jumping to the top of the page or reloading.
         e.preventDefault();
@@ -203,12 +203,12 @@ function saved_search() {
             'country': getCheckedValues('country'),
             'lang': getCheckedValues('lang'),
             'gender': getCheckedValues('gender'),
-            'score': $('input[name="score"]').val() // Range slider usually has a single value
+            'score': jQuery('input[name="score"]').val() // Range slider usually has a single value
         };
 
         // 2. AJAX Request
         // Sends the collected data to the PHP function 'handle_save_search_ajax'.
-        $.ajax({
+        jQuery.ajax({
             url: search_vars.ajax_url, // URL passed from PHP via wp_localize_script
             type: 'POST',
             data: {
