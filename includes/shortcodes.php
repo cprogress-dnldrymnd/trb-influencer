@@ -61,7 +61,7 @@ function get_country_flag_from_meta() {
     );
 
     // Text (Right side)
-    $output .= sprintf( '<span class="country-code-text" style="font-weight: 600;">%s</span>', $display_text );
+    $output .= sprintf( '<span class="country-code-text">%s</span>', $display_text );
     
     $output .= '</div>';
 
