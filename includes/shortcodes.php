@@ -439,12 +439,20 @@ add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 function shortcode_influencer_search_filter()
 {
     ob_start();
+    $niche = get_terms(array(
+        'taxonomy'   => 'niche',
+        'hide_empty' => true,
+    ));
+
+    foreach ($niche as $term) {
+        $niche_options[$term->slug] = $term->name;
+    }
 ?>
-<div class="influencer-search-filter-holder">
-    <div class="influencer-search-item">
-        <?= select_filter('influencer_tags', array('Instagram' => 'Instagram', 'Female' => 'Female')) ?>
+    <div class="influencer-search-filter-holder">
+        <div class="influencer-search-item">
+            <?= select_filter('influencer_tags', 'Tag Filter', $niche_options) ?>
+        </div>
     </div>
-</div>
 <?php
     return ob_get_clean();
 }

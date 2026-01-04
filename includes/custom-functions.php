@@ -112,13 +112,13 @@ function wp_custom_number_format_short($number, $precision = 1)
 }
 
 
-function select_filter($name, $options = [])
+function select_filter($name, $label, $options = [])
 {
     ob_start();
 ?>
     <div class="filter-widget">
         <div class="header">
-            <span>Filter Group A</span>
+            <span><?= $label ?></span>
             <button class="reset-btn">Reset</button>
         </div>
 
