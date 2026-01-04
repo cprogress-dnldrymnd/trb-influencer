@@ -173,7 +173,7 @@ function saved_search() {
         // input[name^="..."] selects inputs where the name STARTS with the string provided.
         // This handles cases where the name might be "niche" or "niche[]".
         jQuery('input[name^="' + name + '"]:checked').each(function () {
-            values.push($(this).val());
+            values.push(jQuery(this).val());
         });
         return values;
     }
