@@ -11,7 +11,10 @@ function my_custom_loop_filter_handler()
     $country   = isset($_POST['country']) ? $_POST['country'] : '';
     $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
     $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
-  wp_send_json_success($followers);
+    ob_start();
+
+    echo $followers;
+    wp_send_json_success(ob_get_clean());
     // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
@@ -101,7 +104,7 @@ function my_custom_loop_filter_handler()
     echo '<pre>';
     var_dump($args);
     echo '</pre>';
-  
+
 
     wp_die();
 }
