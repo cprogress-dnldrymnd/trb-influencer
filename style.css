@@ -86,7 +86,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       padding: 0; }
       .filter-widget .header .reset-btn:hover {
         opacity: 0.7; }
-  .filter-widget.select-filter {
+  .filter-widget.select-filter .checkbox-lists {
     display: none; }
     .filter-widget.select-filter .checkbox-lists.show {
       display: block; }
