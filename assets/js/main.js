@@ -29,13 +29,20 @@
     function fetch_influencers() {
         var container = $('#my-loop-grid-container');
 
-        // Gather values from inputs
-        // Adjust selectors if your inputs use IDs (e.g. #niche) instead of names
-        var filter_niche = $('[name="niche[]"]').val();
-        var filter_platform = $('[name="platform[]"]').val();
-        var filter_country = $('[name="country[]"]').val();
-        var filter_lang = $('[name="lang[]"]').val();
-        var filter_followers = $('[name="followers[]"]').val();
+        // 1. Helper function to gather values from CHECKED boxes only
+        function get_filter_values(name) {
+            return $('[name="' + name + '"]:checked').map(function () {
+                return $(this).val();
+            }).get();
+        }
+
+        // 2. Gather values using the helper function
+        // This creates an array like ['fashion', 'travel'] for the ajax call
+        var filter_niche = get_filter_values('niche[]');
+        var filter_platform = get_filter_values('platform[]');
+        var filter_country = get_filter_values('country[]');
+        var filter_lang = get_filter_values('lang[]');
+        var filter_followers = get_filter_values('followers[]');
 
         // UI Feedback
         container.css('opacity', '0.5');
@@ -45,6 +52,8 @@
             type: 'POST',
             data: {
                 action: 'my_custom_loop_filter',
+                // jQuery automatically converts these arrays into 
+                // format niche[]=val1&niche[]=val2 for PHP
                 niche: filter_niche,
                 platform: filter_platform,
                 country: filter_country,
