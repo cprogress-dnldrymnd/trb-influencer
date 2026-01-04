@@ -96,15 +96,10 @@ function my_custom_loop_filter_handler()
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
-        ob_start();
 
     // 4. RENDER ELEMENTOR LOOP
-     echo '<pre>';
-        var_dump($args);
-        echo '</pre>';
-        wp_send_json_success(ob_get_clean());
-
     if ($query->have_posts()) {
+        ob_start();
        
         while ($query->have_posts()) {
             $query->the_post();
@@ -113,6 +108,7 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
+        wp_send_json_success(ob_get_clean());
     } else {
         wp_send_json_error('No posts found');
     }
