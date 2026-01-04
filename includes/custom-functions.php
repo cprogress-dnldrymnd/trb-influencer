@@ -1,5 +1,4 @@
 <?php
-<?php
 /**
  * 1. Track Recently Viewed 'Influencer' Posts (Database Only)
  */
