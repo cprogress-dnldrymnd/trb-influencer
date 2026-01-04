@@ -97,7 +97,9 @@ $guide-pink: #f9a8d4;
    3. Widget Component
    ========================================= */
 .influencer-search-filter-holder {
-    font-family: Inter;
+    * {
+        font-family: Inter;
+    }
 }
 .filter-widget {
     border-radius: 8px;

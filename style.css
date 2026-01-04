@@ -63,7 +63,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 /* =========================================
    3. Widget Component
    ========================================= */
-.influencer-search-filter-holder {
+.influencer-search-filter-holder * {
   font-family: Inter; }
 
 .filter-widget {
