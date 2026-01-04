@@ -98,7 +98,6 @@ function my_custom_loop_filter_handler()
     $query = new WP_Query($args);
     ob_start();
     echo '<pre>';
-    var_dump($_POST);
     var_dump($args);
     echo '</pre>';
     // 4. RENDER ELEMENTOR LOOP
