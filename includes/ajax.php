@@ -66,7 +66,28 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-   
+    // Followers Logic
+    if (!empty($followers)) {
+        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
+        if (strpos($followers, '-') !== false) {
+            $range = explode('-', $followers);
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $range, // array(min, max)
+                'compare' => 'BETWEEN',
+                'type'    => 'NUMERIC',
+            ];
+        } else {
+            // No hyphen, assumed to be the top tier (e.g., "10000000")
+            // Requirement: search for value GREATER THAN selected
+            $meta_query[] = [
+                'key'     => 'followers',
+                'value'   => $followers,
+                'compare' => '>',
+                'type'    => 'NUMERIC',
+            ];
+        }
+    }
 
     if (!empty($meta_query)) {
         $meta_query['relation'] = 'AND';
@@ -77,7 +98,6 @@ function my_custom_loop_filter_handler()
     $query = new WP_Query($args);
 
     ob_start();
-
     // 4. RENDER ELEMENTOR LOOP
     if ($query->have_posts()) {
 

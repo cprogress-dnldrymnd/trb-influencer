@@ -449,6 +449,40 @@ function checkbox_filter($name, $label, $options = [])
     return ob_get_clean();
 }
 
+
+function radio_filter($name, $label, $options = [])
+{
+    // Check URL parameters for this field
+    $selected_values = [];
+    if (isset($_GET[$name])) {
+        $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
+    }
+
+    ob_start();
+?>
+
+    <div class="filter-widget checkbox-filter">
+        <div class="header">
+            <span><?= $label ?></span>
+        </div>
+
+
+        <div class="dropdown-menu checkbox-lists">
+            <?php foreach ($options as $key => $option) {
+                // Check if this specific key exists in the URL params
+                $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+            ?>
+                <label class="dropdown-item checkbox-list-item">
+                    <input type="radio" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
+                </label>
+            <?php } ?>
+        </div>
+    </div>
+
+<?php
+    return ob_get_clean();
+}
+
 /**
  * Get sorted array of unique countries from 'influencers' post type.
  * * Returns: array( 'alpha3' => 'Country Name' )

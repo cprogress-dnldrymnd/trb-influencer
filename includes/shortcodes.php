@@ -228,7 +228,7 @@ function shortcode_influencer_search_filter()
             </div>
 
             <div class="influencer-search-item">
-                <?= checkbox_filter('followers', 'Follower Range', $followers_options) ?>
+                <?= radio_filter('followers', 'Follower Range', $followers_options) ?>
             </div>
 
             <div class="influencer-search-item">

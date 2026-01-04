@@ -42,13 +42,7 @@
         var filter_platform = get_filter_values('platform[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
-        var filter_followers = get_filter_values('followers[]');
-
-        console.log('Filter Niche:', filter_niche);
-        console.log('Filter Platform:', filter_platform);
-        console.log('Filter Country:', filter_country);
-        console.log('Filter Language:', filter_lang);
-        console.log('Filter Followers:', filter_followers);
+        var filter_followers = $('[name="followers"]').val();
 
         // UI Feedback
         container.css('opacity', '0.5');
