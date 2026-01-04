@@ -31,11 +31,11 @@
 
         // Gather values from inputs
         // Adjust selectors if your inputs use IDs (e.g. #niche) instead of names
-        var filter_niche = $('[name="niche"]').val();
-        var filter_platform = $('[name="platform"]').val();
-        var filter_country = $('[name="country"]').val();
-        var filter_lang = $('[name="lang"]').val();
-        var filter_followers = $('[name="followers"]').val();
+        var filter_niche = $('[name="niche[]"]').val();
+        var filter_platform = $('[name="platform[]"]').val();
+        var filter_country = $('[name="country[]"]').val();
+        var filter_lang = $('[name="lang[]"]').val();
+        var filter_followers = $('[name="followers[]"]').val();
 
         // UI Feedback
         container.css('opacity', '0.5');
