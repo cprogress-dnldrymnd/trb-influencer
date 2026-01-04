@@ -440,7 +440,11 @@ function shortcode_influencer_search_filter()
 {
     ob_start();
 ?>
-
+<div class="influencer-search-filter-holder">
+    <div class="influencer-search-item">
+        
+    </div>
+</div>
 <?php
     return ob_get_clean();
 }
