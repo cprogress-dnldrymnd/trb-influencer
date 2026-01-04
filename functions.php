@@ -38,6 +38,7 @@ add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
 
 include 'includes/pmpro.php';
 include 'includes/custom-functions.php';
+include 'includes/elementor.php';
 
 
 /**
