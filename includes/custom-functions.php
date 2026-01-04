@@ -415,7 +415,7 @@ function checkbox_filter($name, $label, $options = [])
     <div class="filter-widget checkbox-filter">
         <div class="header">
             <span><?= $label ?></span>
-            <button class="reset-btn">Reset</button>
+            <div class="reset-btn">Reset</div>
         </div>
 
 
