@@ -436,7 +436,7 @@ function shortcode_influence_isverified()
 </svg>';
     }
 }
-add_shortcode('influence_isverified', 'shortcode_influence_isverified');
+add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 
 function shortcode_influencer_search_filter()
 {
