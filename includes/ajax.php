@@ -7,7 +7,7 @@ function my_custom_loop_filter_handler() {
     $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
     
     // 2. CONFIGURATION
-    $template_id = 1250; // REPLACE WITH YOUR LOOP ITEM TEMPLATE ID
+    $template_id = 1839; // REPLACE WITH YOUR LOOP ITEM TEMPLATE ID
     
     // 3. BUILD THE QUERY
     $args = [
