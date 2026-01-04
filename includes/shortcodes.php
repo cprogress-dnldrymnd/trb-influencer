@@ -209,6 +209,8 @@ function shortcode_influencer_search_filter()
     );
 
     $country_options = get_unique_influencer_countries();
+
+    $lang_options = get_unique_influencer_languages();
 ?>
     <div class="influencer-search-filter-holder">
         <div class="influencer-search-item">
@@ -216,7 +218,7 @@ function shortcode_influencer_search_filter()
         </div>
 
         <div class="influencer-search-item">
-            <?= checkbox_filter('platform', 'Platform', $platform_options) ?>
+            <?= checkbox_filter('platform', 'Platform', $lang_options) ?>
         </div>
 
         <div class="influencer-search-item">
@@ -226,6 +228,12 @@ function shortcode_influencer_search_filter()
         <div class="influencer-search-item">
             <div class="influencer-search-item">
                 <?= select_filter('country', 'Location', $country_options) ?>
+            </div>
+        </div>
+
+        <div class="influencer-search-item">
+            <div class="influencer-search-item">
+                <?= select_filter('lang', 'Language', $lang_options) ?>
             </div>
         </div>
     </div>

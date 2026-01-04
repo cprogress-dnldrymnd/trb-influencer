@@ -491,3 +491,53 @@ function get_unique_influencer_countries() {
 
     return $country_list;
 }
+
+/**
+ * Get sorted array of unique languages from 'influencers' post type.
+ * Returns: array( 'meta_value' => 'Language Name' )
+ */
+function get_unique_influencer_languages() {
+    global $wpdb;
+
+    // 1. Efficiently query only the unique meta values from the database
+    // We check for 'influencers' post type and 'publish' status
+    $results = $wpdb->get_col( $wpdb->prepare( "
+        SELECT DISTINCT pm.meta_value 
+        FROM {$wpdb->postmeta} pm
+        INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+        WHERE p.post_type = %s
+        AND pm.meta_key = %s
+        AND p.post_status = 'publish'
+    ", 'influencers', 'lang' ) );
+
+    $language_list = array();
+
+    // 2. Loop through results and format
+    foreach ( $results as $lang_code ) {
+        
+        $clean_code = trim( $lang_code );
+
+        // Convert Code to Full Language Name
+        // We use PHP's native Locale class (requires php-intl extension)
+        if ( class_exists( 'Locale' ) ) {
+            // getDisplayLanguage converts 'en' -> 'English', 'tl' -> 'Tagalog', etc.
+            $lang_name = Locale::getDisplayLanguage( $clean_code, 'en' );
+        } else {
+            // Fallback if intl extension is missing
+            $lang_name = strtoupper( $clean_code );
+        }
+
+        // Populate Array: Key = Original Meta Value, Value = Language Name
+        // We check if name generation failed (returns same code) and try to clean it up visually
+        if ( $lang_name == $clean_code ) {
+             $lang_name = ucfirst( $clean_code );
+        }
+
+        $language_list[ $clean_code ] = $lang_name;
+    }
+
+    // 3. Sort alphabetically by the Language Name (the array value)
+    asort( $language_list );
+
+    return $language_list;
+}
