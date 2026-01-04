@@ -51,7 +51,7 @@ function get_country_flag_from_meta() {
     }
 
     // 4. Generate HTML
-    $output  = '<div class="meta-country-wrapper" style="display: inline-flex; align-items: center; gap: 8px;">';
+    $output  = '<span class="meta-country-wrapper" style="display: inline-flex; align-items: center; gap: 8px;">';
     
     // Flag Image
     $output .= sprintf( 
@@ -63,7 +63,7 @@ function get_country_flag_from_meta() {
     // Text (Right side)
     $output .= sprintf( '<span class="country-code-text">%s</span>', $display_text );
     
-    $output .= '</div>';
+    $output .= '</span>';
 
     return $output;
 }
