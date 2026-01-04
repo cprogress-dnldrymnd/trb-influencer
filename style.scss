@@ -22,16 +22,20 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     gap: 8px;
     .niche-term {
         background: var(--e-global-color-c9360c1);
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-right: 5px;
+        border-radius: 54px;
         font-size: 11px;
         text-transform: uppercase;
         color: var(--e-global-color-primary);
         padding: 8px;
         font-family: Inter;
+        line-height: 1;
     }
     .niche-toggle {
         font-size: 11px;
+        width: 27px;
+        height: 27px;
+        border-radius: 50%;
+        background-color: #EBEBEB;
+        color: #898989;
     }
 }
