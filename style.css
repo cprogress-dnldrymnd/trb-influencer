@@ -48,4 +48,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   align-items: center;
   gap: 5px; }
 
+.influencer-loop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 Columns */
+  gap: 20px; }
+
 /*# sourceMappingURL=style.css.map */
