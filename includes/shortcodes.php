@@ -231,7 +231,7 @@ function shortcode_influencer_search_filter()
     </div>
 
 
-    get_unique_influencer_countries
+    
 <?php
     return ob_get_clean();
 }
