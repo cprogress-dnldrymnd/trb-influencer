@@ -371,9 +371,15 @@ function iso_alpha3_to_alpha2($alpha3)
     return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
 }
 
-
-function select_filter($name, $label, $options = [])
+select_filter($name, $label, $options = [])
 {
+    // Check URL parameters for this field
+    $selected_values = [];
+    if (isset($_GET[$name])) {
+        // Ensure it is an array (handles cases where only 1 item is selected)
+        $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
+    }
+
     ob_start();
 ?>
     <div class="filter-widget select-filter">
@@ -391,9 +397,12 @@ function select_filter($name, $label, $options = [])
             </div>
 
             <div class="dropdown-menu checkbox-lists">
-                <?php foreach ($options as $key => $option) {  ?>
+                <?php foreach ($options as $key => $option) {
+                    // Check if this specific key exists in the URL params
+                    $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+                ?>
                     <label class="dropdown-item checkbox-list-item">
-                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]"> <?= $option ?>
+                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
                     </label>
                 <?php } ?>
             </div>
@@ -409,6 +418,12 @@ function select_filter($name, $label, $options = [])
 
 function checkbox_filter($name, $label, $options = [])
 {
+    // Check URL parameters for this field
+    $selected_values = [];
+    if (isset($_GET[$name])) {
+        $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
+    }
+
     ob_start();
 ?>
 
@@ -419,9 +434,12 @@ function checkbox_filter($name, $label, $options = [])
 
 
         <div class="dropdown-menu checkbox-lists">
-            <?php foreach ($options as $key => $option) {  ?>
+            <?php foreach ($options as $key => $option) {
+                // Check if this specific key exists in the URL params
+                $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+            ?>
                 <label class="dropdown-item checkbox-list-item">
-                    <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]"> <?= $option ?>
+                    <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
                 </label>
             <?php } ?>
         </div>
@@ -430,7 +448,6 @@ function checkbox_filter($name, $label, $options = [])
 <?php
     return ob_get_clean();
 }
-
 
 /**
  * Get sorted array of unique countries from 'influencers' post type.
