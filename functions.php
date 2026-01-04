@@ -34,6 +34,7 @@ include 'includes/pmpro.php';
 include 'includes/custom-functions.php';
 include 'includes/elementor.php';
 include 'includes/shortcodes.php';
+include 'includes/ajax.php';
 
 
 /**
