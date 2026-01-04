@@ -47,7 +47,7 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
- 
+
     // --- Meta Query (Country, Lang, Followers) ---
     $meta_query = [];
 
@@ -67,39 +67,18 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-       ob_start();
+    if (!empty($meta_query)) {
+        $meta_query['relation'] = 'AND';
+        $args['meta_query'] = $meta_query;
+    }
+    ob_start();
     echo '<pre>';
     var_dump($args);
     echo '</pre>';
     wp_send_json_success(ob_get_clean());
 
-    // Followers Logic
-    if (!empty($followers)) {
-        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
-        if (strpos($followers, '-') !== false) {
-            $range = explode('-', $followers);
-            $meta_query[] = [
-                'key'     => 'followers',
-                'value'   => $range, // array(min, max)
-                'compare' => 'BETWEEN',
-                'type'    => 'NUMERIC',
-            ];
-        } else {
-            // No hyphen, assumed to be the top tier (e.g., "10000000")
-            // Requirement: search for value GREATER THAN selected
-            $meta_query[] = [
-                'key'     => 'followers',
-                'value'   => $followers,
-                'compare' => '>',
-                'type'    => 'NUMERIC',
-            ];
-        }
-    }
+  
 
-    if (!empty($meta_query)) {
-        $meta_query['relation'] = 'AND';
-        $args['meta_query'] = $meta_query;
-    }
 
 
 
