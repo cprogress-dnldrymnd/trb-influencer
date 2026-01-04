@@ -379,16 +379,16 @@ function select_filter($name, $label, $options = [])
     <div class="filter-widget select-filter">
         <div class="header">
             <span><?= $label ?></span>
-            <button class="reset-btn">Reset</button>
+            <div class="reset-btn">Reset</div>
         </div>
 
         <div class="dropdown-container">
-            <button class="dropdown-button">
+            <div class="dropdown-button">
                 Select your <?= strtolower($label) ?>
                 <span class="arrow-holder">
                     <span class="arrow"></span>
                 </span>
-            </button>
+            </div>
 
             <div class="dropdown-menu checkbox-lists">
                 <?php foreach ($options as $key => $option) {  ?>
