@@ -250,8 +250,6 @@ function shortcode_influencer_search_filter()
                 </div>
             </div>
             <div class="influencer-search-item">
-
-                <input type="submit">
                 <div class="filter-widget checkbox-filter">
                     <div class="header">
                         <span>Match Score</span>
