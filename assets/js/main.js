@@ -1,12 +1,10 @@
-function toggleNiches(containerId, btn) {
-    var container = document.getElementById(containerId);
-    var hiddenTerms = container.querySelectorAll('.term-hidden');
+jQuery(document).ready(function () {
+    nicheToggle();
+});
 
-    // Show all hidden terms
-    hiddenTerms.forEach(function (term) {
-        term.style.display = 'inline-block'; // Or 'inline' depending on your styling
+function nicheToggle() {
+    jQuery('.niche-toggle').click(function (e) {
+        e.preventDefault();
+        jQuery(this).parent().find('.niche-term').show();
     });
-
-    // Hide the plus button
-    btn.style.display = 'none';
 }
