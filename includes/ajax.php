@@ -38,7 +38,7 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-       ob_start();
+    ob_start();
     echo '<pre>';
     var_dump($args);
     echo '</pre>';
@@ -99,7 +99,7 @@ function my_custom_loop_filter_handler()
         $args['meta_query'] = $meta_query;
     }
 
- 
+
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
