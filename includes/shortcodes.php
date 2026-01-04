@@ -426,3 +426,8 @@ function shortcode_influencer_followers()
 }
 
 add_shortcode('influencer_followers', 'shortcode_influencer_followers');
+
+function shortcode_influence_isverified() {
+    return 'x';
+}
+add_shortcode('influence_isverified', 'shortcode_influence_isverified');
