@@ -6,11 +6,11 @@ function my_custom_loop_filter_handler()
 {
     // 1. SECURITY & INPUTS
     // We use santize_text_field for all, as even the numbers come in as strings initially
-    $niche     = isset($_POST['niche']) ? $_POST['niche'] : '';
-    $platform  = isset($_POST['platform']) ? $_POST['platform'] : '';
-    $country   = isset($_POST['country']) ? $_POST['country'] : '';
-    $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
-    $followers = isset($_POST['followers']) ? $_POST['followers']: '';
+    $niche     = isset($_POST['niche']) ? sanitize_text_field($_POST['niche']) : '';
+    $platform  = isset($_POST['platform']) ? sanitize_text_field($_POST['platform']) : '';
+    $country   = isset($_POST['country']) ? sanitize_text_field($_POST['country']) : '';
+    $lang      = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : '';
+    $followers = isset($_POST['followers']) ? sanitize_text_field($_POST['followers']) : '';
 
     // 2. BUILD THE QUERY ARGS
     $args = [
