@@ -211,6 +211,13 @@ function shortcode_influencer_search_filter()
     $country_options = get_unique_influencer_countries();
 
     $lang_options = get_unique_influencer_languages();
+
+    $gender_options = array(
+        'Male' => 'Male',
+        'Female' => 'Female',
+        'Non-Binary' => 'Non-Binary',
+        'Prefer not to say' => 'Prefer not to say',
+    );
 ?>
     <div class="influencer-search-filter-holder">
         <div class="influencer-search-item">
@@ -236,10 +243,15 @@ function shortcode_influencer_search_filter()
                 <?= select_filter('lang', 'Language', $lang_options) ?>
             </div>
         </div>
+         <div class="influencer-search-item">
+            <div class="influencer-search-item">
+                <?= select_filter('gender', 'Gender', $gender_options) ?>
+            </div>
+        </div>
     </div>
 
 
-    
+
 <?php
     return ob_get_clean();
 }
