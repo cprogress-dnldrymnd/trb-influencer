@@ -49,7 +49,6 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
-
       ob_start();
     echo '<pre>';
     var_dump($args);
