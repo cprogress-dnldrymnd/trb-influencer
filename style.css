@@ -184,4 +184,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         .filter-widget .tags-container .tag .tag-close:hover {
           color: #115e59; }
 
+.range-filter input {
+  width: 100%; }
+
 /*# sourceMappingURL=style.css.map */
