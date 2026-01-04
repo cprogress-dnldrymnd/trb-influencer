@@ -473,7 +473,7 @@ function radio_filter($name, $label, $options = [])
                 $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
             ?>
                 <label class="dropdown-item checkbox-list-item">
-                    <input type="radio" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
+                    <input type="radio" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>" <?= $is_checked ?>> <?= $option ?>
                 </label>
             <?php } ?>
         </div>
