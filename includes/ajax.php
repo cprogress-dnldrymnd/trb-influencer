@@ -96,10 +96,13 @@ function my_custom_loop_filter_handler()
 
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
-
+    ob_start();
+    echo '<pre>';
+    var_dump($args);
+    echo '</pre>';
     // 4. RENDER ELEMENTOR LOOP
     if ($query->have_posts()) {
-        ob_start();
+
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
@@ -125,7 +128,8 @@ function my_custom_loop_filter_handler()
 add_action('wp_ajax_save_user_search', 'handle_save_search_ajax');
 
 
-function handle_save_search_ajax() {
+function handle_save_search_ajax()
+{
     // 1. Security Check
     check_ajax_referer('save_search_nonce', 'security');
 
