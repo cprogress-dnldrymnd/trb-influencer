@@ -449,7 +449,7 @@ function get_unique_influencer_countries() {
         WHERE p.post_type = %s
         AND pm.meta_key = %s
         AND p.post_status = 'publish'
-    ", 'influencers', 'country' ) );
+    ", 'influencer', 'country' ) );
 
     $country_list = array();
 
