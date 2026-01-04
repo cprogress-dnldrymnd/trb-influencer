@@ -112,7 +112,7 @@ $guide-pink: #f9a8d4;
         margin-bottom: 16px;
         font-weight: 600;
         color: $text-header;
-    font-size: 14px;
+        font-size: 14px;
         .reset-btn {
             font-size: 0.9rem;
             text-decoration: underline;
@@ -129,7 +129,6 @@ $guide-pink: #f9a8d4;
     }
     &.select-filter {
         .checkbox-lists {
-
             display: none; // Hidden by default
             position: absolute;
             top: 100%;
@@ -143,6 +142,9 @@ $guide-pink: #f9a8d4;
             overflow-y: auto;
             z-index: 10;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            .checkbox-list-item {
+                padding: 5px 10px;
+            }
             &.show {
                 display: block;
             }
@@ -200,7 +202,7 @@ $guide-pink: #f9a8d4;
     // The Dropdown Menu List
     .checkbox-lists {
         .checkbox-list-item {
-            padding: 5px 10px;
+            padding: 5px 0;
             cursor: pointer;
             display: flex;
             align-items: center;
