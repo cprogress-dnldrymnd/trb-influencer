@@ -90,7 +90,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     position: relative; }
     .filter-widget .dropdown-container .dropdown-button {
       width: 100%;
-      padding: 12px 0 15px;
+      padding: 0 15px;
       background-color: #f3f4f6;
       border: 1px solid #d1d5db;
       border-radius: 6px;
@@ -106,8 +106,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       .filter-widget .dropdown-container .dropdown-button:hover {
         border-color: #9ca3af; }
       .filter-widget .dropdown-container .dropdown-button .arrow-holder {
-        padding-right: 11px;
-        padding-left: 11px;
+        padding: 15px 11px;
         border-left: 1px solid #d1d5db; }
       .filter-widget .dropdown-container .dropdown-button .arrow {
         border: solid #333333;
