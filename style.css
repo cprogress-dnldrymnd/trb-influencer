@@ -57,37 +57,48 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   .influencer-loop-grid > div > div {
     height: 100%; }
 
+/* =========================================
+   1. Variables & Configuration
+   ========================================= */
+/* =========================================
+   2. Base Styles
+   ========================================= */
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f0f2f5;
   display: flex;
   justify-content: center;
-  gap: 20px;
+  align-items: flex-start;
   padding-top: 50px;
+  gap: 20px;
   flex-wrap: wrap; }
 
+/* =========================================
+   3. Widget Component
+   ========================================= */
 .filter-widget {
   background: #e5e7eb;
   padding: 20px;
-  width: 300px;
+  width: 350px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  position: relative; }
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
   .filter-widget .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
     font-weight: 600;
-    color: #000; }
+    color: #000000; }
     .filter-widget .header .reset-btn {
       font-size: 0.9rem;
       text-decoration: underline;
       cursor: pointer;
-      color: #000;
+      color: #000000;
       background: none;
       border: none;
       padding: 0; }
+      .filter-widget .header .reset-btn:hover {
+        opacity: 0.7; }
   .filter-widget .dropdown-container {
     position: relative; }
     .filter-widget .dropdown-container .dropdown-button {
@@ -102,11 +113,13 @@ body {
       justify-content: space-between;
       align-items: center;
       font-size: 1rem;
-      color: #333; }
+      color: #333333;
+      box-sizing: border-box;
+      transition: border-color 0.2s; }
       .filter-widget .dropdown-container .dropdown-button:hover {
         border-color: #9ca3af; }
       .filter-widget .dropdown-container .dropdown-button .arrow {
-        border: solid #333;
+        border: solid #333333;
         border-width: 0 2px 2px 0;
         display: inline-block;
         padding: 3px;
@@ -122,13 +135,13 @@ body {
       top: 100%;
       left: 0;
       right: 0;
-      background: white;
+      background: #ffffff;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       margin-top: 5px;
       max-height: 200px;
       overflow-y: auto;
-      z-index: 100;
+      z-index: 10;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
       .filter-widget .dropdown-container .dropdown-menu.show {
         display: block; }
@@ -151,7 +164,8 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 15px; }
+    margin-top: 15px;
+    min-height: 10px; }
     .filter-widget .tags-container .tag {
       display: inline-flex;
       align-items: center;
@@ -168,7 +182,8 @@ body {
         font-size: 1.1rem;
         line-height: 1;
         display: flex;
-        align-items: center; }
+        align-items: center;
+        transition: color 0.2s; }
         .filter-widget .tags-container .tag .tag-close:hover {
           color: #115e59; }
 

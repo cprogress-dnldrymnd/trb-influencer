@@ -70,69 +70,87 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     }
 }
 
-// 1. Variables (Easy to change theme colors here)
-$font-stack:     'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-$bg-body:        #f0f2f5;
-$bg-widget:      #e5e7eb;
-$bg-dropdown:    #f3f4f6;
-$border-color:   #d1d5db;
-$border-hover:   #9ca3af;
-$text-color:     #333;
+/* =========================================
+   1. Variables & Configuration
+   ========================================= */
+$font-stack: 'Inter', Tahoma, Geneva, Verdana, sans-serif;
 
-// The Teal Theme
-$teal-primary:   #0f766e;
-$teal-bg:        #d1fae5;
-$teal-hover:     #115e59;
-$pink-dashed:    #f9a8d4;
+// Colors (extracted for easy theming)
+$bg-body:       #f0f2f5;
+$bg-widget:     #e5e7eb;
+$bg-input:      #f3f4f6;
+$bg-white:      #ffffff;
+$bg-tag:        #d1fae5;
 
-// 2. Base Layout
+$border-color:  #d1d5db;
+$border-hover:  #9ca3af;
+$border-tag:    #0f766e;
+
+$text-main:     #333333;
+$text-header:   #000000;
+$text-teal:     #0f766e;
+$text-teal-dark:#115e59;
+
+$accent-color:  #0f766e; // Teal
+$guide-pink:    #f9a8d4;
+
+/* =========================================
+   2. Base Styles
+   ========================================= */
 body {
   font-family: $font-stack;
   background-color: $bg-body;
   display: flex;
   justify-content: center;
-  gap: 20px;
+  align-items: flex-start;
   padding-top: 50px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
-// 3. Widget Styles
+/* =========================================
+   3. Widget Component
+   ========================================= */
 .filter-widget {
   background: $bg-widget;
   padding: 20px;
-  width: 300px;
+  width: 350px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  position: relative; // Important for absolute positioning context
 
-  // Header Area
+  // --- Header Section ---
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
     font-weight: 600;
-    color: #000;
+    color: $text-header;
 
     .reset-btn {
       font-size: 0.9rem;
       text-decoration: underline;
       cursor: pointer;
-      color: #000;
+      color: $text-header;
       background: none;
       border: none;
       padding: 0;
+
+      &:hover {
+        opacity: 0.7;
+      }
     }
   }
 
-  // Dropdown Logic
+  // --- Dropdown Section ---
   .dropdown-container {
     position: relative;
 
+    // The Trigger Button
     .dropdown-button {
       width: 100%;
       padding: 12px 15px;
-      background-color: $bg-dropdown;
+      background-color: $bg-input;
       border: 1px solid $border-color;
       border-radius: 6px;
       text-align: left;
@@ -141,14 +159,17 @@ body {
       justify-content: space-between;
       align-items: center;
       font-size: 1rem;
-      color: $text-color;
+      color: $text-main;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
 
       &:hover {
         border-color: $border-hover;
       }
 
+      // Arrow Icon
       .arrow {
-        border: solid $text-color;
+        border: solid $text-main;
         border-width: 0 2px 2px 0;
         display: inline-block;
         padding: 3px;
@@ -158,27 +179,31 @@ body {
       }
 
       // State: Open
-      &.open .arrow {
-        transform: rotate(-135deg);
-        margin-top: 4px;
+      &.open {
+        .arrow {
+          transform: rotate(-135deg);
+          margin-top: 4px;
+        }
       }
     }
 
+    // The Dropdown Menu List
     .dropdown-menu {
-      display: none;
+      display: none; // Hidden by default
       position: absolute;
       top: 100%;
       left: 0;
       right: 0;
-      background: white;
+      background: $bg-white;
       border: 1px solid $border-color;
       border-radius: 6px;
       margin-top: 5px;
       max-height: 200px;
       overflow-y: auto;
-      z-index: 100;
+      z-index: 10;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
+      // State: Show
       &.show {
         display: block;
       }
@@ -191,37 +216,38 @@ body {
         gap: 10px;
 
         &:hover {
-          background-color: $bg-dropdown;
+          background-color: $bg-input;
         }
 
         input[type="checkbox"] {
           transform: scale(1.2);
-          accent-color: $teal-primary;
+          accent-color: $accent-color;
         }
       }
     }
   }
 
-  // Decorative Line
+  // --- Decorative Line ---
   .guide-line {
-    border-top: 1px dashed $pink-dashed;
+    border-top: 1px dashed $guide-pink;
     margin: 10px 0;
     opacity: 0.5;
   }
 
-  // Tag/Chip Area
+  // --- Tags Display Area ---
   .tags-container {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 15px;
+    min-height: 10px;
 
     .tag {
       display: inline-flex;
       align-items: center;
-      background-color: $teal-bg;
-      border: 1px solid $teal-primary;
-      color: $teal-primary;
+      background-color: $bg-tag;
+      border: 1px solid $border-tag;
+      color: $text-teal;
       padding: 6px 14px;
       border-radius: 999px; // Pill shape
       font-size: 0.9rem;
@@ -234,9 +260,10 @@ body {
         line-height: 1;
         display: flex;
         align-items: center;
+        transition: color 0.2s;
 
         &:hover {
-          color: $teal-hover;
+          color: $text-teal-dark;
         }
       }
     }
