@@ -28,5 +28,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     color: var(--e-global-color-primary);
     padding: 8px;
     font-family: Inter; }
+  .influencer-niche-container .niche-toggle {
+    font-size: 11px; }
 
 /*# sourceMappingURL=style.css.map */
