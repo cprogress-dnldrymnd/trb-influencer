@@ -177,9 +177,15 @@ $guide-pink: #f9a8d4;
             }
         }
 
+        &.select-filter {
+            display: none; // Hidden by default
+
+            &.show {
+                display: block;
+            }
+        }
         // The Dropdown Menu List
         .checkbox-lists {
-            display: none; // Hidden by default
             position: absolute;
             top: 100%;
             left: 0;
@@ -194,9 +200,6 @@ $guide-pink: #f9a8d4;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
             // State: Show
-            &.show {
-                display: block;
-            }
 
             .checkbox-list-item {
                 padding: 5px 10px;

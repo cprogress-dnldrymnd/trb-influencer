@@ -443,9 +443,17 @@ function shortcode_influencer_search_filter()
         'taxonomy'   => 'niche',
         'hide_empty' => true,
     ));
-
     foreach ($niche as $term) {
         $niche_options[$term->slug] = $term->name;
+    }
+
+    $platform = get_terms(array(
+        'taxonomy'   => 'platform',
+        'hide_empty' => true,
+    ));
+
+    foreach ($platform as $term) {
+        $platform_options[$term->slug] = $term->name;
     }
 ?>
     <div class="influencer-search-filter-holder">
@@ -453,8 +461,8 @@ function shortcode_influencer_search_filter()
             <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
         </div>
 
-         <div class="influencer-search-item">
-            <?= checkbox_filter('platform', 'Platform', $niche_options) ?>
+        <div class="influencer-search-item">
+            <?= checkbox_filter('platform', 'Platform', $platform_options) ?>
         </div>
     </div>
 <?php
