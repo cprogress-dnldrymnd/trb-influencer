@@ -105,7 +105,6 @@ function my_custom_loop_filter_handler()
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
                 echo $followers;
-                echo do_shortcode('[elementor-template id="1839"]');
             }
         }
         wp_reset_postdata();
