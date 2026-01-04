@@ -78,7 +78,6 @@ function influencer_select_filters() {
         resetBtn.addEventListener('click', () => {
             checkboxes.forEach(box => box.checked = false);
             updateTags();
-            tagsContainer.hide();
         });
 
         // Function to Render Tags
@@ -113,8 +112,6 @@ function influencer_select_filters() {
             tag.appendChild(text);
             tag.appendChild(closeBtn);
             tagsContainer.appendChild(tag);
-            tagsContainer.show();
-            
         }
     });
 
