@@ -107,6 +107,7 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
+        wp_send_json_success(ob_get_clean());
     } else {
         wp_send_json_error('No posts found');
     }
