@@ -11,7 +11,7 @@ function my_custom_loop_filter_handler()
     $country   = isset($_POST['country']) ? $_POST['country'] : '';
     $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
     $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
-
+  wp_send_json_success('xxxxx2');
     // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
@@ -101,20 +101,7 @@ function my_custom_loop_filter_handler()
     echo '<pre>';
     var_dump($args);
     echo '</pre>';
-    wp_send_json_success(ob_get_clean());
-
-    if ($query->have_posts()) {
-
-        while ($query->have_posts()) {
-            $query->the_post();
-            if (class_exists('\Elementor\Plugin')) {
-                echo do_shortcode('[elementor-template id="1839"]');
-            }
-        }
-        wp_reset_postdata();
-    } else {
-        wp_send_json_error('No posts found');
-    }
+  
 
     wp_die();
 }
