@@ -39,7 +39,7 @@ function my_custom_loop_filter_handler() {
             // This is the Elementor magic method
             // It renders the specific template ID with the current post's data
             if ( class_exists( '\Elementor\Plugin' ) ) {
-                echo \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $template_id );
+                echo do_shortcode('[elementor-template id="1839"]');
             } else {
                 echo 'Elementor not loaded.';
             }
