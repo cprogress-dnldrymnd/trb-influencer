@@ -76,7 +76,8 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     align-items: center;
     margin-bottom: 16px;
     font-weight: 600;
-    color: #000000; }
+    color: #000000;
+    font-size: 14px; }
     .filter-widget .header .reset-btn {
       font-size: 0.9rem;
       text-decoration: underline;
