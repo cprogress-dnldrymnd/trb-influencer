@@ -133,7 +133,7 @@ function select_filter($name, $label, $options = [])
             <div class="dropdown-menu checkbox-lists">
                 <?php foreach ($options as $key => $option) {  ?>
                     <label class="dropdown-item checkbox-list-item">
-                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>"> <?= $option ?>
+                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]"> <?= $option ?>
                     </label>
                 <?php } ?>
             </div>
@@ -162,7 +162,7 @@ function checkbox_filter($name, $label, $options = [])
         <div class="dropdown-menu checkbox-lists">
             <?php foreach ($options as $key => $option) {  ?>
                 <label class="dropdown-item checkbox-list-item">
-                    <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>"> <?= $option ?>
+                    <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]"> <?= $option ?>
                 </label>
             <?php } ?>
         </div>
