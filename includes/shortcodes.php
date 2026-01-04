@@ -163,4 +163,4 @@ function get_lang_name_from_meta( $post_id = null ) {
 /**
  * Shortcode usage: [post_language]
  */
-add_shortcode( 'post_language', 'get_lang_name_from_meta' );
+add_shortcode( 'influencer_language', 'get_lang_name_from_meta' );
