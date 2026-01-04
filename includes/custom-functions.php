@@ -64,3 +64,49 @@ function get_recent_influencer_ids_array($limit = 5)
     // Slice to the requested limit
     return array_slice($viewed_ids, 0, $limit);
 }
+
+
+/**
+ * Converts a number to a short metric format (e.g., 1.1K, 1.5M).
+ *
+ * @param int|float $number The number to format.
+ * @param int       $precision Optional. The number of decimal places. Default 1.
+ * @return string The formatted number with suffix.
+ */
+function wp_custom_number_format_short($number, $precision = 1)
+{
+    // Return 0 immediately if input is empty or zero
+    if (empty($number)) {
+        return '0';
+    }
+
+    // Define suffixes
+    $suffixes = array(
+        12 => 'T', // Trillion
+        9  => 'B', // Billion
+        6  => 'M', // Million
+        3  => 'K', // Thousand
+        0  => '',  // None
+    );
+
+    // Loop through suffixes to find the correct range
+    foreach ($suffixes as $exponent => $suffix) {
+        if (abs($number) >= pow(10, $exponent)) {
+            // Divide number by the exponent value
+            $display = $number / pow(10, $exponent);
+
+            // Format number to specified precision
+            $formatted = number_format($display, $precision);
+
+            // Remove ".0" or ".00" if the decimal is zero (cleaner look)
+            // e.g., turns "10.0K" into "10K"
+            $formatted = str_replace('.0', '', $formatted);
+            $formatted = str_replace('.00', '', $formatted); // Just in case precision is 2
+
+            return $formatted . $suffix;
+        }
+    }
+
+    // Fallback for numbers smaller than 1000
+    return number_format($number);
+}

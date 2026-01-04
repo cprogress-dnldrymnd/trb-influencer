@@ -419,3 +419,10 @@ function shortcode_influencer_niche()
     return ob_get_clean();
 }
 add_shortcode('influencer_niche', 'shortcode_influencer_niche');
+
+function shortcode_influencer_followers()
+{
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'followers', true));
+}
+
+add_shortcode('influencer_followers', 'shortcode_influencer_followers');
