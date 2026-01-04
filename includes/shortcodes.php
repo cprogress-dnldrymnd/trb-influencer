@@ -250,7 +250,18 @@ function shortcode_influencer_search_filter()
                 </div>
             </div>
             <div class="influencer-search-item">
-                <button type="submit" class="elementor-button elementor-button-link elementor-size-sm" >
+
+                <input type="submit">
+                <div class="filter-widget checkbox-filter">
+                    <div class="header">
+                        <span>Match Score</span>
+                    </div>
+
+                    <input type="range" id="score" name="score" min="0" max="100">
+                </div>
+            </div>
+            <div class="influencer-search-item">
+                <button type="submit" class="elementor-button elementor-button-link elementor-size-sm">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text">REFINE SEARCH</span>
                     </span>
