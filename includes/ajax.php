@@ -47,11 +47,7 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
-    ob_start();
-    echo '<pre>';
-    var_dump($args);
-    echo '</pre>';
-    wp_send_json_success(ob_get_clean());
+ 
     // --- Meta Query (Country, Lang, Followers) ---
     $meta_query = [];
 
@@ -70,6 +66,12 @@ function my_custom_loop_filter_handler()
             'compare' => '=',
         ];
     }
+
+       ob_start();
+    echo '<pre>';
+    var_dump($args);
+    echo '</pre>';
+    wp_send_json_success(ob_get_clean());
 
     // Followers Logic
     if (!empty($followers)) {
