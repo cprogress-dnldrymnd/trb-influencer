@@ -87,7 +87,19 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       .filter-widget .header .reset-btn:hover {
         opacity: 0.7; }
   .filter-widget.select-filter .checkbox-lists {
-    display: none; }
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    margin-top: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
     .filter-widget.select-filter .checkbox-lists.show {
       display: block; }
   .filter-widget .dropdown-container {
@@ -124,34 +136,21 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       .filter-widget .dropdown-container .dropdown-button.open .arrow {
         transform: rotate(-135deg);
         margin-top: 4px; }
-  .filter-widget .checkbox-lists {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    margin-top: 5px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 10;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-    .filter-widget .checkbox-lists .checkbox-list-item {
-      padding: 5px 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: "Inter";
-      font-size: 14px;
-      color: #000; }
-      .filter-widget .checkbox-lists .checkbox-list-item:hover {
-        background-color: #f3f4f6; }
-      .filter-widget .checkbox-lists .checkbox-list-item input[type="checkbox"] {
-        margin: 0;
-        transform: scale(1.2);
-        accent-color: #0f766e; }
+  .filter-widget .checkbox-lists .checkbox-list-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Inter";
+    font-size: 14px;
+    color: #000; }
+    .filter-widget .checkbox-lists .checkbox-list-item:hover {
+      background-color: #f3f4f6; }
+    .filter-widget .checkbox-lists .checkbox-list-item input[type="checkbox"] {
+      margin: 0;
+      transform: scale(1.2);
+      accent-color: #0f766e; }
   .filter-widget .tags-container {
     display: flex;
     flex-wrap: wrap;
