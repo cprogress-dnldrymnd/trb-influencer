@@ -388,3 +388,9 @@ input:checked + .slider:before {
       
     }
 }
+
+.chips-holder {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

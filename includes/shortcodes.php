@@ -281,11 +281,12 @@ function shortcode_influencer_search_filter()
 
 add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 
-function shortcode_influencer_last_updated() {
-    $creatordb_last_updated = get_post_meta( get_the_ID(), 'creatordb_last_updated', true );
+function shortcode_influencer_last_updated()
+{
+    $creatordb_last_updated = get_post_meta(get_the_ID(), 'creatordb_last_updated', true);
 
     // Check if value exists to avoid returning the current date or 1970 if empty
-    if ( empty( $creatordb_last_updated ) ) {
+    if (empty($creatordb_last_updated)) {
         return '';
     }
 
@@ -293,7 +294,25 @@ function shortcode_influencer_last_updated() {
     // 'M' = Short textual representation of month (Nov)
     // 'j' = Day of the month without leading zeros (14)
     // 'Y' = Full numeric representation of a year (2025)
-    return date_i18n( 'M j, Y', $creatordb_last_updated );
+    return date_i18n('M j, Y', $creatordb_last_updated);
 }
 
-add_shortcode( 'influencer_last_updated', 'shortcode_influencer_last_updated' );
+add_shortcode('influencer_last_updated', 'shortcode_influencer_last_updated');
+
+
+function shortcode_influencer_topics()
+{
+    ob_start();
+
+?>
+    <div class="chips-holder">
+        <span class="chip style-2">WELLBEING</span>
+        <span class="chip style-2">NUTRITION</span>
+        <span class="chip style-2">DIETING</span>
+        <span class="chip style-2">HEALTH & WELLNESS</span>
+        <span class="chip style-2">WOMENS HEALTH</span>
+    </div>
+<?php
+    return ob_get_clean();
+}
+add_shortcode('influencer_topics', 'shortcode_influencer_topics');

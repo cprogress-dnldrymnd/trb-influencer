@@ -295,4 +295,9 @@ input:checked + .slider:before {
   overflow: hidden;
   background-color: #bcbcbc; }
 
+.chips-holder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; }
+
 /*# sourceMappingURL=style.css.map */
