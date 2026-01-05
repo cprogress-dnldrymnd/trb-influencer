@@ -198,9 +198,9 @@
 
             // Get the ID from the attribute
             var influencerId = $button.attr('influencer-id');
-
+            var buttonText = $(this).find('.elementor-button');
             // (Optional) Visual feedback: Change button text or disable it
-            $button.text('Saving...').prop('disabled', true);
+            $buttonText.text('Saving...').prop('disabled', true);
 
             $.ajax({
                 url: ajax_vars.ajax_url, // From wp_localize_script
@@ -213,15 +213,15 @@
                 success: function (response) {
                     if (response.success) {
                         alert('Success: ' + response.data.message);
-                        $button.text('Saved');
+                        $buttonText.text('Saved');
                     } else {
                         alert('Error: ' + response.data.message);
-                        $button.text('Save Influencer').prop('disabled', false);
+                        $buttonText.text('Save Influencer').prop('disabled', false);
                     }
                 },
                 error: function () {
                     alert('An unexpected error occurred.');
-                    $button.text('Save Influencer').prop('disabled', false);
+                    $buttonText.text('Save Influencer').prop('disabled', false);
                 }
             });
         });
