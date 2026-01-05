@@ -290,6 +290,9 @@ input:checked + .slider:before {
     font-size: 15px;
     border-radius: 5px;
     border: none; }
+  .chip.bg-2 {
+    background-color: #FFF7E0;
+    color: #AB4B09; }
 
 .tab-style-1 .e-n-tabs-heading {
   display: inline-flex;

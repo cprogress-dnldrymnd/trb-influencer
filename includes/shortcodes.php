@@ -316,3 +316,25 @@ function shortcode_influencer_topics()
     return ob_get_clean();
 }
 add_shortcode('influencer_topics', 'shortcode_influencer_topics');
+
+
+function shortcode_influencer_niches()
+{
+    ob_start();
+
+?>
+    <div class="chips-holder">
+        <span class="chip style-2 bg-2">explore</span>
+        <span class="chip style-2 bg-2">reel</span>
+        <span class="chip style-2 bg-2">newyear</span>
+        <span class="chip style-2 bg-2">selflove</span>
+        <span class="chip style-2 bg-2">delicious</span>
+        <span class="chip style-2 bg-2">dessert</span>
+        <span class="chip style-2 bg-2">healthylifestyle</span>
+        <span class="chip style-2 bg-2">pizza</span>
+        <span class="chip style-2 bg-2">yummy</span>
+    </div>
+<?php
+    return ob_get_clean();
+}
+add_shortcode('influencer_niches', 'shortcode_influencer_niches');

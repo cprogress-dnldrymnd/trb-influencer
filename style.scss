@@ -380,6 +380,10 @@ input:checked + .slider:before {
         border-radius: 5px;
         border: none;
     }
+    &.bg-2 {
+        background-color: #FFF7E0;
+        color: #AB4B09;
+    }
 }
 
 .tab-style-1 {
@@ -390,7 +394,6 @@ input:checked + .slider:before {
         border: 1px solid #f77d67;
         overflow: hidden;
         background-color: #bcbcbc;
-      
     }
 }
 
@@ -398,5 +401,4 @@ input:checked + .slider:before {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    
 }
