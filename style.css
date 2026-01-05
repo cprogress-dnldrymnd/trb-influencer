@@ -397,7 +397,7 @@ input:checked + .slider:before {
     border-radius: 5px;
     letter-spacing: 0.6px;
     font-family: Inter, sans-serif; }
-  .premium-content-notice button:not(:hover) {
+  .premium-content-notice button {
     color: #fff;
     font-family: "Inter";
     font-size: 14px;

@@ -520,7 +520,7 @@ input:checked + .slider:before {
         letter-spacing: 0.6px;
         font-family: Inter, sans-serif;
     }
-    button:not(:hover) {
+    button {
         color: #fff;
         font-family: "Inter";
         font-size: 14px;
