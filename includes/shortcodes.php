@@ -296,4 +296,4 @@ function shortcode_influencer_last_updated() {
     return date_i18n( 'M j, Y', $creatordb_last_updated );
 }
 
-add_shortcode( 'creatordb_last_updated', 'shortcode_influencer_last_updated' );
+add_shortcode( 'influencer_last_updated', 'shortcode_influencer_last_updated' );
