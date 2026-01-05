@@ -421,3 +421,13 @@ input:checked + .slider:before {
     background-color: var(--e-global-color-3868d1d);
     border-radius: 10px;
 }
+
+.pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label) {
+    font-size: 18px;
+    color: var(--e-global-color-primary);
+}
+
+.pmpro_section #loginform .login-remember {
+    font-size: 18px;
+    color: var(--e-global-color-primary);
+}
