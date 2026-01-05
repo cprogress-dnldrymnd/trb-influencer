@@ -360,10 +360,15 @@ function breadcrumbs()
     <nav class="breadcrumbs breadcrumbs-<?= $type ?>" aria-label="Breadcrumbs">
         <ul>
             <?php if ($type == 'dashboard') { ?>
-                <li class="dark"><?= $dashboard_icon ?> <span>Dashboard</span></li>
+                <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
             <?php } else if ($type == 'search') { ?>
-                <li class="light"><?= $search_icon ?> <span>Influencer Discovery</span></li>
-                <li class="dark"><span>Search</span></li>
+                <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
+                <?php if (get_the_ID() == $search) { ?>
+                    <li><span>Search</span></li>
+                <?php } else if (get_the_ID() == $search_result) { ?>
+                    <li><a href="<?= get_the_permalink($search) ?>">Search</a></li>
+                    <li><span>Search Results</span></li>
+                <?php } ?>
             <?php } ?>
 
         </ul>
