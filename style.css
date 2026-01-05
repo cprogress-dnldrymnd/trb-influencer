@@ -355,6 +355,10 @@ input:checked + .slider:before {
     list-style: none;
     padding: 0;
     margin: 0; }
+    .breadcrumbs ul li {
+      display: flex;
+      align-items: center;
+      gap: 10px; }
   .breadcrumbs .dark {
     color: #034146; }
 
