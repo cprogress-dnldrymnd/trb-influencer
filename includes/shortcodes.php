@@ -351,7 +351,7 @@ function breadcrumbs()
     <nav class="breadcrumbs" aria-label="Breadcrumbs">
         <ul>
             <?php if (get_the_ID() == $dashboard) { ?>
-                <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
+                <li class="dark"><?= $dashboard_icon ?> <span>Dashboard</span></li>
             <?php } ?>
            
         </ul>

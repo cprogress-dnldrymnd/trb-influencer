@@ -347,8 +347,10 @@ input:checked + .slider:before {
     margin-bottom: 0; }
 
 .breadcrumbs {
-  background-color: #EDF7F6;
+  background-color: #edf7f6;
   padding: 14px;
   border-radius: 5px; }
+  .breadcrumbs .dark {
+    color: #034146; }
 
 /*# sourceMappingURL=style.css.map */

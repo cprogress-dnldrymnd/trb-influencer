@@ -458,9 +458,11 @@ input:checked + .slider:before {
     }
 }
 
-
 .breadcrumbs {
-    background-color: #EDF7F6;
+    background-color: #edf7f6;
     padding: 14px;
     border-radius: 5px;
+    .dark {
+        color: #034146;
+    }
 }
