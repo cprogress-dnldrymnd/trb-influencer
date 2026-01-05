@@ -329,6 +329,10 @@ input:checked + .slider:before {
   font-size: 18px;
   color: var(--e-global-color-primary); }
 
+.pmpro_form_label:not(.pmpro_form_label-inline) {
+  font-size: 18px;
+  color: var(--e-global-color-primary); }
+
 .pmpro.pmpro {
   padding: 50px 20px;
   background-color: #fef6f3; }
