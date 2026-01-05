@@ -395,6 +395,15 @@ input:checked + .slider:before {
     font-weight: bold;
     padding: 14px 24px;
     border-radius: 5px;
-    letter-spacing: 0.6px; }
+    letter-spacing: 0.6px;
+    font-family: Inter, sans-serif; }
+  .premium-content-notice button:not(:hover) {
+    color: #fff;
+    font-family: "Inter";
+    font-size: 14px;
+    letter-spacing: 0.7px;
+    border: none;
+    line-height: 1;
+    padding: 14px 25px; }
 
 /*# sourceMappingURL=style.css.map */
