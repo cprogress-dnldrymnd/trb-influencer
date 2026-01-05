@@ -60,7 +60,7 @@
             },
             success: function (response) {
                 if (response.success) {
-                    container.html(response.data);
+                    container.html(response.data.html);
                 } else {
                     container.html('<p>No influencers found matching your criteria.</p>');
                 }

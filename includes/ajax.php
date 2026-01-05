@@ -97,9 +97,8 @@ function my_custom_loop_filter_handler()
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
-    ob_start();
     if ($query->have_posts()) {
-
+        ob_start();
         while ($query->have_posts()) {
             $query->the_post();
             if (class_exists('\Elementor\Plugin')) {
@@ -107,8 +106,18 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
-        wp_send_json_success(ob_get_clean());
+
+        // 1. Capture the HTML into a variable
+        $html_output = ob_get_clean();
+
+        // 2. Send an array containing both the HTML and the count
+        wp_send_json_success(array(
+            'html'        => $html_output,
+            'found_posts' => $query->found_posts
+        ));
     } else {
+        // It's often good practice to clean the buffer even on error to prevent stray output
+        ob_end_clean();
         wp_send_json_error('No posts found');
     }
 
