@@ -46,7 +46,7 @@
         // UI Feedback
         container.css('opacity', '0.5');
         $.ajax({
-            url: search_vars.ajax_url,
+            url: ajax_vars.ajax_url,
             type: 'POST',
             data: {
                 action: 'my_custom_loop_filter',
@@ -203,11 +203,11 @@
             $button.text('Saving...').prop('disabled', true);
 
             $.ajax({
-                url: influencer_saver_data.ajax_url, // From wp_localize_script
+                url: ajax_vars.ajax_url, // From wp_localize_script
                 type: 'POST',
                 data: {
                     action: 'save_influencer', // Must match the wp_ajax_ hook
-                    security: influencer_saver_data.nonce,
+                    security: ajax_vars.nonce,
                     influencer_id: influencerId
                 },
                 success: function (response) {
@@ -277,11 +277,11 @@
             // 2. AJAX Request
             // Sends the collected data to the PHP function 'handle_save_search_ajax'.
             jQuery.ajax({
-                url: search_vars.ajax_url, // URL passed from PHP via wp_localize_script
+                url: ajax_vars.ajax_url, // URL passed from PHP via wp_localize_script
                 type: 'POST',
                 data: {
                     action: 'save_user_search', // Must match the wp_ajax_{action} hook in PHP
-                    security: search_vars.nonce,  // Security token passed from PHP
+                    security: ajax_vars.nonce,  // Security token passed from PHP
                     search_data: searchData          // The object containing our form values
                 },
 
