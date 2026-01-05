@@ -427,7 +427,7 @@ input:checked + .slider:before {
     color: var(--e-global-color-primary);
 }
 
-.pmpro_section #loginform .login-remember {
+.pmpro_section #loginform .login-remember label{
     font-size: 18px;
     color: var(--e-global-color-primary);
 }
