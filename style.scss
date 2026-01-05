@@ -376,3 +376,10 @@ input:checked + .slider:before {
     font-weight: 500;
     line-height: 1;
 }
+
+.tab-style-1 {
+    .e-n-tabs-heading {
+        display: inline-flex;
+        margin-left: auto;
+    }
+}
