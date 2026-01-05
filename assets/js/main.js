@@ -61,6 +61,7 @@
             success: function (response) {
                 if (response.success) {
                     container.html(response.data.html);
+                    jQuery('.total-found-influencer').text(response.data.found_posts)
                 } else {
                     container.html('<p>No influencers found matching your criteria.</p>');
                 }
