@@ -26,8 +26,7 @@ function hello_elementor_child_scripts_styles()
 {
 
     wp_enqueue_style('influencer-style', get_stylesheet_directory_uri() . '/style.css');
-    wp_enqueue_script('jquery');
-    wp_enqueue_script('influencer-js', get_stylesheet_directory_uri() . '/assets/js/main.js');
+    wp_enqueue_script('influencer-js', get_stylesheet_directory_uri() . '/assets/js/main.js', ['jquery']);
     wp_localize_script('influencer-js', 'ajax_vars', [
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce'    => wp_create_nonce('save_search_nonce'),
@@ -148,7 +147,7 @@ add_action('wp_head', 'action_wp_head');
  */
 add_filter('elementor/theme/get_location_templates/template_id', function ($template_id, $location) {
     // Check if we are on the specific page template
-    if (is_page_template('templates/page-dashboard.php') || (is_single() )) {
+    if (is_page_template('templates/page-dashboard.php') || (is_single() && get_post_type() == 'influencer')) {
         // If the location is header or footer, return 0 to skip the Elementor template
         if (in_array($location, ['header', 'footer'])) {
             return 0;
