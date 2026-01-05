@@ -381,5 +381,8 @@ input:checked + .slider:before {
     .e-n-tabs-heading {
         display: inline-flex;
         margin-left: auto;
+        border-radius: 5px;
+        border: 1px solid #F77D67;
+        overflow: hidden;
     }
 }
