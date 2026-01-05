@@ -5,7 +5,7 @@
         influencer_select_filters();
         influencer_search_trigger();
         saved_search_trigger();
-
+        saved_influencer_trigger();
     });
 
     function nicheToggle() {
@@ -187,6 +187,44 @@
                 }
             });
         }
+    }
+
+    function saved_influencer_trigger() {
+        // Listen for click on .save-influencer-trigger
+        $(document).on('click', '.save-influencer-trigger', function (e) {
+            e.preventDefault();
+
+            var $button = $(this);
+
+            // Get the ID from the attribute
+            var influencerId = $button.attr('influencer-id');
+
+            // (Optional) Visual feedback: Change button text or disable it
+            $button.text('Saving...').prop('disabled', true);
+
+            $.ajax({
+                url: influencer_saver_data.ajax_url, // From wp_localize_script
+                type: 'POST',
+                data: {
+                    action: 'save_influencer', // Must match the wp_ajax_ hook
+                    security: influencer_saver_data.nonce,
+                    influencer_id: influencerId
+                },
+                success: function (response) {
+                    if (response.success) {
+                        alert('Success: ' + response.data.message);
+                        $button.text('Saved');
+                    } else {
+                        alert('Error: ' + response.data.message);
+                        $button.text('Save Influencer').prop('disabled', false);
+                    }
+                },
+                error: function () {
+                    alert('An unexpected error occurred.');
+                    $button.text('Save Influencer').prop('disabled', false);
+                }
+            });
+        });
     }
 
     function saved_search_trigger() {

@@ -194,3 +194,53 @@ function handle_save_search_ajax()
 
     wp_send_json_success(['message' => 'Search saved successfully!']);
 }
+
+
+
+// 2. Handle the AJAX Request
+function handle_save_influencer_ajax()
+{
+    // Security check
+    check_ajax_referer('save_influencer_nonce', 'security');
+
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        wp_send_json_error(array('message' => 'You must be logged in to save.'));
+    }
+
+    // Get the data
+    $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+
+    if (empty($influencer_id)) {
+        wp_send_json_error(array('message' => 'No Influencer ID provided.'));
+    }
+
+    $current_user_id = get_current_user_id();
+
+    // Format: Jan 4, 2026 @ 8:57 pm
+    // Note: current_time gets the time based on your WP timezone settings
+    $post_title = 'Influencer saved on ' . current_time('M j, Y @ g:i a');
+
+    // Prepare Post Data
+    $new_post = array(
+        'post_title'    => $post_title,
+        'post_type'     => 'saved-influencer', // Ensure this Post Type is registered
+        'post_status'   => 'publish',
+        'post_author'   => $current_user_id,
+    );
+
+    // Insert the Post
+    $post_id = wp_insert_post($new_post);
+
+    if (is_wp_error($post_id)) {
+        wp_send_json_error(array('message' => 'Could not create post.'));
+    } else {
+        // Update Meta Data
+        update_post_meta($post_id, 'influencer_id', $influencer_id);
+
+        wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
+    }
+}
+
+// Register the AJAX action for logged-in users
+add_action('wp_ajax_save_influencer', 'handle_save_influencer_ajax');
