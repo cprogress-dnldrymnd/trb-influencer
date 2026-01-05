@@ -224,7 +224,7 @@ function shortcode_influencer_search_filter()
                 <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
             </div>
             <div class="influencer-search-item">
-                <?= checkbox_filter('platform', 'Platform', $lang_options) ?>
+                <?= checkbox_filter('platform', 'Platform', $platform) ?>
             </div>
 
             <div class="influencer-search-item">
