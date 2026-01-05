@@ -371,6 +371,11 @@ input:checked + .slider:before {
   .breadcrumbs .light {
     opacity: 0.5; }
   .breadcrumbs.breadcrumbs ul li:not(:last-child)::after {
-    content: ">"; }
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-left: 1px solid;
+    border-top: 1px solid;
+    transform: rotate(135deg); }
 
 /*# sourceMappingURL=style.css.map */
