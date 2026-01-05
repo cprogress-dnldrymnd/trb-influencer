@@ -288,7 +288,8 @@ input:checked + .slider:before {
   line-height: 1; }
   .chip.style-2 {
     font-size: 15px;
-    border-radius: 5px; }
+    border-radius: 5px;
+    border: none; }
 
 .tab-style-1 .e-n-tabs-heading {
   display: inline-flex;
