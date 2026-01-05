@@ -198,7 +198,7 @@
 
             // Get the ID from the attribute
             var influencerId = $button.attr('influencer-id');
-            var buttonText = $(this).find('.elementor-button');
+            var $buttonText = $(this).find('.elementor-button-text');
             // (Optional) Visual feedback: Change button text or disable it
             $buttonText.text('Saving...').prop('disabled', true);
 
