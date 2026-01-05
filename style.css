@@ -237,10 +237,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #FFD33C;
+  background-color: #ffd33c;
   /* Gray when off */
-  -webkit-transition: .4s;
-  transition: .4s; }
+  -webkit-transition: 0.4s;
+  transition: 0.4s; }
 
 /* 4. The Knob (Circle) */
 .slider:before {
@@ -250,17 +250,17 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   width: 26px;
   left: 4px;
   bottom: 4px;
-  background-color: #3B1527;
-  -webkit-transition: .4s;
-  transition: .4s; }
+  background-color: #3b1527;
+  -webkit-transition: 0.4s;
+  transition: 0.4s; }
 
 /* 5. Styles when Checked (ON state) */
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #2196f3;
   /* Change this hex code for your brand color */ }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3; }
+  box-shadow: 0 0 1px #2196f3; }
 
 /* 6. Move the Knob when checked */
 input:checked + .slider:before {
