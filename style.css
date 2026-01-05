@@ -364,6 +364,8 @@ input:checked + .slider:before {
       display: flex;
       align-items: center;
       gap: 10px; }
+      .breadcrumbs ul li a {
+        color: inherit; }
       .breadcrumbs ul li svg {
         width: 16px;
         height: 16px;

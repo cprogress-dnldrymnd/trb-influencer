@@ -478,6 +478,9 @@ input:checked + .slider:before {
             display: flex;
             align-items: center;
             gap: 10px;
+            a {
+                color: inherit;
+            }
             svg {
                 width: 16px;
                 height: 16px;
