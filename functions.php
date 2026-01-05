@@ -148,7 +148,7 @@ add_action('wp_head', 'action_wp_head');
  */
 add_filter('elementor/theme/get_location_templates/template_id', function ($template_id, $location) {
     // Check if we are on the specific page template
-    if (is_page_template('templates/page-dashboard.php') || (is_single() && get_post_type() == 'influencer')) {
+    if (is_page_template('templates/page-dashboard.php') || (is_single() )) {
         // If the location is header or footer, return 0 to skip the Elementor template
         if (in_array($location, ['header', 'footer'])) {
             return 0;
