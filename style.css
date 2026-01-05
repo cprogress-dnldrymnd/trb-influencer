@@ -349,7 +349,8 @@ input:checked + .slider:before {
 .breadcrumbs {
   background-color: #edf7f6;
   padding: 14px;
-  border-radius: 5px; }
+  border-radius: 5px;
+  font-size: 16px; }
   .breadcrumbs ul {
     list-style: none;
     padding: 0;
