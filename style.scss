@@ -427,7 +427,20 @@ input:checked + .slider:before {
     color: var(--e-global-color-primary);
 }
 
-.pmpro_section #loginform .login-remember label{
+.pmpro_section #loginform .login-remember label {
     font-size: 18px;
     color: var(--e-global-color-primary);
+}
+
+.pmpro.pmpro {
+    padding: 20px;
+    background-color: #fef6f3;
+    * {
+        font-family: Inter !important;
+    }
+    .pmpro_section {
+        max-width: 1430px;
+        margin-left: auto;
+        margin-right: auto;
+    }
 }

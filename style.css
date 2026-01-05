@@ -329,4 +329,14 @@ input:checked + .slider:before {
   font-size: 18px;
   color: var(--e-global-color-primary); }
 
+.pmpro.pmpro {
+  padding: 20px;
+  background-color: #fef6f3; }
+  .pmpro.pmpro * {
+    font-family: Inter !important; }
+  .pmpro.pmpro .pmpro_section {
+    max-width: 1430px;
+    margin-left: auto;
+    margin-right: auto; }
+
 /*# sourceMappingURL=style.css.map */
