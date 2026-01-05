@@ -351,7 +351,8 @@ input:checked + .slider:before {
   padding: 14px;
   border-radius: 5px;
   font-size: 16px;
-  font-family: Inter,sans-serif; }
+  font-family: Inter, sans-serif;
+  color: #034146; }
   .breadcrumbs ul {
     list-style: none;
     padding: 0;
@@ -360,7 +361,7 @@ input:checked + .slider:before {
       display: flex;
       align-items: center;
       gap: 10px; }
-  .breadcrumbs .dark {
-    color: #034146; }
+  .breadcrumbs .light {
+    opacity: 0.5; }
 
 /*# sourceMappingURL=style.css.map */
