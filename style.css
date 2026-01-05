@@ -284,6 +284,7 @@ input:checked + .slider:before {
   padding: 6px 14px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 500; }
+  font-weight: 500;
+  line-height: 1; }
 
 /*# sourceMappingURL=style.css.map */
