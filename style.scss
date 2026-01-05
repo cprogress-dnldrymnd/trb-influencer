@@ -384,10 +384,7 @@ input:checked + .slider:before {
         border-radius: 5px;
         border: 1px solid #f77d67;
         overflow: hidden;
-        > .e-n-tab-title {
-            &:not(:last-child) {
-                border-right: 1px solid #bcbcbc;
-            }
-        }
+        background-color: #bcbcbc;
+      
     }
 }

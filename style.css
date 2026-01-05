@@ -292,8 +292,7 @@ input:checked + .slider:before {
   margin-left: auto;
   border-radius: 5px;
   border: 1px solid #f77d67;
-  overflow: hidden; }
-  .tab-style-1 .e-n-tabs-heading > .e-n-tab-title:not(:last-child) {
-    border-right: 1px solid #bcbcbc; }
+  overflow: hidden;
+  background-color: #bcbcbc; }
 
 /*# sourceMappingURL=style.css.map */
