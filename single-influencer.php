@@ -7,7 +7,7 @@
     </div>
     <div class="dashboard-content">
         <?= do_shortcode('[elementor-template id="1640"]') ?>
-        <?= do_shortcode('[elementor-template id="1868"]') ?> 
+        <?= do_shortcode('[elementor-template id="2483"]') ?> 
     </div>
 </div>
 <?php }?>
