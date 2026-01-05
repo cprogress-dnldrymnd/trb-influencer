@@ -12,7 +12,7 @@
     </div>
     <div class="dashboard-content">
         <?= do_shortcode('[elementor-template id="1640"]') ?>
-        <?php the_content() ?>
+        <?= do_shortcode('[elementor-template id="1868"]') ?> 
     </div>
 </div>
 <?php }?>
