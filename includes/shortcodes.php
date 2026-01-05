@@ -365,7 +365,9 @@ function breadcrumbs()
                 <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
                 <?php if (get_the_ID() == $search) { ?>
                     <li><span>Search</span></li>
-                <?php } else if (get_the_ID() == $search_result) { ?>
+                <?php } ?>
+
+                <?php if (get_the_ID() == $search_result || is_single() && get_post_type() == 'influencer') { ?>
                     <li><a href="<?= get_the_permalink($search) ?>">Search</a></li>
                     <li><span>Search Results</span></li>
                 <?php } ?>
