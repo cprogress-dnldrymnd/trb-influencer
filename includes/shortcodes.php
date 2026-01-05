@@ -280,3 +280,20 @@ function shortcode_influencer_search_filter()
 }
 
 add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
+
+function shortcode_influencer_last_updated() {
+    $creatordb_last_updated = get_post_meta( get_the_ID(), 'creatordb_last_updated', true );
+
+    // Check if value exists to avoid returning the current date or 1970 if empty
+    if ( empty( $creatordb_last_updated ) ) {
+        return '';
+    }
+
+    // Format the timestamp
+    // 'M' = Short textual representation of month (Nov)
+    // 'j' = Day of the month without leading zeros (14)
+    // 'Y' = Full numeric representation of a year (2025)
+    return date_i18n( 'M j, Y', $creatordb_last_updated );
+}
+
+add_shortcode( 'creatordb_last_updated', 'shortcode_influencer_last_updated' );
