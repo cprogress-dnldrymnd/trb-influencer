@@ -363,3 +363,15 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    background-color: $bg-tag;
+    border: 1px solid $border-tag;
+    color: $text-teal;
+    padding: 6px 14px;
+    border-radius: 999px; // Pill shape
+    font-size: 13px;
+    font-weight: 500;
+}
