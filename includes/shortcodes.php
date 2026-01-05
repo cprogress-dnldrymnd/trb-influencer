@@ -351,7 +351,7 @@ function breadcrumbs()
 
     if (get_the_ID() == $dashboard) {
         $type = 'dashboard';
-    } else if (get_the_ID() == $search || get_the_ID() == $search_result) {
+    } else if (get_the_ID() == $search || get_the_ID() == $search_result || (is_single() && get_post_type() == 'influencer')) {
         $type = 'search';
     } else {
         $type = 'other';
