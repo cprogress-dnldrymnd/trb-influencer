@@ -61,7 +61,9 @@
             success: function (response) {
                 if (response.success) {
                     container.html(response.data.html);
-                    jQuery('.total-found-influencer').text(response.data.found_posts)
+                    jQuery('.total-found-influencer').text(response.data.found_posts);
+                    $count = jQuery('#my-loop-grid-container .e-loop-item').length;
+                    jQuery('.current-found-influencer').text($count);
                 } else {
                     container.html('<p>No influencers found matching your criteria.</p>');
                 }
