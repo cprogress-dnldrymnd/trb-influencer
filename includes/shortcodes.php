@@ -357,7 +357,7 @@ function breadcrumbs()
         $type = 'other';
     }
 ?>
-    <nav class="breadcrumbs" aria-label="Breadcrumbs">
+    <nav class="breadcrumbs breadcrumbs-<?= $type ?>" aria-label="Breadcrumbs">
         <ul>
             <?php if ($type == 'dashboard') { ?>
                 <li class="dark"><?= $dashboard_icon ?> <span>Dashboard</span></li>

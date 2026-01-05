@@ -472,7 +472,7 @@ input:checked + .slider:before {
         margin: 0;
         display: flex;
         align-items: center;
-            gap: 10px;
+        gap: 10px;
 
         li {
             display: flex;
@@ -488,5 +488,14 @@ input:checked + .slider:before {
 
     .light {
         opacity: 0.5;
+    }
+    &.breadcrumbs {
+        ul {
+            li {
+                &:not(:last-child)::after {
+                    content: ">";
+                }
+            }
+        }
     }
 }

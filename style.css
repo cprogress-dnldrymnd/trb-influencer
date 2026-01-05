@@ -370,5 +370,7 @@ input:checked + .slider:before {
         flex: 0 0 16px; }
   .breadcrumbs .light {
     opacity: 0.5; }
+  .breadcrumbs.breadcrumbs ul li:not(:last-child)::after {
+    content: ">"; }
 
 /*# sourceMappingURL=style.css.map */
