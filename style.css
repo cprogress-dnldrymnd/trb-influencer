@@ -207,4 +207,12 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     font-weight: 500;
     font-size: 14px; }
 
+.fixed-long-text {
+  white-space: normal;
+  /* Ensures text is allowed to wrap */
+  overflow-wrap: break-word;
+  /* Prevents long words/URLs from overflowing */
+  word-break: break-word;
+  /* Adds wider browser support */ }
+
 /*# sourceMappingURL=style.css.map */
