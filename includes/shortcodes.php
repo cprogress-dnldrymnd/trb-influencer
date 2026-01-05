@@ -363,9 +363,7 @@ function breadcrumbs()
                 <li class="dark"><?= $dashboard_icon ?> <span>Dashboard</span></li>
             <?php } else if ($type == 'search') { ?>
                 <li class="light"><?= $search_icon ?> <span>Influencer Discovery</span></li>
-                <?php if (get_the_ID() == $search) { ?>
-                    <li class="dark"><span>Search</span></li>
-                <?php } ?>
+                <li class="dark"><span>Search</span></li>
             <?php } ?>
 
         </ul>

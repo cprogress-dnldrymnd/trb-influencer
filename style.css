@@ -368,14 +368,14 @@ input:checked + .slider:before {
         width: 16px;
         height: 16px;
         flex: 0 0 16px; }
-  .breadcrumbs .light {
-    opacity: 0.5; }
-  .breadcrumbs.breadcrumbs ul li:not(:last-child)::after {
-    content: "";
-    width: 7px;
-    height: 7px;
-    border-left: 1px solid;
-    border-top: 1px solid;
-    transform: rotate(135deg); }
+      .breadcrumbs ul li:not(:last-child) {
+        opacity: 0.5; }
+        .breadcrumbs ul li:not(:last-child):after {
+          content: "";
+          width: 7px;
+          height: 7px;
+          border-left: 1px solid;
+          border-top: 1px solid;
+          transform: rotate(135deg); }
 
 /*# sourceMappingURL=style.css.map */

@@ -483,16 +483,9 @@ input:checked + .slider:before {
                 height: 16px;
                 flex: 0 0 16px;
             }
-        }
-    }
-
-    .light {
-        opacity: 0.5;
-    }
-    &.breadcrumbs {
-        ul {
-            li {
-                &:not(:last-child)::after {
+            &:not(:last-child) {
+                opacity: 0.5;
+                &:after {
                     content: "";
                     width: 7px;
                     height: 7px;
