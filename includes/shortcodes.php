@@ -122,7 +122,6 @@ function shortcode_influencer_niche()
     // 3. Settings
     $display_limit = 3;
     $count = count($terms);
-    $unique_id = uniqid('niche_'); // Create unique ID for JS targeting
 
     // 4. Start Output Buffer
     ob_start();
