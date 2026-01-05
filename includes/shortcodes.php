@@ -305,7 +305,7 @@ function shortcode_influencer_topics()
     ob_start();
 
 ?>
-    <div class="chips-holder">
+    <div class="chips-holder influcencer-topics-holder">
         <span class="chip style-2">WELLBEING</span>
         <span class="chip style-2">NUTRITION</span>
         <span class="chip style-2">DIETING</span>
@@ -323,7 +323,7 @@ function shortcode_influencer_niches()
     ob_start();
 
 ?>
-    <div class="chips-holder">
+    <div class="chips-holder influencer-niches-holder">
         <span class="chip style-2 bg-2">explore</span>
         <span class="chip style-2 bg-2">reel</span>
         <span class="chip style-2 bg-2">newyear</span>
