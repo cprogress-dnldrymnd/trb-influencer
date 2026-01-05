@@ -338,3 +338,24 @@ function shortcode_influencer_niches()
     return ob_get_clean();
 }
 add_shortcode('influencer_niches', 'shortcode_influencer_niches');
+
+
+function breadcrumbs()
+{
+    ob_start();
+    $dashboard = 1565;
+    $search = 2149;
+    $search_result = 1949;
+    $dashboard_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="15.768" height="15.758" viewBox="0 0 15.768 15.758"><path id="dashboard" d="M23.064,13.707,16.518,8.167a1.267,1.267,0,0,0-1.641,0L8.33,13.707a1.458,1.458,0,0,0-.517,1.115v7.342a1.461,1.461,0,0,0,1.46,1.46h2.336a1.461,1.461,0,0,0,1.46-1.46V19.536a2.628,2.628,0,1,1,5.256,0v2.628a1.461,1.461,0,0,0,1.46,1.46h2.336a1.461,1.461,0,0,0,1.46-1.46V14.821a1.457,1.457,0,0,0-.517-1.115Z" transform="translate(-7.813 -7.866)" fill="currentColor"/></svg>';
+?>
+    <nav class="breadcrumbs" aria-label="Breadcrumbs">
+        <ul>
+            <?php if (get_the_ID() == $dashboard) { ?>
+                <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
+            <?php } ?>
+           
+        </ul>
+    </nav>
+<?php
+    return ob_get_clean();
+}
