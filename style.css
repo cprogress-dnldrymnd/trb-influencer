@@ -356,11 +356,18 @@ input:checked + .slider:before {
   .breadcrumbs ul {
     list-style: none;
     padding: 0;
-    margin: 0; }
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px; }
     .breadcrumbs ul li {
       display: flex;
       align-items: center;
       gap: 10px; }
+      .breadcrumbs ul li svg {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px; }
   .breadcrumbs .light {
     opacity: 0.5; }
 
