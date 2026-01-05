@@ -168,7 +168,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       align-items: center;
       background-color: #d1fae5;
       border: 1px solid #0f766e;
-      color: #0f766e;
+      color: #034146;
       padding: 6px 14px;
       border-radius: 999px;
       font-size: 13px;
@@ -280,12 +280,15 @@ input:checked + .slider:before {
   align-items: center;
   background-color: #d1fae5;
   border: 1px solid #0f766e;
-  color: #0f766e;
+  color: #034146;
   padding: 6px 14px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
   line-height: 1; }
+  .chip.style-2 {
+    font-size: 15px;
+    border-radius: 5px; }
 
 .tab-style-1 .e-n-tabs-heading {
   display: inline-flex;

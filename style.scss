@@ -87,7 +87,7 @@ $border-tag: #0f766e;
 
 $text-main: #333333;
 $text-header: #000000;
-$text-teal: #0f766e;
+$text-teal: #034146;
 $text-teal-dark: #115e59;
 
 $accent-color: #0f766e; // Teal
@@ -375,6 +375,10 @@ input:checked + .slider:before {
     font-size: 13px;
     font-weight: 500;
     line-height: 1;
+    &.style-2 {
+        font-size: 15px;
+        border-radius: 5px;
+    }
 }
 
 .tab-style-1 {
@@ -393,4 +397,5 @@ input:checked + .slider:before {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    
 }
