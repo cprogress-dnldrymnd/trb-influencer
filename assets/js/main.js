@@ -214,6 +214,7 @@
                     if (response.success) {
                         alert('Success: ' + response.data.message);
                         $buttonText.text('Saved');
+                        $button.prop('disabled', true);
                     } else {
                         alert('Error: ' + response.data.message);
                         $buttonText.text('Save Influencer').prop('disabled', false);
