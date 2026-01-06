@@ -216,7 +216,7 @@ function handle_save_influencer_ajax()
         wp_send_json_error(array('message' => 'No Influencer ID provided.'));
     }
 
-    if ($type == 'type') {
+    if ($type == 'save') {
         $current_user_id = get_current_user_id();
 
         // Format: Jan 4, 2026 @ 8:57 pm
