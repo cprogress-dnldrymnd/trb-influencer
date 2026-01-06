@@ -412,5 +412,14 @@ input:checked + .slider:before {
   gap: 10px; }
   .influencer-search-main .influencer-search-item-row > div {
     flex-grow: 1; }
+.influencer-search-main textarea {
+  background-color: #ffffff;
+  border-color: var(--e-global-color-670824e);
+  border-width: 1px 1px 1px 1px;
+  border-radius: 5px 5px 5px 5px;
+  font-family: var(--e-global-typography-7d2bc59-font-family), Sans-serif;
+  font-size: var(--e-global-typography-7d2bc59-font-size);
+  font-weight: var(--e-global-typography-7d2bc59-font-weight);
+  line-height: var(--e-global-typography-7d2bc59-line-height); }
 
 /*# sourceMappingURL=style.css.map */
