@@ -540,19 +540,22 @@ input:checked + .slider:before {
             flex-grow: 1;
         }
     }
-    textarea {
-        background-color: #ffffff;
-        border-color: var(--e-global-color-670824e);
-        border-width: 1px 1px 1px 1px;
-        border-radius: 5px 5px 5px 5px;
-        font-family: var(--e-global-typography-7d2bc59-font-family), Sans-serif;
-        font-size: var(--e-global-typography-7d2bc59-font-size);
-        font-weight: var(--e-global-typography-7d2bc59-font-weight);
-        line-height: var(--e-global-typography-7d2bc59-line-height);
+    .influencer-search-item-field {
+        textarea {
+            background-color: #ffffff;
+            border-color: var(--e-global-color-670824e);
+            border-width: 1px 1px 1px 1px;
+            border-radius: 5px 5px 5px 5px;
+            font-family: var(--e-global-typography-7d2bc59-font-family), Sans-serif;
+            font-size: var(--e-global-typography-7d2bc59-font-size);
+            font-weight: var(--e-global-typography-7d2bc59-font-weight);
+            line-height: var(--e-global-typography-7d2bc59-line-height);
+            width: 100%;
+        }
     }
 
     .filter-widget .tags-container {
         flex-direction: column;
-            align-items: flex-start;
+        align-items: flex-start;
     }
 }

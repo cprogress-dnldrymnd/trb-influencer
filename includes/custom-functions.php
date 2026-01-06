@@ -452,7 +452,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
 
         <div class="dropdown-container">
             <div class="dropdown-button">
-                Select your <?= strtolower($label) ?>
+                <?= $placeholder ?>
                 <span class="arrow-holder">
                     <span class="arrow"></span>
                 </span>
