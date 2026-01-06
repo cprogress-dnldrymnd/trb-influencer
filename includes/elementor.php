@@ -79,11 +79,6 @@ function test()
         'fields'         => 'ids',        // We only need the IDs to loop through for meta
     ]);
 
-    // If the user hasn't saved anything, return no results
-    if (empty($saved_influencer_posts)) {
-        $query->set('post__in', [0]);
-        return;
-    }
 
     // 3. Extract the 'influencer_id' meta field from the saved posts
     $target_ids = [];
@@ -99,3 +94,4 @@ function test()
     var_dump($target_ids);
     return ob_get_clean();
 }
+add_shorcode('test', 'test');
