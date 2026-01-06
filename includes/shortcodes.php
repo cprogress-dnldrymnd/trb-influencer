@@ -269,10 +269,13 @@ function shortcode_influencer_search_filter_main()
                 <div class="influencer-search-item">
                     <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform']) ?>
                 </div>
-
                 <div class="influencer-search-item">
                     <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
                 </div>
+            </div>
+            <div class="influencer-search-item">
+                <?= checkbox_filter('filter', false, $influencer_search_fields['filter']) ?>
+
             </div>
             <div class="influencer-search-item">
                 <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">

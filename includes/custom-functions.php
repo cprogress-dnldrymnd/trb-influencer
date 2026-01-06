@@ -46,6 +46,11 @@ function my_custom_variable_setup()
         '65+' => '65+',
     );
 
+    $filter_options = array(
+        'Include only verified influencers' => 'Prioritise engagement over reach',
+        'Prioritise engagement over reach' => 'Prioritise engagement over reach',
+    );
+
     $influencer_search_fields['niche'] = $niche_options;
     $influencer_search_fields['platform'] = $platform_options;
     $influencer_search_fields['followers'] = $followers_options;
@@ -53,6 +58,7 @@ function my_custom_variable_setup()
     $influencer_search_fields['lang'] = $lang_options;
     $influencer_search_fields['gender'] = $gender_options;
     $influencer_search_fields['age'] = $age_options;
+    $influencer_search_fields['filter'] = $filter_options;
 
     $influencer_search_page = 1949;
 
@@ -491,9 +497,11 @@ function checkbox_filter($name, $label, $options = [])
 ?>
 
     <div class="filter-widget checkbox-filter">
-        <div class="header">
-            <span><?= $label ?></span>
-        </div>
+        <?php if ($label != false) { ?>
+            <div class="header">
+                <span><?= $label ?></span>
+            </div>
+        <?php } ?>
 
 
         <div class="dropdown-menu checkbox-lists">
