@@ -253,7 +253,7 @@ function shortcode_influencer_search_filter_main()
     <form class="influencer-search influencer-search-main" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item influencer-search-item-field">
-                <textarea name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
+                <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
 
             <div class="influencer-search-item-row">
