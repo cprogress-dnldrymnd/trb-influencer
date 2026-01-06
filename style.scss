@@ -560,7 +560,13 @@ input:checked + .slider:before {
     }
 
     .influencer-search-button {
-
+        width: auto;
+        margin-left: auto;
+        display: block;
+        &:not(:hover):not(:active):not(:focus) {
+            background-color: var(--e-global-color-accent);
+            color: #fff;
+        }
     }
 
     .filtered-search:not(.active) {

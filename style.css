@@ -425,6 +425,13 @@ input:checked + .slider:before {
 .influencer-search-main .filter-widget .tags-container {
   flex-direction: column;
   align-items: flex-start; }
+.influencer-search-main .influencer-search-button {
+  width: auto;
+  margin-left: auto;
+  display: block; }
+  .influencer-search-main .influencer-search-button:not(:hover):not(:active):not(:focus) {
+    background-color: var(--e-global-color-accent);
+    color: #fff; }
 .influencer-search-main .filtered-search:not(.active) {
   display: none; }
 
