@@ -256,7 +256,7 @@ function shortcode_influencer_search_filter_main()
                 <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
 
-            <div class="influencer-search-item-row">
+            <div class="influencer-search-item-row filtered-search">
                 <div class="influencer-search-item">
                     <?= select_filter('country', false, 'Location', $influencer_search_fields['country']) ?>
                 </div>

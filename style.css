@@ -425,5 +425,7 @@ input:checked + .slider:before {
 .influencer-search-main .filter-widget .tags-container {
   flex-direction: column;
   align-items: flex-start; }
+.influencer-search-main .filtered-search:not(.active) {
+  display: none; }
 
 /*# sourceMappingURL=style.css.map */

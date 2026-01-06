@@ -560,6 +560,10 @@ input:checked + .slider:before {
     }
 
     .influencer-search-button {
-        
+
+    }
+
+    .filtered-search:not(.active) {
+        display: none;
     }
 }
