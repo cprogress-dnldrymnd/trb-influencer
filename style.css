@@ -421,5 +421,8 @@ input:checked + .slider:before {
   font-size: var(--e-global-typography-7d2bc59-font-size);
   font-weight: var(--e-global-typography-7d2bc59-font-weight);
   line-height: var(--e-global-typography-7d2bc59-line-height); }
+.influencer-search-main .filter-widget .tags-container {
+  flex-direction: column;
+  align-items: flex-start; }
 
 /*# sourceMappingURL=style.css.map */
