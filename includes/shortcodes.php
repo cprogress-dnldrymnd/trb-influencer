@@ -246,33 +246,40 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
-    $influencer_search_fields = get_query_var('influencer_search_fields');
+
+    // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
+    $raw_fields = get_query_var('influencer_search_fields');
+    $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+
     $influencer_search_page = get_query_var('influencer_search_page');
+    
+    // 2. Safety check for the permalink
+    $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
 
 ?>
-    <form class="influencer-search influencer-search-main" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
+    <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item influencer-search-item-field">
                 <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
             <div class="influencer-search-item checkbox-row">
-                <?= checkbox_filter('filter', false, $influencer_search_fields['filter']) ?>
+                <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
             </div>
             <div class="influencer-search-item-row filtered-search">
                 <div class="influencer-search-item">
-                    <?= select_filter('country', false, 'Location', $influencer_search_fields['country']) ?>
+                    <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '') ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang']) ?>
+                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '') ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche']) ?>
+                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '') ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform']) ?>
+                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
+                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                 </div>
             </div>
 
