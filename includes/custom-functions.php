@@ -1,8 +1,18 @@
 <?php
-function my_custom_variable_setup() {
-    set_query_var( 'my_custom_data', 'Hello World' );
+function my_custom_variable_setup()
+{
+    $niche = get_terms(array(
+        'taxonomy'   => 'niche',
+        'hide_empty' => false,
+    ));
+
+    foreach ($niche as $term) {
+        $niche_options[$term->slug] = $term->name;
+    }
+
+    set_query_var('my_custom_data', $niche_options);
 }
-add_action( 'wp', 'my_custom_variable_setup' );
+add_action('wp', 'my_custom_variable_setup');
 /**
  * 1. Track Recently Viewed 'Influencer' Posts (Database Only)
  */
@@ -490,57 +500,58 @@ function radio_filter($name, $label, $options = [])
  * Get sorted array of unique countries from 'influencers' post type.
  * * Returns: array( 'alpha3' => 'Country Name' )
  */
-function get_unique_influencer_countries() {
+function get_unique_influencer_countries()
+{
     global $wpdb;
 
     // 1. Efficiently query only the unique meta values from the database
     // We join with the posts table to ensure we only get data from 'influencers' that are 'published'
-    $results = $wpdb->get_col( $wpdb->prepare( "
+    $results = $wpdb->get_col($wpdb->prepare("
         SELECT DISTINCT pm.meta_value 
         FROM {$wpdb->postmeta} pm
         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
         WHERE p.post_type = %s
         AND pm.meta_key = %s
         AND p.post_status = 'publish'
-    ", 'influencer', 'country' ) );
+    ", 'influencer', 'country'));
 
     $country_list = array();
 
     // 2. Loop through results and format
-    foreach ( $results as $original_val ) {
-        
+    foreach ($results as $original_val) {
+
         // Ensure we match the lowercase keys in your mapping function
-        $alpha3 = strtolower( trim( $original_val ) );
+        $alpha3 = strtolower(trim($original_val));
 
         // Convert 3-letter to 2-letter using your helper function
-        if ( function_exists( 'iso_alpha3_to_alpha2' ) ) {
-            $alpha2 = iso_alpha3_to_alpha2( $alpha3 );
+        if (function_exists('iso_alpha3_to_alpha2')) {
+            $alpha2 = iso_alpha3_to_alpha2($alpha3);
         } else {
             continue; // Skip if helper is missing
         }
 
-        if ( $alpha2 ) {
+        if ($alpha2) {
             // Convert 2-letter code to Full Name
             // We use PHP's native Locale class (requires php-intl extension, standard on most hosts)
-            if ( class_exists( 'Locale' ) ) {
-                $country_name = Locale::getDisplayRegion( '-' . $alpha2, 'en' );
-            } elseif ( class_exists( 'WC_Countries' ) ) {
+            if (class_exists('Locale')) {
+                $country_name = Locale::getDisplayRegion('-' . $alpha2, 'en');
+            } elseif (class_exists('WC_Countries')) {
                 // Fallback: If you have WooCommerce installed
                 $wc_countries = new WC_Countries();
                 $countries    = $wc_countries->get_countries();
-                $country_name = isset( $countries[ strtoupper( $alpha2 ) ] ) ? $countries[ strtoupper( $alpha2 ) ] : $alpha2;
+                $country_name = isset($countries[strtoupper($alpha2)]) ? $countries[strtoupper($alpha2)] : $alpha2;
             } else {
                 // Fallback: If no libraries exist, just use the code
-                $country_name = strtoupper( $alpha2 ); 
+                $country_name = strtoupper($alpha2);
             }
 
             // Populate Array: Key = Original 3-digit Meta, Value = Country Name
-            $country_list[ $original_val ] = $country_name;
+            $country_list[$original_val] = $country_name;
         }
     }
 
     // 3. Sort alphabetically by the Country Name (the array value)
-    asort( $country_list );
+    asort($country_list);
 
     return $country_list;
 }
@@ -549,48 +560,49 @@ function get_unique_influencer_countries() {
  * Get sorted array of unique languages from 'influencers' post type.
  * Returns: array( 'meta_value' => 'Language Name' )
  */
-function get_unique_influencer_languages() {
+function get_unique_influencer_languages()
+{
     global $wpdb;
 
     // 1. Efficiently query only the unique meta values from the database
     // We check for 'influencers' post type and 'publish' status
-    $results = $wpdb->get_col( $wpdb->prepare( "
+    $results = $wpdb->get_col($wpdb->prepare("
         SELECT DISTINCT pm.meta_value 
         FROM {$wpdb->postmeta} pm
         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
         WHERE p.post_type = %s
         AND pm.meta_key = %s
         AND p.post_status = 'publish'
-    ", 'influencer', 'lang' ) );
+    ", 'influencer', 'lang'));
 
     $language_list = array();
 
     // 2. Loop through results and format
-    foreach ( $results as $lang_code ) {
-        
-        $clean_code = trim( $lang_code );
+    foreach ($results as $lang_code) {
+
+        $clean_code = trim($lang_code);
 
         // Convert Code to Full Language Name
         // We use PHP's native Locale class (requires php-intl extension)
-        if ( class_exists( 'Locale' ) ) {
+        if (class_exists('Locale')) {
             // getDisplayLanguage converts 'en' -> 'English', 'tl' -> 'Tagalog', etc.
-            $lang_name = Locale::getDisplayLanguage( $clean_code, 'en' );
+            $lang_name = Locale::getDisplayLanguage($clean_code, 'en');
         } else {
             // Fallback if intl extension is missing
-            $lang_name = strtoupper( $clean_code );
+            $lang_name = strtoupper($clean_code);
         }
 
         // Populate Array: Key = Original Meta Value, Value = Language Name
         // We check if name generation failed (returns same code) and try to clean it up visually
-        if ( $lang_name == $clean_code ) {
-             $lang_name = ucfirst( $clean_code );
+        if ($lang_name == $clean_code) {
+            $lang_name = ucfirst($clean_code);
         }
 
-        $language_list[ $clean_code ] = $lang_name;
+        $language_list[$clean_code] = $lang_name;
     }
 
     // 3. Sort alphabetically by the Language Name (the array value)
-    asort( $language_list );
+    asort($language_list);
 
     return $language_list;
 }
