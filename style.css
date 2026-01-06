@@ -443,5 +443,8 @@ input:checked + .slider:before {
   .checkbox-row .checkbox-lists .checkbox-list-item {
     font-size: 16px;
     font-weight: 400; }
+    .checkbox-row .checkbox-lists .checkbox-list-item input {
+      width: 23px;
+      height: 23px; }
 
 /*# sourceMappingURL=style.css.map */

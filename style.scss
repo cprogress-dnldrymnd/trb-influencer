@@ -583,6 +583,10 @@ input:checked + .slider:before {
         .checkbox-list-item {
             font-size: 16px;
             font-weight: 400;
+            input {
+                width: 23px;
+                height: 23px;
+            }
         }
     }
 }
