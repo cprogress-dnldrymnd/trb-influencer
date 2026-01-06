@@ -272,6 +272,8 @@ $guide-pink: #f9a8d4;
     font-size: 14px;
     letter-spacing: 0.7px;
     font-weight: 600;
+        cursor: pointer;
+
     &:hover,
     &:active,
     &:focus {
@@ -572,7 +574,6 @@ input:checked + .slider:before {
         width: auto;
         margin-left: auto;
         display: block;
-        cursor: pointer;
         &:not(:hover):not(:active):not(:focus) {
             background-color: var(--e-global-color-accent);
             color: #fff;
