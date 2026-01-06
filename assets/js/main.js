@@ -204,13 +204,20 @@
             // (Optional) Visual feedback: Change button text or disable it
             $buttonText.text('Saving...').prop('disabled', true);
 
+            if ($button.hasClass('delete-save')) {
+                type = 'delete';
+            } else {
+                type = 'save';
+            }
+
             $.ajax({
                 url: ajax_vars.ajax_url, // From wp_localize_script
                 type: 'POST',
                 data: {
                     action: 'save_influencer', // Must match the wp_ajax_ hook
                     security: ajax_vars.save_influencer_nonce,
-                    influencer_id: influencerId
+                    influencer_id: influencerId,
+                    type: type
                 },
                 success: function (response) {
                     if (response.success) {

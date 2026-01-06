@@ -210,35 +210,40 @@ function handle_save_influencer_ajax()
 
     // Get the data
     $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'save';
 
     if (empty($influencer_id)) {
         wp_send_json_error(array('message' => 'No Influencer ID provided.'));
     }
 
-    $current_user_id = get_current_user_id();
+    if ($type == 'type') {
+        $current_user_id = get_current_user_id();
 
-    // Format: Jan 4, 2026 @ 8:57 pm
-    // Note: current_time gets the time based on your WP timezone settings
-    $post_title = 'Influencer saved on ' . current_time('M j, Y @ g:i a');
+        // Format: Jan 4, 2026 @ 8:57 pm
+        // Note: current_time gets the time based on your WP timezone settings
+        $post_title = 'Influencer saved on ' . current_time('M j, Y @ g:i a');
 
-    // Prepare Post Data
-    $new_post = array(
-        'post_title'    => $post_title,
-        'post_type'     => 'saved-influencer', // Ensure this Post Type is registered
-        'post_status'   => 'publish',
-        'post_author'   => $current_user_id,
-    );
+        // Prepare Post Data
+        $new_post = array(
+            'post_title'    => $post_title,
+            'post_type'     => 'saved-influencer', // Ensure this Post Type is registered
+            'post_status'   => 'publish',
+            'post_author'   => $current_user_id,
+        );
 
-    // Insert the Post
-    $post_id = wp_insert_post($new_post);
+        // Insert the Post
+        $post_id = wp_insert_post($new_post);
 
-    if (is_wp_error($post_id)) {
-        wp_send_json_error(array('message' => 'Could not create post.'));
+        if (is_wp_error($post_id)) {
+            wp_send_json_error(array('message' => 'Could not create post.'));
+        } else {
+            // Update Meta Data
+            update_post_meta($post_id, 'influencer_id', $influencer_id);
+
+            wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
+        }
     } else {
-        // Update Meta Data
-        update_post_meta($post_id, 'influencer_id', $influencer_id);
-
-        wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
+        wp_delete_post($post_id, true);
     }
 }
 
