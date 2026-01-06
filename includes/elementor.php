@@ -103,5 +103,19 @@ add_action( 'elementor/query/saved_lists', function( $query ) {
     
   
 
+    $current_user_id = get_current_user_id();
+
+    // 2. Fetch the 'saved-influencer' posts for the current user
+    // We assume the connection is that the user is the Author of the 'saved-influencer' post.
+    $saved_influencer_posts = get_posts( [
+        'post_type'      => 'saved-influencer',
+        'posts_per_page' => -1,           // Get all saved items
+        'post_status'    => 'publish',
+        'author'         => $current_user_id, // Filter by current user
+        'fields'         => 'ids',        // We only need the IDs to loop through for meta
+    ] );
+
+        $query->set( 'post__in', [2524] );
+   
 
 } );
