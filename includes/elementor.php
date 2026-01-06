@@ -103,7 +103,6 @@ add_shortcode('test', 'test');
 add_action( 'elementor/query/saved_lists', function( $query ) {
     
   
-        $query->set( 'post__in', 1834 );
 
 
 } );
