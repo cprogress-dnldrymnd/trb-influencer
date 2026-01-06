@@ -434,37 +434,6 @@ function shortcode_check_influencer_saved($atts)
 add_shortcode('influencer_is_saved', 'shortcode_check_influencer_saved');
 
 
-function influencer_is_saved($current_influencer_id)
-{
-    $current_user_id       = get_current_user_id();
-
-    if (! is_user_logged_in()) {
-        return false;
-    }
-
-    $args = array(
-        'post_type'      => 'saved-influencer',
-        'post_status'    => 'publish',
-        'posts_per_page' => 1,
-        'fields'         => 'ids',
-        'author'         => $current_user_id,
-        'meta_query'     => array(
-            array(
-                'key'     => 'influencer_id',
-                'value'   => $current_influencer_id,
-                'compare' => '='
-            )
-        )
-    );
-
-    $query = new WP_Query($args);
-    if ($query->have_posts()) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 function is_influencer_saved($current_influencer_id)
 {
     $current_user_id = get_current_user_id();
