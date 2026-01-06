@@ -404,3 +404,49 @@ function breadcrumbs()
 }
 
 add_shortcode('breadcrumbs', 'breadcrumbs');
+
+
+
+function shortcode_check_influencer_saved($atts)
+{
+    // 1. Extract shortcode attributes
+    $atts = shortcode_atts(array(
+        'true'  => 'UNSAVED', // Text to show if ALREADY saved
+        'false' => 'SAVE',    // Text to show if NOT saved
+    ), $atts, 'influcencer_is_saved');
+
+    // 2. Get current context
+    $current_influencer_id = get_the_ID();
+    $current_user_id       = get_current_user_id();
+
+    // Optional: If user is not logged in, default to the 'false' (SAVE) state
+    if (! is_user_logged_in()) {
+        return $atts['false'];
+    }
+
+    // 3. Query the 'saved-influencer' CPT
+    $args = array(
+        'post_type'      => 'saved-influencer',
+        'post_status'    => 'publish',
+        'posts_per_page' => 1,
+        'fields'         => 'ids', // Performance optimization: only get ID
+        'author'         => $current_user_id, // Check if THIS user saved it
+        'meta_query'     => array(
+            array(
+                'key'     => 'influencer_id',
+                'value'   => $current_influencer_id,
+                'compare' => '=' // Exact match
+            )
+        )
+    );
+
+    $query = new WP_Query($args);
+
+    // 4. Return the correct label based on results
+    if ($query->have_posts()) {
+        return $atts['true'];
+    } else {
+        return $atts['false'];
+    }
+}
+add_shortcode('influcencer_is_saved', 'shortcode_check_influencer_saved');
