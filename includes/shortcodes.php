@@ -180,42 +180,48 @@ add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 function shortcode_influencer_search_filter()
 {
     ob_start();
-    $influencer_search_fields = get_query_var('influencer_search_fields');
+
+    // 1. Safety check: Ensure fields variable is an array
+    $raw_fields = get_query_var('influencer_search_fields');
+    $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+
     $influencer_search_page = get_query_var('influencer_search_page');
+    
+    // 2. Safety check: Ensure permalink exists before echoing
+    $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
 ?>
-    <form class="influencer-search" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
+    <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche']) ?>
+                <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
-                <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
-            </div>
-
-            <div class="influencer-search-item">
-                <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
+                <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform'] ?? '') ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country']) ?>
+                <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers'] ?? '') ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang']) ?>
+                <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '') ?>
+            </div>
+
+            <div class="influencer-search-item">
+                <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
-                <?= select_filter('gender', 'Gender', 'Select a gender', $influencer_search_fields['gender']) ?>
+                <?= select_filter('gender', 'Gender', 'Select a gender', $influencer_search_fields['gender'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
-                <?= select_filter('age', 'Age', 'Select an age', $influencer_search_fields['age']) ?>
+                <?= select_filter('age', 'Age', 'Select an age', $influencer_search_fields['age'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
                     <div class="header">
                         <span>Match Score</span>
                     </div>
-
-                    <input type="range" id="score" value="<?= isset($_GET['score']) ? $_GET['score'] : 50 ?>" name="score" min="0" max="100">
+                    <input type="range" id="score" value="<?= $_GET['score'] ?? 50 ?>" name="score" min="0" max="100">
                 </div>
             </div>
             <div class="influencer-search-item">
@@ -234,8 +240,6 @@ function shortcode_influencer_search_filter()
             </div>
         </div>
     </form>
-
-
 
 <?php
     return ob_get_clean();
