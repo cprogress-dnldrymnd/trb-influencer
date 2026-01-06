@@ -209,7 +209,7 @@
                 type: 'POST',
                 data: {
                     action: 'save_influencer', // Must match the wp_ajax_ hook
-                    security: ajax_vars.nonce,
+                    security: ajax_vars.save_influencer_nonce,
                     influencer_id: influencerId
                 },
                 success: function (response) {
@@ -284,7 +284,7 @@
                 type: 'POST',
                 data: {
                     action: 'save_user_search', // Must match the wp_ajax_{action} hook in PHP
-                    security: ajax_vars.nonce,  // Security token passed from PHP
+                    security: ajax_vars.save_search_nonce,  // Security token passed from PHP
                     search_data: searchData          // The object containing our form values
                 },
 
