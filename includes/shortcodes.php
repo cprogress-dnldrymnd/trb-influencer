@@ -408,7 +408,9 @@ add_shortcode('breadcrumbs', 'breadcrumbs');
 
 function shortcode_check_influencer_saved($atts)
 {
-    // 1. Extract shortcode attributes
+    if (! is_user_logged_in()) {
+        return $atts['false'];
+    }
     $atts = shortcode_atts(array(
         'true'  => 'UNSAVED', // Text to show if ALREADY saved
         'false' => 'SAVE',    // Text to show if NOT saved
@@ -416,12 +418,8 @@ function shortcode_check_influencer_saved($atts)
 
     // 2. Get current context
     $current_influencer_id = get_the_ID();
-    $current_user_id       = get_current_user_id();
 
-    // Optional: If user is not logged in, default to the 'false' (SAVE) state
-    if (! is_user_logged_in()) {
-        return $atts['false'];
-    }
+
     $influcencer_is_saved = influcencer_is_saved($current_influencer_id);
 
     // 4. Return the correct label based on results
@@ -434,9 +432,9 @@ function shortcode_check_influencer_saved($atts)
 add_shortcode('influcencer_is_saved', 'shortcode_check_influencer_saved');
 
 
-function influcencer_is_saved($current_influencer_id)
+function influencer_is_saved($current_influencer_id)
 {
-    $current_user_id       = get_current_user_id();
+    $current_user_id = get_current_user_id();
 
     if (! is_user_logged_in()) {
         return false;
@@ -446,21 +444,23 @@ function influcencer_is_saved($current_influencer_id)
         'post_type'      => 'saved-influencer',
         'post_status'    => 'publish',
         'posts_per_page' => 1,
-        'fields'         => 'ids',
+        'fields'         => 'ids', // Returns an array of IDs directly
         'author'         => $current_user_id,
         'meta_query'     => array(
             array(
                 'key'     => 'influencer_id',
                 'value'   => $current_influencer_id,
-                'compare' => '='
-            )
-        )
+                'compare' => '=',
+            ),
+        ),
     );
 
-    $query = new WP_Query($args);
-    if ($query->have_posts()) {
-        return true;
-    } else {
-        return false;
+    $posts = get_posts($args);
+
+    // Check if the array is not empty and return the first ID found
+    if (! empty($posts)) {
+        return $posts[0];
     }
+
+    return false;
 }
