@@ -422,7 +422,7 @@ function shortcode_check_influencer_saved($atts)
     if (! is_user_logged_in()) {
         return $atts['false'];
     }
-    $influencer_is_saved = influencer_is_saved_v2($current_influencer_id);
+    $influencer_is_saved = is_influencer_saved($current_influencer_id);
 
     // 4. Return the correct label based on results
     if ($influencer_is_saved) {
@@ -465,7 +465,7 @@ function influencer_is_saved($current_influencer_id)
     }
 }
 
-function influencer_is_saved_v2($current_influencer_id)
+function is_influencer_saved($current_influencer_id)
 {
     $current_user_id = get_current_user_id();
 
