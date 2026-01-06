@@ -302,8 +302,9 @@
                 },
 
                 // 4. Handle Server/Network Errors
-                error: function () {
+                error: function (response) {
                     alert('Server error. Please try again.');
+                    console.log(response);
                     $btn.text(originalText);
                 }
             });
