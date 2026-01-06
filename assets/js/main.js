@@ -7,9 +7,8 @@
         saved_search_trigger();
         saved_influencer_trigger();
     });
-
     function nicheToggle() {
-        jQuery('.niche-toggle').click(function (e) {
+        jQuery(document).on('click', '.niche-toggle', function (e) {
             e.preventDefault();
             jQuery(this).parent().find('.niche-term').show();
             jQuery(this).hide();
@@ -206,11 +205,11 @@
             if ($button.hasClass('delete-save')) {
                 type = 'delete';
                 buttonupdated = 'SAVED';
-                buttonupdating= 'UNSAVING...';
+                buttonupdating = 'UNSAVING...';
             } else {
                 type = 'save';
                 buttonupdated = 'UNSAVED';
-                buttonupdating= 'SAVING...';
+                buttonupdating = 'SAVING...';
             }
             $buttonText.text(buttonupdating).prop('disabled', true);
 
