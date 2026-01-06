@@ -1,5 +1,8 @@
 <?php
-
+function my_custom_variable_setup() {
+    set_query_var( 'my_custom_data', 'Hello World' );
+}
+add_action( 'wp', 'my_custom_variable_setup' );
 /**
  * 1. Track Recently Viewed 'Influencer' Posts (Database Only)
  */
