@@ -416,7 +416,6 @@ function shortcode_check_influencer_saved($atts)
 
     // 2. Get current context
     $current_influencer_id = get_the_ID();
-    $current_user_id       = get_current_user_id();
 
     // Optional: If user is not logged in, default to the 'false' (SAVE) state
     if (! is_user_logged_in()) {
