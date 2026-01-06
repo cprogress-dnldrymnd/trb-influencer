@@ -448,7 +448,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
                 <span><?= $label ?></span>
             <?php } ?>
 
-            <div class="reset-btn">Reset</div>
+            <div class="reset-btn" style="display: none;">Reset</div>
         </div>
 
         <div class="dropdown-container">

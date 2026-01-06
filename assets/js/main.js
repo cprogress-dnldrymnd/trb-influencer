@@ -111,7 +111,7 @@
                 updateTags();
             });
 
-            // Function to Render Tags
+            // Function to Render Tags and Toggle Visibility
             function updateTags() {
                 tagsContainer.innerHTML = ''; // Clear only this widget's container
 
@@ -125,12 +125,14 @@
                 });
 
                 // --- VISIBILITY TOGGLE ---
-                // If selections exist, remove inline 'none' (reverting to CSS default like block or flex). 
-                // If empty, set display to 'none'.
                 if (hasSelection) {
+                    // Remove inline styles to revert to your CSS default (block/flex)
                     tagsContainer.style.display = '';
+                    resetBtn.style.display = '';
                 } else {
+                    // Hide if empty
                     tagsContainer.style.display = 'none';
+                    resetBtn.style.display = 'none';
                 }
             }
 
@@ -158,7 +160,7 @@
             }
 
             // --- INITIALIZATION ---
-            // Run once on load to ensure container is hidden if empty
+            // Run once on load to ensure container/reset button is hidden if empty
             updateTags();
         });
 
