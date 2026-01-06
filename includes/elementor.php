@@ -101,12 +101,7 @@ add_shortcode('test', 'test');
  */
 add_action( 'elementor/query/saved_lists', function( $query ) {
     
-    // 1. Security Check: Ensure user is logged in
-    // If not logged in, force an empty result (or remove this block to show all if not user-specific)
-    if ( ! is_user_logged_in() ) {
-        $query->set( 'post__in', [0] );
-        return;
-    }
+  
 
     $current_user_id = get_current_user_id();
 
