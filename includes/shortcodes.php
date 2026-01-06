@@ -273,7 +273,7 @@ function shortcode_influencer_search_filter_main()
                     <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
                 </div>
             </div>
-            <div class="influencer-search-item">
+            <div class="influencer-search-item checkbox-row filtered-search">
                 <?= checkbox_filter('filter', false, $influencer_search_fields['filter']) ?>
 
             </div>

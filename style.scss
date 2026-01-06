@@ -573,3 +573,15 @@ input:checked + .slider:before {
         display: none;
     }
 }
+
+.checkbox-row {
+    .checkbox-lists {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        .checkbox-list-item {
+            font-size: 16px;
+            font-weight: 400;
+        }
+    }
+}

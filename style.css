@@ -435,4 +435,12 @@ input:checked + .slider:before {
 .influencer-search-main .filtered-search:not(.active) {
   display: none; }
 
+.checkbox-row .checkbox-lists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px; }
+  .checkbox-row .checkbox-lists .checkbox-list-item {
+    font-size: 16px;
+    font-weight: 400; }
+
 /*# sourceMappingURL=style.css.map */
