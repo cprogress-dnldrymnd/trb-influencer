@@ -246,6 +246,7 @@ function handle_save_influencer_ajax()
         $saved_id = is_influencer_saved($influencer_id);
         if ($saved_id) {
             wp_delete_post($saved_id, true);
+            wp_send_json_success(array('message' => 'Unsaved successfully!', 'id' => $saved_id));
         }
     }
 }
