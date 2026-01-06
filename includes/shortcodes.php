@@ -264,11 +264,11 @@ function shortcode_influencer_search_filter_main()
                     <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
+                    <?= select_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
                 </div>
 
                 <div class="influencer-search-item">
-                    <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
+                    <?= select_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
                 </div>
 
                 <div class="influencer-search-item">
