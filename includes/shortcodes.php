@@ -258,20 +258,20 @@ function shortcode_influencer_search_filter_main()
 
             <div class="influencer-search-item-row">
                 <div class="influencer-search-item">
-                    <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
+                    <?= select_filter('country', false, 'Location', $influencer_search_fields['country']) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
+                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang']) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
+                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche']) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
+                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform']) ?>
                 </div>
 
                 <div class="influencer-search-item">
-                    <?= select_filter('followers', 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
+                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
                 </div>
             </div>
             <div class="influencer-search-item">

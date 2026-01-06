@@ -431,7 +431,7 @@ function iso_alpha3_to_alpha2($alpha3)
     return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
 }
 
-function select_filter($name, $label, $options = [], $type = 'checkbox')
+function select_filter($name, $label, $placeholder, $options = [], $type = 'checkbox')
 {
     // Check URL parameters for this field
     $selected_values = [];
@@ -443,10 +443,12 @@ function select_filter($name, $label, $options = [], $type = 'checkbox')
     ob_start();
 ?>
     <div class="filter-widget select-filter">
-        <div class="header">
-            <span><?= $label ?></span>
-            <div class="reset-btn">Reset</div>
-        </div>
+        <?php if ($label != false) { ?>
+            <div class="header">
+                <span><?= $label ?></span>
+                <div class="reset-btn">Reset</div>
+            </div>
+        <?php } ?>
 
         <div class="dropdown-container">
             <div class="dropdown-button">
