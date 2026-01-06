@@ -243,7 +243,10 @@ function handle_save_influencer_ajax()
             wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
         }
     } else {
-        //wp_delete_post($post_id, true);
+        $saved_id = is_influencer_saved($influencer_id);
+        if ($saved_id) {
+            wp_delete_post($saved_id, true);
+        }
     }
 }
 
