@@ -572,6 +572,7 @@ input:checked + .slider:before {
         width: auto;
         margin-left: auto;
         display: block;
+        cursor: pointer;
         &:not(:hover):not(:active):not(:focus) {
             background-color: var(--e-global-color-accent);
             color: #fff;

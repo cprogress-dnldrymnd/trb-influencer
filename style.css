@@ -435,7 +435,8 @@ input:checked + .slider:before {
 .influencer-search-main .influencer-search-button.influencer-search-button.influencer-search-button {
   width: auto;
   margin-left: auto;
-  display: block; }
+  display: block;
+  cursor: pointer; }
   .influencer-search-main .influencer-search-button.influencer-search-button.influencer-search-button:not(:hover):not(:active):not(:focus) {
     background-color: var(--e-global-color-accent);
     color: #fff; }
