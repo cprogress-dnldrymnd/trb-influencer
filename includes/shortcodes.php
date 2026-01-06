@@ -318,7 +318,7 @@ function shortcode_influencer_topics()
     ob_start();
 
 ?>
-    <div class="chips-holder influcencer-topics-holder">
+    <div class="chips-holder influencer-topics-holder">
         <span class="chip style-2">WELLBEING</span>
         <span class="chip style-2">NUTRITION</span>
         <span class="chip style-2">DIETING</span>
@@ -412,7 +412,7 @@ function shortcode_check_influencer_saved($atts)
     $atts = shortcode_atts(array(
         'true'  => 'UNSAVED', // Text to show if ALREADY saved
         'false' => 'SAVE',    // Text to show if NOT saved
-    ), $atts, 'influcencer_is_saved');
+    ), $atts, 'influencer_is_saved');
 
     // 2. Get current context
     $current_influencer_id = get_the_ID();
@@ -422,19 +422,19 @@ function shortcode_check_influencer_saved($atts)
     if (! is_user_logged_in()) {
         return $atts['false'];
     }
-    $influcencer_is_saved = influcencer_is_saved($current_influencer_id);
+    $influencer_is_saved = influencer_is_saved($current_influencer_id);
 
     // 4. Return the correct label based on results
-    if ($influcencer_is_saved) {
+    if ($influencer_is_saved) {
         return $atts['true'];
     } else {
         return $atts['false'];
     }
 }
-add_shortcode('influcencer_is_saved', 'shortcode_check_influencer_saved');
+add_shortcode('influencer_is_saved', 'shortcode_check_influencer_saved');
 
 
-function influcencer_is_saved($current_influencer_id)
+function influencer_is_saved($current_influencer_id)
 {
     $current_user_id       = get_current_user_id();
 
