@@ -227,6 +227,12 @@
                         alert('Success: ' + response.data.message);
                         $buttonText.text(buttonupdated);
                         $button.prop('disabled', true);
+
+                        if (type == 'delete') {
+                            $button.removeClass('delete-save');
+                        } else {
+                            $button.addClass('delete-save');
+                        }
                     } else {
                         alert('Error: ' + response.data.message);
                         $buttonText.text('Save Influencer').prop('disabled', false);
