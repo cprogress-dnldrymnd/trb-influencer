@@ -106,7 +106,7 @@ add_action( 'elementor/query/saved_lists', function( $query ) {
     $current_user_id = get_current_user_id();
 
 
-        $query->set( 'post__in', [2524] );
+        $query->set( 'post__in', [1822] );
    
 
 } );
