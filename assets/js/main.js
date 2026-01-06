@@ -212,6 +212,7 @@
                 buttonupdating = 'SAVING...';
             }
             $buttonText.text(buttonupdating).prop('disabled', true);
+            $button.prop('disabled', true);
 
             $.ajax({
                 url: ajax_vars.ajax_url, // From wp_localize_script
@@ -226,13 +227,15 @@
                     if (response.success) {
                         alert('Success: ' + response.data.message);
                         $buttonText.text(buttonupdated);
-                        $button.prop('disabled', true);
 
                         if (type == 'delete') {
                             $button.removeClass('delete-save');
                         } else {
                             $button.addClass('delete-save');
                         }
+
+                        $button.prop('disabled', false);
+
                     } else {
                         alert('Error: ' + response.data.message);
                         $buttonText.text('Save Influencer').prop('disabled', false);
