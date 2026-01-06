@@ -101,12 +101,41 @@ add_shortcode('test', 'test');
  */
 add_action( 'elementor/query/saved_lists', function( $query ) {
     
-  
+    // 1. Security: If not logged in, show nothing.
+    if ( ! is_user_logged_in() ) {
+        $query->set( 'post__in', [0] );
+        return;
+    }
 
-    $current_user_id = get_current_user_id();
+    global $wpdb;
+    $user_id = get_current_user_id();
 
+    // 2. Direct SQL Query
+    // This fetches the 'influencer_id' meta directly from the database 
+    // for all 'saved-influencer' posts authored by the current user.
+    // We skip 'get_posts' entirely to avoid conflicts/loops.
+    $influencer_ids = $wpdb->get_col( $wpdb->prepare( "
+        SELECT pm.meta_value 
+        FROM {$wpdb->postmeta} pm
+        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+        WHERE p.post_type = 'saved-influencer'
+        AND p.post_status = 'publish'
+        AND p.post_author = %d
+        AND pm.meta_key = 'influencer_id'
+    ", $user_id ) );
 
-        $query->set( 'post__in', [1822] );
-   
+    // 3. Apply the IDs to the Elementor Query
+    if ( ! empty( $influencer_ids ) ) {
+        // Ensure they are integers
+        $ids = array_map( 'intval', $influencer_ids );
+        
+        $query->set( 'post__in', $ids );
+        
+        // Optional: If you want to keep the order they were saved in:
+        // $query->set( 'orderby', 'post__in' );
+    } else {
+        // No saved items found, force empty result
+        $query->set( 'post__in', [0] );
+    }
 
 } );
