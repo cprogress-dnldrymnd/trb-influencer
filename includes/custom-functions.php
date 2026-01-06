@@ -44,7 +44,10 @@ function my_custom_variable_setup()
     $influencer_search_fields['lang'] = $lang_options;
     $influencer_search_fields['gender'] = $gender_options;
 
+    $influencer_search_page = 1949;
+
     set_query_var('influencer_search_fields', $influencer_search_fields);
+    set_query_var('influencer_search_page', $influencer_search_page);
 }
 add_action('wp', 'my_custom_variable_setup');
 /**
