@@ -95,3 +95,20 @@ function test()
     return ob_get_clean();
 }
 add_shortcode('test', 'test');
+
+/**
+ * Elementor Custom Query Filter: saved_lists
+ * Filters the query to show posts defined in 'saved-influencer' CPT meta.
+ */
+add_action( 'elementor/query/saved_lists', function( $query ) {
+    
+    // 1. Security Check: Ensure user is logged in
+    // If not logged in, force an empty result (or remove this block to show all if not user-specific)
+    if ( ! is_user_logged_in() ) {
+        $query->set( 'post__in', [0] );
+        return;
+    }
+        $query->set( 'post__in', 1834 );
+
+
+} );
