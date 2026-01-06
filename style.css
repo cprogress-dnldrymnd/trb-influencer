@@ -406,4 +406,11 @@ input:checked + .slider:before {
     line-height: 1;
     padding: 14px 25px; }
 
+.influencer-search-main .influencer-search-item-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; }
+  .influencer-search-main .influencer-search-item-row > div {
+    flex-grow: 1; }
+
 /*# sourceMappingURL=style.css.map */

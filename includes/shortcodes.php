@@ -251,63 +251,55 @@ function shortcode_influencer_search_filter_main()
     ob_start();
     $influencer_search_fields = get_query_var('influencer_search_fields');
     $influencer_search_page = get_query_var('influencer_search_page');
-    
+
 ?>
-    <form class="influencer-search" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
+    <form class="influencer-search influencer-search-main" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
-            </div>
-            <div class="influencer-search-item">
-                <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
+                <textarea name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
 
-            <div class="influencer-search-item">
-                <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
-            </div>
+            <div class="influencer-search-item-row">
+                <div class="influencer-search-item">
+                    <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
+                </div>
 
-            <div class="influencer-search-item">
                 <div class="influencer-search-item">
-                    <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
+                    <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
                 </div>
-            </div>
 
-            <div class="influencer-search-item">
                 <div class="influencer-search-item">
-                    <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
-                </div>
-            </div>
-            <div class="influencer-search-item">
-                <div class="influencer-search-item">
-                    <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
-                </div>
-            </div>
-            <div class="influencer-search-item">
-                <div class="filter-widget range-filter">
-                    <div class="header">
-                        <span>Match Score</span>
+                    <div class="influencer-search-item">
+                        <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
                     </div>
+                </div>
 
-                    <input type="range" id="score" value="<?= isset($_GET['score']) ? $_GET['score'] : 50 ?>" name="score" min="0" max="100">
+                <div class="influencer-search-item">
+                    <div class="influencer-search-item">
+                        <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
+                    </div>
+                </div>
+                <div class="influencer-search-item">
+                    <div class="influencer-search-item">
+                        <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
+                    </div>
+                </div>
+
+                <div class="influencer-search-item">
+                    <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
+                        <span class="elementor-button-content-wrapper">
+                            <span class="elementor-button-text">GENERATE MATCHES</span>
+                        </span>
+                    </button>
                 </div>
             </div>
-            <div class="influencer-search-item">
-                <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
-                    <span class="elementor-button-content-wrapper">
-                        <span class="elementor-button-text">REFINE SEARCH</span>
-                    </span>
-                </button>
-            </div>
-            <div class="influencer-search-item">
-                <div class="save-this-search">
-                    <span class="save-this-search-button save-search-trigger">
-                        Save this search
-                    </span>
-                </div>
-            </div>
+
+
         </div>
     </form>
-
 
 
 <?php
