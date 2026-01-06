@@ -84,7 +84,7 @@
             // Scope elements to THIS specific widget instance
             const dropdownBtn = widget.querySelector('.dropdown-button');
             const dropdownMenu = widget.querySelector('.dropdown-menu');
-            const checkboxes = widget.querySelectorAll('.dropdown-item input[type="checkbox"]');
+            const checkboxes = widget.querySelectorAll('.dropdown-item input');
             const tagsContainer = widget.querySelector('.tags-container');
             const resetBtn = widget.querySelector('.reset-btn');
 
