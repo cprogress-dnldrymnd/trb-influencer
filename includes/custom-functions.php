@@ -485,7 +485,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
     return ob_get_clean();
 }
 
-function checkbox_filter($name, $label, $options = [])
+function checkbox_filter($name, $label, $options = [], $tags = false)
 {
     // Check URL parameters for this field
     $selected_values = [];
@@ -514,6 +514,10 @@ function checkbox_filter($name, $label, $options = [])
                 </label>
             <?php } ?>
         </div>
+        <?php if ($tags) { ?>
+            <div class="tags-container"></div>
+        <?php } ?>
+
     </div>
 
 <?php
