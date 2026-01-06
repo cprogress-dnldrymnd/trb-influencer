@@ -443,12 +443,13 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
     ob_start();
 ?>
     <div class="filter-widget select-filter">
-        <?php if ($label != false) { ?>
-            <div class="header">
+        <div class="header">
+            <?php if ($label != false) { ?>
                 <span><?= $label ?></span>
-                <div class="reset-btn">Reset</div>
-            </div>
-        <?php } ?>
+            <?php } ?>
+
+            <div class="reset-btn">Reset</div>
+        </div>
 
         <div class="dropdown-container">
             <div class="dropdown-button">
