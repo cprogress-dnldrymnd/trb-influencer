@@ -551,6 +551,7 @@ input:checked + .slider:before {
             font-weight: var(--e-global-typography-7d2bc59-font-weight);
             line-height: var(--e-global-typography-7d2bc59-line-height);
             width: 100%;
+            padding: 16px !important;
         }
     }
 
