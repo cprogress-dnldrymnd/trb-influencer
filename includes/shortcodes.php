@@ -434,9 +434,9 @@ function shortcode_check_influencer_saved($atts)
 add_shortcode('influcencer_is_saved', 'shortcode_check_influencer_saved');
 
 
-function influcencer_is_saved($current_influencer_id)
+function influencer_is_saved($current_influencer_id)
 {
-    $current_user_id       = get_current_user_id();
+    $current_user_id = get_current_user_id();
 
     if (! is_user_logged_in()) {
         return false;
@@ -446,21 +446,23 @@ function influcencer_is_saved($current_influencer_id)
         'post_type'      => 'saved-influencer',
         'post_status'    => 'publish',
         'posts_per_page' => 1,
-        'fields'         => 'ids',
+        'fields'         => 'ids', // Returns an array of IDs directly
         'author'         => $current_user_id,
         'meta_query'     => array(
             array(
                 'key'     => 'influencer_id',
                 'value'   => $current_influencer_id,
-                'compare' => '='
-            )
-        )
+                'compare' => '=',
+            ),
+        ),
     );
 
-    $query = new WP_Query($args);
-    if ($query->have_posts()) {
-        return true;
-    } else {
-        return false;
+    $posts = get_posts($args);
+
+    // Check if the array is not empty and return the first ID found
+    if (! empty($posts)) {
+        return $posts[0];
     }
+
+    return false;
 }
