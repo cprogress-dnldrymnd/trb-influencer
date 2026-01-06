@@ -448,7 +448,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
 
     ob_start();
 ?>
-    <div class="filter-widget select-filter tags-enabled">
+    <div class="filter-widget select-filter">
         <div class="header">
             <?php if ($label != false) { ?>
                 <span><?= $label ?></span>
@@ -485,7 +485,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
     return ob_get_clean();
 }
 
-function checkbox_filter($name, $label, $options = [], $tags = false)
+function checkbox_filter($name, $label, $options = [])
 {
     // Check URL parameters for this field
     $selected_values = [];
@@ -496,7 +496,7 @@ function checkbox_filter($name, $label, $options = [], $tags = false)
     ob_start();
 ?>
 
-    <div class="filter-widget checkbox-filter tags-enabled">
+    <div class="filter-widget checkbox-filter">
         <?php if ($label != false) { ?>
             <div class="header">
                 <span><?= $label ?></span>
@@ -514,10 +514,8 @@ function checkbox_filter($name, $label, $options = [], $tags = false)
                 </label>
             <?php } ?>
         </div>
-        <?php if ($tags) { ?>
-            <div class="tags-container"></div>
-        <?php } ?>
 
+        
     </div>
 
 <?php

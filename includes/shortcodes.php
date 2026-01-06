@@ -274,7 +274,7 @@ function shortcode_influencer_search_filter_main()
                 </div>
             </div>
             <div class="influencer-search-item checkbox-row filtered-search">
-                <?= checkbox_filter('filter', false, $influencer_search_fields['filter'], true) ?>
+                <?= checkbox_filter('filter', false, $influencer_search_fields['filter']) ?>
 
             </div>
             <div class="influencer-search-item">
