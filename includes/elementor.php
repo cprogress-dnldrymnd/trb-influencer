@@ -94,4 +94,4 @@ function test()
     var_dump($target_ids);
     return ob_get_clean();
 }
-add_shorcode('test', 'test');
+add_shortcode('test', 'test');
