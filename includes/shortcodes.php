@@ -197,20 +197,14 @@ function shortcode_influencer_search_filter()
             </div>
 
             <div class="influencer-search-item">
-                <div class="influencer-search-item">
-                    <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
-                </div>
+                <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
             </div>
 
             <div class="influencer-search-item">
-                <div class="influencer-search-item">
-                    <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
-                </div>
+                <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
             </div>
             <div class="influencer-search-item">
-                <div class="influencer-search-item">
-                    <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
-                </div>
+                <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
             </div>
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
@@ -261,6 +255,12 @@ function shortcode_influencer_search_filter_main()
 
             <div class="influencer-search-item-row">
                 <div class="influencer-search-item">
+                    <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
+                </div>
+                <div class="influencer-search-item">
                     <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
                 </div>
                 <div class="influencer-search-item">
@@ -270,25 +270,6 @@ function shortcode_influencer_search_filter_main()
                 <div class="influencer-search-item">
                     <?= select_filter('followers', 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
                 </div>
-
-                <div class="influencer-search-item">
-                    <div class="influencer-search-item">
-                        <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
-                    </div>
-                </div>
-
-                <div class="influencer-search-item">
-                    <div class="influencer-search-item">
-                        <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
-                    </div>
-                </div>
-                <div class="influencer-search-item">
-                    <div class="influencer-search-item">
-                        <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
-                    </div>
-                </div>
-
-
             </div>
             <div class="influencer-search-item">
                 <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
