@@ -219,7 +219,7 @@ function shortcode_influencer_search_filter()
         'Prefer not to say' => 'Prefer not to say',
     );
     $data = get_query_var( 'my_custom_data' );
-    echo $data;
+    var_dump($data);
 ?>
     <form class="influencer-search" action="<?= get_the_permalink(1949) ?>" method="GET">
         <div class="influencer-search-filter-holder">
