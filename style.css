@@ -410,6 +410,8 @@ input:checked + .slider:before {
   display: flex;
   flex-wrap: wrap;
   gap: 10px; }
+  .influencer-search-main .influencer-search-item-row > div {
+    flex-grow: 1; }
 .influencer-search-main textarea {
   background-color: #ffffff;
   border-color: var(--e-global-color-670824e);

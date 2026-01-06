@@ -537,7 +537,8 @@ input:checked + .slider:before {
         flex-wrap: wrap;
         gap: 10px;
         > div {
-
+            flex-grow: 1;
+            
         }
     }
     textarea {
