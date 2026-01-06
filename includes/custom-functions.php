@@ -421,7 +421,7 @@ function iso_alpha3_to_alpha2($alpha3)
     return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
 }
 
-function select_filter($name, $label, $options = [])
+function select_filter($name, $label, $options = [], $type = 'checkbox')
 {
     // Check URL parameters for this field
     $selected_values = [];
@@ -452,7 +452,7 @@ function select_filter($name, $label, $options = [])
                     $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
                 ?>
                     <label class="dropdown-item checkbox-list-item">
-                        <input type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
+                        <input type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
                     </label>
                 <?php } ?>
             </div>

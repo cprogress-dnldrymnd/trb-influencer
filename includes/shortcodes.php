@@ -268,7 +268,7 @@ function shortcode_influencer_search_filter_main()
                 </div>
 
                 <div class="influencer-search-item">
-                    <?= select_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
+                    <?= select_filter('followers', 'Follower Range', $influencer_search_fields['followers'], 'radio') ?>
                 </div>
 
                 <div class="influencer-search-item">
