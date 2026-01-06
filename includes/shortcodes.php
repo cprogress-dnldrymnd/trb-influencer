@@ -186,7 +186,7 @@ function shortcode_influencer_search_filter()
     <form class="influencer-search" action="<?= get_the_permalink($influencer_search_page) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
+                <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche']) ?>
             </div>
             <div class="influencer-search-item">
                 <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
@@ -197,14 +197,17 @@ function shortcode_influencer_search_filter()
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
+                <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country']) ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
+                <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang']) ?>
             </div>
             <div class="influencer-search-item">
-                <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
+                <?= select_filter('gender', 'Gender', 'Select a gender', $influencer_search_fields['gender']) ?>
+            </div>
+            <div class="influencer-search-item">
+                <?= select_filter('age', 'Age', 'Select an age', $influencer_search_fields['age']) ?>
             </div>
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">

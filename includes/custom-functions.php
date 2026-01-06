@@ -36,6 +36,15 @@ function my_custom_variable_setup()
         'Non-Binary' => 'Non-Binary',
         'Prefer not to say' => 'Prefer not to say',
     );
+    $age_options = array(
+        '13-17' => '13-17',
+        '18-24' => '18-24',
+        '25-34' => '25-34',
+        '35-44' => '35-44',
+        '45-54' => '45-54',
+        '55-64' => '55-64',
+        '65+' => '65+',
+    );
 
     $influencer_search_fields['niche'] = $niche_options;
     $influencer_search_fields['platform'] = $platform_options;
@@ -43,6 +52,7 @@ function my_custom_variable_setup()
     $influencer_search_fields['country'] = $country_options;
     $influencer_search_fields['lang'] = $lang_options;
     $influencer_search_fields['gender'] = $gender_options;
+    $influencer_search_fields['age'] = $age_options;
 
     $influencer_search_page = 1949;
 
