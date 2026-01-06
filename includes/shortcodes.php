@@ -408,9 +408,7 @@ add_shortcode('breadcrumbs', 'breadcrumbs');
 
 function shortcode_check_influencer_saved($atts)
 {
-    if (! is_user_logged_in()) {
-        return $atts['false'];
-    }
+    // 1. Extract shortcode attributes
     $atts = shortcode_atts(array(
         'true'  => 'UNSAVED', // Text to show if ALREADY saved
         'false' => 'SAVE',    // Text to show if NOT saved
@@ -419,7 +417,10 @@ function shortcode_check_influencer_saved($atts)
     // 2. Get current context
     $current_influencer_id = get_the_ID();
 
-
+    // Optional: If user is not logged in, default to the 'false' (SAVE) state
+    if (! is_user_logged_in()) {
+        return $atts['false'];
+    }
     $influcencer_is_saved = influcencer_is_saved($current_influencer_id);
 
     // 4. Return the correct label based on results
