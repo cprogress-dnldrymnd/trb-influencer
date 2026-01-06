@@ -423,9 +423,15 @@ input:checked + .slider:before {
   line-height: var(--e-global-typography-7d2bc59-line-height);
   width: 100%;
   padding: 16px !important; }
-.influencer-search-main .filter-widget .tags-container {
-  flex-direction: column;
-  align-items: flex-start; }
+.influencer-search-main .filter-widget {
+  position: relative;
+  padding-top: 27px; }
+  .influencer-search-main .filter-widget .tags-container {
+    flex-direction: column;
+    align-items: flex-start; }
+  .influencer-search-main .filter-widget .header {
+    position: absolute;
+    top: 0; }
 .influencer-search-main .influencer-search-button.influencer-search-button.influencer-search-button {
   width: auto;
   margin-left: auto;

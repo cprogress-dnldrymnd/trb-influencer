@@ -555,9 +555,17 @@ input:checked + .slider:before {
         }
     }
 
-    .filter-widget .tags-container {
-        flex-direction: column;
-        align-items: flex-start;
+    .filter-widget {
+        position: relative;
+        padding-top: 27px;
+        .tags-container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .header {
+            position: absolute;
+            top: 0;
+        }
     }
 
     .influencer-search-button.influencer-search-button.influencer-search-button {
