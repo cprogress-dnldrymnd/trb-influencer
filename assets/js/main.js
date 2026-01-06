@@ -202,15 +202,17 @@
             var influencerId = $button.attr('influencer-id');
             var $buttonText = $(this).find('.elementor-button-text');
             // (Optional) Visual feedback: Change button text or disable it
-            $buttonText.text('Saving...').prop('disabled', true);
 
             if ($button.hasClass('delete-save')) {
                 type = 'delete';
-                buttonupdate = 'SAVED';
+                buttonupdated = 'SAVED';
+                buttonupdating= 'UNSAVING...';
             } else {
                 type = 'save';
-                buttonupdate = 'UNSAVED';
+                buttonupdated = 'UNSAVED';
+                buttonupdating= 'SAVING...';
             }
+            $buttonText.text(buttonupdating).prop('disabled', true);
 
             $.ajax({
                 url: ajax_vars.ajax_url, // From wp_localize_script
@@ -224,7 +226,7 @@
                 success: function (response) {
                     if (response.success) {
                         alert('Success: ' + response.data.message);
-                        $buttonText.text(buttonupdate);
+                        $buttonText.text(buttonupdated);
                         $button.prop('disabled', true);
                     } else {
                         alert('Error: ' + response.data.message);
