@@ -206,8 +206,10 @@
 
             if ($button.hasClass('delete-save')) {
                 type = 'delete';
+                buttonupdate = 'SAVED';
             } else {
                 type = 'save';
+                buttonupdate = 'UNSAVED';
             }
 
             $.ajax({
@@ -222,7 +224,7 @@
                 success: function (response) {
                     if (response.success) {
                         alert('Success: ' + response.data.message);
-                        $buttonText.text('Saved');
+                        $buttonText.text(buttonupdate);
                         $button.prop('disabled', true);
                     } else {
                         alert('Error: ' + response.data.message);
