@@ -180,74 +180,35 @@ add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 function shortcode_influencer_search_filter()
 {
     ob_start();
-
-    $niche = get_terms(array(
-        'taxonomy'   => 'niche',
-        'hide_empty' => false,
-    ));
-
-    foreach ($niche as $term) {
-        $niche_options[$term->slug] = $term->name;
-    }
-
-    $platform = get_terms(array(
-        'taxonomy'   => 'platform',
-        'hide_empty' => false,
-    ));
-
-    foreach ($platform as $term) {
-        $platform_options[$term->slug] = $term->name;
-    }
-
-    $followers_options = array(
-        '1000-10000' => '1K - 10K',
-        '10000-50000' => '10K - 50K',
-        '50000-250000' => '50K - 250K',
-        '250000-1000000' => '250K - 1M',
-        '1000000-10000000' => '1M-10M',
-        '10000000+' => '10M+',
-    );
-
-    $country_options = get_unique_influencer_countries();
-
-    $lang_options = get_unique_influencer_languages();
-
-    $gender_options = array(
-        'Male' => 'Male',
-        'Female' => 'Female',
-        'Non-Binary' => 'Non-Binary',
-        'Prefer not to say' => 'Prefer not to say',
-    );
-    $data = get_query_var( 'my_custom_data' );
-    var_dump($data);
+    $influencer_search_fields = get_query_var('influencer_search_fields');
 ?>
     <form class="influencer-search" action="<?= get_the_permalink(1949) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('niche', 'Tag Filter', $niche_options) ?>
+                <?= select_filter('niche', 'Tag Filter', $influencer_search_fields['niche']) ?>
             </div>
             <div class="influencer-search-item">
-                <?= checkbox_filter('platform', 'Platform', $platform_options) ?>
+                <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform']) ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= radio_filter('followers', 'Follower Range', $followers_options) ?>
+                <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers']) ?>
             </div>
 
             <div class="influencer-search-item">
                 <div class="influencer-search-item">
-                    <?= select_filter('country', 'Location', $country_options) ?>
+                    <?= select_filter('country', 'Location', $influencer_search_fields['country']) ?>
                 </div>
             </div>
 
             <div class="influencer-search-item">
                 <div class="influencer-search-item">
-                    <?= select_filter('lang', 'Language', $lang_options) ?>
+                    <?= select_filter('lang', 'Language', $influencer_search_fields['lang']) ?>
                 </div>
             </div>
             <div class="influencer-search-item">
                 <div class="influencer-search-item">
-                    <?= select_filter('gender', 'Gender', $gender_options) ?>
+                    <?= select_filter('gender', 'Gender', $influencer_search_fields['gender']) ?>
                 </div>
             </div>
             <div class="influencer-search-item">
