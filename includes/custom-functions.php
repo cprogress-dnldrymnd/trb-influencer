@@ -448,7 +448,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
 
     ob_start();
 ?>
-    <div class="filter-widget select-filter">
+    <div class="filter-widget select-filter tags-enabled">
         <div class="header">
             <?php if ($label != false) { ?>
                 <span><?= $label ?></span>
@@ -496,7 +496,7 @@ function checkbox_filter($name, $label, $options = [], $tags = false)
     ob_start();
 ?>
 
-    <div class="filter-widget checkbox-filter">
+    <div class="filter-widget checkbox-filter tags-enabled">
         <?php if ($label != false) { ?>
             <div class="header">
                 <span><?= $label ?></span>

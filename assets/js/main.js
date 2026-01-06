@@ -79,7 +79,7 @@
     function influencer_select_filters() {
 
         // 1. Initialize all widgets independently
-        document.querySelectorAll('.select-filter').forEach(widget => {
+        document.querySelectorAll('.tags-enabled').forEach(widget => {
 
             // Scope elements to THIS specific widget instance
             const dropdownBtn = widget.querySelector('.dropdown-button');
