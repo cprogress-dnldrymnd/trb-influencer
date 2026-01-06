@@ -115,28 +115,6 @@ add_action( 'elementor/query/saved_lists', function( $query ) {
         'fields'         => 'ids',        // We only need the IDs to loop through for meta
     ] );
 
-    // If the user hasn't saved anything, return no results
-    if ( empty( $saved_influencer_posts ) ) {
-        $query->set( 'post__in', [0] );
-        return;
-    }
-
-    // 3. Extract the 'influencer_id' meta field from the saved posts
-    $target_ids = [];
-    foreach ( $saved_influencer_posts as $saved_post_id ) {
-        $influencer_id = get_post_meta( $saved_post_id, 'influencer_id', true );
-        
-        if ( ! empty( $influencer_id ) ) {
-            $target_ids[] = (int) $influencer_id;
-        }
-    }
-
-    // 4. Modify the Main Query to only show these IDs
-    if ( ! empty( $target_ids ) ) {
-        $query->set( 'post__in', $target_ids );
-    } else {
-        // Fallback if meta fields were empty
-        $query->set( 'post__in', [0] );
-    }
+   
 
 } );
