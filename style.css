@@ -470,6 +470,7 @@ input:checked + .slider:before {
   font-family: Inter, sans-serif;
   font-size: 14px;
   font-weight: 500;
-  text-transform: uppercase; }
+  text-transform: uppercase;
+  cursor: pointer; }
 
 /*# sourceMappingURL=style.css.map */
