@@ -19,61 +19,105 @@
     function influencer_search_trigger() {
         jQuery('.influencer-search-trigger').on('click', function (e) {
             e.preventDefault();
-            fetch_influencers();
+            fetch_influencers(false);
         });
     }
 
 
 
-    function fetch_influencers() {
-        var container = $('#my-loop-grid-container');
+    // Global variables to track pagination
+    var current_page = 1;
+    var max_pages = 1; // Will be updated by the PHP response
 
-        // 1. Helper function to gather values from CHECKED boxes only
+    function fetch_influencers(is_load_more = false) {
+        var container = $('#my-loop-grid-container');
+        var button = $('#load-more-influencers');
+
+        // 1. If this is NOT a "load more" click (it's a filter change), reset page to 1
+        if (!is_load_more) {
+            current_page = 1;
+        }
+
+        // 2. Helper function to gather values
         function get_filter_values(name) {
             return $('[name="' + name + '"]:checked').map(function () {
                 return $(this).val();
             }).get();
         }
 
-        // 2. Gather values using the helper function
-        // This creates an array like ['fashion', 'travel'] for the ajax call
+        // 3. Gather values
         var filter_niche = get_filter_values('niche[]');
         var filter_platform = get_filter_values('platform[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
         var filter_followers = get_filter_values('followers');
-        // UI Feedback
+
+        // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
+        button.text('Loading...'); // Change button text while loading
+
         $.ajax({
             url: ajax_vars.ajax_url,
             type: 'POST',
             data: {
                 action: 'my_custom_loop_filter',
-                // jQuery automatically converts these arrays into 
-                // format niche[]=val1&niche[]=val2 for PHP
                 niche: filter_niche,
                 platform: filter_platform,
                 country: filter_country,
                 lang: filter_lang,
-                followers: filter_followers
+                followers: filter_followers,
+                paged: current_page // <--- SEND CURRENT PAGE TO PHP
             },
             success: function (response) {
                 if (response.success) {
-                    container.html(response.data.html);
+                    // Update Max Pages from PHP response
+                    max_pages = response.data.max_pages;
+
+                    // A. Render HTML
+                    if (is_load_more) {
+                        // If loading more, APPEND to existing content
+                        container.append(response.data.html);
+                    } else {
+                        // If filtering, REPLACE existing content
+                        container.html(response.data.html);
+                    }
+
+                    // B. Update Counters
                     jQuery('.total-found-influencer').text(response.data.found_posts);
-                    $count = jQuery('#my-loop-grid-container .e-loop-item').length;
-                    jQuery('.current-found-influencer').text($count);
+                    var count = jQuery('#my-loop-grid-container .e-loop-item').length;
+                    jQuery('.current-found-influencer').text(count);
+
+                    // C. Handle Button Visibility
+                    if (current_page < max_pages) {
+                        button.show();
+                        button.text('Load More');
+                    } else {
+                        button.hide();
+                    }
+
                 } else {
-                    container.html('<p>No influencers found matching your criteria.</p>');
+                    // No posts found
+                    if (!is_load_more) {
+                        container.html('<p>No influencers found matching your criteria.</p>');
+                    }
+                    button.hide();
                 }
                 container.css('opacity', '1');
             },
             error: function () {
                 container.html('<p>An error occurred. Please try again.</p>');
                 container.css('opacity', '1');
+                button.text('Try Again');
             }
         });
     }
+
+    jQuery(document).on('click', '#load-more-influencers', function (e) {
+        e.preventDefault();
+        current_page++; // Increment page
+        fetch_influencers(true); // Pass true to indicate "Load More" mode
+    });
+
 
     function influencer_select_filters() {
 
