@@ -473,4 +473,12 @@ input:checked + .slider:before {
   text-transform: uppercase;
   cursor: pointer; }
 
+.influencer-grid-box {
+  padding-bottom: 140px; }
+  .influencer-grid-box .loading-animation {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%; }
+
 /*# sourceMappingURL=style.css.map */

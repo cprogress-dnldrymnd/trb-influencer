@@ -628,3 +628,14 @@ input:checked + .slider:before {
     text-transform: uppercase;
     cursor: pointer;
 }
+
+
+.influencer-grid-box {
+    padding-bottom: 140px;
+    .loading-animation {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+}
