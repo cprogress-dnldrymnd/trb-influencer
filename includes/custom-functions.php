@@ -437,12 +437,11 @@ function iso_alpha3_to_alpha2($alpha3)
     return isset($mapping[$alpha3]) ? $mapping[$alpha3] : false;
 }
 
-function select_filter($name, $label, $placeholder, $options = [], $type = 'checkbox')
+function select_filter($name, $label, $placeholder, $options = [], $type = 'checkbox', $has_search = false)
 {
     // Check URL parameters for this field
     $selected_values = [];
     if (isset($_GET[$name])) {
-        // Ensure it is an array (handles cases where only 1 item is selected)
         $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
     }
 
@@ -466,14 +465,24 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
             </div>
 
             <div class="dropdown-menu checkbox-lists">
-                <?php foreach ($options as $key => $option) {
-                    // Check if this specific key exists in the URL params
-                    $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
-                ?>
-                    <label class="dropdown-item checkbox-list-item">
-                        <input type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
-                    </label>
-                <?php } ?>
+                
+                <?php /* --- NEW SEARCH FIELD --- */ ?>
+                <?php if ($has_search): ?>
+                    <div class="dropdown-search-container" style="padding: 10px;">
+                        <input type="text" class="dropdown-search-input" placeholder="Search options..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                <?php endif; ?>
+                <?php /* ------------------------ */ ?>
+
+                <div class="options-list">
+                    <?php foreach ($options as $key => $option) {
+                        $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+                    ?>
+                        <label class="dropdown-item checkbox-list-item">
+                            <input type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
+                        </label>
+                    <?php } ?>
+                </div>
             </div>
         </div>
 
@@ -481,7 +490,6 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
     </div>
 
 <?php
-
     return ob_get_clean();
 }
 

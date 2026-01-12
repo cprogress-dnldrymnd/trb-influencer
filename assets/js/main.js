@@ -134,15 +134,45 @@
             const tagsContainer = widget.querySelector('.tags-container');
             const resetBtn = widget.querySelector('.reset-btn');
 
+            // New Search Elements
+            const searchInput = widget.querySelector('.dropdown-search-input');
+            const listItems = widget.querySelectorAll('.dropdown-item');
+
             // Toggle Dropdown
             dropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Close other open widgets (optional UX choice)
                 closeAllOtherDropdowns(dropdownMenu, dropdownBtn);
 
                 dropdownMenu.classList.toggle('show');
                 dropdownBtn.classList.toggle('open');
+
+                // Optional: Focus search input when opening
+                if (dropdownMenu.classList.contains('show') && searchInput) {
+                    setTimeout(() => searchInput.focus(), 100);
+                }
             });
+
+            // --- NEW SEARCH LOGIC ---
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const filter = e.target.value.toLowerCase();
+
+                    listItems.forEach(item => {
+                        const text = item.textContent || item.innerText;
+                        if (text.toLowerCase().indexOf(filter) > -1) {
+                            item.style.display = ""; // Show
+                        } else {
+                            item.style.display = "none"; // Hide
+                        }
+                    });
+                });
+
+                // Prevent clicking the search input from closing the dropdown (if event bubbling causes issues)
+                searchInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+            // ------------------------
 
             // Handle Checkbox Selection
             checkboxes.forEach(checkbox => {
@@ -154,14 +184,21 @@
             // Reset functionality
             resetBtn.addEventListener('click', () => {
                 checkboxes.forEach(box => box.checked = false);
+
+                // Clear search on reset
+                if (searchInput) {
+                    searchInput.value = '';
+                    // Show all items again
+                    listItems.forEach(item => item.style.display = "");
+                }
+
                 updateTags();
             });
 
             // Function to Render Tags and Toggle Visibility
             function updateTags() {
-                tagsContainer.innerHTML = ''; // Clear only this widget's container
-
-                let hasSelection = false; // Track if we have active tags
+                tagsContainer.innerHTML = '';
+                let hasSelection = false;
 
                 checkboxes.forEach(checkbox => {
                     if (checkbox.checked) {
@@ -170,13 +207,10 @@
                     }
                 });
 
-                // --- VISIBILITY TOGGLE ---
                 if (hasSelection) {
-                    // Remove inline styles to revert to your CSS default (block/flex)
                     tagsContainer.style.display = '';
                     resetBtn.style.display = '';
                 } else {
-                    // Hide if empty
                     tagsContainer.style.display = 'none';
                     resetBtn.style.display = 'none';
                 }
@@ -194,7 +228,6 @@
                 closeBtn.classList.add('tag-close');
                 closeBtn.innerHTML = '&times;';
 
-                // Remove tag logic (Uncheck specific box in this widget)
                 closeBtn.addEventListener('click', () => {
                     linkedCheckbox.checked = false;
                     updateTags();
@@ -205,8 +238,7 @@
                 tagsContainer.appendChild(tag);
             }
 
-            // --- INITIALIZATION ---
-            // Run once on load to ensure container/reset button is hidden if empty
+            // Run once on load
             updateTags();
         });
 
