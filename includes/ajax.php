@@ -5,18 +5,21 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
 function my_custom_loop_filter_handler()
 {
     // 1. SECURITY & INPUTS
-    // We use santize_text_field for all, as even the numbers come in as strings initially
     $niche     = isset($_POST['niche']) ? $_POST['niche'] : '';
     $platform  = isset($_POST['platform']) ? $_POST['platform'] : '';
     $country   = isset($_POST['country']) ? $_POST['country'] : '';
     $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
     $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
+    
+    // Get the page number (default to 1)
+    $paged     = isset($_POST['paged']) ? intval($_POST['paged']) : 1;
 
     // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
         'posts_per_page' => 12,
         'post_status'    => 'publish',
+        'paged'          => $paged, // <--- ADD PAGINATION HERE
     ];
 
     // --- Taxonomy Query (Niche & Platform) ---
@@ -25,7 +28,7 @@ function my_custom_loop_filter_handler()
     if (!empty($niche)) {
         $tax_query[] = [
             'taxonomy' => 'niche',
-            'field'    => 'slug', // Assuming values passed are slugs
+            'field'    => 'slug',
             'terms'    => $niche,
         ];
     }
@@ -38,9 +41,7 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    // If we have more than one taxonomy or just one, we add it to args
     if (!empty($tax_query)) {
-        // If both exist, relation AND is default, but good to be explicit
         if (count($tax_query) > 1) {
             $tax_query['relation'] = 'AND';
         }
@@ -66,20 +67,16 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    // Followers Logic
     if (!empty($followers)) {
-        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
-        if (strpos($followers[0], '-') !== false) {
+        if (isset($followers[0]) && strpos($followers[0], '-') !== false) {
             $range = explode('-', $followers[0]);
             $meta_query[] = [
                 'key'     => 'followers',
-                'value'   => $range, // array(min, max)
+                'value'   => $range,
                 'compare' => 'BETWEEN',
                 'type'    => 'NUMERIC',
             ];
         } else {
-            // No hyphen, assumed to be the top tier (e.g., "10000000")
-            // Requirement: search for value GREATER THAN selected
             $meta_query[] = [
                 'key'     => 'followers',
                 'value'   => $followers[0],
@@ -107,16 +104,14 @@ function my_custom_loop_filter_handler()
         }
         wp_reset_postdata();
 
-        // 1. Capture the HTML into a variable
         $html_output = ob_get_clean();
 
-        // 2. Send an array containing both the HTML and the count
         wp_send_json_success(array(
             'html'        => $html_output,
-            'found_posts' => $query->found_posts
+            'found_posts' => $query->found_posts,
+            'max_pages'   => $query->max_num_pages // <--- SEND MAX PAGES TO JS
         ));
     } else {
-        // It's often good practice to clean the buffer even on error to prevent stray output
         ob_end_clean();
         wp_send_json_error('No posts found');
     }
