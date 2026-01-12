@@ -459,4 +459,10 @@ input:checked + .slider:before {
   word-wrap: break-word;
   hyphens: auto; }
 
+.loading-animation {
+  text-align: center; }
+  .loading-animation img {
+    width: 100px;
+    height: 100px; }
+
 /*# sourceMappingURL=style.css.map */

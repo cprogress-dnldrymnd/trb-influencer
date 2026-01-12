@@ -611,3 +611,11 @@ input:checked + .slider:before {
     word-wrap: break-word;
     hyphens: auto;
 }
+
+.loading-animation {
+    text-align: center;
+    img {
+        width: 100px;
+        height: 100px;
+    }
+}

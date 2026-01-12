@@ -32,6 +32,7 @@
     function fetch_influencers(is_load_more = false) {
         var container = $('#my-loop-grid-container');
         var button = $('#load-more-influencers');
+        $('.loading-animation').show();
 
         // 1. If this is NOT a "load more" click (it's a filter change), reset page to 1
         if (!is_load_more) {
@@ -70,6 +71,8 @@
             },
             success: function (response) {
                 if (response.success) {
+                    $('.loading-animation').hide();
+
                     // Update Max Pages from PHP response
                     max_pages = response.data.max_pages;
 
