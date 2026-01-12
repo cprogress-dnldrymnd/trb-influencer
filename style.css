@@ -462,8 +462,8 @@ input:checked + .slider:before {
 .loading-animation {
   text-align: center; }
   .loading-animation img {
-    width: 60px;
-    height: 60px; }
+    width: 100px;
+    height: 100px; }
 
 #load-more-influencers {
   border-color: var(--e-global-color-primary);
@@ -474,7 +474,7 @@ input:checked + .slider:before {
   cursor: pointer; }
 
 .influencer-grid-box {
-  padding-bottom: 80px;
+  padding-bottom: 120px;
   position: relative; }
   .influencer-grid-box .loading-animation {
     position: absolute;

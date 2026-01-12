@@ -615,8 +615,8 @@ input:checked + .slider:before {
 .loading-animation {
     text-align: center;
     img {
-        width: 60px;
-        height: 60px;
+        width: 100px;
+        height: 100px;
     }
 }
 
@@ -631,7 +631,7 @@ input:checked + .slider:before {
 
 
 .influencer-grid-box {
-    padding-bottom: 80px;
+    padding-bottom: 120px;
     position: relative;
     .loading-animation {
         position: absolute;
