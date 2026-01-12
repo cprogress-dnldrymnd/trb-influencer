@@ -465,4 +465,11 @@ input:checked + .slider:before {
     width: 100px;
     height: 100px; }
 
+#load-more-influencers {
+  border-color: var(--e-global-color-primary);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase; }
+
 /*# sourceMappingURL=style.css.map */
