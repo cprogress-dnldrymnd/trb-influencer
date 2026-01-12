@@ -272,7 +272,7 @@ function shortcode_influencer_search_filter_main()
                     <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '') ?>
+                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
                     <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '') ?>
