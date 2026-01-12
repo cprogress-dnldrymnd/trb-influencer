@@ -275,7 +275,7 @@ function shortcode_influencer_search_filter_main()
                     <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '') ?>
+                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
                     <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
