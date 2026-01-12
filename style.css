@@ -473,16 +473,8 @@ input:checked + .slider:before {
   text-transform: uppercase;
   cursor: pointer; }
 
-.influencer-grid-box {
-  padding-bottom: 120px;
-  position: relative; }
-  .influencer-grid-box .loading-animation {
-    position: absolute;
-    bottom: 5px;
-    left: 0;
-    width: 100%; }
-
 .load-more-wrapper {
-  text-align: center; }
+  text-align: center;
+  margin-top: 20px; }
 
 /*# sourceMappingURL=style.css.map */

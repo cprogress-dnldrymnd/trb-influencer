@@ -630,16 +630,7 @@ input:checked + .slider:before {
 }
 
 
-.influencer-grid-box {
-    padding-bottom: 120px;
-    position: relative;
-    .loading-animation {
-        position: absolute;
-        bottom: 5px;
-        left: 0;
-        width: 100%;
-    }
-}
 .load-more-wrapper {
     text-align: center;
+    margin-top: 20px;
 }
