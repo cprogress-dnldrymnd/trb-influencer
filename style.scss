@@ -272,7 +272,7 @@ $guide-pink: #f9a8d4;
     font-size: 14px;
     letter-spacing: 0.7px;
     font-weight: 600;
-        cursor: pointer;
+    cursor: pointer;
 
     &:hover,
     &:active,
@@ -601,9 +601,13 @@ input:checked + .slider:before {
     }
 }
 
-
 .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger {
     .elementor-button {
-        
     }
+}
+
+.break-word {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }

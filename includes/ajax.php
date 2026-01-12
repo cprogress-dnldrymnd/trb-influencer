@@ -15,7 +15,7 @@ function my_custom_loop_filter_handler()
     // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
-        'posts_per_page' => -1,
+        'posts_per_page' => 12,
         'post_status'    => 'publish',
     ];
 
