@@ -474,10 +474,11 @@ input:checked + .slider:before {
   cursor: pointer; }
 
 .influencer-grid-box {
-  padding-bottom: 140px; }
+  padding-bottom: 120px;
+  position: relative; }
   .influencer-grid-box .loading-animation {
     position: absolute;
-    bottom: 0;
+    bottom: 5px;
     left: 0;
     width: 100%; }
 
