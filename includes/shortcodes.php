@@ -570,13 +570,13 @@ function render_mycred_circle_progress($atts)
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="<?php echo esc_attr($atts['bg']); ?>"
-                stroke-width="3.8" />
+                stroke-width="3" />
             <path class="circle-progress"
                 stroke-dasharray="<?php echo esc_attr($percentage); ?>, 100"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
                 stroke="<?php echo esc_attr($atts['color']); ?>"
-                stroke-width="3.8"
+                stroke-width="3"
                 stroke-linecap="round" />
         </svg>
     </div>
