@@ -723,5 +723,6 @@ input:checked + .slider:before {
     height: calc(100vh - var(--admin-bar-height, 0));
     .sidebar-content {
         height: calc(100vh - var(--admin-bar-height, 0) - 133px);
+        max-height: calc(100vh - var(--admin-bar-height, 0) - 133px);
     }
 }
