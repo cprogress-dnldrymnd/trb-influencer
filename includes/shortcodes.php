@@ -37,7 +37,7 @@ function get_country_flag_from_meta()
 
     // Flag Image
     $output .= sprintf(
-        '<img src="https://flagcdn.com/%s.svg" alt="%s Flag" style="width: 24px; height: auto; box-shadow: 1px 1px 3px rgba(0,0,0,0.1); border-radius: 2px;">',
+        '<img src="https://flagcdn.com/%s.svg" alt="%s Flag" >',
         $flag_code,
         $display_text
     );
