@@ -483,4 +483,77 @@ input:checked + .slider:before {
   font-size: 14px;
   color: #000; }
 
+/* Wrapper to hold everything relative */
+.cad-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  font-family: sans-serif;
+  /* Uses your theme font */ }
+
+/* The Trigger Area (Avatar + Arrow) */
+.cad-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Space between image and arrow */ }
+
+/* The Circular Avatar */
+.cad-avatar {
+  width: 50px;
+  /* Adjust size here */
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #bce0e2;
+  /* That light teal border color from your image */
+  transition: border-color 0.3s ease; }
+
+.cad-wrapper:hover .cad-avatar {
+  border-color: #333;
+  /* Darker border on hover */ }
+
+/* The Dropdown Box (Hidden by default) */
+.cad-dropdown {
+  display: none;
+  position: absolute;
+  top: 120%;
+  /* Pushes it slightly below the image */
+  right: 0;
+  width: 200px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 10px 0;
+  z-index: 999;
+  overflow: hidden; }
+
+/* Show dropdown when active class is added by JS */
+.cad-wrapper.active .cad-dropdown {
+  display: block; }
+
+/* Menu Links */
+.cad-menu-item {
+  display: block;
+  padding: 10px 20px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s; }
+
+.cad-menu-item:hover {
+  background-color: #f5f5f5;
+  color: #000; }
+
+/* Logout specific style */
+.cad-logout {
+  color: #d9534f;
+  /* Reddish color for logout */
+  font-weight: bold; }
+
+.cad-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 5px 0; }
+
 /*# sourceMappingURL=style.css.map */
