@@ -156,7 +156,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     .filter-widget .checkbox-lists .checkbox-list-item input[type="checkbox"] {
       margin: 0;
       transform: scale(1.2);
-      accent-color: #0f766e; }
+      accent-color: var(--e-global-color-accent); }
   .filter-widget .tags-container {
     display: flex;
     flex-wrap: wrap;

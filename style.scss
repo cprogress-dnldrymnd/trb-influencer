@@ -219,7 +219,7 @@ $guide-pink: #f9a8d4;
             input[type="checkbox"] {
                 margin: 0;
                 transform: scale(1.2);
-                accent-color: $accent-color;
+                accent-color: var(--e-global-color-accent);
             }
         }
     }
