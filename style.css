@@ -548,7 +548,7 @@ input:checked + .slider:before {
   background-color: #eee;
   margin: 5px 0; }
 
-#dashboar-sidebar {
+#dashboard-sidebar {
   height: calc(100vh - var(--admin-bar-height, 0)); }
 
 /*# sourceMappingURL=style.css.map */
