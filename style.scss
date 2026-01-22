@@ -721,4 +721,7 @@ input:checked + .slider:before {
 
 #dashboard-sidebar {
     height: calc(100vh - var(--admin-bar-height, 0));
+    .sidebar-content {
+        height: calc(100vh - var(--admin-bar-height, 0) - 331px);
+    }
 }

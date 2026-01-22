@@ -550,5 +550,7 @@ input:checked + .slider:before {
 
 #dashboard-sidebar {
   height: calc(100vh - var(--admin-bar-height, 0)); }
+  #dashboard-sidebar .sidebar-content {
+    height: calc(100vh - var(--admin-bar-height, 0) - 331px); }
 
 /*# sourceMappingURL=style.css.map */
