@@ -47,7 +47,7 @@ function my_custom_variable_setup()
     );
 
     $filter_options = array(
-        'Include only verified influencers' => 'Prioritise engagement over reach',
+        'Include only verified influencers' => 'Include only verified influencers',
         'Prioritise engagement over reach' => 'Prioritise engagement over reach',
     );
 
