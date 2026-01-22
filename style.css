@@ -97,7 +97,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     left: 0;
     right: 0;
     background: #ffffff;
-    border: 1px solid #d1d5db;
+    border: 1px solid #BCBCBC;
     border-radius: 6px;
     margin-top: 5px;
     max-height: 200px;
@@ -114,7 +114,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       width: 100%;
       padding: 0 0 0 15px;
       background-color: #FFFFFF;
-      border: 1px solid #d1d5db;
+      border: 1px solid #BCBCBC;
       border-radius: 6px;
       text-align: left;
       cursor: pointer;
@@ -130,7 +130,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         border-color: #9ca3af; }
       .filter-widget .dropdown-container .dropdown-button .arrow-holder {
         padding: 15px 15px;
-        border-left: 1px solid #d1d5db; }
+        border-left: 1px solid #BCBCBC; }
       .filter-widget .dropdown-container .dropdown-button .arrow {
         border: solid #333333;
         border-width: 0 2px 2px 0;
