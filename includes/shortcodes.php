@@ -532,7 +532,7 @@ function render_mycred_circle_progress($atts)
 {
     // 1. Configure default settings
     $atts = shortcode_atts(array(
-        'max'   => '100',             // The "Goal" or max credits
+        'max'   => '1000',             // The "Goal" or max credits
         'type'  => 'mycred_default',  // The point type key
         'color' => '#ffcc00',         // The active circle color (Yellow)
         'bg'    => '#eeeeee',         // The empty circle color (Grey)
@@ -564,7 +564,7 @@ function render_mycred_circle_progress($atts)
     ob_start();
 ?>
 
-    <div id="<?php echo esc_attr($uid); ?>" class="mycred-circle-widget" style="width: <?php echo esc_attr($atts['size']); ?>; margin: 0 auto;">
+    <div id="<?php echo esc_attr($uid); ?>" class="mycred-circle-widget" style="width: <?php echo esc_attr($atts['size']); ?>;">
         <svg viewBox="0 0 36 36" class="circular-chart">
             <path class="circle-bg"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
