@@ -36,8 +36,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     color: #898989;
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer; }
+    justify-content: center; }
 
 .is-verified .influencer-name .elementor-heading-title:after {
   margin-left: 10px;
