@@ -468,7 +468,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
                 
                 <?php /* --- NEW SEARCH FIELD --- */ ?>
                 <?php if ($has_search): ?>
-                    <div class="dropdown-search-sa" style="padding: 10px;">
+                    <div class="dropdown-search-container" style="padding: 10px;">
                         <input type="text" class="dropdown-search-input" placeholder="Search options..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
                 <?php endif; ?>
@@ -554,7 +554,7 @@ function radio_filter($name, $label, $options = [])
                 $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
             ?>
                 <label class="dropdown-item checkbox-list-item">
-                    <input class="pseudo-checkbox-input" type="radio" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>" <?= $is_checked ?>> <?= $option ?>
+                    <input type="radio" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>" <?= $is_checked ?>> <?= $option ?>
                 </label>
             <?php } ?>
         </div>
