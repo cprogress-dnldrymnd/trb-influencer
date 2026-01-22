@@ -479,7 +479,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
                         $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
                     ?>
                         <label class="dropdown-item checkbox-list-item">
-                            <input type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <?= $option ?>
+                            <input class="pseudo-checkbox-input" type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <span class="pseudo-checkbox"></span <?= $option ?>
                         </label>
                     <?php } ?>
                 </div>
