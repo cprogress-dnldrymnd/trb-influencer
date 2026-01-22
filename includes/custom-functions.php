@@ -674,3 +674,41 @@ function get_unique_influencer_languages()
 
     return $language_list;
 }
+
+/**
+ * Add --admin-bar-height CSS variable to body based on #wpadminbar height.
+ * Recalculates on window resize.
+ */
+function set_admin_bar_height_variable() {
+    // Only run this if the admin bar is actually showing
+    if ( is_admin_bar_showing() ) {
+        ?>
+        <script type="text/javascript">
+            (function() {
+                function updateAdminBarHeight() {
+                    var adminBar = document.getElementById('wpadminbar');
+                    var height = adminBar ? adminBar.offsetHeight : 0;
+                    
+                    // Set the CSS variable on the body
+                    document.body.style.setProperty('--admin-bar-height', height + 'px');
+                }
+
+                // Run on initial load
+                window.addEventListener('DOMContentLoaded', updateAdminBarHeight);
+                window.addEventListener('load', updateAdminBarHeight);
+
+                // Run whenever the window is resized (as admin bar height changes on mobile)
+                window.addEventListener('resize', updateAdminBarHeight);
+            })();
+        </script>
+        <?php
+    } else {
+        // Optional: Set variable to 0px if admin bar is not present to prevent CSS errors
+        ?>
+        <script type="text/javascript">
+            document.body.style.setProperty('--admin-bar-height', '0px');
+        </script>
+        <?php
+    }
+}
+add_action( 'wp_footer', 'set_admin_bar_height_variable' );
