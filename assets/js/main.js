@@ -287,7 +287,7 @@
                 buttonupdating = 'UNSAVING...';
             } else {
                 type = 'save';
-                buttonupdated = 'UNSAVED';
+                buttonupdated = 'UNSAVE';
                 buttonupdating = 'SAVING...';
             }
             $buttonText.text(buttonupdating).prop('disabled', true);
