@@ -75,10 +75,12 @@ function get_lang_name_from_meta($post_id = null)
         // 'en_US' is the locale for the output language (so the result is in English)
         $display_name = Locale::getDisplayLanguage($lang_code, 'en_US');
 
-        // Ensure we capitalize the first letter
-        return $display_name;
+        if ($display_name != 'Unknown language') {
+            // Ensure we capitalize the first letter
+            return ucfirst($display_name);
+        }
     }
-    
+
 
     // Fallback if Intl is not enabled on server: Return code as uppercase
     return strtoupper($lang_code);
@@ -584,7 +586,7 @@ function render_mycred_circle_progress($atts)
 
     <style>
         /* Basic Animation on Load */
-        #<?php echo esc_attr($uid); ?> .circle-progress {
+        #<?php echo esc_attr($uid); ?>.circle-progress {
             animation: progress-<?php echo esc_attr($uid); ?> 1s ease-out forwards;
         }
 
