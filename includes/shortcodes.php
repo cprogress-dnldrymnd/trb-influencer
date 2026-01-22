@@ -532,7 +532,7 @@ function render_mycred_circle_progress($atts)
 {
     // 1. Configure default settings
     $atts = shortcode_atts(array(
-        'max'   => '100',             // The "Goal" or max credits
+        'max'   => '1000',             // The "Goal" or max credits
         'type'  => 'mycred_default',  // The point type key
         'color' => '#ffcc00',         // The active circle color (Yellow)
         'bg'    => '#eeeeee',         // The empty circle color (Grey)
@@ -578,12 +578,6 @@ function render_mycred_circle_progress($atts)
                 stroke="<?php echo esc_attr($atts['color']); ?>"
                 stroke-width="3.8"
                 stroke-linecap="round" />
-            <text x="18" y="15" class="percentage-text" style="fill: #000; font-family: sans-serif; font-weight: bold; font-size: 8px; text-anchor: middle;">
-                <?php echo esc_html($balance); ?>
-            </text>
-            <text x="18" y="23" class="label-text" style="fill: #666; font-family: sans-serif; font-size: 3px; text-anchor: middle;">
-                credits left
-            </text>
         </svg>
     </div>
 
