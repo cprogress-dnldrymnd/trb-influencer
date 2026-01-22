@@ -118,13 +118,15 @@ function shortcode_influencer_niche()
             $style = $is_hidden ? 'display:none;' : '';
             $class = $is_hidden ? 'niche-term term-hidden' : 'niche-term';
 
-            // Output the term (You can change <span> to <a> if you want links)
-            echo sprintf(
-                '<span class="%s" style="%s">%s</span>',
-                esc_attr($class),
-                esc_attr($style),
-                esc_html($term->name)
-            );
+            if (!$is_hidden) {
+                // Output the term (You can change <span> to <a> if you want links)
+                echo sprintf(
+                    '<span class="%s" style="%s">%s</span>',
+                    esc_attr($class),
+                    esc_attr($style),
+                    esc_html($term->name)
+                );
+            }
         }
 
         // 5. Add the Plus Sign if needed
@@ -583,7 +585,7 @@ function render_mycred_circle_progress($atts)
 
     <style>
         /* Basic Animation on Load */
-        #<?php echo esc_attr($uid); ?> .circle-progress {
+        #<?php echo esc_attr($uid); ?>.circle-progress {
             animation: progress-<?php echo esc_attr($uid); ?> 1s ease-out forwards;
         }
 
