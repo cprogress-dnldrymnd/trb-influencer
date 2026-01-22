@@ -487,38 +487,27 @@ input:checked + .slider:before {
 .cad-wrapper {
   position: relative;
   display: inline-block;
-  cursor: pointer;
-  font-family: sans-serif;
-  /* Uses your theme font */ }
+  cursor: pointer; }
 
-/* The Trigger Area (Avatar + Arrow) */
 .cad-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
-  /* Space between image and arrow */ }
-
-/* The Circular Avatar */
-.cad-avatar {
-  width: 50px;
-  /* Adjust size here */
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #bce0e2;
-  /* That light teal border color from your image */
-  transition: border-color 0.3s ease; }
+  gap: 8px; }
+  .cad-trigger .cad-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #bce0e2;
+    transition: border-color 0.3s ease; }
 
 .cad-wrapper:hover .cad-avatar {
-  border-color: #333;
-  /* Darker border on hover */ }
+  border-color: #333; }
 
-/* The Dropdown Box (Hidden by default) */
 .cad-dropdown {
   display: none;
   position: absolute;
   top: 120%;
-  /* Pushes it slightly below the image */
   right: 0;
   width: 200px;
   background: #ffffff;
