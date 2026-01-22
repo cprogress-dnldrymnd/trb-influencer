@@ -113,7 +113,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     .filter-widget .dropdown-container .dropdown-button {
       width: 100%;
       padding: 0 0 0 15px;
-      background-color: #f3f4f6;
+      background-color: #FFFFFF;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       text-align: left;
@@ -152,7 +152,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     font-size: 14px;
     color: #000; }
     .filter-widget .checkbox-lists .checkbox-list-item:hover {
-      background-color: #f3f4f6; }
+      background-color: #FFFFFF; }
     .filter-widget .checkbox-lists .checkbox-list-item input[type="checkbox"] {
       margin: 0;
       transform: scale(1.2);
