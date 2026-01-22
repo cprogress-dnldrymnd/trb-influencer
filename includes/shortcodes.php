@@ -401,7 +401,7 @@ function shortcode_check_influencer_saved($atts)
 {
     // 1. Extract shortcode attributes
     $atts = shortcode_atts(array(
-        'true'  => 'UNSAVED', // Text to show if ALREADY saved
+        'true'  => 'UNSAVE', // Text to show if ALREADY saved
         'false' => 'SAVE',    // Text to show if NOT saved
     ), $atts, 'influencer_is_saved');
 
