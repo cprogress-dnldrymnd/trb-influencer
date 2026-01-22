@@ -1,25 +1,4 @@
 <?php
-function influencer_avatar_shortcode()
-{
-    // Get the current post ID
-    $post_id = get_the_ID();
-
-    // Try to get the URL from the 'avatar' meta key
-    $url = get_post_meta($post_id, 'avatar', true);
-
-    // If meta is empty, get the URL of the fallback image (Media ID 1843)
-    if (empty($url)) {
-        $url = wp_get_attachment_url(1843);
-    }
-
-    // If we found a URL (either from meta or fallback), return the image tag
-    if ($url) {
-        return '<img src="' . esc_url($url) . '" class="influencer-avatar" alt="Influencer Avatar" />';
-    }
-
-    return ''; // Return nothing if URL is invalid
-}
-add_shortcode('influencer_avatar', 'influencer_avatar_shortcode');
 /**
  * Shortcode to display Flag and Country Code (Supports 2 or 3 letter codes)
  * Usage: [country_with_flag]
@@ -477,3 +456,70 @@ function is_influencer_saved($current_influencer_id)
 
     return false;
 }
+
+
+function custom_avatar_dropdown_shortcode($atts) {
+    // 1. Check if user is logged in. If not, return nothing (or a login button).
+    if (!is_user_logged_in()) {
+        return ''; 
+    }
+
+    // 2. Get Attributes (Page IDs to link to)
+    $atts = shortcode_atts(
+        array(
+            'ids' => '', // Comma separated IDs: e.g., "12, 45, 20"
+        ), 
+        $atts
+    );
+
+    // 3. Get User Info
+    $current_user = wp_get_current_user();
+    $avatar_url = get_avatar_url($current_user->ID, ['size' => 100]);
+    $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
+
+    // 4. Build the Page Links
+    $menu_items = '';
+    if (!empty($atts['ids'])) {
+        $page_ids = explode(',', $atts['ids']);
+        foreach ($page_ids as $id) {
+            $id = trim($id);
+            if (get_post_status($id)) {
+                $link = get_permalink($id);
+                $title = get_the_title($id);
+                $menu_items .= "<a href='{$link}' class='cad-menu-item'>{$title}</a>";
+            }
+        }
+    }
+
+    // 5. Build the HTML Output
+    // We include a tiny inline SVG for the chevron arrow
+    $output = "
+    <div class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
+        <div class='cad-trigger'>
+            <img src='{$avatar_url}' alt='User Avatar' class='cad-avatar'>
+            <span class='cad-arrow'>
+                <svg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 1L5 5L9 1' stroke='#333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>
+            </span>
+        </div>
+        
+        <div class='cad-dropdown'>
+            {$menu_items}
+            <div class='cad-divider'></div>
+            <a href='{$logout_url}' class='cad-menu-item cad-logout'>Logout</a>
+        </div>
+    </div>
+    
+    <script>
+    // Close dropdown if clicked outside
+    document.addEventListener('click', function(event) {
+        var isClickInside = document.querySelector('.cad-wrapper').contains(event.target);
+        if (!isClickInside) {
+            document.querySelector('.cad-wrapper').classList.remove('active');
+        }
+    });
+    </script>
+    ";
+
+    return $output;
+}
+add_shortcode('avatar_dropdown', 'custom_avatar_dropdown_shortcode');
