@@ -58,6 +58,12 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     display: flex;
     align-items: center;
     gap: 5px;
+    img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
 }
 
 .influencer-loop-grid {
@@ -77,11 +83,11 @@ $font-stack: "Inter", Tahoma, Geneva, Verdana, sans-serif;
 // Colors (extracted for easy theming)
 $bg-body: #f0f2f5;
 $bg-widget: #e5e7eb;
-$bg-input: #FFFFFF;
+$bg-input: #ffffff;
 $bg-white: #ffffff;
 $bg-tag: #d1fae5;
 
-$border-color: #BCBCBC;
+$border-color: #bcbcbc;
 $border-hover: #9ca3af;
 $border-tag: #0f766e;
 

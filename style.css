@@ -48,6 +48,11 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   display: flex;
   align-items: center;
   gap: 5px; }
+  .meta-country-wrapper img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover; }
 
 .influencer-loop-grid {
   display: grid;
@@ -97,7 +102,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     left: 0;
     right: 0;
     background: #ffffff;
-    border: 1px solid #BCBCBC;
+    border: 1px solid #bcbcbc;
     border-radius: 6px;
     margin-top: 5px;
     max-height: 200px;
@@ -113,8 +118,8 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     .filter-widget .dropdown-container .dropdown-button {
       width: 100%;
       padding: 0 0 0 15px;
-      background-color: #FFFFFF;
-      border: 1px solid #BCBCBC;
+      background-color: #ffffff;
+      border: 1px solid #bcbcbc;
       border-radius: 6px;
       text-align: left;
       cursor: pointer;
@@ -130,7 +135,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         border-color: #9ca3af; }
       .filter-widget .dropdown-container .dropdown-button .arrow-holder {
         padding: 15px 15px;
-        border-left: 1px solid #BCBCBC; }
+        border-left: 1px solid #bcbcbc; }
       .filter-widget .dropdown-container .dropdown-button .arrow {
         border: solid #333333;
         border-width: 0 2px 2px 0;
@@ -152,7 +157,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     font-size: 14px;
     color: #000; }
     .filter-widget .checkbox-lists .checkbox-list-item:hover {
-      background-color: #FFFFFF; }
+      background-color: #ffffff; }
     .filter-widget .checkbox-lists .checkbox-list-item input[type="checkbox"] {
       margin: 0;
       transform: scale(1.2);
