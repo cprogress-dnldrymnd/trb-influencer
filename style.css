@@ -567,6 +567,9 @@ input:checked + .slider:before {
   background-size: contain;
   top: -5px; }
 
+.link-black {
+  color: #000 !important; }
+
 .link-black a {
   color: #000 !important; }
 
