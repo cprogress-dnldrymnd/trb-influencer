@@ -532,7 +532,7 @@ function render_mycred_circle_progress($atts)
 {
     // 1. Configure default settings
     $atts = shortcode_atts(array(
-        'max'   => '1000',             // The "Goal" or max credits
+        'max'   => '100',             // The "Goal" or max credits
         'type'  => 'mycred_default',  // The point type key
         'color' => '#ffcc00',         // The active circle color (Yellow)
         'bg'    => '#eeeeee',         // The empty circle color (Grey)
