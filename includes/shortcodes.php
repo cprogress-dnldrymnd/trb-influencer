@@ -523,3 +523,80 @@ function custom_avatar_dropdown_shortcode($atts) {
     return $output;
 }
 add_shortcode('avatar_dropdown', 'custom_avatar_dropdown_shortcode');
+
+add_shortcode( 'mycred_circle_progress', 'render_mycred_circle_progress' );
+
+function render_mycred_circle_progress( $atts ) {
+    // 1. Configure default settings
+    $atts = shortcode_atts( array(
+        'max'   => '100',             // The "Goal" or max credits
+        'type'  => 'mycred_default',  // The point type key
+        'color' => '#ffcc00',         // The active circle color (Yellow)
+        'bg'    => '#eeeeee',         // The empty circle color (Grey)
+        'size'  => '150px',           // Width of the widget
+    ), $atts );
+
+    // 2. Check requirements: User must be logged in & myCred active
+    if ( ! is_user_logged_in() || ! function_exists( 'mycred_get_users_balance' ) ) {
+        return ''; 
+    }
+
+    // 3. Get the dynamic data
+    $user_id = get_current_user_id();
+    $balance = mycred_get_users_balance( $user_id, $atts['type'] );
+    
+    // 4. Calculate Percentage
+    $max = intval( $atts['max'] );
+    if ( $max <= 0 ) $max = 100; // Prevent division by zero
+    $percentage = ( $balance / $max ) * 100;
+    
+    // Cap at 100% (so the line doesn't loop around twice)
+    $percentage = min( $percentage, 100 );
+    $percentage = max( $percentage, 0 );
+
+    // 5. Generate a unique ID for this specific circle
+    $uid = 'mc-circle-' . uniqid();
+
+    // 6. Output the HTML/CSS
+    ob_start();
+    ?>
+    
+    <div id="<?php echo esc_attr($uid); ?>" class="mycred-circle-widget" style="width: <?php echo esc_attr($atts['size']); ?>; margin: 0 auto;">
+        <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="<?php echo esc_attr($atts['bg']); ?>"
+                stroke-width="3.8"
+            />
+            <path class="circle-progress"
+                stroke-dasharray="<?php echo esc_attr($percentage); ?>, 100"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="<?php echo esc_attr($atts['color']); ?>"
+                stroke-width="3.8"
+                stroke-linecap="round"
+            />
+            <text x="18" y="15" class="percentage-text" style="fill: #000; font-family: sans-serif; font-weight: bold; font-size: 8px; text-anchor: middle;">
+                <?php echo esc_html($balance); ?>
+            </text>
+            <text x="18" y="23" class="label-text" style="fill: #666; font-family: sans-serif; font-size: 3px; text-anchor: middle;">
+                credits left
+            </text>
+        </svg>
+    </div>
+
+    <style>
+        /* Basic Animation on Load */
+        #<?php echo esc_attr($uid); ?> .circle-progress {
+            animation: progress-<?php echo esc_attr($uid); ?> 1s ease-out forwards;
+        }
+        @keyframes progress-<?php echo esc_attr($uid); ?> {
+            0% { stroke-dasharray: 0, 100; }
+            100% { stroke-dasharray: <?php echo esc_attr($percentage); ?>, 100; }
+        }
+    </style>
+
+    <?php
+    return ob_get_clean();
+}
