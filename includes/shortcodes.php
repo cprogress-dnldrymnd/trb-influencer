@@ -197,7 +197,7 @@ function shortcode_influencer_search_filter()
                 <?= select_filter('gender', 'Gender', 'Select a gender', $influencer_search_fields['gender'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
-                <?= select_filter('age', 'Age', 'Select an age', $influencer_search_fields['age'] ?? '') ?>
+                <?= select_filter('age', 'Age', 'Select an age range', $influencer_search_fields['age'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
