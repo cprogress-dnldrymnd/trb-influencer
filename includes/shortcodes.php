@@ -583,7 +583,7 @@ function render_mycred_circle_progress($atts)
 
     <style>
         /* Basic Animation on Load */
-        #<?php echo esc_attr($uid); ?>.circle-progress {
+        #<?php echo esc_attr($uid); ?> .circle-progress {
             animation: progress-<?php echo esc_attr($uid); ?> 1s ease-out forwards;
         }
 
