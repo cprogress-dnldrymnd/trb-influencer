@@ -739,3 +739,7 @@ input:checked + .slider:before {
     background-size: contain;
     top: -5px;
 }
+
+.link-black a {
+    color: #000 !important;
+}
