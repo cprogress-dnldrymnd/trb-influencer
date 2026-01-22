@@ -719,7 +719,6 @@ input:checked + .slider:before {
     margin: 5px 0;
 }
 
-
-.sidebar-content {
-    
+#dashboar-sidebar {
+    height: calc(100vh - var(--admin-bar-height, 0));
 }
