@@ -78,9 +78,10 @@ function get_lang_name_from_meta($post_id = null)
         // Ensure we capitalize the first letter
         return ucfirst($display_name);
     }
+    
 
     // Fallback if Intl is not enabled on server: Return code as uppercase
-    return strtoupper($lang_code);
+   // return strtoupper($lang_code);
 }
 
 /**
