@@ -762,7 +762,7 @@ function track_influencer_post_view() {
         
         // Prepare the timestamp and title
         $current_time = current_time( 'd-M-Y H:i:s' );
-        $post_title   = 'Saved on ' . $current_time;
+        $post_title   = 'Viewed on ' . $current_time;
 
         // 3. Search for an EXISTING log entry for this User + Influencer combo
         $existing_log = get_posts( array(
