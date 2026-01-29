@@ -640,3 +640,71 @@ function most_engage_niches()
 }
 
 add_shortcode('most_engage_niches', 'most_engage_niches');
+
+function most_engage_niches_graph()
+{
+    ob_start();
+    $current_user_id = get_current_user_id();
+    $ranked_niches = get_user_niche_ranking($current_user_id, 3);
+    if (empty($ranked_niches)) return;
+
+    // 2. Define colors to match your image (Light Teal, Dark Teal, Yellow)
+    // We assign them in order: 1st, 2nd, 3rd
+    $colors = ['#b8e0d9', '#3a6b66', '#fcd974'];
+
+    // Prepare arrays for JavaScript
+    $js_labels = [];
+    $js_data   = [];
+    $js_colors = [];
+
+?>
+
+    <div class="niche-dashboard-widget">
+
+        <div class="chart-container">
+            <canvas id="nicheDonutChart"></canvas>
+        </div>
+
+        <div class="legend-container">
+            <?php
+            if (! empty($top_niches)) :
+                foreach ($top_niches as $index => $niche) :
+                    // Assign color based on index (fallback to grey if more than 3)
+                    $color = isset($colors[$index]) ? $colors[$index] : '#cccccc';
+
+                    // Push data for JS later
+                    $js_labels[] = $niche['name'];
+                    $js_data[]   = $niche['percentage']; // Use the calculated %
+                    $js_colors[] = $color;
+            ?>
+
+                    <div class="legend-item">
+                        <span class="legend-label" style="background-color: <?php echo esc_attr($color); ?>;">
+                            <?php echo esc_html($niche['name']); ?>
+                        </span>
+
+                        <span class="legend-value">
+                            <?php echo esc_html($niche['percentage']); ?>%
+                        </span>
+                    </div>
+
+                <?php endforeach;
+            else : ?>
+                <p>No data available yet.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <script>
+        var nicheChartData = {
+            labels: <?php echo json_encode($js_labels); ?>,
+            data: <?php echo json_encode($js_data); ?>,
+            colors: <?php echo json_encode($js_colors); ?>
+        };
+    </script>
+
+<?php
+    return ob_get_clean();
+}
+
+add_shortcode('most_engage_niches_graph', 'most_engage_niches_graph');

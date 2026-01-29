@@ -759,3 +759,48 @@ input:checked + .slider:before {
 .elementor-icon-wrapper.elementor-icon-wrapper.elementor-icon-wrapper {
     display: flex;
 }
+
+.niche-dashboard-widget {
+    display: flex;
+    align-items: center;
+    gap: 30px; /* Space between chart and legend */
+    font-family: sans-serif;
+    max-width: 500px; /* Adjust as needed */
+}
+
+/* Make chart responsive but limited in size */
+.chart-container {
+    width: 160px;
+    height: 160px;
+    position: relative;
+}
+
+.legend-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Space between rows */
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* The colored pill shape */
+.legend-label {
+    padding: 6px 16px;
+    border-radius: 20px; /* Makes it a pill */
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f1f1f; /* Text color inside pill */
+    min-width: 100px; /* Ensures alignment */
+    text-align: center;
+}
+
+/* The percentage number */
+.legend-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}

@@ -409,3 +409,40 @@
         });
     }
 })(jQuery);
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    // Safety check if data exists
+    if (!window.nicheChartData || !document.getElementById('nicheDonutChart')) {
+        return;
+    }
+
+    const ctx = document.getElementById('nicheDonutChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: nicheChartData.labels,
+            datasets: [{
+                data: nicheChartData.data,
+                backgroundColor: nicheChartData.colors,
+                borderWidth: 0, // Removes white border between slices
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '55%', // Makes the donut hole size match your image
+            plugins: {
+                legend: {
+                    display: false // IMPORTANT: We hide the default legend
+                },
+                tooltip: {
+                    enabled: true // Keep tooltips on hover
+                }
+            }
+        }
+    });
+});
