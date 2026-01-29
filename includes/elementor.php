@@ -66,15 +66,7 @@ add_action('elementor/query/influencer_search', function ($query) {
 });
 
 
-function test()
-{
-    ob_start();
-    echo '<pre>';
-    var_dump(get_post_meta(3843));
-    echo '</pre>';
-    return ob_get_clean();
-}
-add_shortcode('test', 'test');
+
 
 /**
  * Elementor Custom Query Filter: saved_lists
@@ -133,3 +125,4 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
         $query->set('post__in', [0]);
     }
 });
+

@@ -967,4 +967,3 @@ function get_user_niche_ranking($user_id, $limit = false)
 
     return $niche_counts;
 }
-
