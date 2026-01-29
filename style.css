@@ -623,13 +623,13 @@ input:checked + .slider:before {
   min-width: 100px;
   /* Ensures alignment */
   text-align: center; }
+  .legend-label[style="background-color: #FFE17B;"] {
+    color: var(--e-global-color-secondary); }
+  .legend-label[style="background-color: #BCE0D9;"] {
+    color: var(--e-global-color-text); }
 
 /* The percentage number */
 .legend-value {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333; }
-  .legend-value[style="background-color: #FFE17B;"] {
-    color: var(--e-global-color-secondary); }
+  color: var(--e-global-color-text); }
 
 /*# sourceMappingURL=style.css.map */

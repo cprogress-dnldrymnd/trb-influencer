@@ -797,14 +797,15 @@ input:checked + .slider:before {
     color: var(--e-global-color-2ba2932);
     min-width: 100px; /* Ensures alignment */
     text-align: center;
+    &[style="background-color: #FFE17B;"] {
+        color: var(--e-global-color-secondary);
+    }
+    &[style="background-color: #BCE0D9;"] {
+        color: var(--e-global-color-text);
+    }
 }
 
 /* The percentage number */
 .legend-value {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
-    &[style="background-color: #FFE17B;"] {
-        color: var(--e-global-color-secondary);
-    }
+    color: var(--e-global-color-text);
 }
