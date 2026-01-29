@@ -742,3 +742,62 @@ function get_saved_influencer()
 
     return $ids;
 }
+
+/**
+ * Track views on 'influencer' posts for logged-in users.
+ */
+function track_influencer_post_view() {
+    // 1. Check if the user is logged in
+    if ( ! is_user_logged_in() ) {
+        return;
+    }
+
+    // 2. Check if we are viewing a single 'influencer' post
+    if ( is_singular( 'influencer' ) ) {
+        
+        // Get the current user and the current influencer post ID
+        $current_user_id = get_current_user_id();
+        $influencer_id   = get_the_ID();
+
+        // 3. (Optional) Prevent duplicates on refresh
+        // Check if this user has already logged a view for this influencer TODAY.
+        // If you want to log EVERY refresh, remove this query block.
+        $existing_views = new WP_Query( array(
+            'post_type'   => 'viewed-influencer',
+            'author'      => $current_user_id,
+            'meta_key'    => 'influencer_id',
+            'meta_value'  => $influencer_id,
+            'date_query'  => array(
+                array(
+                    'after' => '1 hour ago', // Adjust tracking frequency (e.g., 'today', '1 hour ago')
+                ),
+            ),
+            'fields'      => 'ids',
+        ) );
+
+        if ( $existing_views->have_posts() ) {
+            return; // View already logged recently
+        }
+
+        // 4. Prepare the new post data
+        $current_time = current_time( 'd-M-Y H:i:s' ); // Format: 29-Jan-2026 17:30:00
+        $post_title   = 'Saved on ' . $current_time;
+
+        $view_log_data = array(
+            'post_title'  => $post_title,
+            'post_type'   => 'viewed-influencer',
+            'post_status' => 'publish', // or 'private' if you don't want them public
+            'post_author' => $current_user_id,
+        );
+
+        // 5. Insert the post
+        $new_log_id = wp_insert_post( $view_log_data );
+
+        // 6. Save the metadata if the post was created successfully
+        if ( ! is_wp_error( $new_log_id ) ) {
+            update_post_meta( $new_log_id, 'influencer_id', $influencer_id );
+        }
+    }
+}
+// Hook into 'template_redirect' which runs before the page is rendered
+add_action( 'template_redirect', 'track_influencer_post_view' );
