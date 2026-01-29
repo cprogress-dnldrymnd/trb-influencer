@@ -783,7 +783,11 @@ input:checked + .slider:before {
     gap: 12px; /* Space between rows */
 }
 
-
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
 /* The colored pill shape */
 .legend-label {
