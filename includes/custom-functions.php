@@ -771,28 +771,48 @@ function get_viewed_influencer()
     return $ids;
 }
 /**This method joins the myCred log table with your WordPress posts table to count matches directly. This is much faster than looping through data. */
-function get_user_purchased_post_ids($post_type = 'influencer')
+function get_user_purchased_post_ids($post_type = 'influencer', $current_month_only = false)
 {
     global $wpdb;
 
     $user_id = get_current_user_id();
 
-    // Define table names
     $mycred_log_table = $wpdb->prefix . 'myCRED_log';
     $posts_table      = $wpdb->prefix . 'posts';
 
-    // Query: Select the Post ID (p.ID) instead of COUNT
-    // We use DISTINCT to ensure we don't get duplicate IDs if a user bought something twice
-    $post_ids = $wpdb->get_col($wpdb->prepare("
+    // Base SQL Query
+    $query = "
         SELECT DISTINCT p.ID 
         FROM {$mycred_log_table} l
         INNER JOIN {$posts_table} p ON l.ref_id = p.ID
         WHERE l.user_id = %d 
         AND l.ref = 'buy_content' 
         AND p.post_type = %s
-    ", $user_id, $post_type));
+    ";
 
-    // get_col returns an array, or an empty array if nothing found
+    // Prepare arguments array
+    $args = array($user_id, $post_type);
+
+    // OPTIONAL: Filter by Current Month
+    if ($current_month_only) {
+        // Get the timestamp for the start of the current month (00:00:00)
+        // We use current_time('timestamp') to respect the WordPress Timezone setting
+        $start_of_month = strtotime('first day of this month 00:00:00', current_time('timestamp'));
+
+        // Get the timestamp for the end of the current month (23:59:59)
+        $end_of_month   = strtotime('last day of this month 23:59:59', current_time('timestamp'));
+
+        // Append the time comparison to the SQL query
+        $query .= " AND l.time BETWEEN %d AND %d";
+
+        // Add timestamps to args
+        $args[] = $start_of_month;
+        $args[] = $end_of_month;
+    }
+
+    // Execute Query
+    $post_ids = $wpdb->get_col($wpdb->prepare($query, $args));
+
     return $post_ids;
 }
 
@@ -865,35 +885,36 @@ function track_influencer_post_view()
 add_action('template_redirect', 'track_influencer_post_view');
 
 
-function debug_mycred_purchases() {
+function debug_mycred_purchases()
+{
 
     global $wpdb;
     $user_id = get_current_user_id();
     $table = $wpdb->prefix . 'mycred_log';
 
     // 1. Get the last 5 logs for this user, regardless of what they are
-    $logs = $wpdb->get_results( $wpdb->prepare( "
+    $logs = $wpdb->get_results($wpdb->prepare("
         SELECT id, ref, ref_id, data 
         FROM {$table} 
         WHERE user_id = %d 
         ORDER BY time DESC 
         LIMIT 5
-    ", $user_id ) );
+    ", $user_id));
 
     echo '<pre style="background:#fff; border:2px solid red; padding:10px; z-index:9999; position:relative;">';
     echo "<strong>Debug User ID:</strong> " . $user_id . "\n";
-    
-    if ( empty( $logs ) ) {
+
+    if (empty($logs)) {
         echo "No logs found for this user.";
     } else {
-        foreach ( $logs as $log ) {
-            $post_type = get_post_type( $log->ref_id );
+        foreach ($logs as $log) {
+            $post_type = get_post_type($log->ref_id);
             echo "---------------------------------\n";
             echo "Log Ref:    " . $log->ref . "\n"; // Check this value!
             echo "Post ID:    " . $log->ref_id . "\n";
-            echo "Post Type:  " . ( $post_type ? $post_type : 'NOT FOUND/DELETED' ) . "\n";
+            echo "Post Type:  " . ($post_type ? $post_type : 'NOT FOUND/DELETED') . "\n";
         }
     }
     echo '</pre>';
 }
-add_action( 'wp_footer', 'debug_mycred_purchases' );
+add_action('wp_footer', 'debug_mycred_purchases');
