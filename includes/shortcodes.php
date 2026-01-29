@@ -623,7 +623,7 @@ add_shortcode('viewed_influencer_count', 'viewed_influencer_count');
 function unlocked_influencer_count()
 {
     //return count(get_user_purchased_post_ids());
-    return var_dump(unlocked_influencer_count());
+    return var_dump(get_user_purchased_post_ids());
 }
 
 add_shortcode('unlocked_influencer_count', 'unlocked_influencer_count');
