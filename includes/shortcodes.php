@@ -632,7 +632,7 @@ add_shortcode('unlocked_influencer_count', 'unlocked_influencer_count');
 function most_engage_niches()
 {
     $current_user_id = get_current_user_id();
-    $ranked_niches = get_user_niche_ranking($current_user_id);
+    $ranked_niches = get_user_niche_ranking($current_user_id, 3);
 
     if (empty($ranked_niches)) return;
 
