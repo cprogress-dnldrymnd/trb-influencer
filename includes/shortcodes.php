@@ -636,7 +636,7 @@ function most_engage_niches()
 
     if (empty($ranked_niches)) return;
 
-    return 'Your top niches this month: ' . $ranked_niches[0]['name'] . ' (' . $ranked_niches[0]['percentage'] . '%), Food & Nutrition (34%), Wellbeing (12%). You’re most active in family-focused content — perfect for upcoming wellness campaigns.';
+    return 'Your top niches this month: ' . $ranked_niches[0]['name'] . ' (' . $ranked_niches[0]['percentage'] . '%), ' . $ranked_niches[1]['name'] . ' (' . $ranked_niches[1]['percentage'] . '%), ' . $ranked_niches[2]['name'] . ' (' . $ranked_niches[2]['percentage'] . '%). You’re most active in family-focused content — perfect for upcoming wellness campaigns.';
 }
 
 add_shortcode('most_engage_niches', 'most_engage_niches');
