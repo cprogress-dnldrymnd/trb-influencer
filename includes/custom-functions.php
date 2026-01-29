@@ -899,7 +899,7 @@ add_action('template_redirect', 'track_influencer_post_view');
  * @param int $user_id The ID of the current user.
  * @return array Sorted array of niches with counts and percentages.
  */
-function get_user_niche_ranking($user_id)
+function get_user_niche_ranking($user_id, $limit = 3)
 {
 
     // 1. RETRIEVE VIEWED IDS
