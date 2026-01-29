@@ -46,6 +46,7 @@ function generate_influencer_summary($post_id)
         echo '</pre>';
     }
     echo 'testing;';
+    echo $api_key;
     return ob_get_clean();
 }
 add_shortcode('generate_influencer_summary', 'generate_influencer_summary');
