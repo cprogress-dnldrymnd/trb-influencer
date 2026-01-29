@@ -967,3 +967,43 @@ function get_user_niche_ranking($user_id, $limit = false)
 
     return $niche_counts;
 }
+
+function get_niche_terms_sql($post_id = null)
+{
+    global $wpdb;
+
+    // Use global post ID if none is provided
+    if (! $post_id) {
+        $post_id = get_the_ID();
+    }
+
+    // Safety check
+    if (! $post_id) {
+        return '';
+    }
+
+    // Prepare the SQL query
+    // We join 3 tables: terms (names), term_taxonomy (tax type), and term_relationships (post connection)
+    $query = $wpdb->prepare(
+        "
+        SELECT t.name 
+        FROM {$wpdb->terms} AS t
+        INNER JOIN {$wpdb->term_taxonomy} AS tt ON t.term_id = tt.term_id
+        INNER JOIN {$wpdb->term_relationships} AS tr ON tt.term_taxonomy_id = tr.term_taxonomy_id
+        WHERE tt.taxonomy = %s
+        AND tr.object_id = %d
+        ",
+        'niche', // Taxonomy key
+        $post_id
+    );
+
+    // Get the column of names directly
+    $term_names = $wpdb->get_col($query);
+
+    if (! empty($term_names)) {
+        // Implode array into comma-separated string
+        return implode(', ', $term_names);
+    }
+
+    return '';
+}
