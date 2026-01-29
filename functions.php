@@ -44,6 +44,7 @@ include 'includes/elementor.php';
 include 'includes/shortcodes.php';
 include 'includes/ajax.php';
 include 'includes/openai.php';
+include 'includes/theme-settings.php';
 
 /**
  * Retrieve all Elementor Global Colors (System + Custom).
