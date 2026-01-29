@@ -718,7 +718,8 @@ function most_engage_niches_graph()
                     datasets: [{
                         data: nicheChartData.data,
                         backgroundColor: nicheChartData.colors,
-                        borderWidth: 0, // Removes white border between slices
+                        borderWidth: 4, // Removes white border between slices
+                        borderColor: '#fff',
                         hoverOffset: 4
                     }]
                 },
