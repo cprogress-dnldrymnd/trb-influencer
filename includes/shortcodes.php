@@ -646,7 +646,7 @@ function most_engage_niches_graph()
     ob_start();
     $current_user_id = get_current_user_id();
     $top_niches = get_user_niche_ranking($current_user_id, 3);
-    if (empty($ranked_niches)) return;
+    if (empty($top_niches)) return;
 
     // 2. Define colors to match your image (Light Teal, Dark Teal, Yellow)
     // We assign them in order: 1st, 2nd, 3rd
