@@ -778,7 +778,7 @@ function get_user_purchased_post_ids($post_type = 'influencer')
     $user_id = get_current_user_id();
 
     // Define table names
-    $mycred_log_table = $wpdb->prefix . 'mycred_log';
+    $mycred_log_table = $wpdb->prefix . 'myCRED_log';
     $posts_table      = $wpdb->prefix . 'posts';
 
     // Query: Select the Post ID (p.ID) instead of COUNT
