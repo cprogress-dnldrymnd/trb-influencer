@@ -977,6 +977,7 @@ function test_sc()
         }
         echo '</ul>';
     }
+    return ob_get_clean();
 }
 
 add_shortcode('test_sc', 'test_sc');
