@@ -745,59 +745,68 @@ function get_saved_influencer()
 
 /**
  * Track views on 'influencer' posts for logged-in users.
+ * - Creates a new log if none exists.
+ * - Updates the existing log (Modified Date & Title) if it already exists.
  */
 function track_influencer_post_view() {
-    // 1. Check if the user is logged in
+    // 1. Check if user is logged in
     if ( ! is_user_logged_in() ) {
         return;
     }
 
     // 2. Check if we are viewing a single 'influencer' post
     if ( is_singular( 'influencer' ) ) {
-        
-        // Get the current user and the current influencer post ID
+
         $current_user_id = get_current_user_id();
         $influencer_id   = get_the_ID();
-
-        // 3. (Optional) Prevent duplicates on refresh
-        // Check if this user has already logged a view for this influencer TODAY.
-        // If you want to log EVERY refresh, remove this query block.
-        $existing_views = new WP_Query( array(
-            'post_type'   => 'viewed-influencer',
-            'author'      => $current_user_id,
-            'meta_key'    => 'influencer_id',
-            'meta_value'  => $influencer_id,
-            'date_query'  => array(
-                array(
-                    'after' => '1 hour ago', // Adjust tracking frequency (e.g., 'today', '1 hour ago')
-                ),
-            ),
-            'fields'      => 'ids',
-        ) );
-
-        if ( $existing_views->have_posts() ) {
-            return; // View already logged recently
-        }
-
-        // 4. Prepare the new post data
-        $current_time = current_time( 'd-M-Y H:i:s' ); // Format: 29-Jan-2026 17:30:00
+        
+        // Prepare the timestamp and title
+        $current_time = current_time( 'd-M-Y H:i:s' );
         $post_title   = 'Saved on ' . $current_time;
 
-        $view_log_data = array(
-            'post_title'  => $post_title,
-            'post_type'   => 'viewed-influencer',
-            'post_status' => 'publish', // or 'private' if you don't want them public
-            'post_author' => $current_user_id,
-        );
+        // 3. Search for an EXISTING log entry for this User + Influencer combo
+        $existing_log = get_posts( array(
+            'post_type'      => 'viewed-influencer',
+            'author'         => $current_user_id,
+            'meta_key'       => 'influencer_id',
+            'meta_value'     => $influencer_id,
+            'posts_per_page' => 1,
+            'fields'         => 'ids', // We only need the ID
+            'post_status'    => 'any', // Check published, private, etc.
+        ) );
 
-        // 5. Insert the post
-        $new_log_id = wp_insert_post( $view_log_data );
+        if ( ! empty( $existing_log ) ) {
+            // --- UPDATE EXISTING ---
+            // We found a log. Update the title and the modified time.
+            $log_id = $existing_log[0];
 
-        // 6. Save the metadata if the post was created successfully
-        if ( ! is_wp_error( $new_log_id ) ) {
-            update_post_meta( $new_log_id, 'influencer_id', $influencer_id );
+            $update_data = array(
+                'ID'            => $log_id,
+                'post_title'    => $post_title,
+                // Updating the post content or title automatically updates 'post_modified'.
+                // If you strictly want to force update the 'post_date' (published date) as well, uncomment below:
+                // 'post_date'     => current_time( 'mysql' ), 
+                // 'post_date_gmt' => current_time( 'mysql', 1 ),
+            );
+
+            wp_update_post( $update_data );
+
+        } else {
+            // --- CREATE NEW ---
+            // No log found. Create a new one.
+            $view_log_data = array(
+                'post_title'  => $post_title,
+                'post_type'   => 'viewed-influencer',
+                'post_status' => 'publish',
+                'post_author' => $current_user_id,
+            );
+
+            $new_log_id = wp_insert_post( $view_log_data );
+
+            if ( ! is_wp_error( $new_log_id ) ) {
+                update_post_meta( $new_log_id, 'influencer_id', $influencer_id );
+            }
         }
     }
 }
-// Hook into 'template_redirect' which runs before the page is rendered
 add_action( 'template_redirect', 'track_influencer_post_view' );
