@@ -767,6 +767,7 @@ input:checked + .slider:before {
     max-width: 500px; /* Adjust as needed */
     font-size: 14px;
     font-weight: 500;
+    color: var(--e-global-color-2ba2932);
 }
 
 /* Make chart responsive but limited in size */
