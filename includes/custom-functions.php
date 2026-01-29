@@ -465,7 +465,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
             </div>
 
             <div class="dropdown-menu checkbox-lists">
-                
+
                 <?php /* --- NEW SEARCH FIELD --- */ ?>
                 <?php if ($has_search): ?>
                     <div class="dropdown-search-container" style="padding: 10px;">
@@ -523,7 +523,7 @@ function checkbox_filter($name, $label, $options = [])
             <?php } ?>
         </div>
 
-        
+
     </div>
 
 <?php
@@ -560,7 +560,7 @@ function radio_filter($name, $label, $options = [])
         </div>
     </div>
 
-<?php
+    <?php
     return ob_get_clean();
 }
 
@@ -679,16 +679,17 @@ function get_unique_influencer_languages()
  * Add --admin-bar-height CSS variable to body based on #wpadminbar height.
  * Recalculates on window resize.
  */
-function set_admin_bar_height_variable() {
+function set_admin_bar_height_variable()
+{
     // Only run this if the admin bar is actually showing
-    if ( is_admin_bar_showing() ) {
-        ?>
+    if (is_admin_bar_showing()) {
+    ?>
         <script type="text/javascript">
             (function() {
                 function updateAdminBarHeight() {
                     var adminBar = document.getElementById('wpadminbar');
                     var height = adminBar ? adminBar.offsetHeight : 0;
-                    
+
                     // Set the CSS variable on the body
                     document.body.style.setProperty('--admin-bar-height', height + 'px');
                 }
@@ -701,14 +702,39 @@ function set_admin_bar_height_variable() {
                 window.addEventListener('resize', updateAdminBarHeight);
             })();
         </script>
-        <?php
+    <?php
     } else {
         // Optional: Set variable to 0px if admin bar is not present to prevent CSS errors
-        ?>
+    ?>
         <script type="text/javascript">
             document.body.style.setProperty('--admin-bar-height', '0px');
         </script>
-        <?php
+<?php
     }
 }
-add_action( 'wp_footer', 'set_admin_bar_height_variable' );
+add_action('wp_footer', 'set_admin_bar_height_variable');
+
+
+function get_saved_influencer()
+{
+    global $wpdb;
+    $user_id = get_current_user_id();
+
+    // 2. Direct SQL Query
+    // This fetches the 'influencer_id' meta directly from the database 
+    // for all 'saved-influencer' posts authored by the current user.
+    // We skip 'get_posts' entirely to avoid conflicts/loops.
+    $influencer_ids = $wpdb->get_col($wpdb->prepare("
+        SELECT pm.meta_value 
+        FROM {$wpdb->postmeta} pm
+        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+        WHERE p.post_type = 'saved-influencer'
+        AND p.post_status = 'publish'
+        AND p.post_author = %d
+        AND pm.meta_key = 'influencer_id'
+    ", $user_id));
+
+    $ids = array_map('intval', $influencer_ids);
+
+    return $ids;
+}

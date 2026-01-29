@@ -604,3 +604,10 @@ function render_mycred_circle_progress($atts)
 <?php
     return ob_get_clean();
 }
+
+
+function saved_influencer_count() {
+
+}
+
+add_shortcode('saved_influencer_count', 'saved_influencer_count');
