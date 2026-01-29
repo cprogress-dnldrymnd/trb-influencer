@@ -745,3 +745,14 @@ function most_engage_niches_graph()
 }
 
 add_shortcode('most_engage_niches_graph', 'most_engage_niches_graph');
+
+
+function test()
+{
+    ob_start();
+    echo '<pre>';
+    var_dump(get_post_meta(3861));
+    echo '</pre>';
+    return ob_get_clean();
+}
+add_shortcode('test', 'test');
