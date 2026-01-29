@@ -68,31 +68,10 @@ add_action('elementor/query/influencer_search', function ($query) {
 
 function test()
 {
-    $current_user_id = get_current_user_id();
-
-    // 2. Fetch the 'saved-influencer' posts for the current user
-    // We assume the connection is that the user is the Author of the 'saved-influencer' post.
-    $saved_influencer_posts = get_posts([
-        'post_type'      => 'saved-influencer',
-        'posts_per_page' => -1,           // Get all saved items
-        'post_status'    => 'publish',
-        'author'         => $current_user_id, // Filter by current user
-        'fields'         => 'ids',        // We only need the IDs to loop through for meta
-    ]);
-
-
-    // 3. Extract the 'influencer_id' meta field from the saved posts
-    $target_ids = [];
-    foreach ($saved_influencer_posts as $saved_post_id) {
-        $influencer_id = get_post_meta($saved_post_id, 'influencer_id', true);
-
-        if (! empty($influencer_id)) {
-            $target_ids[] = (int) $influencer_id;
-        }
-    }
-
     ob_start();
-    var_dump($target_ids);
+    echo '<pre>';
+    var_dump(get_post_meta(3843));
+    echo '</pre>';
     return ob_get_clean();
 }
 add_shortcode('test', 'test');
@@ -154,6 +133,3 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
         $query->set('post__in', [0]);
     }
 });
-
-
-
