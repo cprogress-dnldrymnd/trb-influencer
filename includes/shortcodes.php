@@ -650,7 +650,7 @@ function most_engage_niches_graph()
 
     // 2. Define colors to match your image (Light Teal, Dark Teal, Yellow)
     // We assign them in order: 1st, 2nd, 3rd
-    $colors = ['#b8e0d9', '#3a6b66', '#fcd974'];
+    $colors = ['#BCE0D9', '#35676B', '#FFE17B'];
 
     // Prepare arrays for JavaScript
     $js_labels = [];

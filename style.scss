@@ -764,8 +764,9 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     gap: 30px; /* Space between chart and legend */
-    font-family: sans-serif;
     max-width: 500px; /* Adjust as needed */
+    font-size: 14px;
+    font-weight: 500;
 }
 
 /* Make chart responsive but limited in size */
