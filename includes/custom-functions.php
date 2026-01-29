@@ -863,3 +863,39 @@ function track_influencer_post_view()
     }
 }
 add_action('template_redirect', 'track_influencer_post_view');
+
+
+function debug_mycred_purchases() {
+    // Only run for admins to keep it safe
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    global $wpdb;
+    $user_id = get_current_user_id();
+    $table = $wpdb->prefix . 'mycred_log';
+
+    // 1. Get the last 5 logs for this user, regardless of what they are
+    $logs = $wpdb->get_results( $wpdb->prepare( "
+        SELECT id, ref, ref_id, data 
+        FROM {$table} 
+        WHERE user_id = %d 
+        ORDER BY time DESC 
+        LIMIT 5
+    ", $user_id ) );
+
+    echo '<pre style="background:#fff; border:2px solid red; padding:10px; z-index:9999; position:relative;">';
+    echo "<strong>Debug User ID:</strong> " . $user_id . "\n";
+    
+    if ( empty( $logs ) ) {
+        echo "No logs found for this user.";
+    } else {
+        foreach ( $logs as $log ) {
+            $post_type = get_post_type( $log->ref_id );
+            echo "---------------------------------\n";
+            echo "Log Ref:    " . $log->ref . "\n"; // Check this value!
+            echo "Post ID:    " . $log->ref_id . "\n";
+            echo "Post Type:  " . ( $post_type ? $post_type : 'NOT FOUND/DELETED' ) . "\n";
+        }
+    }
+    echo '</pre>';
+}
+add_action( 'wp_footer', 'debug_mycred_purchases' );
