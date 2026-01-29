@@ -598,8 +598,8 @@ input:checked + .slider:before {
 
 /* Make chart responsive but limited in size */
 .chart-container {
-  width: 160px;
-  height: 160px;
+  width: 150px;
+  height: 150px;
   position: relative; }
 
 .legend-container {
