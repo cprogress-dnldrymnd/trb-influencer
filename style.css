@@ -605,12 +605,18 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Space between rows */ }
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px; }
+  /* Space between rows */
+  flex-grow: 1; }
+  .legend-container .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px; }
+    .legend-container .legend-item:nth-child(1) .legend-label {
+      width: 90%; }
+    .legend-container .legend-item:nth-child(2) .legend-label {
+      width: 85%; }
+    .legend-container .legend-item:nth-child(3) .legend-label {
+      width: 80%; }
 
 /* The colored pill shape */
 .legend-label {
