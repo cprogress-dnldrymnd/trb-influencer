@@ -770,30 +770,56 @@ function get_viewed_influencer()
 
     return $ids;
 }
+/**This method joins the myCred log table with your WordPress posts table to count matches directly. This is much faster than looping through data. */
+function get_user_purchased_post_ids($post_type = 'influencer')
+{
+    global $wpdb;
+
+    $user_id = get_current_user_id();
+
+    // Define table names
+    $mycred_log_table = $wpdb->prefix . 'mycred_log';
+    $posts_table      = $wpdb->prefix . 'posts';
+
+    // Query: Select the Post ID (p.ID) instead of COUNT
+    // We use DISTINCT to ensure we don't get duplicate IDs if a user bought something twice
+    $post_ids = $wpdb->get_col($wpdb->prepare("
+        SELECT DISTINCT p.ID 
+        FROM {$mycred_log_table} l
+        INNER JOIN {$posts_table} p ON l.ref_id = p.ID
+        WHERE l.user_id = %d 
+        AND l.ref = 'buy_content' 
+        AND p.post_type = %s
+    ", $user_id, $post_type));
+
+    // get_col returns an array, or an empty array if nothing found
+    return $post_ids;
+}
 
 /**
  * Track views on 'influencer' posts for logged-in users.
  * - Creates a new log if none exists.
  * - Updates the existing log (Modified Date & Title) if it already exists.
  */
-function track_influencer_post_view() {
+function track_influencer_post_view()
+{
     // 1. Check if user is logged in
-    if ( ! is_user_logged_in() ) {
+    if (! is_user_logged_in()) {
         return;
     }
 
     // 2. Check if we are viewing a single 'influencer' post
-    if ( is_singular( 'influencer' ) ) {
+    if (is_singular('influencer')) {
 
         $current_user_id = get_current_user_id();
         $influencer_id   = get_the_ID();
-        
+
         // Prepare the timestamp and title
-        $current_time = current_time( 'd-M-Y H:i:s' );
+        $current_time = current_time('d-M-Y H:i:s');
         $post_title   = 'Viewed on ' . $current_time;
 
         // 3. Search for an EXISTING log entry for this User + Influencer combo
-        $existing_log = get_posts( array(
+        $existing_log = get_posts(array(
             'post_type'      => 'viewed-influencer',
             'author'         => $current_user_id,
             'meta_key'       => 'influencer_id',
@@ -801,9 +827,9 @@ function track_influencer_post_view() {
             'posts_per_page' => 1,
             'fields'         => 'ids', // We only need the ID
             'post_status'    => 'any', // Check published, private, etc.
-        ) );
+        ));
 
-        if ( ! empty( $existing_log ) ) {
+        if (! empty($existing_log)) {
             // --- UPDATE EXISTING ---
             // We found a log. Update the title and the modified time.
             $log_id = $existing_log[0];
@@ -817,8 +843,7 @@ function track_influencer_post_view() {
                 // 'post_date_gmt' => current_time( 'mysql', 1 ),
             );
 
-            wp_update_post( $update_data );
-
+            wp_update_post($update_data);
         } else {
             // --- CREATE NEW ---
             // No log found. Create a new one.
@@ -829,12 +854,12 @@ function track_influencer_post_view() {
                 'post_author' => $current_user_id,
             );
 
-            $new_log_id = wp_insert_post( $view_log_data );
+            $new_log_id = wp_insert_post($view_log_data);
 
-            if ( ! is_wp_error( $new_log_id ) ) {
-                update_post_meta( $new_log_id, 'influencer_id', $influencer_id );
+            if (! is_wp_error($new_log_id)) {
+                update_post_meta($new_log_id, 'influencer_id', $influencer_id);
             }
         }
     }
 }
-add_action( 'template_redirect', 'track_influencer_post_view' );
+add_action('template_redirect', 'track_influencer_post_view');
