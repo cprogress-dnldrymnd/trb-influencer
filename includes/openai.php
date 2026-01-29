@@ -1,6 +1,8 @@
 <?php
 function generate_influencer_summary( $post_id ) {
     // 1. Retrieve your specific meta fields
+
+    $post_id = 3861;
     $name = get_post_meta( $post_id, 'influencer_name', true );
     $niche = get_post_meta( $post_id, 'influencer_niche', true );
     $bio = get_post_meta( $post_id, 'description', true );
