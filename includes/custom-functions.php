@@ -743,6 +743,34 @@ function get_saved_influencer()
     return $ids;
 }
 
+function get_viewed_influencer()
+{
+    if (! is_user_logged_in()) {
+        return [];
+    }
+
+    global $wpdb;
+    $user_id = get_current_user_id();
+
+    // 2. Direct SQL Query
+    // This fetches the 'influencer_id' meta directly from the database 
+    // for all 'saved-influencer' posts authored by the current user.
+    // We skip 'get_posts' entirely to avoid conflicts/loops.
+    $influencer_ids = $wpdb->get_col($wpdb->prepare("
+        SELECT pm.meta_value 
+        FROM {$wpdb->postmeta} pm
+        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+        WHERE p.post_type = 'viewed-influencer'
+        AND p.post_status = 'publish'
+        AND p.post_author = %d
+        AND pm.meta_key = 'influencer_id'
+    ", $user_id));
+
+    $ids = array_map('intval', $influencer_ids);
+
+    return $ids;
+}
+
 /**
  * Track views on 'influencer' posts for logged-in users.
  * - Creates a new log if none exists.

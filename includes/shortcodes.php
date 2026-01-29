@@ -612,3 +612,12 @@ function saved_influencer_count()
 }
 
 add_shortcode('saved_influencer_count', 'saved_influencer_count');
+
+function viewed_influencer_count()
+{
+    return count(get_viewed_influencer());
+}
+
+add_shortcode('viewed_influencer_count', 'viewed_influencer_count');
+
+
