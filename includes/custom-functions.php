@@ -962,3 +962,21 @@ function get_user_niche_ranking($user_id)
 
     return $niche_counts;
 }
+
+function test_sc()
+{
+    ob_start();
+    $current_user_id = get_current_user_id();
+    $ranked_niches = get_user_niche_ranking($current_user_id);
+
+    // Example Output Loop
+    if (! empty($ranked_niches)) {
+        echo '<ul>';
+        foreach ($ranked_niches as $niche) {
+            echo '<li>' . $niche['name'] . ': ' . $niche['percentage'] . '% (' . $niche['count'] . ' views)</li>';
+        }
+        echo '</ul>';
+    }
+}
+
+add_shortcode('test_sc', 'test_sc');
