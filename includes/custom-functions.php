@@ -770,13 +770,26 @@ function get_viewed_influencer()
 
     return $ids;
 }
-/**This method joins the myCred log table with your WordPress posts table to count matches directly. This is much faster than looping through data. */
+/**
+ * Retrieve a list of Post IDs purchased by the current user via myCred.
+ *
+ * This function queries the myCred log to find all 'buy_content' entries
+ * for the current user and returns the IDs of the purchased posts.
+ * It allows filtering by specific post types and optionally restricting
+ * the results to the current month only.
+ *
+ * @param string $post_type          Optional. The post type to filter by (e.g., 'influencer', 'post'). Default 'influencer'.
+ * @param bool   $current_month_only Optional. Whether to return only purchases made in the current month. Default false.
+ *
+ * @return array An array of purchased Post IDs (integers). Returns an empty array if none found.
+ */
 function get_user_purchased_post_ids($post_type = 'influencer', $current_month_only = false)
 {
     global $wpdb;
 
     $user_id = get_current_user_id();
 
+    // Define table names
     $mycred_log_table = $wpdb->prefix . 'myCRED_log';
     $posts_table      = $wpdb->prefix . 'posts';
 
@@ -793,19 +806,14 @@ function get_user_purchased_post_ids($post_type = 'influencer', $current_month_o
     // Prepare arguments array
     $args = array($user_id, $post_type);
 
-    // OPTIONAL: Filter by Current Month
+    // Filter by Current Month if requested
     if ($current_month_only) {
-        // Get the timestamp for the start of the current month (00:00:00)
-        // We use current_time('timestamp') to respect the WordPress Timezone setting
+        // Calculate start and end of the current month based on WP Timezone
         $start_of_month = strtotime('first day of this month 00:00:00', current_time('timestamp'));
-
-        // Get the timestamp for the end of the current month (23:59:59)
         $end_of_month   = strtotime('last day of this month 23:59:59', current_time('timestamp'));
 
-        // Append the time comparison to the SQL query
         $query .= " AND l.time BETWEEN %d AND %d";
 
-        // Add timestamps to args
         $args[] = $start_of_month;
         $args[] = $end_of_month;
     }
