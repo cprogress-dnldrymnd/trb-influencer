@@ -917,18 +917,15 @@ function get_user_niche_ranking($user_id)
     }
 
     $niche_counts = [];
-    $total_terms_found = 0;
 
     // 2. AGGREGATE TERMS
     foreach ($engage_influencers_ids as $post_id) {
-        // Get terms for the custom taxonomy 'niche'
         $terms = get_the_terms($post_id, 'niche');
 
         if (! empty($terms) && ! is_wp_error($terms)) {
             foreach ($terms as $term) {
                 $term_id = $term->term_id;
 
-                // Initialize if not set
                 if (! isset($niche_counts[$term_id])) {
                     $niche_counts[$term_id] = [
                         'term_id' => $term_id,
@@ -937,10 +934,7 @@ function get_user_niche_ranking($user_id)
                         'count'   => 0,
                     ];
                 }
-
-                // Increment count
                 $niche_counts[$term_id]['count']++;
-                $total_terms_found++;
             }
         }
     }
@@ -950,11 +944,22 @@ function get_user_niche_ranking($user_id)
         return $b['count'] <=> $a['count'];
     });
 
-    // 4. CALCULATE PERCENTAGE
-    // Useful if you want to display "45%" like in your screenshot
+    // 4. LIMIT RESULTS (Slice the array to the top X)
+    if ($limit > 0) {
+        $niche_counts = array_slice($niche_counts, 0, $limit);
+    }
+
+    // 5. RE-CALCULATE TOTAL (Based ONLY on the sliced top items)
+    // We sum the counts of just these top 3 to ensure percentages = 100% relative to this group.
+    $subset_total = 0;
+    foreach ($niche_counts as $niche) {
+        $subset_total += $niche['count'];
+    }
+
+    // 6. CALCULATE PERCENTAGE
     foreach ($niche_counts as &$niche) {
-        if ($total_terms_found > 0) {
-            $niche['percentage'] = round(($niche['count'] / $total_terms_found) * 100, 1);
+        if ($subset_total > 0) {
+            $niche['percentage'] = round(($niche['count'] / $subset_total) * 100, 1);
         } else {
             $niche['percentage'] = 0;
         }
