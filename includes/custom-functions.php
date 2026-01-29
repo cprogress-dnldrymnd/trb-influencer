@@ -866,8 +866,6 @@ add_action('template_redirect', 'track_influencer_post_view');
 
 
 function debug_mycred_purchases() {
-    // Only run for admins to keep it safe
-    if ( ! current_user_can( 'manage_options' ) ) return;
 
     global $wpdb;
     $user_id = get_current_user_id();
