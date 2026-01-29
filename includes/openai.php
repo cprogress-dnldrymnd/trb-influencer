@@ -43,3 +43,4 @@ function generate_influencer_summary($post_id)
     }
     return ob_get_clean();
 }
+add_shortcode('generate_influencer_summary', 'generate_influencer_summary');
