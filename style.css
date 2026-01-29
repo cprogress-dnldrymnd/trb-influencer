@@ -593,7 +593,8 @@ input:checked + .slider:before {
   max-width: 500px;
   /* Adjust as needed */
   font-size: 14px;
-  font-weight: 500; }
+  font-weight: 500;
+  flex-wrap: wrap; }
 
 /* Make chart responsive but limited in size */
 .chart-container {
@@ -605,29 +606,16 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Space between rows */
-  flex-grow: 1; }
-  .legend-container .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px; }
-    .legend-container .legend-item:nth-child(1) .legend-label {
-      width: 90%; }
-    .legend-container .legend-item:nth-child(2) .legend-label {
-      width: 85%; }
-    .legend-container .legend-item:nth-child(3) .legend-label {
-      width: 80%; }
+  /* Space between rows */ }
 
 /* The colored pill shape */
 .legend-label {
-  padding: 6px 16px;
+  padding: 8px 20px;
   border-radius: 20px;
   /* Makes it a pill */
   font-size: 14px;
   font-weight: 500;
   color: var(--e-global-color-2ba2932);
-  min-width: 100px;
-  /* Ensures alignment */
   text-align: center; }
   .legend-label[style="background-color: #FFE17B;"] {
     color: var(--e-global-color-secondary); }
