@@ -629,8 +629,14 @@ add_shortcode('unlocked_influencer_count', 'unlocked_influencer_count');
 
 
 
-function most_engage_niches() {
-    return 'Your top niches this month: Parenting (45%), Food & Nutrition (34%), Wellbeing (12%). You’re most active in family-focused content — perfect for upcoming wellness campaigns.';
+function most_engage_niches()
+{
+    $current_user_id = get_current_user_id();
+    $ranked_niches = get_user_niche_ranking($current_user_id);
+
+    if (empty($ranked_niches)) return;
+
+    return 'Your top niches this month: ' . $ranked_niches[0]['name'] . ' (' . $ranked_niches[0]['percentage'] . '%), Food & Nutrition (34%), Wellbeing (12%). You’re most active in family-focused content — perfect for upcoming wellness campaigns.';
 }
 
 add_shortcode('most_engage_niches', 'most_engage_niches');
