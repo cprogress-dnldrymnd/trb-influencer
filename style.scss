@@ -43,7 +43,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         cursor: pointer;
     }
 }
-.disable-niche-click  .niche-toggle {
+.disable-niche-click .niche-toggle {
     pointer-events: none;
     cursor: text;
 }
@@ -767,7 +767,6 @@ input:checked + .slider:before {
     max-width: 500px; /* Adjust as needed */
     font-size: 14px;
     font-weight: 500;
-    color: var(--e-global-color-2ba2932);
 }
 
 /* Make chart responsive but limited in size */
@@ -795,7 +794,7 @@ input:checked + .slider:before {
     border-radius: 20px; /* Makes it a pill */
     font-size: 14px;
     font-weight: 500;
-    color: #1f1f1f; /* Text color inside pill */
+    color: var(--e-global-color-2ba2932);
     min-width: 100px; /* Ensures alignment */
     text-align: center;
 }
@@ -805,4 +804,7 @@ input:checked + .slider:before {
     font-size: 16px;
     font-weight: bold;
     color: #333;
+    &[style="background-color: #FFE17B;"] {
+        color: var(--e-global-color-secondary);
+    }
 }

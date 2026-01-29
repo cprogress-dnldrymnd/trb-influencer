@@ -593,8 +593,7 @@ input:checked + .slider:before {
   max-width: 500px;
   /* Adjust as needed */
   font-size: 14px;
-  font-weight: 500;
-  color: var(--e-global-color-2ba2932); }
+  font-weight: 500; }
 
 /* Make chart responsive but limited in size */
 .chart-container {
@@ -620,8 +619,7 @@ input:checked + .slider:before {
   /* Makes it a pill */
   font-size: 14px;
   font-weight: 500;
-  color: #1f1f1f;
-  /* Text color inside pill */
+  color: var(--e-global-color-2ba2932);
   min-width: 100px;
   /* Ensures alignment */
   text-align: center; }
@@ -631,5 +629,7 @@ input:checked + .slider:before {
   font-size: 16px;
   font-weight: bold;
   color: #333; }
+  .legend-value[style="background-color: #FFE17B;"] {
+    color: var(--e-global-color-secondary); }
 
 /*# sourceMappingURL=style.css.map */
