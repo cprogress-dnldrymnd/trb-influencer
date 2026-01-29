@@ -13,7 +13,7 @@ function generate_influencer_summary( $post_id ) {
     Focus on their professional value.";
 
     // 3. Call the API (Example using OpenAI)
-    $api_key = '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';
+    $api_key = '';
     $response = wp_remote_post( 'https://api.openai.com/v1/chat/completions', [
         'headers' => [
             'Content-Type'  => 'application/json',
