@@ -717,6 +717,10 @@ add_action('wp_footer', 'set_admin_bar_height_variable');
 
 function get_saved_influencer()
 {
+    if (! is_user_logged_in()) {
+        return [];
+    }
+
     global $wpdb;
     $user_id = get_current_user_id();
 
