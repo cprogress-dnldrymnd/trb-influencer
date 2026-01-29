@@ -40,11 +40,11 @@ function generate_influencer_summary($post_id)
         if ($summary) {
             // update_post_meta( $post_id, 'ai_summary_text', $summary );
         }
-    } else {
-        echo '<pre>';
+    }
+
+      echo '<pre>';
         var_dump($response);
         echo '</pre>';
-    }
     echo 'testing;';
     echo $api_key;
     return ob_get_clean();
