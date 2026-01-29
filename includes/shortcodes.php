@@ -622,10 +622,15 @@ add_shortcode('viewed_influencer_count', 'viewed_influencer_count');
 
 function unlocked_influencer_count()
 {
-  return count(get_user_purchased_post_ids('influencer', true));
+    return count(get_user_purchased_post_ids('influencer', true));
 }
 
 add_shortcode('unlocked_influencer_count', 'unlocked_influencer_count');
 
 
 
+function most_engage_niches() {
+    return 'Your top niches this month: Parenting (45%), Food & Nutrition (34%), Wellbeing (12%). You’re most active in family-focused content — perfect for upcoming wellness campaigns.';
+}
+
+add_shortcode('most_engage_niches', 'most_engage_niches');
