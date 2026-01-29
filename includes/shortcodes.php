@@ -608,7 +608,7 @@ function render_mycred_circle_progress($atts)
 
 function saved_influencer_count()
 {
-    return get_saved_influencer();
+    return count(get_saved_influencer());
 }
 
 add_shortcode('saved_influencer_count', 'saved_influencer_count');
