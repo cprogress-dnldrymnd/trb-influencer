@@ -891,3 +891,74 @@ function track_influencer_post_view()
     }
 }
 add_action('template_redirect', 'track_influencer_post_view');
+
+
+/**
+ * specific function to get the ranking of niches based on user history.
+ *
+ * @param int $user_id The ID of the current user.
+ * @return array Sorted array of niches with counts and percentages.
+ */
+function get_user_niche_ranking($user_id)
+{
+
+    // 1. RETRIEVE VIEWED IDS
+    // Replace this line with however you are currently saving the data. 
+    // Assuming you store it as an array of Post IDs in user meta:
+    $viewed_influencers_ids = get_viewed_influencer();
+    $saved_influencers_ids = get_saved_influencer();
+    $purchased_influencers_ids = get_user_purchased_post_ids();
+
+    $engage_influencers_ids = array_merge($viewed_influencers_ids, $saved_influencers_ids, $purchased_influencers_ids);
+
+    // Safety check: if no history, return empty
+    if (empty($engage_influencers_ids) || ! is_array($engage_influencers_ids)) {
+        return [];
+    }
+
+    $niche_counts = [];
+    $total_terms_found = 0;
+
+    // 2. AGGREGATE TERMS
+    foreach ($engage_influencers_ids as $post_id) {
+        // Get terms for the custom taxonomy 'niche'
+        $terms = get_the_terms($post_id, 'niche');
+
+        if (! empty($terms) && ! is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $term_id = $term->term_id;
+
+                // Initialize if not set
+                if (! isset($niche_counts[$term_id])) {
+                    $niche_counts[$term_id] = [
+                        'term_id' => $term_id,
+                        'name'    => $term->name,
+                        'slug'    => $term->slug,
+                        'count'   => 0,
+                    ];
+                }
+
+                // Increment count
+                $niche_counts[$term_id]['count']++;
+                $total_terms_found++;
+            }
+        }
+    }
+
+    // 3. SORT (Desc by count)
+    usort($niche_counts, function ($a, $b) {
+        return $b['count'] <=> $a['count'];
+    });
+
+    // 4. CALCULATE PERCENTAGE
+    // Useful if you want to display "45%" like in your screenshot
+    foreach ($niche_counts as &$niche) {
+        if ($total_terms_found > 0) {
+            $niche['percentage'] = round(($niche['count'] / $total_terms_found) * 100, 1);
+        } else {
+            $niche['percentage'] = 0;
+        }
+    }
+
+    return $niche_counts;
+}
