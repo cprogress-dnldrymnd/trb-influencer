@@ -35,3 +35,35 @@ function action_wp_head()
 
 add_action('wp_head', 'action_wp_head');
 
+
+/**
+ * Restrict access to specific pages based on ACF 'members_only' field.
+ * Redirects non-logged-in users to a specified page.
+ *
+ * @return void
+ */
+function dd_restrict_dashboard_template_access()
+{
+    // specific template check (if needed in future) can go here.
+
+    // 1. Get the current Object ID (Page/Post ID) to ensure correct context outside the loop.
+    $object_id = get_queried_object_id();
+
+    // 2. Check the ACF 'members_only' field. 
+    // We check if function_exists to prevent fatal errors if ACF is deactivated.
+    $is_restricted = function_exists('get_field') ? get_field('members_only', $object_id) : false;
+
+    // 3. Condition: User is NOT logged in AND the page is restricted.
+    if (! is_user_logged_in() && $is_restricted) {
+
+        // Check if the current page is using the specific template file.
+        // Note: This path is relative to the active theme's root directory.
+
+        // Execute the redirect to the home URL (using ID 4144).
+        wp_redirect(get_the_permalink(4144));
+
+        // Always exit after a redirect to stop further script execution.
+        exit;
+    }
+}
+add_action('template_redirect', 'dd_restrict_dashboard_template_access');
