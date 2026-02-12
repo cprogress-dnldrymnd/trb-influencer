@@ -50,7 +50,7 @@ add_action('wp_head', 'action_wp_head');
 function dd_restrict_dashboard_template_access()
 {
     // Check if the user is NOT logged in.
-    if (! is_user_logged_in()) {
+    if (! is_user_logged_in() && !is_page(4144)) {
 
         // Check if the current page is using the specific template file.
         // Note: This path is relative to the active theme's root directory.
