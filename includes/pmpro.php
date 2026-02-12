@@ -26,3 +26,4 @@ function get_pmpro_membership_level_shortcode() {
 
     return 'No Active Membership';
 }
+
