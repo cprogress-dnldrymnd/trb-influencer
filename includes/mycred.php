@@ -30,3 +30,5 @@ function dd_prevent_mycred_pmpro_duplicates( $run, $mycred_object, $args ) {
 
     return $run;
 }
+
+
