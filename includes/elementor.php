@@ -1,4 +1,19 @@
 <?php
+/**
+ * Disable Elementor Pro / Pro Elements Header & Footer on Dashboard Template
+ */
+add_filter('elementor/theme/get_location_templates/template_id', function ($template_id, $location) {
+    // Check if we are on the specific page template
+    if (is_page_template('templates/page-dashboard.php') || (is_single() && get_post_type() == 'influencer')) {
+        // If the location is header or footer, return 0 to skip the Elementor template
+        if (in_array($location, ['header', 'footer'])) {
+            return 0;
+        }
+    }
+
+    return $template_id;
+}, 10, 2);
+
 
 /**
  * Update the query to fetch only recently viewed post IDs.
