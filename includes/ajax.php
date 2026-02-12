@@ -4,30 +4,81 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
 
 function my_custom_loop_filter_handler()
 {
-    // 1. SECURITY & INPUTS
-    // We use santize_text_field for all, as even the numbers come in as strings initially
-    $niche     = isset($_POST['niche']) ? $_POST['niche'] : '';
-    $platform  = isset($_POST['platform']) ? $_POST['platform'] : '';
-    $country   = isset($_POST['country']) ? $_POST['country'] : '';
-    $lang      = isset($_POST['lang']) ? $_POST['lang'] : '';
-    $followers = isset($_POST['followers']) ? $_POST['followers'] : '';
+    // 1. GATHER INPUTS (explicit form values)
+    $explicit = [
+        'niche'        => isset($_POST['niche']) ? $_POST['niche'] : [],
+        'platform'     => isset($_POST['platform']) ? $_POST['platform'] : [],
+        'country'      => isset($_POST['country']) ? $_POST['country'] : [],
+        'lang'         => isset($_POST['lang']) ? $_POST['lang'] : [],
+        'followers'    => isset($_POST['followers']) ? $_POST['followers'] : [],
+        'filter'       => isset($_POST['filter']) ? $_POST['filter'] : [],
+        'topic'        => isset($_POST['topic']) ? $_POST['topic'] : [],
+        'content_tag'  => isset($_POST['content_tag']) ? $_POST['content_tag'] : [],
+    ];
 
-    // 2. BUILD THE QUERY ARGS
+    // Ensure arrays
+    foreach ($explicit as $k => $v) {
+        if (!is_array($v)) {
+            $explicit[$k] = $v ? [$v] : [];
+        }
+    }
+
+    // 2. PARSE BRIEF (if provided) and merge with explicit
+    $brief_text = isset($_POST['search_brief']) ? sanitize_textarea_field($_POST['search_brief']) : '';
+    if (!empty($brief_text) && function_exists('parse_search_brief') && function_exists('merge_brief_with_explicit_filters')) {
+        $parsed   = parse_search_brief($brief_text);
+        $explicit = merge_brief_with_explicit_filters($parsed, $explicit);
+    }
+
+    $niche        = $explicit['niche'];
+    $platform     = $explicit['platform'];
+    $country      = $explicit['country'];
+    $lang         = $explicit['lang'];
+    $followers    = $explicit['followers'];
+    $filter       = $explicit['filter'];
+    $topic        = $explicit['topic'];
+    $content_tag  = $explicit['content_tag'];
+
+    // 3. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
         'posts_per_page' => 12,
         'post_status'    => 'publish',
     ];
 
-    // --- Taxonomy Query (Niche & Platform) ---
+    // --- Taxonomy Query ---
+    // Niche, topic, content_tag use OR (broaden: match any of these).
+    // Platform uses AND (must match).
     $tax_query = [];
 
+    $content_taxonomies = []; // niche, topic, content_tag — OR together
     if (!empty($niche)) {
-        $tax_query[] = [
+        $content_taxonomies[] = [
             'taxonomy' => 'niche',
-            'field'    => 'slug', // Assuming values passed are slugs
+            'field'    => 'slug',
             'terms'    => $niche,
         ];
+    }
+    if (!empty($topic)) {
+        $content_taxonomies[] = [
+            'taxonomy' => 'topic',
+            'field'    => 'slug',
+            'terms'    => $topic,
+        ];
+    }
+    if (!empty($content_tag)) {
+        $content_taxonomies[] = [
+            'taxonomy' => 'content_tag',
+            'field'    => 'slug',
+            'terms'    => $content_tag,
+        ];
+    }
+
+    if (count($content_taxonomies) > 1) {
+        $content_taxonomies['relation'] = 'OR';
+        $tax_query[] = $content_taxonomies;
+    } elseif (count($content_taxonomies) === 1) {
+        $tax_query[] = $content_taxonomies[0];
     }
 
     if (!empty($platform)) {
@@ -38,9 +89,7 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    // If we have more than one taxonomy or just one, we add it to args
     if (!empty($tax_query)) {
-        // If both exist, relation AND is default, but good to be explicit
         if (count($tax_query) > 1) {
             $tax_query['relation'] = 'AND';
         }
@@ -51,17 +100,31 @@ function my_custom_loop_filter_handler()
     $meta_query = [];
 
     if (!empty($country)) {
+        $country_arr = is_array($country) ? $country : [$country];
+        // Match both uppercase and lowercase (DB may store gbr or GBR)
+        $country_arr = array_merge($country_arr, array_map('strtolower', $country_arr), array_map('strtoupper', $country_arr));
+        $country_arr = array_unique($country_arr);
         $meta_query[] = [
             'key'     => 'country',
-            'value'   => $country,
-            'compare' => '=',
+            'value'   => $country_arr,
+            'compare' => 'IN',
         ];
     }
 
     if (!empty($lang)) {
+        $lang_arr = is_array($lang) ? $lang : [$lang];
         $meta_query[] = [
             'key'     => 'lang',
-            'value'   => $lang,
+            'value'   => $lang_arr,
+            'compare' => count($lang_arr) > 1 ? 'IN' : '=',
+        ];
+    }
+
+    // Filter: Include only verified influencers
+    if (!empty($filter) && in_array('Include only verified influencers', $filter, true)) {
+        $meta_query[] = [
+            'key'     => 'isverified',
+            'value'   => '1',
             'compare' => '=',
         ];
     }
@@ -97,10 +160,102 @@ function my_custom_loop_filter_handler()
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
+    // Broadening: if fewer than 6 results with full filters, retry with niche + platform only (drop country, followers, lang, verified)
+    $min_results = 6;
+    $has_broadening_filters = !empty($country) || !empty($followers) || !empty($lang)
+        || (!empty($filter) && in_array('Include only verified influencers', $filter, true));
+    if ($query->found_posts < $min_results && $has_broadening_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
+        $broadened_args = [
+            'post_type'      => 'influencer',
+            'posts_per_page' => 12,
+            'post_status'    => 'publish',
+        ];
+        $content_tax = [];
+        if (!empty($niche)) {
+            $content_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
+        }
+        if (!empty($topic)) {
+            $content_tax[] = ['taxonomy' => 'topic', 'field' => 'slug', 'terms' => $topic];
+        }
+        if (!empty($content_tag)) {
+            $content_tax[] = ['taxonomy' => 'content_tag', 'field' => 'slug', 'terms' => $content_tag];
+        }
+        $broadened_tax = [];
+        if (count($content_tax) > 1) {
+            $content_tax['relation'] = 'OR';
+            $broadened_tax[] = $content_tax;
+        } elseif (count($content_tax) === 1) {
+            $broadened_tax[] = $content_tax[0];
+        }
+        if (!empty($platform)) {
+            $broadened_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
+        }
+        if (count($broadened_tax) > 1) {
+            $broadened_tax['relation'] = 'AND';
+        }
+        if (!empty($broadened_tax)) {
+            $broadened_args['tax_query'] = $broadened_tax;
+        }
+        $query = new WP_Query($broadened_args);
+    }
+
+    // Fallback: if 0 results with full filters, retry with just niche + platform (drop country, followers)
+    if (!$query->have_posts() && (!empty($niche) || !empty($platform) || !empty($country) || !empty($followers))) {
+        $fallback_args = [
+            'post_type'      => 'influencer',
+            'posts_per_page' => 12,
+            'post_status'    => 'publish',
+        ];
+        $fallback_tax = [];
+        if (!empty($niche)) {
+            $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
+        }
+        if (!empty($platform)) {
+            $fallback_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
+        }
+        if (count($fallback_tax) > 1) {
+            $fallback_tax['relation'] = 'AND';
+        }
+        if (!empty($fallback_tax)) {
+            $fallback_args['tax_query'] = $fallback_tax;
+        }
+        $query = new WP_Query($fallback_args);
+        // Last resort: if still 0, return all published (no filters)
+        if (!$query->have_posts()) {
+            $query = new WP_Query([
+                'post_type'      => 'influencer',
+                'posts_per_page' => 12,
+                'post_status'    => 'publish',
+            ]);
+        }
+    }
+
     if ($query->have_posts()) {
+        $search_criteria = [
+            'niche'       => $niche,
+            'platform'    => $platform,
+            'country'     => $country,
+            'followers'   => $followers,
+            'filter'      => $filter,
+            'topic'       => $topic,
+            'content_tag' => $content_tag,
+        ];
+        set_query_var('search_criteria', $search_criteria);
+
+        $posts = $query->posts;
+        if (function_exists('influencer_calculate_match_score')) {
+            usort($posts, function ($a, $b) use ($search_criteria) {
+                $sa = influencer_calculate_match_score($a->ID, $search_criteria);
+                $sb = influencer_calculate_match_score($b->ID, $search_criteria);
+                return $sb <=> $sa; // descending (highest first)
+            });
+        }
+
         ob_start();
-        while ($query->have_posts()) {
-            $query->the_post();
+        foreach ($posts as $post) {
+            $GLOBALS['post'] = $post;
+            setup_postdata($post);
+            set_query_var('current_influencer_id', $post->ID);
             if (class_exists('\Elementor\Plugin')) {
                 echo do_shortcode('[elementor-template id="1839"]');
             }

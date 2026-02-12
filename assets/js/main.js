@@ -52,6 +52,8 @@
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
         var filter_followers = get_filter_values('followers');
+        var filter_filter = get_filter_values('filter[]');
+        var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
 
         // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
@@ -67,6 +69,8 @@
                 country: filter_country,
                 lang: filter_lang,
                 followers: filter_followers,
+                filter: filter_filter,
+                search_brief: search_brief,
                 paged: current_page // <--- SEND CURRENT PAGE TO PHP
             },
             success: function (response) {

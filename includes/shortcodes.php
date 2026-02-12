@@ -160,6 +160,237 @@ function shortcode_influence_isverified()
 }
 add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 
+/**
+ * Calculate match score (0-100) for an influencer against search criteria.
+ *
+ * @param int   $post_id  Influencer post ID.
+ * @param array $criteria Search criteria (niche, platform, country, followers, filter, topic, content_tag).
+ * @return int Score 0-100, or -1 if no valid criteria.
+ */
+function influencer_calculate_match_score($post_id, $criteria)
+{
+    if (!$post_id || get_post_type($post_id) !== 'influencer') {
+        return -1;
+    }
+    if (!is_array($criteria) || (
+        empty($criteria['niche']) && empty($criteria['platform']) && empty($criteria['country'])
+        && empty($criteria['followers']) && empty($criteria['topic']) && empty($criteria['content_tag'])
+    )) {
+        return -1;
+    }
+
+    $earned   = 0;
+    $max_poss = 0;
+
+    // Niche / topic / content_tag match (40 pts max)
+    $content_terms = array_merge(
+        (array) ($criteria['niche'] ?? []),
+        (array) ($criteria['topic'] ?? []),
+        (array) ($criteria['content_tag'] ?? [])
+    );
+    $content_terms = array_unique(array_filter($content_terms));
+    if (!empty($content_terms)) {
+        $max_poss += 40;
+        $influencer_slugs = [];
+        foreach (['niche', 'topic', 'content_tag'] as $tax) {
+            foreach (wp_get_post_terms($post_id, $tax) as $t) {
+                $influencer_slugs[] = $t->slug;
+            }
+        }
+        $matched = count(array_intersect($content_terms, $influencer_slugs));
+        $earned += $matched > 0 ? (int) round(($matched / count($content_terms)) * 40) : 0;
+    }
+
+    // Country match (30 pts)
+    if (!empty($criteria['country'])) {
+        $max_poss += 30;
+        $incountry = get_post_meta($post_id, 'country', true);
+        $incountry = strtoupper(trim((string) $incountry));
+        $req = array_map('strtoupper', array_map('trim', (array) $criteria['country']));
+        if ($incountry && in_array($incountry, $req, true)) {
+            $earned += 30;
+        }
+    }
+
+    // Platform match (15 pts)
+    if (!empty($criteria['platform'])) {
+        $max_poss += 15;
+        $platforms = wp_get_post_terms($post_id, 'platform');
+        foreach ($platforms as $t) {
+            if (in_array($t->slug, (array) $criteria['platform'], true)) {
+                $earned += 15;
+                break;
+            }
+        }
+    }
+
+    // Followers match (10 pts)
+    if (!empty($criteria['followers']) && !empty($criteria['followers'][0])) {
+        $max_poss += 10;
+        $f = (int) get_post_meta($post_id, 'followers', true);
+        $range = $criteria['followers'][0];
+        if (strpos($range, '-') !== false) {
+            $parts = explode('-', $range);
+            $min   = isset($parts[0]) ? (int) $parts[0] : 0;
+            $max   = isset($parts[1]) ? (int) str_replace('+', '', $parts[1]) : PHP_INT_MAX;
+            if ($f >= $min && $f <= $max) {
+                $earned += 10;
+            }
+        } else {
+            $min = (int) $range;
+            if ($f >= $min) {
+                $earned += 10;
+            }
+        }
+    }
+
+    // Engagement boost when "Prioritise engagement" (5 pts)
+    $prioritise = !empty($criteria['filter']) && in_array('Prioritise engagement over reach', (array) $criteria['filter'], true);
+    if ($prioritise) {
+        $max_poss += 5;
+        $er = (float) get_post_meta($post_id, 'engagerate', true);
+        $pct = $er * 100;
+        if ($pct > 0) {
+            $earned += min(5, round(($pct / 20) * 5, 0)); // 20% eng = 5 pts
+        }
+    }
+
+    // Verified boost when filter active (5 pts)
+    $verified_only = !empty($criteria['filter']) && in_array('Include only verified influencers', (array) $criteria['filter'], true);
+    if ($verified_only) {
+        $max_poss += 5;
+        if (get_post_meta($post_id, 'isverified', true)) {
+            $earned += 5;
+        }
+    }
+
+    if ($max_poss <= 0) {
+        return -1;
+    }
+
+    $score = (int) round(($earned / $max_poss) * 100);
+    $score = max(50, min(100, $score)); // clamp 50–100
+    return $score;
+}
+
+/**
+ * Get human-friendly phrases for criteria that an influencer matched.
+ * Only returns matched criteria (no X items). Uses descriptive copy, not debug-style labels.
+ *
+ * @param int   $post_id  Influencer post ID.
+ * @param array $criteria Search criteria.
+ * @return array List of phrases e.g. ['Frequently posts about topics related to your brief', ...]
+ */
+function influencer_get_matched_criteria_labels($post_id, $criteria)
+{
+    $phrases = [];
+    if (!$post_id || !is_array($criteria)) {
+        return $phrases;
+    }
+
+    // Niche / topic / content_tag
+    $content_terms = array_merge(
+        (array) ($criteria['niche'] ?? []),
+        (array) ($criteria['topic'] ?? []),
+        (array) ($criteria['content_tag'] ?? [])
+    );
+    $content_terms = array_unique(array_filter($content_terms));
+    if (!empty($content_terms)) {
+        $influencer_slugs = [];
+        foreach (['niche', 'topic', 'content_tag'] as $tax) {
+            foreach (wp_get_post_terms($post_id, $tax) as $t) {
+                $influencer_slugs[] = $t->slug;
+            }
+        }
+        $matched = count(array_intersect($content_terms, $influencer_slugs)) > 0;
+        if ($matched) {
+            $phrases[] = 'Frequently posts about topics related to your brief';
+        }
+    }
+
+    // Country
+    if (!empty($criteria['country'])) {
+        $incountry = strtoupper(trim((string) get_post_meta($post_id, 'country', true)));
+        $req       = array_map('strtoupper', array_map('trim', (array) $criteria['country']));
+        if ($incountry && in_array($incountry, $req, true)) {
+            $phrases[] = 'Audience demographics align well with your target';
+        }
+    }
+
+    // Platform
+    if (!empty($criteria['platform'])) {
+        $platforms = wp_get_post_terms($post_id, 'platform');
+        foreach ($platforms as $t) {
+            if (in_array($t->slug, (array) $criteria['platform'], true)) {
+                $phrases[] = 'Content style fits your campaign goals';
+                break;
+            }
+        }
+    }
+
+    // Followers
+    if (!empty($criteria['followers']) && !empty($criteria['followers'][0])) {
+        $f     = (int) get_post_meta($post_id, 'followers', true);
+        $range = $criteria['followers'][0];
+        $in_range = false;
+        if (strpos($range, '-') !== false) {
+            $parts    = explode('-', $range);
+            $min      = isset($parts[0]) ? (int) $parts[0] : 0;
+            $max      = isset($parts[1]) ? (int) str_replace('+', '', $parts[1]) : PHP_INT_MAX;
+            $in_range = $f >= $min && $f <= $max;
+        } else {
+            $in_range = $f >= (int) $range;
+        }
+        if ($in_range) {
+            $phrases[] = 'Reach aligns with your campaign scope';
+        }
+    }
+
+    // Engagement (when prioritise)
+    $prioritise = !empty($criteria['filter']) && in_array('Prioritise engagement over reach', (array) $criteria['filter'], true);
+    if ($prioritise) {
+        $er = (float) get_post_meta($post_id, 'engagerate', true);
+        if ($er > 0) {
+            $phrases[] = 'Engagement levels suit this campaign type';
+        }
+    }
+
+    // Verified
+    $verified_only = !empty($criteria['filter']) && in_array('Include only verified influencers', (array) $criteria['filter'], true);
+    if ($verified_only && get_post_meta($post_id, 'isverified', true)) {
+        $phrases[] = 'Verified creator';
+    }
+
+    return array_unique($phrases);
+}
+
+/**
+ * Dynamic match score with tooltip showing matched criteria.
+ * Usage: [influencer_match_score] — outputs "✨ 84% Match Score" with hover tooltip
+ */
+function shortcode_influencer_match_score()
+{
+    $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
+    $criteria = get_query_var('search_criteria');
+    $criteria = is_array($criteria) ? $criteria : [];
+    $score    = influencer_calculate_match_score($post_id, $criteria);
+
+    if ($score < 0) {
+        return '<span class="influencer-match-score-wrap">— Match Score</span>';
+    }
+
+    $phrases = influencer_get_matched_criteria_labels($post_id, $criteria);
+    $tooltip = !empty($phrases) ? implode("\n", $phrases) : '';
+
+    $html = '<span class="influencer-match-score-wrap">✨ ' . (int) $score . '% Match Score';
+    if ($tooltip) {
+        $html .= '<span class="influencer-match-score-tooltip">' . esc_html($tooltip) . '</span>';
+    }
+    $html .= '</span>';
+    return $html;
+}
+add_shortcode('influencer_match_score', 'shortcode_influencer_match_score');
+
 function shortcode_influencer_search_filter()
 {
     ob_start();
@@ -287,6 +518,109 @@ function shortcode_influencer_search_filter_main()
 }
 
 add_shortcode('influencer_search_filter_main', 'shortcode_influencer_search_filter_main');
+
+/**
+ * Search summary: displays parsed brief + active filters + prioritisation note.
+ * Usage: [influencer_search_summary]
+ * Add to search results page (1949) above the results.
+ */
+function shortcode_influencer_search_summary()
+{
+    $search_page_id = 1949;
+    if ((int) get_queried_object_id() !== $search_page_id) {
+        return '';
+    }
+
+    $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+    $niche   = isset($_GET['niche']) ? (array) $_GET['niche'] : [];
+    $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
+    $platform = isset($_GET['platform']) ? (array) $_GET['platform'] : [];
+    $followers = isset($_GET['followers']) ? (array) $_GET['followers'] : [];
+    $filter  = isset($_GET['filter']) ? (array) $_GET['filter'] : [];
+
+    if (empty($brief) && empty($niche) && empty($country) && empty($platform) && empty($followers)) {
+        return '';
+    }
+
+    $fields = get_query_var('influencer_search_fields');
+    if (! is_array($fields)) {
+        $fields = [];
+    }
+
+    $parts = [];
+
+    if (! empty($niche)) {
+        $niche_names = [];
+        $niche_opts  = $fields['niche'] ?? [];
+        foreach ($niche as $slug) {
+            $niche_names[] = isset($niche_opts[$slug]) ? $niche_opts[$slug] : ucfirst($slug);
+        }
+        $parts[] = implode(', ', $niche_names);
+    }
+
+    if (! empty($country)) {
+        $country_names = [];
+        $country_opts  = $fields['country'] ?? [];
+        foreach ($country as $code) {
+            $name = $country_opts[$code] ?? $country_opts[strtolower($code)] ?? $country_opts[strtoupper($code)] ?? strtoupper($code);
+            $country_names[] = $name;
+        }
+        $parts[] = implode(', ', $country_names);
+    }
+
+    if (! empty($platform)) {
+        $platform_names = [];
+        $platform_opts  = $fields['platform'] ?? [];
+        foreach ($platform as $slug) {
+            $platform_names[] = isset($platform_opts[$slug]) ? $platform_opts[$slug] : ucfirst($slug);
+        }
+        $parts[] = implode(', ', $platform_names);
+    }
+
+    if (! empty($followers) && ! empty($followers[0])) {
+        $followers_opts = $fields['followers'] ?? [
+            '1000-10000' => '1K - 10K',
+            '10000-50000' => '10K - 50K',
+            '50000-250000' => '50K - 250K',
+            '250000-1000000' => '250K - 1M',
+            '1000000-10000000' => '1M-10M',
+            '10000000+' => '10M+',
+        ];
+        $key = $followers[0];
+        $parts[] = isset($followers_opts[$key]) ? $followers_opts[$key] : $key;
+    }
+
+    $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
+    $verified_only        = in_array('Include only verified influencers', $filter, true);
+
+    ob_start();
+?>
+<div class="influencer-search-summary" style="margin-bottom:1.5em;padding:1em 0;border-bottom:1px solid #eee;">
+    <?php if (! empty($brief)) : ?>
+        <p class="search-summary-brief" style="margin:0 0 0.5em 0;color:#555;">
+            <strong>Your brief:</strong> <?= esc_html(wp_trim_words($brief, 25)) ?>
+        </p>
+    <?php endif; ?>
+    <?php if (! empty($parts)) : ?>
+        <p class="search-summary-filters" style="margin:0 0 0.5em 0;color:#555;">
+            <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
+        </p>
+    <?php endif; ?>
+    <?php if ($prioritise_engagement || $verified_only) : ?>
+        <p class="search-summary-notes" style="margin:0;font-size:0.9em;color:#666;">
+            <?php if ($prioritise_engagement) : ?>
+                <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
+            <?php endif; ?>
+            <?php if ($verified_only) : ?>
+                <span>Include only verified influencers</span>
+            <?php endif; ?>
+        </p>
+    <?php endif; ?>
+</div>
+<?php
+    return ob_get_clean();
+}
+add_shortcode('influencer_search_summary', 'shortcode_influencer_search_summary');
 
 function shortcode_influencer_last_updated()
 {

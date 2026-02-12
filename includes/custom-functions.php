@@ -1,6 +1,28 @@
 <?php
 function my_custom_variable_setup()
 {
+    // Parse brief and merge into $_GET when on search results page with search-brief
+    $influencer_search_page_id = 1949;
+    if ((is_page($influencer_search_page_id) || (int) get_queried_object_id() === $influencer_search_page_id)
+        && !empty($_GET['search-brief'])
+        && function_exists('parse_search_brief')
+        && function_exists('merge_brief_with_explicit_filters')) {
+        $explicit = [
+            'niche'     => isset($_GET['niche']) ? (array) $_GET['niche'] : [],
+            'country'   => isset($_GET['country']) ? (array) $_GET['country'] : [],
+            'platform'  => isset($_GET['platform']) ? (array) $_GET['platform'] : [],
+            'followers' => isset($_GET['followers']) ? (array) $_GET['followers'] : [],
+            'filter'    => isset($_GET['filter']) ? (array) $_GET['filter'] : [],
+        ];
+        $parsed = parse_search_brief(sanitize_textarea_field($_GET['search-brief']));
+        $merged = merge_brief_with_explicit_filters($parsed, $explicit);
+        $_GET['niche']     = $merged['niche'];
+        $_GET['country']   = $merged['country'];
+        $_GET['platform']  = $merged['platform'];
+        $_GET['followers'] = $merged['followers'];
+        $_GET['filter']    = $merged['filter'];
+    }
+
     $niche = get_terms(array(
         'taxonomy'   => 'niche',
         'hide_empty' => false,
