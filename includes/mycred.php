@@ -1,4 +1,5 @@
-<?php/**
+<?php
+/**
  * Prevent myCred Duplicate Points for PMPro (Debounce)
  * * Checks if a user has received points for a specific reference 
  * within the last X seconds to prevent double-firing hooks.
