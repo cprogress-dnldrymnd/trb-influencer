@@ -57,7 +57,7 @@ function dd_restrict_dashboard_template_access()
         if (is_page_template('templates/page-dashboard.php')) {
 
             // Execute the redirect to the home URL.
-            wp_redirect(home_url());
+            wp_redirect(get_the_permalink(4144));
 
             // Always exit after a redirect to stop further script execution.
             exit;
