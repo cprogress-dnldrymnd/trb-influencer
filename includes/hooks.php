@@ -1,4 +1,16 @@
 <?php
+
+/**
+ * Injects dynamic CSS into the site header based on ACF field values.
+ *
+ * This function retrieves specific color settings from Advanced Custom Fields
+ * (header_text_colour and header_accent_colour) and outputs an inline style block
+ * if they are present.
+ * * Note: The CSS selectors use class chaining (e.g., .header.header...) to artificially 
+ * boost specificity and override default Elementor or theme styles without using !important.
+ *
+ * @return void
+ */
 function action_wp_head()
 {
     $header_text_colour = get_field('header_text_colour');
