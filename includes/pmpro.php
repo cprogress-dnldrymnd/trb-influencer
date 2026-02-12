@@ -27,13 +27,8 @@ function get_pmpro_membership_level_shortcode() {
     return 'No Active Membership';
 }
 
-<?php
 /**
- * Plugin Name: PMPro - Enforce Single Membership Globally
  * Description: Automatically cancels all other active membership levels when a user obtains a new level, regardless of group association.
- * Version: 1.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
  */
 
 if ( ! function_exists( 'dd_pmpro_enforce_single_membership_global' ) ) {
