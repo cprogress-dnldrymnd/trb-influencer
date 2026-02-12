@@ -58,32 +58,6 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     border-radius: 50%;
     object-fit: cover; }
 
-/* Match score tooltip - hidden until hover */
-.influencer-match-score-wrap {
-  position: relative;
-  cursor: help;
-  display: inline-block; }
-  .influencer-match-score-wrap .influencer-match-score-tooltip {
-    display: none;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-6px);
-    background: #333;
-    color: #fff;
-    font-size: 12px;
-    line-height: 1.4;
-    padding: 8px 12px;
-    border-radius: 6px;
-    max-width: 280px;
-    white-space: pre-line;
-    pointer-events: none;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    margin-bottom: 6px; }
-  .influencer-match-score-wrap:hover .influencer-match-score-tooltip {
-    display: block; }
-
 .influencer-loop-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -458,7 +432,8 @@ input:checked + .slider:before {
   font-weight: var(--e-global-typography-7d2bc59-font-weight);
   line-height: var(--e-global-typography-7d2bc59-line-height);
   width: 100%;
-  padding: 16px !important; }
+  padding: 16px !important;
+  color: var(--e-global-color-text); }
 .influencer-search-main .filter-widget {
   position: relative;
   padding-top: 27px; }
