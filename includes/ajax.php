@@ -107,6 +107,9 @@ function my_custom_loop_filter_handler()
         if ( is_user_logged_in() ) {
             $current_user_id = get_current_user_id();
             $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
+            if(empty($current_count)) {
+                $current_count = 0;
+            }
             update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
         }
 
