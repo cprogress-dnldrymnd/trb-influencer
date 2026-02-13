@@ -1,6 +1,30 @@
 <?php
 
 /**
+ * Set Global Membership Level Variable
+ *
+ * Hooks into WordPress initialization to define the global variable
+ * once all plugins and user data are fully loaded.
+ *
+ * @global mixed $current_membership_level Holds the result of the PMPro shortcode function.
+ * * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ */
+function dd_set_global_pmpro_variable()
+{
+    global $current_membership_level;
+
+    // Verify the function exists to prevent fatal errors if PMPro is inactive
+    if (function_exists('get_pmpro_membership_level_shortcode')) {
+        $current_membership_level = get_pmpro_membership_level_shortcode();
+    } else {
+        // Handle cases where the function is unavailable
+        $current_membership_level = false;
+    }
+}
+// 'init' is usually early enough for most logic, but late enough for plugins to be loaded.
+add_action('init', 'dd_set_global_pmpro_variable');
+/**
  * Injects dynamic CSS into the site header based on ACF field values.
  *
  * This function retrieves specific color settings from Advanced Custom Fields
@@ -11,11 +35,13 @@
  *
  * @return void
  */
+
+
 function action_wp_head()
 {
+    global $current_membership_level;
     $header_text_colour = get_field('header_text_colour');
     $header_accent_colour = get_field('header_accent_colour');
-    $current_membership_level = get_pmpro_membership_level_shortcode();
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
     } else {
