@@ -853,7 +853,7 @@ function custom_avatar_dropdown_shortcode($atts)
     // 5. Build the HTML Output
     // We include a tiny inline SVG for the chevron arrow
     $output = "
-    <div class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
+    <div $avatar_id class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
         <div class='cad-trigger'>
             <div class='cad-avatar-wrapper'><img src='{$avatar_url}' alt='User Avatar' class='cad-avatar'></div>
             <span class='cad-arrow'>
