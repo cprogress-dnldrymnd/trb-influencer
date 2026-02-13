@@ -15,6 +15,7 @@ function action_wp_head()
 {
     $header_text_colour = get_field('header_text_colour');
     $header_accent_colour = get_field('header_accent_colour');
+    $current_membership_level = get_pmpro_membership_level_shortcode();
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
     } else {
@@ -36,6 +37,9 @@ function action_wp_head()
         echo "#results-col{ --width: 100% !important; }";
     } else {
         echo "#match-score{  display: none;  !important;  }";
+    }
+    if ($current_membership_level == 'Free Trial') {
+        echo ".hide-on-free-trial{ display: none; }";
     }
     echo '</style>';
 }
