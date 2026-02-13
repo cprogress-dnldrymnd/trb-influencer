@@ -673,4 +673,7 @@ input:checked + .slider:before {
     .dashboard-content-inner {
       padding: 20px 10px; } }
 
+.pmpro_btn {
+  color: var(--e-global-color-2ba2932); }
+
 /*# sourceMappingURL=style.css.map */
