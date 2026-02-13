@@ -675,6 +675,8 @@ input:checked + .slider:before {
 
 .pmpro_btn.pmpro_btn.pmpro_btn {
   color: var(--e-global-color-2ba2932); }
+  .pmpro_btn.pmpro_btn.pmpro_btn:hover {
+    background-color: var(--e-global-color-accent); }
 
 #pmpro_levels .pmpro_section_content {
   --pmpro--base--spacing--large: 20px;
