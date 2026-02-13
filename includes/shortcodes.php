@@ -1100,3 +1100,9 @@ function test()
     return ob_get_clean();
 }
 add_shortcode('test', 'test');
+
+function number_of_searches() {
+    return get_user_meta(get_current_user_id(), 'number_of_searches', true);
+}
+
+add_shortcode('number_of_searches', 'number_of_searches');
