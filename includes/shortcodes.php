@@ -715,9 +715,11 @@ function breadcrumbs()
 ?>
     <nav class="breadcrumbs breadcrumbs-<?= $type ?>" aria-label="Breadcrumbs">
         <ul>
-            <?php if ($type == 'dashboard') { ?>
+            <?php if (is_page_template('templates/page-dashboard.php')) { ?>
                 <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
-            <?php } else if ($type == 'search') { ?>
+            <?php } ?>
+
+            <?php if (get_the_ID() == $search || get_the_ID() == $search_result || (is_single() && get_post_type() == 'influencer')) { ?>
                 <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
                 <?php if (get_the_ID() == $search) { ?>
                     <li><span>Search</span></li>
