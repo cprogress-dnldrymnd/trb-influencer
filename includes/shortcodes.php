@@ -831,9 +831,8 @@ function custom_avatar_dropdown_shortcode($atts)
     );
 
     // 3. Get User Info
-    $avatar = get_avatar(get_current_user_id(), 150);
     $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
-                    $meta = get_user_meta(get_current_user_id());
+    $avatar = get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail');
     // 4. Build the Page Links
     $menu_items = '';
     if (!empty($atts['ids'])) {
