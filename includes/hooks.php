@@ -109,3 +109,57 @@ function dd_restrict_dashboard_template_access()
     }
 }
 add_action('template_redirect', 'dd_restrict_dashboard_template_access');
+
+
+/**
+ * Updates the 'number_of_searches' user meta when specific page and parameter conditions are met.
+ *
+ * This function hooks into 'template_redirect' to ensure the global $post object is available
+ * for the is_page() check. It now includes a cookie check to prevent the counter from 
+ * incrementing on page refresh (F5).
+ *
+ * @author Digitally Disruptive - Donald Raymundo
+ * @uri    https://digitallydisruptive.co.uk/
+ *
+ * @return void
+ */
+function dd_update_searcher_count_on_trigger()
+{
+    // 1. Verify we are on the specific Page ID (1949).
+    if (! is_page(1949)) {
+        return;
+    }
+
+    // 2. Check if the 'search_active' parameter exists and equals 'true'.
+    if (! isset($_GET['search_active']) || $_GET['search_active'] !== 'true') {
+        return;
+    }
+
+    // 3. Ensure the user is logged in.
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+
+        // Define a unique cookie name for this specific user action.
+        // We append the user ID to ensure it doesn't conflict on shared devices, 
+        // though standard cookies are browser-specific anyway.
+        $cookie_name = 'dd_search_counted_' . $user_id;
+
+        // 4. Check if the cookie is already set. 
+        // If it is, the user likely refreshed the page recently; abort the update.
+        if (isset($_COOKIE[$cookie_name])) {
+            return;
+        }
+
+        // 5. Retrieve current count using the updated meta key 'number_of_searches'.
+        $meta_key = 'number_of_searches';
+        $current_count = (int) get_user_meta($user_id, $meta_key, true);
+
+        // 6. Increment and update the meta field.
+        update_user_meta($user_id, $meta_key, $current_count + 1);
+
+        // 7. Set a temporary cookie to prevent immediate re-counting on refresh.
+        // This cookie expires in 10 seconds.
+        setcookie($cookie_name, '1', time() + 10, COOKIEPATH, COOKIE_DOMAIN);
+    }
+}
+add_action('template_redirect', 'dd_update_searcher_count_on_trigger');
