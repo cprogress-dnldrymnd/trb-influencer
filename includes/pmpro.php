@@ -76,3 +76,21 @@ if ( ! function_exists( 'dd_pmpro_enforce_single_membership_global' ) ) {
 	// Priority 10 is standard; this ensures it runs during the checkout/assignment flow.
 	add_action( 'pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10, 3 );
 }
+
+/**
+ * Update the PMPro Checkout Button text.
+ * * @param string $text The current button text.
+ * @return string The modified button text.
+ */
+function dd_pmpro_custom_checkout_button_text( $text ) {
+    // Define your new button text here
+    $new_text = 'Submit';
+
+    // Optional: You can add logic here to change text based on the membership level
+    // if ( isset( $_REQUEST['level'] ) && $_REQUEST['level'] == '1' ) {
+    //     $new_text = 'Join Free Now';
+    // }
+
+    return esc_html( $new_text );
+}
+add_filter( 'pmpro_checkout_button_text', 'dd_pmpro_custom_checkout_button_text' );
