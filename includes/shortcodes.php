@@ -1112,3 +1112,543 @@ function number_of_searches()
 }
 
 add_shortcode('number_of_searches', 'number_of_searches');
+
+
+function roi_calculator()
+{
+    ob_start();
+?>
+    <div class="ic-calc" id="ic-calc">
+        <div class="ic-calc__grid">
+            <div class="ic-calc__controls">
+                <h3>Campaign inputs</h3>
+
+                <label>
+                    Budget (USD)
+                    <input type="number" id="budget" value="1000" min="0" step="100">
+                </label>
+
+                <label>
+                    Avg. followers per influencer
+                    <input type="number" id="followers" value="1000" min="0" step="100">
+                </label>
+
+                <label>
+                    Tier
+                    <select id="tier">
+                        <option value="nano" selected>Nano</option>
+                        <option value="micro">Micro</option>
+                        <option value="macro">Macro</option>
+                    </select>
+                </label>
+
+                <div class="ic-calc__row">
+                    <label>
+                        Stories / influencer
+                        <input type="number" id="stories" value="0" min="0" step="1">
+                    </label>
+                    <label>
+                        Posts / influencer
+                        <input type="number" id="posts" value="1" min="0" step="1">
+                    </label>
+                    <label>
+                        Videos / influencer
+                        <input type="number" id="videos" value="1" min="0" step="1">
+                    </label>
+                </div>
+
+                <div class="ic-calc__guardrail" id="guardrail" aria-live="polite"></div>
+
+                <hr>
+
+                <h3>True ROI assumptions (optional)</h3>
+                <p style="margin:0 0 10px;">Use this to estimate ROI from conversions. If you leave these blank, we will still show CPM and CPE.</p>
+
+                <div class="ic-calc__row">
+                    <label>
+                        Click-through rate (CTR %)
+                        <input type="number" id="ctr" value="0.8" min="0" step="0.1">
+                    </label>
+                    <label>
+                        Conversion rate (%)
+                        <input type="number" id="cvr" value="2" min="0" step="0.1">
+                    </label>
+                    <label>
+                        Avg order value (AOV)
+                        <input type="number" id="aov" value="60" min="0" step="1">
+                    </label>
+                </div>
+
+                <div class="ic-calc__row">
+                    <label>
+                        Gross margin (%)
+                        <input type="number" id="margin" value="60" min="0" max="100" step="1">
+                    </label>
+                    <label>
+                        LTV multiplier (optional)
+                        <input type="number" id="ltvMult" value="1" min="0" step="0.1">
+                    </label>
+                </div>
+            </div>
+
+            <div class="ic-calc__results">
+                <h3>Estimated results</h3>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Estimated reach</div>
+                    <div class="ic-calc__metricValue" id="reachOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Number of influencers</div>
+                    <div class="ic-calc__metricValue" id="infOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Engagement</div>
+                    <div class="ic-calc__metricValue" id="engOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Impressions</div>
+                    <div class="ic-calc__metricValue" id="impOut">-</div>
+                </div>
+
+                <hr>
+
+                <h3>Efficiency + ROI view</h3>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">CPM (cost per 1,000 impressions)</div>
+                    <div class="ic-calc__metricValue" id="cpmOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">CPE (cost per engagement)</div>
+                    <div class="ic-calc__metricValue" id="cpeOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Estimated clicks</div>
+                    <div class="ic-calc__metricValue" id="clicksOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Estimated conversions</div>
+                    <div class="ic-calc__metricValue" id="convOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">Estimated gross profit</div>
+                    <div class="ic-calc__metricValue" id="profitOut">-</div>
+                </div>
+
+                <div class="ic-calc__metric">
+                    <div class="ic-calc__metricLabel">ROI (profit vs budget)</div>
+                    <div class="ic-calc__metricValue" id="roiOut">-</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Minimal structure only (you can re-style later) */
+        .ic-calc {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        .ic-calc__grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .ic-calc__controls,
+        .ic-calc__results {
+            border: 1px solid #e6e6e6;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .ic-calc label {
+            display: block;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .ic-calc input,
+        .ic-calc select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .ic-calc__row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .ic-calc__metric {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .ic-calc__metric:last-child {
+            border-bottom: none;
+        }
+
+        .ic-calc__metricLabel {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .ic-calc__metricValue {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .ic-calc__guardrail {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #8a3b3b;
+        }
+
+        @media (max-width: 900px) {
+            .ic-calc__grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ic-calc__row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        (function() {
+            // Tier configuration: adjust these to match your chosen model.
+            // Notes:
+            // - Nano values here match the earlier examples you shared (post-only + post+video) reasonably well.
+            // - Macro values are based on the later screenshots you provided (55k followers macro scenarios).
+            // - Micro values are placeholders; you can tune them using the same method we used for nano/macro.
+            const TIER_CONFIG = {
+                nano: {
+                    costs: {
+                        story: {
+                            min: 25,
+                            max: 60
+                        },
+                        post: {
+                            min: 85,
+                            max: 130
+                        },
+                        video: {
+                            min: 115,
+                            max: 203
+                        }
+                    },
+                    mults: {
+                        story: {
+                            min: 0.20,
+                            max: 0.35
+                        },
+                        post: {
+                            min: 1.00,
+                            max: 1.25
+                        },
+                        video: {
+                            min: 1.1333,
+                            max: 1.15
+                        }
+                    }
+                },
+                micro: {
+                    costs: {
+                        story: {
+                            min: 80,
+                            max: 160
+                        },
+                        post: {
+                            min: 250,
+                            max: 450
+                        },
+                        video: {
+                            min: 400,
+                            max: 700
+                        }
+                    },
+                    mults: {
+                        story: {
+                            min: 0.18,
+                            max: 0.30
+                        },
+                        post: {
+                            min: 0.95,
+                            max: 1.20
+                        },
+                        video: {
+                            min: 0.85,
+                            max: 1.05
+                        }
+                    }
+                },
+                macro: {
+                    costs: {
+                        story: {
+                            min: 1000,
+                            max: 2000
+                        },
+                        post: {
+                            min: 4000,
+                            max: 6000
+                        },
+                        video: {
+                            min: 6000,
+                            max: 9000
+                        }
+                    },
+                    mults: {
+                        story: {
+                            min: 0.15,
+                            max: 0.25
+                        },
+                        post: {
+                            min: 0.95,
+                            max: 1.30
+                        },
+                        video: {
+                            min: 0.55,
+                            max: 0.65
+                        }
+                    }
+                }
+            };
+
+            // Global constants confirmed by your screenshots
+            const ER_MIN = 0.08;
+            const ER_MAX = 0.10;
+            const REACH_MIN_MULT = 0.5;
+            const REACH_MAX_MULT = 6;
+
+            const el = (id) => document.getElementById(id);
+
+            const inputs = {
+                budget: el("budget"),
+                followers: el("followers"),
+                tier: el("tier"),
+                stories: el("stories"),
+                posts: el("posts"),
+                videos: el("videos"),
+                ctr: el("ctr"),
+                cvr: el("cvr"),
+                aov: el("aov"),
+                margin: el("margin"),
+                ltvMult: el("ltvMult")
+            };
+
+            const outputs = {
+                guardrail: el("guardrail"),
+                reachOut: el("reachOut"),
+                infOut: el("infOut"),
+                engOut: el("engOut"),
+                impOut: el("impOut"),
+                cpmOut: el("cpmOut"),
+                cpeOut: el("cpeOut"),
+                clicksOut: el("clicksOut"),
+                convOut: el("convOut"),
+                profitOut: el("profitOut"),
+                roiOut: el("roiOut")
+            };
+
+            function toNum(v) {
+                const n = Number(v);
+                return Number.isFinite(n) ? n : 0;
+            }
+
+            function clampInt(n, min, max) {
+                n = Math.floor(n);
+                if (!Number.isFinite(n)) return min;
+                return Math.max(min, Math.min(max, n));
+            }
+
+            function formatCompact(n) {
+                if (!Number.isFinite(n)) return "-";
+                const abs = Math.abs(n);
+                if (abs >= 1e6) return (n / 1e6).toFixed(abs >= 1e7 ? 1 : 2).replace(/\.0+$/, "") + "M";
+                if (abs >= 1e3) return (n / 1e3).toFixed(abs >= 1e5 ? 1 : 1).replace(/\.0+$/, "") + "K";
+                return String(Math.round(n));
+            }
+
+            function formatMoney(n) {
+                if (!Number.isFinite(n)) return "-";
+                return "$" + Math.round(n).toLocaleString("en-US");
+            }
+
+            function formatRange(min, max, formatter) {
+                if (min === null || max === null) return "-";
+                if (!Number.isFinite(min) || !Number.isFinite(max)) return "-";
+                if (max < min)[min, max] = [max, min];
+                if (Math.round(min) === Math.round(max)) return formatter(min);
+                return formatter(min) + " - " + formatter(max);
+            }
+
+            function safeDiv(a, b) {
+                if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return null;
+                return a / b;
+            }
+
+            function calc() {
+                const budget = Math.max(0, toNum(inputs.budget.value));
+                const followers = Math.max(0, toNum(inputs.followers.value));
+
+                const stories = clampInt(toNum(inputs.stories.value), 0, 999);
+                const posts = clampInt(toNum(inputs.posts.value), 0, 999);
+                const videos = clampInt(toNum(inputs.videos.value), 0, 999);
+
+                const tierKey = inputs.tier.value;
+                const cfg = TIER_CONFIG[tierKey];
+
+                // Guardrail: must have at least 1 deliverable
+                if ((stories + posts + videos) === 0) {
+                    outputs.guardrail.textContent = "Add at least 1 deliverable (story, post, or video) to estimate results.";
+                    setAllOutputsToDash();
+                    return;
+                }
+
+                // Cost per influencer (min/max)
+                const costMin =
+                    (stories * cfg.costs.story.min) +
+                    (posts * cfg.costs.post.min) +
+                    (videos * cfg.costs.video.min);
+
+                const costMax =
+                    (stories * cfg.costs.story.max) +
+                    (posts * cfg.costs.post.max) +
+                    (videos * cfg.costs.video.max);
+
+                // Influencer count range via floor(budget / cost band)
+                let infMin = Math.floor(budget / costMax);
+                let infMax = Math.floor(budget / costMin);
+
+                // Guardrail: budget too low
+                if (infMax <= 0) {
+                    outputs.guardrail.textContent = "Budget is too low for this tier and content mix. Reduce deliverables, lower the tier, or increase budget.";
+                    setAllOutputsToDash();
+                    return;
+                }
+
+                // UX guardrail: avoid 0 min influencers when max is > 0
+                if (infMin <= 0) infMin = 1;
+
+                // Keep sane bounds
+                infMin = clampInt(infMin, 1, 9999);
+                infMax = clampInt(infMax, infMin, 9999);
+
+                // Impression multipliers (min/max)
+                const multMin =
+                    (stories * cfg.mults.story.min) +
+                    (posts * cfg.mults.post.min) +
+                    (videos * cfg.mults.video.min);
+
+                const multMax =
+                    (stories * cfg.mults.story.max) +
+                    (posts * cfg.mults.post.max) +
+                    (videos * cfg.mults.video.max);
+
+                const impressionsMin = infMin * followers * multMin;
+                const impressionsMax = infMax * followers * multMax;
+
+                // Engagement (crossed)
+                const engagementMin = impressionsMin * ER_MAX;
+                const engagementMax = impressionsMax * ER_MIN;
+
+                // Reach derived from impressions
+                const reachMin = impressionsMin * REACH_MIN_MULT;
+                const reachMax = impressionsMax * REACH_MAX_MULT;
+
+                // Output (top section)
+                outputs.guardrail.textContent = "";
+                outputs.infOut.textContent = formatRange(infMin, infMax, (n) => String(Math.round(n)));
+                outputs.impOut.textContent = formatRange(impressionsMin, impressionsMax, formatCompact);
+                outputs.engOut.textContent = formatRange(engagementMin, engagementMax, formatCompact);
+                outputs.reachOut.textContent = formatRange(reachMin, reachMax, formatCompact);
+
+                // Efficiency metrics
+                const cpmMin = safeDiv(budget, impressionsMax) !== null ? (budget / impressionsMax) * 1000 : null; // best-case CPM
+                const cpmMax = safeDiv(budget, impressionsMin) !== null ? (budget / impressionsMin) * 1000 : null; // worst-case CPM
+                outputs.cpmOut.textContent = (cpmMin === null || cpmMax === null) ?
+                    "-" :
+                    formatRange(cpmMin, cpmMax, (n) => formatMoney(n));
+
+                const cpeMin = safeDiv(budget, engagementMax) !== null ? (budget / engagementMax) : null; // best-case CPE
+                const cpeMax = safeDiv(budget, engagementMin) !== null ? (budget / engagementMin) : null; // worst-case CPE
+                outputs.cpeOut.textContent = (cpeMin === null || cpeMax === null) ?
+                    "-" :
+                    formatRange(cpeMin, cpeMax, (n) => formatMoney(n));
+
+                // True ROI view (optional assumptions)
+                const ctr = Math.max(0, toNum(inputs.ctr.value)) / 100;
+                const cvr = Math.max(0, toNum(inputs.cvr.value)) / 100;
+                const aov = Math.max(0, toNum(inputs.aov.value));
+                const margin = Math.max(0, Math.min(100, toNum(inputs.margin.value))) / 100;
+                const ltvMult = Math.max(0, toNum(inputs.ltvMult.value));
+
+                // clicks from impressions (range)
+                const clicksMin = impressionsMin * ctr;
+                const clicksMax = impressionsMax * ctr;
+
+                // conversions (range)
+                const convMin = clicksMin * cvr;
+                const convMax = clicksMax * cvr;
+
+                // revenue (range) with optional LTV multiplier
+                const revenueMin = convMin * aov * ltvMult;
+                const revenueMax = convMax * aov * ltvMult;
+
+                // gross profit (range)
+                const profitMin = revenueMin * margin;
+                const profitMax = revenueMax * margin;
+
+                // ROI (profit vs budget) expressed as %
+                const roiMin = safeDiv((profitMin - budget), budget);
+                const roiMax = safeDiv((profitMax - budget), budget);
+
+                outputs.clicksOut.textContent = formatRange(clicksMin, clicksMax, formatCompact);
+                outputs.convOut.textContent = formatRange(convMin, convMax, formatCompact);
+                outputs.profitOut.textContent = formatRange(profitMin, profitMax, formatMoney);
+
+                outputs.roiOut.textContent = (roiMin === null || roiMax === null) ?
+                    "-" :
+                    formatRange(roiMin * 100, roiMax * 100, (n) => (Math.round(n) + "%"));
+            }
+
+            function setAllOutputsToDash() {
+                outputs.reachOut.textContent = "-";
+                outputs.infOut.textContent = "-";
+                outputs.engOut.textContent = "-";
+                outputs.impOut.textContent = "-";
+                outputs.cpmOut.textContent = "-";
+                outputs.cpeOut.textContent = "-";
+                outputs.clicksOut.textContent = "-";
+                outputs.convOut.textContent = "-";
+                outputs.profitOut.textContent = "-";
+                outputs.roiOut.textContent = "-";
+            }
+
+            Object.values(inputs).forEach((node) => {
+                node.addEventListener("input", calc);
+                node.addEventListener("change", calc);
+            });
+
+            calc();
+        })();
+    </script>
+
+<?php
+    return ob_get_clean();
+}
+add_shortcode('roi_calculator', 'roi_calculator');
