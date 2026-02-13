@@ -206,12 +206,3 @@ function get_pmpro_file_field_url(int $user_id, string $field_key)
 
     return false;
 }
-
-// --- Usage Example ---
-
-$current_user_id = get_current_user_id();
-$file_url = get_pmpro_file_field_url($current_user_id, 'my_custom_file_key');
-
-if ($file_url) {
-    echo '<a href="' . esc_url($file_url) . '">Download File</a>';
-}
