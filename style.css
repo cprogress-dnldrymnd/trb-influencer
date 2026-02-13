@@ -663,5 +663,14 @@ input:checked + .slider:before {
 
 .dashboard-content-inner {
   padding: 10px 50px; }
+  @media (max-width: 1024px) {
+    .dashboard-content-inner {
+      padding: 10px 30px; } }
+  @media (max-width: 767px) {
+    .dashboard-content-inner {
+      padding: 10px 20px; } }
+  @media (max-width: 767px) {
+    .dashboard-content-inner {
+      padding: 10px 10px; } }
 
 /*# sourceMappingURL=style.css.map */

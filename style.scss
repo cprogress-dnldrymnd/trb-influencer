@@ -498,7 +498,6 @@ input:checked + .slider:before {
                 width: var(--icon-size);
                 height: var(--icon-size);
                 flex: 0 0 var(--icon-size);
-             
             }
             &:not(:last-child) {
                 opacity: 0.5;
@@ -848,7 +847,15 @@ input:checked + .slider:before {
     }
 }
 
-
 .dashboard-content-inner {
     padding: 10px 50px;
+    @media (max-width: 1024px) {
+        padding: 10px 30px;
+    }
+    @media (max-width: 767px) {
+        padding: 10px 20px;
+    }
+    @media (max-width: 767px) {
+        padding: 10px 10px;
+    }
 }
