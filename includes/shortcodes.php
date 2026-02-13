@@ -833,7 +833,7 @@ function custom_avatar_dropdown_shortcode($atts)
     // 3. Get User Info
     $current_user = wp_get_current_user();
     $avatar_id = get_user_meta($current_user, 'user_avatar', 'true');
-    $avatar_url = wp_get_attachment_image_url( $avatar_id, 'thumbnail' );
+    $avatar_url = get_avatar( $current_user, 'thumbnail');
     $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
 
     // 4. Build the Page Links
