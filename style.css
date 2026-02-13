@@ -642,5 +642,7 @@ input:checked + .slider:before {
     color: #fff; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
     color: #fff; }
+  .influencer-search-summary.influencer-search-summary .search-summary-filters {
+    color: #fff; }
 
 /*# sourceMappingURL=style.css.map */
