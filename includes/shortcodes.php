@@ -831,8 +831,9 @@ function custom_avatar_dropdown_shortcode($atts)
     );
 
     // 3. Get User Info
-    $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
     $avatar = get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail');
+    $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
+
     // 4. Build the Page Links
     $menu_items = '';
     if (!empty($atts['ids'])) {
@@ -850,9 +851,9 @@ function custom_avatar_dropdown_shortcode($atts)
     // 5. Build the HTML Output
     // We include a tiny inline SVG for the chevron arrow
     $output = "
-    <div  class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
+    <div $avatar_id class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
         <div class='cad-trigger'>
-            <div class='cad-avatar-wrapper'>$avatar</div>
+            <div class='cad-avatar-wrapper'><img src='{$avatar}' alt='User Avatar' class='cad-avatar'></div>
             <span class='cad-arrow'>
                 <svg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 1L5 5L9 1' stroke='#333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>
             </span>
