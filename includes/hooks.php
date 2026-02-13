@@ -34,6 +34,8 @@ function action_wp_head()
     if ($search_type == 'fullbrief') {
         echo "#filter-col{ display: none; }";
         echo "#results-col{ --width: 100% !important; }";
+    } else {
+        echo "#match-score{  display: none;  !important;  }";
     }
     echo '</style>';
 }
