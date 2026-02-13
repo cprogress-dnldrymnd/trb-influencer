@@ -871,7 +871,7 @@ input:checked + .slider:before {
     }
 }
 
-.pmpro_btn.pmpro_btn.pmpro_btn {
+.pmpro_btn.pmpro_btn.pmpro_btn:not(.pmpro_btn-cancel) {
     color: var(--e-global-color-2ba2932);
     border: none !important;
 }
@@ -886,4 +886,3 @@ input:checked + .slider:before {
         }
     }
 }
-
