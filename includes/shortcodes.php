@@ -464,7 +464,7 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
-    global $is_free_trial;
+    global $is_free_trial, $number_of_searches;
 
     // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
     $raw_fields = get_query_var('influencer_search_fields');
@@ -484,44 +484,49 @@ function shortcode_influencer_search_filter_main()
     }
 
 ?>
-    <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
-        <div class="influencer-search-filter-holder">
-            <input type="hidden" value="true" name="search_active">
-            <div class="influencer-search-item influencer-search-item-field filtered-search <?= $fullbrieft_search_class ?>">
-                <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
-            </div>
-
-            <div class="influencer-search-item-row filtered-search <?= $filtered_search_class ?>">
-                <div class="influencer-search-item">
-                    <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
-                </div>
-                <div class="influencer-search-item">
-                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
-                </div>
-                <div class="influencer-search-item">
-                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
-                </div>
-                <div class="influencer-search-item">
-                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
-                </div>
-                <div class="influencer-search-item">
-                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                </div>
-            </div>
-            <div class="influencer-search-item checkbox-row">
-                <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
-            </div>
-            <div class="influencer-search-item">
-                <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
-                    <span class="elementor-button-content-wrapper">
-                        <span class="elementor-button-text">GENERATE MATCHES</span>
-                    </span>
-                </button>
-            </div>
-
+    <?php if ($number_of_searches >= 3 && $is_free_trial) {  ?>
+        <div class="trial-search-limit-notice">
+            <p>You have reached the maximum of 3 searches for free trial users. Please upgrade to a paid plan to continue using the influencer search.</p>
         </div>
-    </form>
+    <?php } else { ?>
+        <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
+            <div class="influencer-search-filter-holder">
+                <input type="hidden" value="true" name="search_active">
+                <div class="influencer-search-item influencer-search-item-field filtered-search <?= $fullbrieft_search_class ?>">
+                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
+                </div>
 
+                <div class="influencer-search-item-row filtered-search <?= $filtered_search_class ?>">
+                    <div class="influencer-search-item">
+                        <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                    </div>
+                </div>
+                <div class="influencer-search-item checkbox-row">
+                    <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+                </div>
+                <div class="influencer-search-item">
+                    <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
+                        <span class="elementor-button-content-wrapper">
+                            <span class="elementor-button-text">GENERATE MATCHES</span>
+                        </span>
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    <?php } ?>
 
 <?php
     return ob_get_clean();
@@ -1101,7 +1106,8 @@ function test()
 }
 add_shortcode('test', 'test');
 
-function number_of_searches() {
+function number_of_searches()
+{
     return get_user_meta(get_current_user_id(), 'number_of_searches', true);
 }
 
