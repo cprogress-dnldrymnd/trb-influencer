@@ -147,47 +147,26 @@ function dd_pmpro_force_checkout_text_observer() {
 add_action( 'wp_footer', 'dd_pmpro_force_checkout_text_observer', 99 );
 
 
-/**
- * Plugin Name: PMPro Custom Avatar Field
- * Description: Adds a custom avatar upload field to PMPro Checkout and Edit Profile pages.
- * Version: 1.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- */
-
-function dd_pmpro_add_avatar_field() {
-    // Check if PMPro is active and the PMPro_Field class exists to prevent errors.
-    if ( ! class_exists( 'PMPro_Field' ) ) {
+function my_pmpro_add_avatar_field() {
+    // Check if PMPro is active
+    if ( ! function_exists( 'pmpro_add_user_field' ) ) {
         return;
     }
 
-    /**
-     * Define the avatar field configuration.
-     * * Note: The first parameter 'basic_user_avatar' is the meta key. 
-     * We use this specific key because "Basic User Avatars" typically looks for 
-     * an attachment ID stored in this meta key to display the avatar.
-     */
+    // Define the avatar field
     $field = new PMPro_Field(
-        'basic_user_avatar', // Meta key (Aligned with Basic User Avatars plugin)
-        'file',              // Input type
+        'user_avatar', // Meta key used by some avatar plugins
+        'file',        // Field type
         array(
-            'label'        => 'Profile Picture',
-            'hint'         => 'Upload a profile picture (JPG/PNG). Recommended size: 200x200 pixels.',
-            'profile'      => true,      // Configuration for profile visibility
-            'checkout'     => true,      // Configuration for checkout visibility
-            'preview'      => true,      // Show image preview if value exists
-            'allow_delete' => true,      // Allow user to remove the image
-            'file'         => array(     // specific file handling options
-                'ext' => array( 'jpg', 'jpeg', 'png', 'gif' ),
-                'accepted_file_types' => array( 'image/jpeg', 'image/png', 'image/gif' )
-            )
+            'label' => 'Profile Picture',
+            'profile' => true,      // Show on frontend profile
+            'preview' => true,      // Show image preview
+            'allow_delete' => true, // Allow deletion
+            'hint' => 'Recommended size: 200x200 pixels.'
         )
     );
 
-    // Add the field to the 'checkout' group (Registration/Checkout Page)
-    pmpro_add_user_field( 'checkout', $field );
-
-    // Add the field to the 'profile' group (Edit Profile Page)
+    // Add to the 'profile' group
     pmpro_add_user_field( 'profile', $field );
 }
-add_action( 'init', 'dd_pmpro_add_avatar_field' );
+add_action( 'init', 'my_pmpro_add_avatar_field' );
