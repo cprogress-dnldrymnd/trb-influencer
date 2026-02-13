@@ -464,7 +464,7 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
-    global $current_membership_level;
+    global $is_free_trial;
 
     // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
     $raw_fields = get_query_var('influencer_search_fields');
@@ -475,14 +475,22 @@ function shortcode_influencer_search_filter_main()
     // 2. Safety check for the permalink
     $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
 
+    if ($is_free_trial) {
+        $filtered_search_class = 'active';
+        $fullbrieft_search_class = '';
+    } else {
+        $filtered_search_class = '';
+        $fullbrieft_search_class = 'active';
+    }
+
 ?>
     <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
-            <div class="influencer-search-item influencer-search-item-field filtered-search active">
+            <div class="influencer-search-item influencer-search-item-field filtered-search <?= $fullbrieft_search_class ?>">
                 <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
 
-            <div class="influencer-search-item-row filtered-search">
+            <div class="influencer-search-item-row filtered-search <?= $filtered_search_class ?>">
                 <div class="influencer-search-item">
                     <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                 </div>
