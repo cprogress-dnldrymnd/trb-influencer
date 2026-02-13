@@ -1030,32 +1030,3 @@ function get_niche_terms_sql($post_id = null)
 
     return '';
 }
-
-function influencer_number_of_searches($user_id)
-{
-    // 4. Generate a unique hash for the current URL parameters.
-    // We clone $_GET and sort it to ensure param order doesn't affect the hash 
-    // (e.g., ?a=1&b=2 should equal ?b=2&a=1).
-    $current_params = $_GET;
-    ksort($current_params);
-    $current_hash = md5(serialize($current_params));
-
-    // Define a cookie name unique to this user.
-    $cookie_name = 'dd_last_search_hash_' . $user_id;
-
-    // 5. Compare current hash with the stored cookie hash.
-    // If they match, the user is refreshing the exact same search -> ABORT.
-    if (isset($_COOKIE[$cookie_name]) && $_COOKIE[$cookie_name] === $current_hash) {
-        return;
-    }
-
-    // 6. If we reached here, it's a new unique search. Update the counter.
-    $meta_key = 'number_of_searches';
-    $current_count = (int) get_user_meta($user_id, $meta_key, true);
-    update_user_meta($user_id, $meta_key, $current_count + 1);
-
-    // 7. Update the cookie with the NEW hash.
-    // We set this for 24 hours (86400 seconds), meaning if they come back to 
-    // this exact search url tomorrow, it will count again. 
-    setcookie($cookie_name, $current_hash, time() + 86400, COOKIEPATH, COOKIE_DOMAIN);
-}
