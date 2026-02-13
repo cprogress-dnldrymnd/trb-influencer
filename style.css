@@ -695,4 +695,7 @@ input:checked + .slider:before {
   #pmpro_levels .pmpro_section_content > p:first-child {
     display: none; }
 
+.pmpro_btn-print.pmpro_btn-print {
+  color: var(--e-global-color-2ba2932); }
+
 /*# sourceMappingURL=style.css.map */
