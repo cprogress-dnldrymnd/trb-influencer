@@ -106,15 +106,17 @@ function my_custom_loop_filter_handler()
         // --- UPDATE: Increment User Meta on Finish ---
         if ( is_user_logged_in() ) {
             $current_user_id = get_current_user_id();
-            $current_count   = (int) get_user_meta($current_user_id, 'number_of_searches', true);
+            $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
             update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
         }
 
+        $number_of_searches = get_user_meta($current_user_id, 'number_of_searches', true);
         // --- FIX 4: Send 'max_pages' in the response ---
         wp_send_json_success(array(
             'html'        => $html_output,
             'found_posts' => $query->found_posts,
-            'max_pages'   => $query->max_num_pages // <--- CRITICAL FIX for button visibility
+            'max_pages'   => $query->max_num_pages, // <--- CRITICAL FIX for button visibility,
+            'number_of_searches' => $number_of_searches,
         ));
 
         
