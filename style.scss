@@ -873,6 +873,7 @@ input:checked + .slider:before {
 
 .pmpro_btn.pmpro_btn.pmpro_btn {
     color: var(--e-global-color-2ba2932);
+    border: none !important;
 }
 
 #pmpro_levels {
@@ -883,5 +884,13 @@ input:checked + .slider:before {
         > p:first-child {
             display: none;
         }
+    }
+}
+
+#pmpro_btn-submit {
+    font-size: 0;
+    &:before {
+        content: 'Submit';
+        font-size: 16px;
     }
 }
