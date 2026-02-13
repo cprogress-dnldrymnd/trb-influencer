@@ -3,6 +3,11 @@ add_action('wp_ajax_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 function my_custom_loop_filter_handler()
 {
+    $user_id = get_current_user_id();
+    $meta_key = 'number_of_searches';
+    $current_count = (int) get_user_meta($user_id, $meta_key, true);
+    update_user_meta($user_id, $meta_key, $current_count + 1);
+
     // 1. GATHER INPUTS
     // ... (Your existing input gathering code remains the same) ... 
 
@@ -107,10 +112,7 @@ function my_custom_loop_filter_handler()
         ob_end_clean();
         wp_send_json_error('No posts found');
     }
-    $user_id = get_current_user_id();
-    $meta_key = 'number_of_searches';
-    $current_count = (int) get_user_meta($user_id, $meta_key, true);
-    update_user_meta($user_id, $meta_key, $current_count + 1);
+
     wp_die();
 }
 
