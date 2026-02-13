@@ -595,19 +595,19 @@ function shortcode_influencer_search_summary()
 
     ob_start();
 ?>
-<div class="influencer-search-summary" style="margin-bottom:1.5em;padding:1em 0;border-bottom:1px solid #eee;">
+<div class="influencer-search-summary" >
     <?php if (! empty($brief)) : ?>
-        <p class="search-summary-brief" style="margin:0 0 0.5em 0;color:#555;">
+        <p class="search-summary-brief" >
             <strong>Your brief:</strong> <?= esc_html(wp_trim_words($brief, 25)) ?>
         </p>
     <?php endif; ?>
     <?php if (! empty($parts)) : ?>
-        <p class="search-summary-filters" style="margin:0 0 0.5em 0;color:#555;">
+        <p class="search-summary-filters" ">
             <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
         </p>
     <?php endif; ?>
     <?php if ($prioritise_engagement || $verified_only) : ?>
-        <p class="search-summary-notes" style="margin:0;font-size:0.9em;color:#666;">
+        <p class="search-summary-notes">
             <?php if ($prioritise_engagement) : ?>
                 <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
             <?php endif; ?>

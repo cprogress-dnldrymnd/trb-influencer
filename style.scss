@@ -810,3 +810,14 @@ input:checked + .slider:before {
 .legend-value {
     color: var(--e-global-color-text);
 }
+
+.influencer-search-summary.influencer-search-summary {
+    margin-bottom: 1.5em;
+    border-bottom: 1px solid #eee;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: var(--e-global-color-7355873);
+    .search-summary-brief {
+        color: #fff;
+    }
+}
