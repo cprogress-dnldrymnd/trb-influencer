@@ -76,3 +76,72 @@ if ( ! function_exists( 'dd_pmpro_enforce_single_membership_global' ) ) {
 	// Priority 10 is standard; this ensures it runs during the checkout/assignment flow.
 	add_action( 'pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10, 3 );
 }
+
+
+/**
+ * Plugin Name: PMPro Checkout Button - Force Update
+ * Description: Uses MutationObserver to forcefully rename the checkout button on the membership checkout page, overriding payment gateways.
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ * Version: 1.1.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly
+}
+
+function dd_pmpro_force_checkout_text_observer() {
+    // 1. Target the specific checkout page URL provided
+    // We check if we are on the 'membership-checkout' page.
+    if ( ! is_page( 1551 ) ) {
+        return;
+    }
+    ?>
+    <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            
+            // CONFIGURATION: Set your desired button text here
+            const newText = "Confirm Payment"; 
+            const targetButtonId = "pmpro_btn-submit";
+
+            const $btn = $('#' + targetButtonId);
+
+            if ($btn.length === 0) return;
+
+            // Function to apply the text change
+            const forceText = () => {
+                if ($btn.is('input')) {
+                    // For <input type="submit">
+                    if ($btn.val() !== newText) {
+                        $btn.val(newText);
+                    }
+                } else {
+                    // For <button> elements
+                    if ($btn.text() !== newText) {
+                        $btn.text(newText);
+                    }
+                }
+            };
+
+            // 1. Apply immediately
+            forceText();
+
+            // 2. Set up a MutationObserver to watch for changes
+            // This detects if Stripe/PayPal/Theme tries to overwrite our text
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    forceText();
+                });
+            });
+
+            // Start observing the button for attribute changes (like 'value' or 'disabled') or child list changes (text inside <button>)
+            observer.observe($btn[0], {
+                attributes: true,
+                childList: true,
+                subtree: true
+            });
+        });
+    </script>
+    <?php
+}
+add_action( 'wp_footer', 'dd_pmpro_force_checkout_text_observer', 99 );
