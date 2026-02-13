@@ -1,11 +1,14 @@
 <?php
-<?php
+/**
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ */
+
 add_action('wp_ajax_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handler');
+
 function my_custom_loop_filter_handler()
 {
-
-
     // 1. GATHER INPUTS
     // ... (Your existing input gathering code remains the same) ... 
 
@@ -98,9 +101,14 @@ function my_custom_loop_filter_handler()
         }
         wp_reset_postdata();
         
-
         $html_output = ob_get_clean();
 
+        // --- UPDATE: Increment User Meta on Finish ---
+        if ( is_user_logged_in() ) {
+            $current_user_id = get_current_user_id();
+            $current_count   = (int) get_user_meta($current_user_id, 'number_of_searchers', true);
+            update_user_meta($current_user_id, 'number_of_searchers', $current_count + 1);
+        }
 
         // --- FIX 4: Send 'max_pages' in the response ---
         wp_send_json_success(array(
