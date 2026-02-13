@@ -602,7 +602,7 @@ function shortcode_influencer_search_summary()
         </p>
     <?php endif; ?>
     <?php if (! empty($parts)) : ?>
-        <p class="search-summary-filters" ">
+        <p class="search-summary-filters" >
             <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
         </p>
     <?php endif; ?>
