@@ -15,22 +15,27 @@ function action_wp_head()
 {
     $header_text_colour = get_field('header_text_colour');
     $header_accent_colour = get_field('header_accent_colour');
-    if ($header_text_colour || $header_accent_colour) {
-?>
-        <style id="page--options">
-            <?php
-            if ($header_accent_colour) {
-                echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
-            }
-            if ($header_text_colour) {
-                echo ".header.header.header.header.header .header--text-color * { color: var($header_text_colour) }";
-                echo ".header.header.header.header.header .logo-box svg { color: var($header_text_colour) }";
-                echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
-            }
-            ?>
-        </style>
-<?php
+    if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
+        $search_type = 'fullbrief';
+    } else {
+        $search_type = 'filtered';
     }
+    echo '<style id="custom--css">';
+    if ($header_text_colour || $header_accent_colour) {
+        if ($header_accent_colour) {
+            echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
+        }
+        if ($header_text_colour) {
+            echo ".header.header.header.header.header .header--text-color * { color: var($header_text_colour) }";
+            echo ".header.header.header.header.header .logo-box svg { color: var($header_text_colour) }";
+            echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
+        }
+        if ($search_type == 'fullbrief') {
+            echo "#filter-col{ display: none; }";
+            echo "#results-col{ --width: 100% !important; }";
+        }
+    }
+    echo '</style>';
 }
 
 add_action('wp_head', 'action_wp_head');
