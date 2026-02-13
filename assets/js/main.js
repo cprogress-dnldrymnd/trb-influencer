@@ -71,7 +71,8 @@
                 followers: filter_followers,
                 filter: filter_filter,
                 search_brief: search_brief,
-                paged: current_page // <--- SEND CURRENT PAGE TO PHP
+                paged: current_page,
+                search_active: 'true'
             },
             success: function (response) {
                 if (response.success) {
