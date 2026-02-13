@@ -486,6 +486,7 @@ function shortcode_influencer_search_filter_main()
 ?>
     <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
+            <input type="hidden" value="search_active" name="search_active">
             <div class="influencer-search-item influencer-search-item-field filtered-search <?= $fullbrieft_search_class ?>">
                 <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’"></textarea>
             </div>
