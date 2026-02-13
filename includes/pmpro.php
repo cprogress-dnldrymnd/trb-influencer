@@ -101,7 +101,7 @@ function dd_pmpro_force_checkout_text_observer() {
         jQuery(document).ready(function($) {
             
             // CONFIGURATION: Set your desired button text here
-            const newText = "Confirm Payment"; 
+            const newText = "Submit"; 
             const targetButtonId = "pmpro_btn-submit";
 
             const $btn = $('#' + targetButtonId);
