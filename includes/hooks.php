@@ -12,11 +12,16 @@
  */
 function dd_set_global_pmpro_variable()
 {
-    global $current_membership_level;
+    global $current_membership_level, $is_free_trial;
 
     // Verify the function exists to prevent fatal errors if PMPro is inactive
     if (function_exists('get_pmpro_membership_level_shortcode')) {
         $current_membership_level = get_pmpro_membership_level_shortcode();
+        if ($current_membership_level === 'Free Trial') {
+            $is_free_trial = true;
+        } else {
+            $is_free_trial = false;
+        }
     } else {
         // Handle cases where the function is unavailable
         $current_membership_level = false;
@@ -39,7 +44,7 @@ add_action('init', 'dd_set_global_pmpro_variable');
 
 function action_wp_head()
 {
-    global $current_membership_level;
+    global $is_free_trial;
     $header_text_colour = get_field('header_text_colour');
     $header_accent_colour = get_field('header_accent_colour');
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
@@ -64,7 +69,7 @@ function action_wp_head()
     } else {
         echo "#match-score{  display: none;  !important;  }";
     }
-    if ($current_membership_level == 'Free Trial') {
+    if ($is_free_trial) {
         echo ".hide-on-free-trial{ display: none; }";
     }
     echo '</style>';

@@ -464,6 +464,7 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
+    global $current_membership_level;
 
     // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
     $raw_fields = get_query_var('influencer_search_fields');
@@ -595,28 +596,28 @@ function shortcode_influencer_search_summary()
 
     ob_start();
 ?>
-<div class="influencer-search-summary" >
-    <?php if (! empty($brief)) : ?>
-        <p class="search-summary-brief" >
-            <strong>Your brief:</strong> <?= esc_html(wp_trim_words($brief, 25)) ?>
-        </p>
-    <?php endif; ?>
-    <?php if (! empty($parts)) : ?>
-        <p class="search-summary-filters" >
-            <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
-        </p>
-    <?php endif; ?>
-    <?php if ($prioritise_engagement || $verified_only) : ?>
-        <p class="search-summary-notes">
-            <?php if ($prioritise_engagement) : ?>
-                <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
-            <?php endif; ?>
-            <?php if ($verified_only) : ?>
-                <span>Include only verified influencers</span>
-            <?php endif; ?>
-        </p>
-    <?php endif; ?>
-</div>
+    <div class="influencer-search-summary">
+        <?php if (! empty($brief)) : ?>
+            <p class="search-summary-brief">
+                <strong>Your brief:</strong> <?= esc_html(wp_trim_words($brief, 25)) ?>
+            </p>
+        <?php endif; ?>
+        <?php if (! empty($parts)) : ?>
+            <p class="search-summary-filters">
+                <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
+            </p>
+        <?php endif; ?>
+        <?php if ($prioritise_engagement || $verified_only) : ?>
+            <p class="search-summary-notes">
+                <?php if ($prioritise_engagement) : ?>
+                    <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
+                <?php endif; ?>
+                <?php if ($verified_only) : ?>
+                    <span>Include only verified influencers</span>
+                <?php endif; ?>
+            </p>
+        <?php endif; ?>
+    </div>
 <?php
     return ob_get_clean();
 }
