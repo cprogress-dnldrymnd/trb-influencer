@@ -645,7 +645,7 @@ input:checked + .slider:before {
   .influencer-search-summary.influencer-search-summary .search-summary-filters {
     color: #fff; }
 
-.pmpro_card .pmpro_content_message {
+.pmpro_card.pmpro_content_message {
   padding: 40px;
   max-width: 700px;
   margin-left: auto;
