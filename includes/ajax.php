@@ -97,16 +97,6 @@ function my_custom_loop_filter_handler()
         }
         wp_reset_postdata();
 
-        $html_output = ob_get_clean();
-
-
-        // --- FIX 4: Send 'max_pages' in the response ---
-        wp_send_json_success(array(
-            'html'        => $html_output,
-            'found_posts' => $query->found_posts,
-            'max_pages'   => $query->max_num_pages // <--- CRITICAL FIX for button visibility
-        ));
-
         //START: SEARCH COUNTER LOGIC
         // Only run if user is logged in
         if (is_user_logged_in()) {
@@ -145,6 +135,18 @@ function my_custom_loop_filter_handler()
                 }
             }
         }
+
+        $html_output = ob_get_clean();
+
+
+        // --- FIX 4: Send 'max_pages' in the response ---
+        wp_send_json_success(array(
+            'html'        => $html_output,
+            'found_posts' => $query->found_posts,
+            'max_pages'   => $query->max_num_pages // <--- CRITICAL FIX for button visibility
+        ));
+
+        
     } else {
         ob_end_clean();
         wp_send_json_error('No posts found');
