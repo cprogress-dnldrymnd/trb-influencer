@@ -831,9 +831,7 @@ function custom_avatar_dropdown_shortcode($atts)
     );
 
     // 3. Get User Info
-    $current_user = wp_get_current_user();
-    $avatar_id = get_user_meta($current_user->user_id, 'user_avatar', 'true');
-    $avatar_url = get_avatar( $current_user, 'thumbnail');
+    $avatar = get_avatar(get_current_user_id(), 150);
     $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
 
     // 4. Build the Page Links
@@ -855,7 +853,7 @@ function custom_avatar_dropdown_shortcode($atts)
     $output = "
     <div $avatar_id class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
         <div class='cad-trigger'>
-            <div class='cad-avatar-wrapper'><img src='{$avatar_url}' alt='User Avatar' class='cad-avatar'></div>
+            <div class='cad-avatar-wrapper'>$avatar</div>
             <span class='cad-arrow'>
                 <svg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 1L5 5L9 1' stroke='#333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>
             </span>
