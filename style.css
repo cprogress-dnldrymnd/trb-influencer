@@ -345,7 +345,18 @@ input:checked + .slider:before {
 
 .pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field input {
   font-size: 18px;
-  color: #000; }
+  background-color: var(--pmpro--color--base);
+  border: 1px solid var(--pmpro--color--border);
+  border-radius: var(--pmpro--base--border-radius);
+  box-shadow: none;
+  box-sizing: border-box;
+  color: var(--pmpro--color--contrast);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  min-height: auto;
+  outline: none;
+  padding: var(--pmpro--base--spacing--small); }
 
 .pmpro.pmpro * {
   font-family: Inter !important; }
