@@ -1,4 +1,5 @@
 <?php
+<?php
 add_action('wp_ajax_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 function my_custom_loop_filter_handler()
@@ -96,45 +97,7 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
-
-        //START: SEARCH COUNTER LOGIC
-        // Only run if user is logged in
-        if (is_user_logged_in()) {
-
-            // OPTIONAL: Check for 'search_active' param strictly.
-            // If your JS doesn't send this param, remove this specific if-check.
-            if (isset($_POST['search_active']) && $_POST['search_active'] === 'true') {
-
-                $user_id = get_current_user_id();
-
-                // 1. Prepare data for hashing
-                // We clone $_POST to avoid modifying the actual request data
-                $filter_params = $_POST;
-
-                // 2. Remove non-filter parameters
-                // We remove 'paged' so clicking 'Page 2' is not counted as a new search.
-                // We remove 'action' because that is just the WP hook name.
-                unset($filter_params['paged']);
-                unset($filter_params['action']);
-
-                // 3. Sort and Hash
-                ksort($filter_params);
-                $current_hash = md5(serialize($filter_params));
-                $cookie_name  = 'dd_last_search_hash_' . $user_id;
-
-                // 4. Compare with previous search hash (from cookie)
-                // If cookie is not set OR cookie hash is different, we count it.
-                if (! isset($_COOKIE[$cookie_name]) || $_COOKIE[$cookie_name] !== $current_hash) {
-
-                    $meta_key = 'number_of_searches';
-                    $current_count = (int) get_user_meta($user_id, $meta_key, true);
-                    update_user_meta($user_id, $meta_key, $current_count + 1);
-
-                    // 5. Update Cookie to current hash (Expires in 24 hours)
-                    setcookie($cookie_name, $current_hash, time() + 86400, COOKIEPATH, COOKIE_DOMAIN);
-                }
-            }
-        }
+        
 
         $html_output = ob_get_clean();
 
