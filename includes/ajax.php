@@ -106,8 +106,8 @@ function my_custom_loop_filter_handler()
         // --- UPDATE: Increment User Meta on Finish ---
         if ( is_user_logged_in() ) {
             $current_user_id = get_current_user_id();
-            $current_count   = (int) get_user_meta($current_user_id, 'number_of_searchers', true);
-            update_user_meta($current_user_id, 'number_of_searchers', $current_count + 1);
+            $current_count   = (int) get_user_meta($current_user_id, 'number_of_searches', true);
+            update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
         }
 
         // --- FIX 4: Send 'max_pages' in the response ---
