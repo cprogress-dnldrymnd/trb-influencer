@@ -6,7 +6,21 @@
         influencer_search_trigger();
         saved_search_trigger();
         saved_influencer_trigger();
+        mobile_nav();
     });
+
+    function mobile_nav() {
+        // Listen for click on the trigger element
+        $('.mobile-nav-trigger').on('click', function (e) {
+            // Prevent default action if the trigger is a link (<a>)
+            e.preventDefault();
+
+            // Toggle the class on the body
+            $('body').toggleClass('mobile-menu-active');
+        });
+    }
+
+
     function nicheToggle() {
         jQuery(document).on('click', '.niche-toggle', function (e) {
             e.preventDefault();
