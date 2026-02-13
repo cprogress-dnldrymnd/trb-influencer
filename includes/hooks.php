@@ -112,54 +112,57 @@ add_action('template_redirect', 'dd_restrict_dashboard_template_access');
 
 
 /**
- * Updates the 'number_of_searches' user meta when specific page and parameter conditions are met.
+ * Updates 'number_of_searches' meta only if the search parameters have changed.
  *
- * This function hooks into 'template_redirect' to ensure the global $post object is available
- * for the is_page() check. It now includes a cookie check to prevent the counter from 
- * incrementing on page refresh (F5).
+ * This implementation generates a hash of the current $_GET parameters. It compares
+ * this hash against a cookie storing the previous search's hash. This allows immediate
+ * re-counting if the user changes filters, but blocks counting on simple page refreshes.
  *
  * @author Digitally Disruptive - Donald Raymundo
  * @uri    https://digitallydisruptive.co.uk/
  *
  * @return void
  */
-function dd_update_searcher_count_on_trigger()
-{
+function dd_update_searcher_count_on_trigger() {
     // 1. Verify we are on the specific Page ID (1949).
-    if (! is_page(1949)) {
+    if ( ! is_page( 1949 ) ) {
         return;
     }
 
-    // 2. Check if the 'search_active' parameter exists and equals 'true'.
-    if (! isset($_GET['search_active']) || $_GET['search_active'] !== 'true') {
+    // 2. Check if 'search_active' is strictly true.
+    if ( ! isset( $_GET['search_active'] ) || $_GET['search_active'] !== 'true' ) {
         return;
     }
 
-    // 3. Ensure the user is logged in.
-    if (is_user_logged_in()) {
+    // 3. Ensure user is logged in.
+    if ( is_user_logged_in() ) {
         $user_id = get_current_user_id();
 
-        // Define a unique cookie name for this specific user action.
-        // We append the user ID to ensure it doesn't conflict on shared devices, 
-        // though standard cookies are browser-specific anyway.
-        $cookie_name = 'dd_search_counted_' . $user_id;
+        // 4. Generate a unique hash for the current URL parameters.
+        // We clone $_GET and sort it to ensure param order doesn't affect the hash 
+        // (e.g., ?a=1&b=2 should equal ?b=2&a=1).
+        $current_params = $_GET;
+        ksort( $current_params ); 
+        $current_hash = md5( serialize( $current_params ) );
 
-        // 4. Check if the cookie is already set. 
-        // If it is, the user likely refreshed the page recently; abort the update.
-        if (isset($_COOKIE[$cookie_name])) {
+        // Define a cookie name unique to this user.
+        $cookie_name = 'dd_last_search_hash_' . $user_id;
+
+        // 5. Compare current hash with the stored cookie hash.
+        // If they match, the user is refreshing the exact same search -> ABORT.
+        if ( isset( $_COOKIE[ $cookie_name ] ) && $_COOKIE[ $cookie_name ] === $current_hash ) {
             return;
         }
 
-        // 5. Retrieve current count using the updated meta key 'number_of_searches'.
+        // 6. If we reached here, it's a new unique search. Update the counter.
         $meta_key = 'number_of_searches';
-        $current_count = (int) get_user_meta($user_id, $meta_key, true);
+        $current_count = (int) get_user_meta( $user_id, $meta_key, true );
+        update_user_meta( $user_id, $meta_key, $current_count + 1 );
 
-        // 6. Increment and update the meta field.
-        update_user_meta($user_id, $meta_key, $current_count + 1);
-
-        // 7. Set a temporary cookie to prevent immediate re-counting on refresh.
-        // This cookie expires in 10 seconds.
-        setcookie($cookie_name, '1', time() + 10, COOKIEPATH, COOKIE_DOMAIN);
+        // 7. Update the cookie with the NEW hash.
+        // We set this for 24 hours (86400 seconds), meaning if they come back to 
+        // this exact search url tomorrow, it will count again. 
+        setcookie( $cookie_name, $current_hash, time() + 86400, COOKIEPATH, COOKIE_DOMAIN );
     }
 }
-add_action('template_redirect', 'dd_update_searcher_count_on_trigger');
+add_action( 'template_redirect', 'dd_update_searcher_count_on_trigger' );
