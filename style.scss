@@ -863,3 +863,10 @@ input:checked + .slider:before {
 .pmpro_btn {
     color: var(--e-global-color-2ba2932);
 }
+
+#pmpro_levels {
+    .pmpro_section_content {
+        display: flex;
+        gap: 20px;
+    }
+}
