@@ -78,19 +78,29 @@ if ( ! function_exists( 'dd_pmpro_enforce_single_membership_global' ) ) {
 }
 
 /**
- * Update the PMPro Checkout Button text.
- * * @param string $text The current button text.
- * @return string The modified button text.
+ * Customize the Paid Memberships Pro checkout submit button text.
+ *
+ * This function hooks into 'pmpro_checkout_submit_button_label' to change the text
+ * based on whether the level is free or paid.
+ *
+ * @param string $label The current label of the button (e.g., "Submit and Check Out").
+ * @param object $level The membership level object currently being purchased.
+ * @return string The modified button label.
  */
-function dd_pmpro_custom_checkout_button_text( $text ) {
-    // Define your new button text here
-    $new_text = 'Submit';
+function dd_pmpro_custom_checkout_button_text( $label, $level ) {
+    // Check if the level object exists to prevent errors
+    if ( ! isset( $level->id ) ) {
+        return $label;
+    }
 
-    // Optional: You can add logic here to change text based on the membership level
-    // if ( isset( $_REQUEST['level'] ) && $_REQUEST['level'] == '1' ) {
-    //     $new_text = 'Join Free Now';
-    // }
-
-    return esc_html( $new_text );
+    // Check if the level is free (initial payment is 0 and billing amount is 0)
+    // You can adjust this logic if you have trials that require payment later.
+    if ( pmpro_isLevelFree( $level ) ) {
+        // Return text for free levels
+        return 'Submit'; 
+    } else {
+        // Return text for paid levels
+        return 'Submit';
+    }
 }
-add_filter( 'pmpro_checkout_button_text', 'dd_pmpro_custom_checkout_button_text' );
+add_filter( 'pmpro_checkout_submit_button_label', 'dd_pmpro_custom_checkout_button_text', 10, 2 );
