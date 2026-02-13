@@ -30,10 +30,10 @@ function action_wp_head()
             echo ".header.header.header.header.header .logo-box svg { color: var($header_text_colour) }";
             echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
         }
-        if ($search_type == 'fullbrief') {
-            echo "#filter-col{ display: none; }";
-            echo "#results-col{ --width: 100% !important; }";
-        }
+    }
+    if ($search_type == 'fullbrief') {
+        echo "#filter-col{ display: none; }";
+        echo "#results-col{ --width: 100% !important; }";
     }
     echo '</style>';
 }
