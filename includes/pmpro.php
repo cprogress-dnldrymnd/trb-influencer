@@ -146,3 +146,27 @@ function dd_pmpro_force_checkout_text_observer() {
 }
 add_action( 'wp_footer', 'dd_pmpro_force_checkout_text_observer', 99 );
 
+
+function my_pmpro_add_avatar_field() {
+    // Check if PMPro is active
+    if ( ! function_exists( 'pmpro_add_user_field' ) ) {
+        return;
+    }
+
+    // Define the avatar field
+    $field = new PMPro_Field(
+        'user_avatar', // Meta key used by some avatar plugins
+        'file',        // Field type
+        array(
+            'label' => 'Profile Picture',
+            'profile' => true,      // Show on frontend profile
+            'preview' => true,      // Show image preview
+            'allow_delete' => true, // Allow deletion
+            'hint' => 'Recommended size: 200x200 pixels.'
+        )
+    );
+
+    // Add to the 'profile' group
+    pmpro_add_user_field( 'profile', $field );
+}
+add_action( 'init', 'my_pmpro_add_avatar_field' );
