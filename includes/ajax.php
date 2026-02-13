@@ -5,7 +5,7 @@ function my_custom_loop_filter_handler()
 {
     // 1. GATHER INPUTS
     // ... (Your existing input gathering code remains the same) ... 
-    
+
     // [Truncated for brevity - assume inputs are gathered here as per your original code]
     $niche        = isset($_POST['niche']) ? $_POST['niche'] : [];
     $platform     = isset($_POST['platform']) ? $_POST['platform'] : [];
@@ -35,17 +35,17 @@ function my_custom_loop_filter_handler()
     // (You don't need to change the logic inside the tax/meta blocks, just keep them as is)
 
     // ... 
-    
+
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
     // --- BROADENING / FALLBACK LOGIC ---
     // You must also apply 'paged' to your fallback queries if you want pagination to work on fallbacks.
-    
+
     $min_results = 6;
     $has_broadening_filters = !empty($country) || !empty($followers) || !empty($lang)
         || (!empty($filter) && in_array('Include only verified influencers', $filter, true));
-        
+
     if ($query->found_posts < $min_results && $has_broadening_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
         // ... (Broadened args setup) ...
         $broadened_args['paged'] = $paged; // <--- FIX 3: Add pagination to fallback
@@ -56,7 +56,7 @@ function my_custom_loop_filter_handler()
         // ... (Fallback args setup) ...
         $fallback_args['paged'] = $paged; // <--- FIX 3: Add pagination to fallback
         $query = new WP_Query($fallback_args);
-        
+
         if (!$query->have_posts()) {
             $query = new WP_Query([
                 'post_type'      => 'influencer',
@@ -69,18 +69,18 @@ function my_custom_loop_filter_handler()
 
     if ($query->have_posts()) {
         // ... (Your sorting and output buffer logic remains the same) ...
-        
-        $search_criteria = [ /* ... your array ... */ ];
+
+        $search_criteria = [ /* ... your array ... */];
         // ... set_query_var ... 
-        
+
         $posts = $query->posts;
-        
+
         // Note: usort here sorts ONLY the 12 posts on the current page, not the whole DB.
         if (function_exists('influencer_calculate_match_score')) {
             usort($posts, function ($a, $b) use ($search_criteria) {
                 $sa = influencer_calculate_match_score($a->ID, $search_criteria);
                 $sb = influencer_calculate_match_score($b->ID, $search_criteria);
-                return $sb <=> $sa; 
+                return $sb <=> $sa;
             });
         }
 
@@ -107,7 +107,7 @@ function my_custom_loop_filter_handler()
         ob_end_clean();
         wp_send_json_error('No posts found');
     }
-
+    influencer_number_of_searches(get_current_user_id());
     wp_die();
 }
 
