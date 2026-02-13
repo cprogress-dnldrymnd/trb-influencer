@@ -740,6 +740,8 @@ function breadcrumbs()
                     <li><span>Search Results</span></li>
                 <?php } ?>
 
+            <?php } else { ?>
+                <li><span><?= get_the_title() ?></span></li>
             <?php } ?>
 
         </ul>
