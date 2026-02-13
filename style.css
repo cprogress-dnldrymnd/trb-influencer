@@ -640,5 +640,7 @@ input:checked + .slider:before {
   background-color: var(--e-global-color-7355873); }
   .influencer-search-summary.influencer-search-summary .search-summary-brief {
     color: #fff; }
+  .influencer-search-summary.influencer-search-summary .search-summary-notes {
+    color: #fff; }
 
 /*# sourceMappingURL=style.css.map */
