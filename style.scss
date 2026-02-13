@@ -866,7 +866,11 @@ input:checked + .slider:before {
 
 #pmpro_levels {
     .pmpro_section_content {
+        --pmpro--base--spacing--large: 20px;
         display: flex;
         gap: 20px;
+        > p:first-child {
+            display: none;
+        }
     }
 }

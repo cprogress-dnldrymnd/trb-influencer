@@ -677,7 +677,10 @@ input:checked + .slider:before {
   color: var(--e-global-color-2ba2932); }
 
 #pmpro_levels .pmpro_section_content {
+  --pmpro--base--spacing--large: 20px;
   display: flex;
   gap: 20px; }
+  #pmpro_levels .pmpro_section_content > p:first-child {
+    display: none; }
 
 /*# sourceMappingURL=style.css.map */
