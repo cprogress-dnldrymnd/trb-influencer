@@ -206,3 +206,62 @@ function get_pmpro_file_field_url(int $user_id, string $field_key)
 
     return false;
 }
+
+/**
+ * Converts an absolute server path to a web-accessible URL.
+ * * This is specifically designed to handle PMPro Register Helper fields
+ * that store the full /home/user/path instead of the URL.
+ *
+ * @param string $path_or_url The raw value retrieved from get_user_meta.
+ * @return string The converted URL, or the original string if no conversion was needed.
+ */
+function convert_pmpro_path_to_url( $path_or_url ) {
+    // 1. If the input is an array (sometimes returned by PMPro), extract the fullpath.
+    if ( is_array( $path_or_url ) && isset( $path_or_url['fullpath'] ) ) {
+        $path_or_url = $path_or_url['fullpath'];
+    }
+
+    // 2. If it's empty or not a string, return early.
+    if ( empty( $path_or_url ) || ! is_string( $path_or_url ) ) {
+        return '';
+    }
+
+    // 3. Check if the string contains the local server path (ABSPATH).
+    // ABSPATH is a WP constant, e.g., /home/influencerdd2/public_html/
+    if ( strpos( $path_or_url, ABSPATH ) !== false ) {
+        // Replace the server path with the site URL.
+        // We use site_url('/') to ensure we get the root web address.
+        $url = str_replace( ABSPATH, site_url( '/' ), $path_or_url );
+        
+        // Fix any potential double slashes that might occur during replacement
+        // (excluding the http:// or https:// protocol slashes).
+        $url = str_replace( '://', '___PROTOCOL___', $url );
+        $url = str_replace( '//', '/', $url );
+        $url = str_replace( '___PROTOCOL___', '://', $url );
+
+        return $url;
+    }
+
+    // 4. Fallback: If ABSPATH didn't match, try matching against the Uploads Directory specifically.
+    // This is useful if the server structure varies slightly (e.g., symlinks).
+    $upload_dir = wp_upload_dir();
+    if ( strpos( $path_or_url, $upload_dir['basedir'] ) !== false ) {
+        return str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $path_or_url );
+    }
+
+    // Return original if no match found (it might already be a URL).
+    return $path_or_url;
+}
+
+// --- Usage Example ---
+
+// 1. Get the raw meta (the path you pasted).
+$raw_file_path = get_user_meta( get_current_user_id(), 'my_file_field_key', true );
+
+// 2. Convert it.
+$file_url = convert_pmpro_path_to_url( $raw_file_path );
+
+// 3. Output.
+if ( $file_url ) {
+    echo '<a href="' . esc_url( $file_url ) . '" target="_blank">View File</a>';
+}
