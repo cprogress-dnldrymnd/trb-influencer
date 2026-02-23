@@ -982,7 +982,7 @@ input:checked + .slider:before {
 }
 
 .large-avatar {
-    .avatar-holder.avatar-holder img,
+    &.avatar-holder.avatar-holder img,
     .influencer-avatar-fallback {
         width: var(--size, 188px);
         height: var(--size, 188px);
