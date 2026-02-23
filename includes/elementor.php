@@ -291,6 +291,7 @@ function dd_elementor_success_scripts()
             align-items: center;
             gap: 15px;
             padding: 15px 20px;
+            border-bottom: 1px solid #E7E7E7;
         }
 
         .dd-avatar {
@@ -331,8 +332,9 @@ function dd_elementor_success_scripts()
             border-radius: 5px;
         }
 
-        .tags-container {
+        .dd-message-overview-container .tags-container.tags-container.tags-container {
             padding: 15px 20px;
+            margin: 0;
         }
 
         .dd-subject-title {
@@ -340,7 +342,6 @@ function dd_elementor_success_scripts()
             font-size: 18px !important;
             font-weight: bold;
             margin: 0;
-            border-top: 1px solid #E7E7E7;
             border-bottom: 1px solid #E7E7E7;
             font-family: Inter !important;
             padding: 15px 20px;
