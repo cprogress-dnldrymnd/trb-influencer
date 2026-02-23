@@ -526,7 +526,6 @@ class DD_Outreach_Manager
                 height: var(--size, 68px);
                 border-radius: 50%;
                 overflow: hidden;
-                margin-right: 15px;
                 border: 1px solid gray;
                 flex-shrink: 0;
                 background-color: #e2e8f0;
