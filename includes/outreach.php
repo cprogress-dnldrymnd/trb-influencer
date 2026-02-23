@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.4.1
+ * Version: 1.5.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -38,8 +38,9 @@ class DD_Outreach_Manager
         add_shortcode('dd_outreach_list', [$this, 'render_list_shortcode']);
         add_shortcode('dd_outreach_view', [$this, 'render_view_shortcode']);
 
-        // AJAX Handlers for dynamic viewing
+        // AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
+        add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
 
         // Enqueue necessary scripts for the interactive dashboard
         add_action('wp_enqueue_scripts', [$this, 'enqueue_dashboard_scripts']);
@@ -255,16 +256,16 @@ class DD_Outreach_Manager
             .dd-outreach-item {
                 display: flex;
                 align-items: center;
-                padding: 15px 10px;
+                padding: 15px 20px;
                 border-bottom: 1px solid #eee;
                 cursor: pointer;
                 transition: background 0.2s;
-                border-radius: 6px;
             }
 
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
                 background: #FEF6F3;
+                border-left: 3px solid #E48D6C;
             }
 
             .dd-item-avatar {
@@ -617,14 +618,6 @@ class DD_Outreach_Manager
             return '<p>Please log in to view your projects.</p>';
         }
 
-        $args = [
-            'post_type'      => 'outreach',
-            'posts_per_page' => -1,
-            'author'         => get_current_user_id(),
-            'post_status'    => 'publish'
-        ];
-
-        $query = new WP_Query($args);
         $raw_fields = get_query_var('influencer_outreach_fields');
         $influencer_outreach_fields = is_array($raw_fields) ? $raw_fields : [];
 
@@ -634,39 +627,115 @@ class DD_Outreach_Manager
             <div class="outreach-filter">
                 <div class="influencer-search-filter-holder">
                     <div class="influencer-search-item">
-                        <input type="text" name="search" placeholder="Search by influencer or message">
+                        <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
                     <div class="influencer-search-item">
-                        <?= select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '') ?>
+                        <?php 
+                        // Assuming select_filter is a custom function defined elsewhere in your theme/plugins
+                        if(function_exists('select_filter')) {
+                            echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
+                        } else {
+                            // Fallback standard select
+                            echo '<select id="dd-project-type" name="project_type" class="dd-filter-select">';
+                            echo '<option value="">Filter by project type</option>';
+                            echo '<option value="affiliate">Affiliate partnership</option>';
+                            echo '<option value="collaboration">Collaboration</option>';
+                            echo '</select>';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
 
-            <div class="dd-item-list">
-                <?php if ($query->have_posts()) : ?>
-                    <?php while ($query->have_posts()) : $query->the_post();
-                        $influencer_id = get_post_meta(get_the_ID(), 'influencer_id', true);
-                        $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
-                        $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
-                    ?>
-                        <div class="dd-outreach-item" data-post-id="<?php echo get_the_ID(); ?>">
-                            <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" class="dd-item-avatar">
-                            <div class="dd-item-content">
-                                <span class="dd-item-name"><?php echo esc_html($influencer_name); ?> </span>
-                                <span class="dd-item-handle">@<?php echo esc_html($influencer_handle); ?></span>
-                                <span class="dd-item-title"><?php the_title(); ?></span>
-                                <span class="dd-item-date"><?php echo get_the_date('M j, Y'); ?></span>
-                            </div>
-                        </div>
-                    <?php endwhile;
-                    wp_reset_postdata(); ?>
-                <?php else: ?>
-                    <p>No outreach projects found.</p>
-                <?php endif; ?>
+            <div class="dd-item-list" id="dd-outreach-list-container">
+                <?php echo $this->generate_list_html(); ?>
             </div>
         </div>
     <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Helper function to generate the HTML for the item list, used by both the shortcode and AJAX.
+     *
+     * @param string $search_query Optional search string.
+     * @param string $project_type Optional meta filter for project type.
+     * @return string HTML output of the list.
+     */
+    private function generate_list_html($search_query = '', $project_type = '')
+    {
+        $args = [
+            'post_type'      => 'outreach',
+            'posts_per_page' => -1,
+            'author'         => get_current_user_id(),
+            'post_status'    => 'publish'
+        ];
+
+        if (!empty($search_query)) {
+            $args['s'] = sanitize_text_field($search_query);
+        }
+
+        if (!empty($project_type)) {
+            $args['meta_query'] = [
+                [
+                    'key'     => 'project_type',
+                    'value'   => sanitize_text_field($project_type),
+                    'compare' => '='
+                ]
+            ];
+        }
+
+        $query = new WP_Query($args);
+        $html = '';
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                $influencer_id = get_post_meta($post_id, 'influencer_id', true);
+                $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
+                $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
+                
+                $avatar = get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png';
+                $title = get_the_title();
+                $date = get_the_date('M j, Y');
+
+                $html .= '<div class="dd-outreach-item" data-post-id="' . esc_attr($post_id) . '">';
+                $html .= '<img src="' . esc_url($avatar) . '" class="dd-item-avatar">';
+                $html .= '<div class="dd-item-content">';
+                $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . '</span>';
+                $html .= '<span class="dd-item-handle">@' . esc_html($influencer_handle) . '</span>';
+                $html .= '<span class="dd-item-title">' . esc_html($title) . '</span>';
+                $html .= '<span class="dd-item-date">' . esc_html($date) . '</span>';
+                $html .= '</div></div>';
+            }
+            wp_reset_postdata();
+        } else {
+            $html .= '<p style="padding: 20px;">No outreach projects found matching your criteria.</p>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * AJAX endpoint to filter the outreach list based on search term and dropdown.
+     *
+     * @return void
+     */
+    public function ajax_filter_outreach_list()
+    {
+        check_ajax_referer('dd_outreach_nonce', 'security');
+
+        if (! is_user_logged_in()) {
+            wp_send_json_error('Please log in.');
+        }
+
+        $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $project_type = isset($_POST['project_type']) ? sanitize_text_field($_POST['project_type']) : '';
+
+        $html = $this->generate_list_html($search, $project_type);
+
+        wp_send_json_success($html);
     }
 
     /**
@@ -771,7 +840,7 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues the custom jQuery required to bridge the list clicks with the AJAX
-     * endpoint and automatically loads the first item.
+     * endpoint and automatically loads the first item. Also handles filtering.
      *
      * @return void
      */
@@ -782,39 +851,93 @@ class DD_Outreach_Manager
         $script = "
         jQuery(document).ready(function($) {
             
-            // Handles dynamically loading project details on click
-            $('.dd-outreach-item').on('click', function() {
-                var postId = $(this).data('post-id');
-                var container = $('#dd-outreach-view-container');
-                
-                $('.dd-outreach-item').removeClass('active-item');
-                $(this).addClass('active-item');
+            // Reusable function to bind click events to list items
+            function bindListItemClicks() {
+                $('.dd-outreach-item').off('click').on('click', function() {
+                    var postId = $(this).data('post-id');
+                    var container = $('#dd-outreach-view-container');
+                    
+                    $('.dd-outreach-item').removeClass('active-item');
+                    $(this).addClass('active-item');
 
-                container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
+                    container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
 
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_get_outreach_details',
-                        security: ddOutreach.nonce,
-                        post_id: postId
-                    },
-                    success: function(response) {
-                        if(response.success) {
-                            container.html(response.data);
-                        } else {
-                            container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
+                    $.ajax({
+                        url: ddOutreach.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'dd_get_outreach_details',
+                            security: ddOutreach.nonce,
+                            post_id: postId
+                        },
+                        success: function(response) {
+                            if(response.success) {
+                                container.html(response.data);
+                            } else {
+                                container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
+                            }
                         }
-                    }
+                    });
                 });
-            });
+            }
+
+            // Bind clicks on initial load
+            bindListItemClicks();
 
             // Automatically select the first item on initial page load
             var firstItem = $('.dd-outreach-item').first();
             if (firstItem.length) {
                 firstItem.trigger('click');
             }
+
+            // Handle Filtering Logic
+            var filterTimer;
+            
+            function triggerFilter() {
+                var searchQuery = $('#dd-outreach-search').val();
+                
+                // Check if custom select_filter output has an ID, otherwise fall back to name attribute
+                var projectTypeSelect = $('#project_type').length ? $('#project_type').val() : $('select[name=\"project_type\"]').val();
+
+                $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_filter_outreach_list',
+                        security: ddOutreach.nonce,
+                        search: searchQuery,
+                        project_type: projectTypeSelect
+                    },
+                    success: function(response) {
+                        if(response.success) {
+                            $('#dd-outreach-list-container').html(response.data);
+                            bindListItemClicks(); // Rebind clicks to new elements
+                            
+                            // Load the first item in the new filtered list
+                            var newFirstItem = $('.dd-outreach-item').first();
+                            if (newFirstItem.length) {
+                                newFirstItem.trigger('click');
+                            } else {
+                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No project selected.</span>');
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Listen for search typing (with a small delay to prevent excessive AJAX calls)
+            $('#dd-outreach-search').on('keyup', function() {
+                clearTimeout(filterTimer);
+                filterTimer = setTimeout(triggerFilter, 500);
+            });
+
+            // Listen for dropdown changes
+            $('select[name=\"project_type\"], #project_type').on('change', function() {
+                triggerFilter();
+            });
+
         });
         ";
 
