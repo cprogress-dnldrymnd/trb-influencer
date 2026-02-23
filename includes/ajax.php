@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: Influencer Loop Filter & Saves
  * Description: Handles AJAX filtering for influencers, saving search criteria, and bookmarking influencers.
@@ -103,19 +102,19 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
-
+        
         $html_output = ob_get_clean();
 
         // --- UPDATE: Increment User Meta on Finish ---
         $number_of_searches = 0;
-        if (is_user_logged_in()) {
+        if ( is_user_logged_in() ) {
             $current_user_id = get_current_user_id();
             $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
-
+            
             if (empty($current_count)) {
                 $current_count = 0;
             }
-
+            
             $number_of_searches = $current_count + 1;
             update_user_meta($current_user_id, 'number_of_searches', $number_of_searches);
         }
@@ -127,6 +126,7 @@ function my_custom_loop_filter_handler()
             'max_pages'          => $query->max_num_pages, // <--- CRITICAL FIX for button visibility
             'number_of_searches' => $number_of_searches,
         ));
+
     } else {
         ob_end_clean();
         wp_send_json_error('No posts found');
@@ -269,6 +269,7 @@ function handle_save_influencer_ajax()
         }
     }
 }
+
 /**
  * AJAX Handler: Save User Search
  * * This function handles the server-side logic when the "Save Search" button is clicked.
