@@ -239,22 +239,28 @@ function dd_elementor_success_scripts()
             text-decoration: none;
         }
 
-     
+        .tags-container {
+            padding: 20px;
+        }
       
         .dd-subject-title {
-            color: #004d40;
-            margin-bottom: 15px;
+            color: #034146;
             font-size: 18px;
             font-weight: bold;
+            margin: 0;
+            border-top: 1px solid #E7E7E7;
+            border-bottom: 1px solid #E7E7E7;
+            font-family: Inter;
+            padding: 20px;
         }
 
         .dd-message-content {
-            font-size: 14px;
+            font-size: 15px;
             color: #333;
             line-height: 1.6;
             max-height: 300px;
             overflow-y: auto;
-            padding-right: 10px;
+            padding: 20px;
         }
     </style>
 
