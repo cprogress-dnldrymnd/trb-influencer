@@ -187,9 +187,9 @@ class DD_Follower_Growth_Chart
             }
 
             .dd-pill-badge {
-                border: 1px solid #124B43;
+                border: 1px solid #034146;
                 background-color: #E2EBE8;
-                color: #124B43;
+                color: #034146;
                 padding: 4px 12px;
                 border-radius: 12px;
                 font-weight: 600;
@@ -200,15 +200,15 @@ class DD_Follower_Growth_Chart
             /* These explicitly bypass the ApexCharts JS contrast-checker to force your exact UI colors */
             
             #ddFollowerChart .apexcharts-datalabels rect {
-                fill: #E2EBE8 !important; /* Solid light green background from mockup */
-                stroke: #124B43 !important; /* Solid dark green border */
+                fill: #F0FFF4 !important; /* Solid light green background from mockup */
+                stroke: #034146 !important; /* Solid dark green border */
                 stroke-width: 1.5px !important;
-                rx: 12px !important; /* Perfectly rounded pill caps */
-                ry: 12px !important;
+                rx: 5px !important; /* Perfectly rounded pill caps */
+                ry: 5px !important;
             }
 
             #ddFollowerChart .apexcharts-datalabels text {
-                fill: #fff !important; /* Solid dark green text */
+                fill: #034146 !important; /* Solid dark green text */
                 font-weight: 600 !important;
             }
         </style>
@@ -288,15 +288,15 @@ class DD_Follower_Growth_Chart
                         offsetY: -25,
                         style: {
                             fontSize: '11px',
-                            colors: ['#124B43'] // Fallback if CSS fails
+                            colors: ['#034146'] // Fallback if CSS fails
                         },
                         background: {
                             enabled: true,
-                            foreColor: '#124B43',
+                            foreColor: '#034146',
                             padding: 6,
                             borderRadius: 12,
                             borderWidth: 1.5,
-                            borderColor: '#124B43',
+                            borderColor: '#034146',
                             opacity: 1, // Required to tell ApexCharts to render the SVG rect element so our CSS can style it
                             dropShadow: { enabled: false }
                         }
