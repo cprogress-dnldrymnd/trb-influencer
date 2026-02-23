@@ -609,7 +609,7 @@ class DD_Outreach_Manager
         </div>
         <div class="dd-footer">
             <div class="button-box view-outreach">
-                <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
+                <a class="elementor-button elementor-button-link elementor-size-sm" href="<?= get_the_permalink(8900) ?>">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="17.081" height="18.396" viewBox="0 0 17.081 18.396">
