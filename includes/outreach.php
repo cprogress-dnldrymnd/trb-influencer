@@ -494,7 +494,7 @@ class DD_Outreach_Manager
                 gap: 10px;
             }
 
-            #dd-save-note {
+             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow {
                 background-color: #FFE17B;
                 border-color: #FFE17B;
                 color: #000000;
@@ -727,8 +727,10 @@ class DD_Outreach_Manager
                 $html .= '<textarea class="dd-raw-note-content" style="display:none;">' . $raw . '</textarea>';
 
                 $html .= '<div class="dd-steps-actions">';
-                $html .= '<button class="dd-delete-note dd-delete-btn" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">DELETE NOTE</button>';
-                $html .= '<button class="dd-edit-note dd-edit-btn" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">EDIT NOTE</button>';
+                $html .= '<button class="dd-delete-note dd-delete-btn dd-note-btn" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">DELETE NOTE</button>';
+                $html .= '<button class="dd-edit-note dd-edit-btn dd-note-btn dd-note-btn-outline" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">  <svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
+                            <path id="saved" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
+                        </svg> EDIT NOTE</button>';
                 $html .= '</div>';
 
                 $html .= '<p class="dd-last-edited">Last edited ' . $fmt_date . '</p>';
@@ -1042,13 +1044,13 @@ class DD_Outreach_Manager
                 <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
                 <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
                 <div style="display:flex; gap:10px;">
-                    <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>">
+                    <button id="dd-save-note" class="dd-note-btn dd-note-btn-yellow" data-post-id="<?php echo esc_attr($post_id); ?>">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
                             <path id="saved" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
                         </svg>
                         SAVE NOTE
                     </button>
-                    <button id="dd-cancel-edit-note" class="dd-delete-btn" style="display:none; margin-top:10px;">CANCEL</button>
+                    <button id="dd-cancel-edit-note" class="dd-delete-btn dd-note-btn" style="display:none; margin-top:10px;">CANCEL</button>
                 </div>
             </div>
 
