@@ -235,30 +235,29 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
                 <?php echo nl2br(esc_html($data['message'] ?? 'No message provided.')); ?>
             </div>
         </div>
-
-        <div class="dd-footer">
-            <div class="button-box view-outreach">
-                <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
-                    <span class="elementor-button-content-wrapper">
-                        <span class="elementor-button-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="17.081" height="18.396" viewBox="0 0 17.081 18.396">
-                                <g id="outreach_icon" data-name="outreach icon" transform="translate(-9.375 -6.25)">
-                                    <path id="Path_139" data-name="Path 139" d="M40.076,38.442a.649.649,0,0,1,.414.414l.69,2.069,1.59-4.77L38,37.745l2.069.69Z" transform="translate(-22.607 -23.619)" fill="#fff"></path>
-                                    <path id="Path_140" data-name="Path 140" d="M17.916,6.25a8.532,8.532,0,0,0-6.563,13.993l-1.281,3.521a.668.668,0,0,0,.151.69.66.66,0,0,0,.69.151l4.526-1.642a8.38,8.38,0,0,0,2.477.368,8.541,8.541,0,1,0,0-17.081Zm3.909,5.466L19.2,19.6a.657.657,0,0,1-.624.447.666.666,0,0,1-.624-.447L16.74,15.967l-3.633-1.209a.657.657,0,0,1-.447-.624.666.666,0,0,1,.447-.624l7.884-2.628a.647.647,0,0,1,.67.158.664.664,0,0,1,.158.67Z" fill="#fff"></path>
-                                </g>
-                            </svg>
-                        </span>
-                        <span class="elementor-button-text">VIEW IN OUTREACH</span>
+    </div>
+    <div class="dd-footer">
+        <div class="button-box view-outreach">
+            <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17.081" height="18.396" viewBox="0 0 17.081 18.396">
+                            <g id="outreach_icon" data-name="outreach icon" transform="translate(-9.375 -6.25)">
+                                <path id="Path_139" data-name="Path 139" d="M40.076,38.442a.649.649,0,0,1,.414.414l.69,2.069,1.59-4.77L38,37.745l2.069.69Z" transform="translate(-22.607 -23.619)" fill="#fff"></path>
+                                <path id="Path_140" data-name="Path 140" d="M17.916,6.25a8.532,8.532,0,0,0-6.563,13.993l-1.281,3.521a.668.668,0,0,0,.151.69.66.66,0,0,0,.69.151l4.526-1.642a8.38,8.38,0,0,0,2.477.368,8.541,8.541,0,1,0,0-17.081Zm3.909,5.466L19.2,19.6a.657.657,0,0,1-.624.447.666.666,0,0,1-.624-.447L16.74,15.967l-3.633-1.209a.657.657,0,0,1-.447-.624.666.666,0,0,1,.447-.624l7.884-2.628a.647.647,0,0,1,.67.158.664.664,0,0,1,.158.67Z" fill="#fff"></path>
+                            </g>
+                        </svg>
                     </span>
-                </a>
-            </div>
-            <div class="button-box close-outreach">
-                <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
-                    <span class="elementor-button-content-wrapper">
-                        <span class="elementor-button-text">CLOSE</span>
-                    </span>
-                </a>
-            </div>
+                    <span class="elementor-button-text">VIEW IN OUTREACH</span>
+                </span>
+            </a>
+        </div>
+        <div class="button-box close-outreach">
+            <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-text">CLOSE</span>
+                </span>
+            </a>
         </div>
     </div>
 <?php
