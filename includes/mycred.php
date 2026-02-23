@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Filter: mycred_run_this
  * * Intercepts the point awarding process.
@@ -10,39 +11,40 @@
  * @param array        $request   The request arguments (Optional).
  * @return bool                   Returns false to stop execution if duplicate is detected.
  */
-add_filter( 'mycred_run_this', 'dd_prevent_duplicate_registration_points', 10, 3 );
+add_filter('mycred_run_this', 'dd_prevent_duplicate_registration_points', 10, 3);
 
-function dd_prevent_duplicate_registration_points( $run, $mycred = null, $request = array() ) {
-    
+function dd_prevent_duplicate_registration_points($run, $mycred = null, $request = array())
+{
+
     // 1. Safety Guard: Check if required arguments are present.
     // If $mycred or $request are missing (due to the argument count error), 
     // we cannot perform the check, so we return the default $run value to avoid breaking the site.
-    if ( ! is_object( $mycred ) || empty( $request ) ) {
+    if (! is_object($mycred) || empty($request)) {
         return $run;
     }
 
     // 2. Check if the current process is a 'registration' event.
     // We strictly look for the 'registration' reference.
-    if ( isset( $request['ref'] ) && $request['ref'] === 'registration' ) {
+    if (isset($request['ref']) && $request['ref'] === 'registration') {
 
         // 3. Validate that we have a valid User ID.
-        $user_id = isset( $request['user_id'] ) ? absint( $request['user_id'] ) : 0;
-        
-        if ( $user_id ) {
-            
+        $user_id = isset($request['user_id']) ? absint($request['user_id']) : 0;
+
+        if ($user_id) {
+
             // 4. Query the log to see if this user already has a 'registration' entry.
             global $wpdb;
-            
+
             // Safely retrieve the log table name from the myCred object
-            if ( method_exists( $mycred, 'get_log_table' ) ) {
+            if (method_exists($mycred, 'get_log_table')) {
                 $log_table = $mycred->get_log_table();
             } else {
                 // Fallback if method doesn't exist (rare, but possible in older versions)
                 $log_table = $wpdb->prefix . 'myCRED_log';
             }
-            
+
             // Query: Count how many times this user has been awarded points for 'registration'.
-            $count = $wpdb->get_var( $wpdb->prepare(
+            $count = $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$log_table} WHERE ref = %s AND user_id = %d",
                 'registration',
                 $user_id
@@ -50,7 +52,7 @@ function dd_prevent_duplicate_registration_points( $run, $mycred = null, $reques
 
             // 5. Decision Logic:
             // If the count is greater than 0, the user already has points.
-            if ( $count > 0 ) {
+            if ($count > 0) {
                 return false;
             }
         }
@@ -59,6 +61,45 @@ function dd_prevent_duplicate_registration_points( $run, $mycred = null, $reques
     // 6. If no duplicate is found, proceed as normal.
     return $run;
 }
+
+/**
+ * Deducts myCRED points from the currently logged-in user.
+ *
+ * @param float|int $points    The amount of points to deduct.
+ * @param string    $log_entry The log entry description visible in the user's history.
+ * @param string    $reference A unique reference slug for this transaction type.
+ * @return bool|string         Returns true/string on success, or false if it fails (e.g., user logged out).
+ */
+function deduct_points_from_current_user($points, $log_entry = 'Points deducted', $reference = 'custom_deduction')
+{
+
+    // Check if the myCRED plugin API is loaded
+    if (! function_exists('mycred_subtract')) {
+        return false;
+    }
+
+    // Retrieve the ID of the current logged-in user
+    $user_id = get_current_user_id();
+
+    // Abort if no user is logged in
+    if (! $user_id) {
+        return false;
+    }
+
+    // Ensure the points value is a positive number (mycred_subtract requires positive inputs)
+    $amount_to_deduct = abs((float) $points);
+
+    // Execute the deduction
+    $success = mycred_subtract(
+        $reference,         // The reference ID 
+        $user_id,           // The user ID
+        $amount_to_deduct,  // The amount to deduct
+        $log_entry          // The log template
+    );
+
+    return $success;
+}
+
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
@@ -70,96 +111,105 @@ function dd_prevent_duplicate_registration_points( $run, $mycred = null, $reques
  */
 
 
-class DD_PMPro_Rewards_Manager {
+class DD_PMPro_Rewards_Manager
+{
 
     private $option_name = 'dd_pmpro_rewards_settings';
-    
-    // CONFIG: The exact Point Type Key from your screenshot
-    private $point_type  = 'mycred_default'; 
 
-    public function __construct() {
+    // CONFIG: The exact Point Type Key from your screenshot
+    private $point_type  = 'mycred_default';
+
+    public function __construct()
+    {
         // Admin
-        add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
-        add_action( 'admin_init', array( $this, 'register_settings' ) );
+        add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('admin_init', array($this, 'register_settings'));
 
         // Logic
-        add_action( 'pmpro_after_checkout', array( $this, 'award_registration_points' ), 10, 2 );
-        add_action( 'dd_pmpro_daily_rewards_check', array( $this, 'process_monthly_points' ) );
+        add_action('pmpro_after_checkout', array($this, 'award_registration_points'), 10, 2);
+        add_action('dd_pmpro_daily_rewards_check', array($this, 'process_monthly_points'));
 
         // Activation
-        register_activation_hook( __FILE__, array( $this, 'activate_plugin' ) );
-        register_deactivation_hook( __FILE__, array( $this, 'deactivate_plugin' ) );
+        register_activation_hook(__FILE__, array($this, 'activate_plugin'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate_plugin'));
     }
 
-    public function activate_plugin() {
-        if ( ! wp_next_scheduled( 'dd_pmpro_daily_rewards_check' ) ) {
-            wp_schedule_event( time(), 'daily', 'dd_pmpro_daily_rewards_check' );
+    public function activate_plugin()
+    {
+        if (! wp_next_scheduled('dd_pmpro_daily_rewards_check')) {
+            wp_schedule_event(time(), 'daily', 'dd_pmpro_daily_rewards_check');
         }
     }
 
-    public function deactivate_plugin() {
-        $timestamp = wp_next_scheduled( 'dd_pmpro_daily_rewards_check' );
-        if ( $timestamp ) {
-            wp_unschedule_event( $timestamp, 'dd_pmpro_daily_rewards_check' );
+    public function deactivate_plugin()
+    {
+        $timestamp = wp_next_scheduled('dd_pmpro_daily_rewards_check');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'dd_pmpro_daily_rewards_check');
         }
     }
 
-    public function add_admin_menu() {
-        add_options_page( 'PMPro Rewards', 'PMPro Rewards', 'manage_options', 'dd-pmpro-rewards', array( $this, 'render_admin_page' ) );
+    public function add_admin_menu()
+    {
+        add_options_page('PMPro Rewards', 'PMPro Rewards', 'manage_options', 'dd-pmpro-rewards', array($this, 'render_admin_page'));
     }
 
-    public function register_settings() {
-        register_setting( 'dd_pmpro_rewards_group', $this->option_name );
+    public function register_settings()
+    {
+        register_setting('dd_pmpro_rewards_group', $this->option_name);
     }
 
-    public function enqueue_admin_scripts( $hook ) {
-        if ( 'settings_page_dd-pmpro-rewards' !== $hook ) return;
-        wp_enqueue_script( 'jquery-ui-sortable' );
-        wp_enqueue_style( 'dd-pmpro-admin-css', false );
+    public function enqueue_admin_scripts($hook)
+    {
+        if ('settings_page_dd-pmpro-rewards' !== $hook) return;
+        wp_enqueue_script('jquery-ui-sortable');
+        wp_enqueue_style('dd-pmpro-admin-css', false);
     }
 
-    private function get_rewards_config() {
-        $options = get_option( $this->option_name );
-        return ! empty( $options ) && is_array( $options ) ? $options : array();
+    private function get_rewards_config()
+    {
+        $options = get_option($this->option_name);
+        return ! empty($options) && is_array($options) ? $options : array();
     }
 
     /**
      * LOGIC: Award Registration Points
      */
-    public function award_registration_points( $user_id, $morder ) {
-        if ( ! function_exists( 'mycred_add' ) ) return;
+    public function award_registration_points($user_id, $morder)
+    {
+        if (! function_exists('mycred_add')) return;
 
         // 1. Get Level ID
         $level_id = 0;
-        if ( ! empty( $morder ) && isset( $morder->membership_id ) ) {
-            $level_id = intval( $morder->membership_id );
-        }
-        
-        // Fallback if order object is missing
-        if ( ! $level_id && function_exists( 'pmpro_getMembershipLevelForUser' ) ) {
-            $level_obj = pmpro_getMembershipLevelForUser( $user_id );
-            if ( $level_obj ) $level_id = intval( $level_obj->id );
+        if (! empty($morder) && isset($morder->membership_id)) {
+            $level_id = intval($morder->membership_id);
         }
 
-        if ( ! $level_id ) return;
+        // Fallback if order object is missing
+        if (! $level_id && function_exists('pmpro_getMembershipLevelForUser')) {
+            $level_obj = pmpro_getMembershipLevelForUser($user_id);
+            if ($level_obj) $level_id = intval($level_obj->id);
+        }
+
+        if (! $level_id) return;
 
         $config = $this->get_rewards_config();
 
-        foreach ( $config as $row ) {
-            if ( isset( $row['level_id'] ) && intval( $row['level_id'] ) == $level_id ) {
-                
-                $reg_points = intval( $row['reg_points'] );
-                
-                if ( $reg_points > 0 ) {
+        foreach ($config as $row) {
+            if (isset($row['level_id']) && intval($row['level_id']) == $level_id) {
+
+                $reg_points = intval($row['reg_points']);
+
+                if ($reg_points > 0) {
                     // DEBUG LOG
-                    error_log( "PMPro Rewards: Awarding {$reg_points} ({$this->point_type}) to User ID {$user_id} for Level {$level_id}" );
+                    error_log("PMPro Rewards: Awarding {$reg_points} ({$this->point_type}) to User ID {$user_id} for Level {$level_id}");
 
                     mycred_add(
                         'pmpro_registration',
                         $user_id,
                         $reg_points,
-                        sprintf( 'Bonus for joining Membership Level %d', $level_id ),
+                        sprintf('Bonus for joining Membership Level %d', $level_id),
                         $level_id,          // Reference ID
                         '',                 // Data
                         $this->point_type   // Explicit: 'mycred_default'
@@ -167,8 +217,8 @@ class DD_PMPro_Rewards_Manager {
                 }
 
                 // Initialize Monthly Timer
-                update_user_meta( $user_id, '_dd_last_monthly_point_date', current_time( 'timestamp' ) );
-                break; 
+                update_user_meta($user_id, '_dd_last_monthly_point_date', current_time('timestamp'));
+                break;
             }
         }
     }
@@ -176,44 +226,45 @@ class DD_PMPro_Rewards_Manager {
     /**
      * LOGIC: Process Monthly Recurring Points (CRON)
      */
-    public function process_monthly_points() {
-        if ( ! function_exists( 'mycred_add' ) || ! function_exists( 'pmpro_getMembershipUsers' ) ) return;
+    public function process_monthly_points()
+    {
+        if (! function_exists('mycred_add') || ! function_exists('pmpro_getMembershipUsers')) return;
 
         $config = $this->get_rewards_config();
-        $now    = current_time( 'timestamp' );
+        $now    = current_time('timestamp');
         $month_seconds = 2592000; // 30 days
 
-        foreach ( $config as $row ) {
-            $level_id = intval( $row['level_id'] );
-            $monthly_points = intval( $row['monthly_points'] );
+        foreach ($config as $row) {
+            $level_id = intval($row['level_id']);
+            $monthly_points = intval($row['monthly_points']);
 
-            if ( $level_id > 0 && $monthly_points > 0 ) {
-                
-                $active_users = pmpro_getMembershipUsers( $level_id );
+            if ($level_id > 0 && $monthly_points > 0) {
 
-                if ( ! empty( $active_users ) ) {
-                    foreach ( $active_users as $user_id ) {
-                        $last_awarded = get_user_meta( $user_id, '_dd_last_monthly_point_date', true );
+                $active_users = pmpro_getMembershipUsers($level_id);
 
-                        if ( empty( $last_awarded ) ) {
-                            update_user_meta( $user_id, '_dd_last_monthly_point_date', $now );
+                if (! empty($active_users)) {
+                    foreach ($active_users as $user_id) {
+                        $last_awarded = get_user_meta($user_id, '_dd_last_monthly_point_date', true);
+
+                        if (empty($last_awarded)) {
+                            update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                             continue;
                         }
 
-                        if ( ( $now - $last_awarded ) >= $month_seconds ) {
+                        if (($now - $last_awarded) >= $month_seconds) {
                             // DEBUG LOG
-                            error_log( "PMPro Rewards: Awarding Monthly {$monthly_points} ({$this->point_type}) to User ID {$user_id}" );
+                            error_log("PMPro Rewards: Awarding Monthly {$monthly_points} ({$this->point_type}) to User ID {$user_id}");
 
                             mycred_add(
                                 'pmpro_monthly_recurring',
                                 $user_id,
                                 $monthly_points,
-                                sprintf( 'Monthly Loyalty: Membership Level %d', $level_id ),
+                                sprintf('Monthly Loyalty: Membership Level %d', $level_id),
                                 $level_id,
                                 '',
                                 $this->point_type // Explicit: 'mycred_default'
                             );
-                            update_user_meta( $user_id, '_dd_last_monthly_point_date', $now );
+                            update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                         }
                     }
                 }
@@ -224,31 +275,32 @@ class DD_PMPro_Rewards_Manager {
     /**
      * UI: Render Admin Page
      */
-    public function render_admin_page() {
+    public function render_admin_page()
+    {
         $rewards = $this->get_rewards_config();
-        $pmpro_levels = function_exists( 'pmpro_getAllLevels' ) ? pmpro_getAllLevels( true, true ) : array();
-        ?>
+        $pmpro_levels = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels(true, true) : array();
+?>
         <div class="wrap">
             <h1>PMPro myCred Rewards Manager</h1>
-            
+
             <h2 class="nav-tab-wrapper">
                 <a href="#tab-builder" class="nav-tab nav-tab-active">Reward Builder</a>
                 <a href="#tab-settings" class="nav-tab">Settings & Logs</a>
             </h2>
 
             <form method="post" action="options.php">
-                <?php settings_fields( 'dd_pmpro_rewards_group' ); ?>
+                <?php settings_fields('dd_pmpro_rewards_group'); ?>
 
                 <div id="tab-builder" class="dd-tab-content active">
-                    <p class="description">Define points for specific membership levels. Points are awarded to: <strong><?php echo esc_html( $this->point_type ); ?></strong></p>
-                    
+                    <p class="description">Define points for specific membership levels. Points are awarded to: <strong><?php echo esc_html($this->point_type); ?></strong></p>
+
                     <div id="dd-repeater-container">
-                        <?php 
-                        if ( ! empty( $rewards ) ) {
-                            foreach ( $rewards as $index => $row ) {
-                                $this->render_repeater_row( $index, $row, $pmpro_levels );
+                        <?php
+                        if (! empty($rewards)) {
+                            foreach ($rewards as $index => $row) {
+                                $this->render_repeater_row($index, $row, $pmpro_levels);
                             }
-                        } 
+                        }
                         ?>
                     </div>
 
@@ -257,7 +309,7 @@ class DD_PMPro_Rewards_Manager {
                     </div>
 
                     <div id="dd-row-template" style="display:none;">
-                        <?php $this->render_repeater_row( 9999, array(), $pmpro_levels, true ); ?>
+                        <?php $this->render_repeater_row(9999, array(), $pmpro_levels, true); ?>
                     </div>
                 </div>
 
@@ -265,11 +317,11 @@ class DD_PMPro_Rewards_Manager {
                     <table class="form-table">
                         <tr>
                             <th>Cron Status</th>
-                            <td><?php echo wp_next_scheduled( 'dd_pmpro_daily_rewards_check' ) ? 'Active' : 'Inactive'; ?></td>
+                            <td><?php echo wp_next_scheduled('dd_pmpro_daily_rewards_check') ? 'Active' : 'Inactive'; ?></td>
                         </tr>
                         <tr>
                             <th>Target Point Type</th>
-                            <td><code><?php echo esc_html( $this->point_type ); ?></code></td>
+                            <td><code><?php echo esc_html($this->point_type); ?></code></td>
                         </tr>
                     </table>
                 </div>
@@ -279,85 +331,137 @@ class DD_PMPro_Rewards_Manager {
         </div>
 
         <style>
-            .dd-repeater-row { background: #fff; border: 1px solid #ccd0d4; margin-bottom: 10px; box-shadow: 0 1px 1px rgba(0,0,0,0.04); }
-            .dd-row-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #ccd0d4; cursor: move; display: flex; justify-content: space-between; align-items: center; }
-            .dd-row-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-            .dd-row-body { padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-            .dd-row-actions { display: flex; gap: 10px; }
-            .dd-remove-row { color: #b32d2e; text-decoration: none; font-size: 12px; }
-            .dd-toggle-row { cursor: pointer; }
-            .dd-actions { margin-top: 15px; }
-            .dd-tab-content { margin-top: 20px; }
-            .dd-collapsed .dd-row-body { display: none; }
+            .dd-repeater-row {
+                background: #fff;
+                border: 1px solid #ccd0d4;
+                margin-bottom: 10px;
+                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+            }
+
+            .dd-row-header {
+                padding: 10px 15px;
+                background: #f8f9fa;
+                border-bottom: 1px solid #ccd0d4;
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .dd-row-header h3 {
+                margin: 0;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            .dd-row-body {
+                padding: 15px;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 20px;
+            }
+
+            .dd-row-actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .dd-remove-row {
+                color: #b32d2e;
+                text-decoration: none;
+                font-size: 12px;
+            }
+
+            .dd-toggle-row {
+                cursor: pointer;
+            }
+
+            .dd-actions {
+                margin-top: 15px;
+            }
+
+            .dd-tab-content {
+                margin-top: 20px;
+            }
+
+            .dd-collapsed .dd-row-body {
+                display: none;
+            }
         </style>
 
         <script>
-        jQuery(document).ready(function($) {
-            $('.nav-tab').click(function(e) {
-                e.preventDefault();
-                $('.nav-tab').removeClass('nav-tab-active');
-                $(this).addClass('nav-tab-active');
-                $('.dd-tab-content').hide();
-                $($(this).attr('href')).show();
-            });
+            jQuery(document).ready(function($) {
+                $('.nav-tab').click(function(e) {
+                    e.preventDefault();
+                    $('.nav-tab').removeClass('nav-tab-active');
+                    $(this).addClass('nav-tab-active');
+                    $('.dd-tab-content').hide();
+                    $($(this).attr('href')).show();
+                });
 
-            $('#dd-repeater-container').sortable({ handle: '.dd-row-header', update: function() { reindex_rows(); } });
+                $('#dd-repeater-container').sortable({
+                    handle: '.dd-row-header',
+                    update: function() {
+                        reindex_rows();
+                    }
+                });
 
-            // FIX: Enable inputs immediately upon adding
-            $('#dd-add-row').click(function() {
-                var template = $('#dd-row-template').html();
-                var $newRow = $(template);
-                $newRow.find('select, input').removeAttr('disabled').prop('disabled', false); // Double force enable
-                $('#dd-repeater-container').append($newRow);
-                reindex_rows();
-            });
-
-            $(document).on('click', '.dd-remove-row', function(e) {
-                e.preventDefault();
-                if(confirm('Remove this rule?')) {
-                    $(this).closest('.dd-repeater-row').remove();
+                // FIX: Enable inputs immediately upon adding
+                $('#dd-add-row').click(function() {
+                    var template = $('#dd-row-template').html();
+                    var $newRow = $(template);
+                    $newRow.find('select, input').removeAttr('disabled').prop('disabled', false); // Double force enable
+                    $('#dd-repeater-container').append($newRow);
                     reindex_rows();
+                });
+
+                $(document).on('click', '.dd-remove-row', function(e) {
+                    e.preventDefault();
+                    if (confirm('Remove this rule?')) {
+                        $(this).closest('.dd-repeater-row').remove();
+                        reindex_rows();
+                    }
+                });
+
+                $(document).on('click', '.dd-toggle-row', function() {
+                    $(this).closest('.dd-repeater-row').toggleClass('dd-collapsed');
+                    var icon = $(this).closest('.dd-repeater-row').hasClass('dd-collapsed') ? 'dashicons-arrow-down' : 'dashicons-arrow-up';
+                    $(this).find('.dashicons').attr('class', 'dashicons ' + icon);
+                });
+
+                $(document).on('click', '.dd-duplicate-row', function(e) {
+                    e.preventDefault();
+                    var $row = $(this).closest('.dd-repeater-row');
+                    var $clone = $row.clone();
+                    $clone.find('select, input').removeAttr('disabled').prop('disabled', false);
+                    $row.after($clone);
+                    reindex_rows();
+                });
+
+                function reindex_rows() {
+                    $('#dd-repeater-container .dd-repeater-row').each(function(index) {
+                        $(this).find('.row-index').text(index + 1);
+                        $(this).find('select, input').each(function() {
+                            var name = $(this).attr('name');
+                            if (name) {
+                                name = name.replace(/\[\d+\]/, '[' + index + ']');
+                                $(this).attr('name', name);
+                            }
+                        });
+                    });
                 }
             });
-
-            $(document).on('click', '.dd-toggle-row', function() {
-                $(this).closest('.dd-repeater-row').toggleClass('dd-collapsed');
-                var icon = $(this).closest('.dd-repeater-row').hasClass('dd-collapsed') ? 'dashicons-arrow-down' : 'dashicons-arrow-up';
-                $(this).find('.dashicons').attr('class', 'dashicons ' + icon);
-            });
-
-            $(document).on('click', '.dd-duplicate-row', function(e) {
-                e.preventDefault();
-                var $row = $(this).closest('.dd-repeater-row');
-                var $clone = $row.clone();
-                $clone.find('select, input').removeAttr('disabled').prop('disabled', false);
-                $row.after($clone);
-                reindex_rows();
-            });
-
-            function reindex_rows() {
-                $('#dd-repeater-container .dd-repeater-row').each(function(index) {
-                    $(this).find('.row-index').text(index + 1);
-                    $(this).find('select, input').each(function() {
-                        var name = $(this).attr('name');
-                        if(name) {
-                            name = name.replace(/\[\d+\]/, '[' + index + ']');
-                            $(this).attr('name', name);
-                        }
-                    });
-                });
-            }
-        });
         </script>
-        <?php
+    <?php
     }
 
-    private function render_repeater_row( $index, $data, $levels, $is_template = false ) {
-        $level_id       = isset( $data['level_id'] ) ? $data['level_id'] : '';
-        $reg_points     = isset( $data['reg_points'] ) ? $data['reg_points'] : '';
-        $monthly_points = isset( $data['monthly_points'] ) ? $data['monthly_points'] : '';
+    private function render_repeater_row($index, $data, $levels, $is_template = false)
+    {
+        $level_id       = isset($data['level_id']) ? $data['level_id'] : '';
+        $reg_points     = isset($data['reg_points']) ? $data['reg_points'] : '';
+        $monthly_points = isset($data['monthly_points']) ? $data['monthly_points'] : '';
         $disabled = $is_template ? 'disabled' : '';
-        ?>
+    ?>
         <div class="dd-repeater-row">
             <div class="dd-row-header dd-toggle-row">
                 <h3>Membership Rule #<span class="row-index"><?php echo $index + 1; ?></span></h3>
@@ -370,20 +474,20 @@ class DD_PMPro_Rewards_Manager {
                     <label><strong>PMPro Level</strong></label><br>
                     <select name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][level_id]" class="widefat" <?php echo $disabled; ?>>
                         <option value="">-- Select Level --</option>
-                        <?php foreach ( $levels as $level ) : ?>
-                            <option value="<?php echo esc_attr( $level->id ); ?>" <?php selected( $level_id, $level->id ); ?>>
-                                <?php echo esc_html( $level->name ); ?>
+                        <?php foreach ($levels as $level) : ?>
+                            <option value="<?php echo esc_attr($level->id); ?>" <?php selected($level_id, $level->id); ?>>
+                                <?php echo esc_html($level->name); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
                     <label><strong>Registration Points</strong></label><br>
-                    <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][reg_points]" value="<?php echo esc_attr( $reg_points ); ?>" class="widefat" placeholder="e.g., 100" <?php echo $disabled; ?>>
+                    <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][reg_points]" value="<?php echo esc_attr($reg_points); ?>" class="widefat" placeholder="e.g., 100" <?php echo $disabled; ?>>
                 </div>
                 <div>
                     <label><strong>Monthly Recurring Points</strong></label><br>
-                    <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][monthly_points]" value="<?php echo esc_attr( $monthly_points ); ?>" class="widefat" placeholder="e.g., 50" <?php echo $disabled; ?>>
+                    <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][monthly_points]" value="<?php echo esc_attr($monthly_points); ?>" class="widefat" placeholder="e.g., 50" <?php echo $disabled; ?>>
                 </div>
             </div>
             <div style="padding: 10px 15px; border-top: 1px solid #eee; background: #fcfcfc; text-align: right;">
@@ -391,7 +495,7 @@ class DD_PMPro_Rewards_Manager {
                 <a href="#" class="dd-remove-row button button-small button-link-delete">Delete</a>
             </div>
         </div>
-        <?php
+<?php
     }
 }
 
