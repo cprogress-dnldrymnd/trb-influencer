@@ -313,11 +313,10 @@ function dd_elementor_success_scripts()
                             $summaryTarget.html(response.data.dd_custom_html);
 
                             // Hide the form fields to clean up the UI
-                            $form.find('.elementor-form-fields-wrapper').slideUp();
+                            jQuery('#outreach-submission').slideUp();
 
                             // Force hide Elementor's default success message to prevent duplication
-                            $form.siblings('.elementor-message-success').hide();
-                            $form.find('.elementor-message-success').hide();
+                            jQuery('#elementor-message-success').hide();
                         } else {
                             console.warn('Target div #outreach-form-summary not found on the page.');
                         }
