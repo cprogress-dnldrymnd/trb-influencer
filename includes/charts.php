@@ -199,7 +199,7 @@ class DD_Follower_Growth_Chart
             /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
             /* These explicitly bypass the ApexCharts JS contrast-checker to force your exact UI colors */
             
-            #ddFollowerChart .apexcharts-datalabel rect {
+            #ddFollowerChart .apexcharts-datalabels rect {
                 fill: #E2EBE8 !important; /* Solid light green background from mockup */
                 stroke: #124B43 !important; /* Solid dark green border */
                 stroke-width: 1.5px !important;
@@ -207,7 +207,7 @@ class DD_Follower_Growth_Chart
                 ry: 12px !important;
             }
 
-            #ddFollowerChart .apexcharts-datalabel text {
+            #ddFollowerChart .apexcharts-datalabels text {
                 fill: #fff !important; /* Solid dark green text */
                 font-weight: 600 !important;
             }
