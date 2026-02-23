@@ -628,7 +628,7 @@ class DD_Outreach_Manager
         <div class="dd-dashboard-list-container">
             <div class="influencer-search-filter-holder">
                 <div class="influencer-search-item">
-                    <?= select_filter('project_type', 'Project type', '', $influencer_search_fields['project_type'] ?? '') ?>
+                    <?= select_filter('project_type', 'Project type', 'Filter by project type', $influencer_search_fields['project_type'] ?? '') ?>
                 </div>
             </div>
 
