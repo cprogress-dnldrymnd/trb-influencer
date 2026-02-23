@@ -625,7 +625,7 @@ class DD_Outreach_Manager
         ];
 
         $query = new WP_Query($args);
-        $raw_fields = get_query_var('influencer_search_fields');
+        $raw_fields = get_query_var('influencer_outreach_fields');
         $influencer_outreach_fields = is_array($raw_fields) ? $raw_fields : [];
 
         ob_start();
