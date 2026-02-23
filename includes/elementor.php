@@ -210,3 +210,115 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     $ajax_handler->add_response_data('dd_custom_html', $custom_html);
 }
 add_action('elementor_pro/forms/new_record', 'dd_custom_elementor_form_response', 10, 2);
+
+/**
+ * Injects frontend JavaScript and CSS required to catch the Elementor AJAX response
+ * and render the custom HTML layout inside a specific target div (#outreach-form-summary).
+ *
+ * @return void
+ */
+function dd_elementor_success_scripts()
+{
+?>
+    <style>
+        .dd-message-overview-container {
+            font-family: inherit;
+            margin-top: 20px;
+        }
+
+        .dd-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .dd-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .dd-profile-info {
+            flex-grow: 1;
+            line-height: 1.4;
+        }
+
+        .dd-overview-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .dd-overview-header .dd-timestamp {
+            font-weight: normal;
+            color: #555;
+        }
+
+
+        .dd-btn-outline {
+            margin-left: auto;
+            padding: 8px 16px;
+            border: 1px solid #ff8a65;
+            color: #ff8a65;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+
+        .tags-container {
+            padding: 10px 20px;
+        }
+
+        .dd-subject-title {
+            color: #034146;
+            font-size: 18px !important;
+            font-weight: bold;
+            margin: 0;
+            border-top: 1px solid #E7E7E7;
+            border-bottom: 1px solid #E7E7E7;
+            font-family: Inter !important;
+            padding: 10px 20px;
+        }
+
+        .dd-message-content {
+            font-size: 15px;
+            color: #000000;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px 20px;
+            font-family: Inter;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof jQuery !== 'undefined') {
+                // Listen for Elementor's native successful form submission event
+                jQuery(document).on('submit_success', function(event, response) {
+                    if (response && response.data && response.data.dd_custom_html) {
+                        var $form = jQuery(event.target);
+                        var $summaryTarget = jQuery('#outreach-form-summary');
+
+                        if ($summaryTarget.length) {
+                            // Inject the generated HTML into the specific target div
+                            $summaryTarget.html(response.data.dd_custom_html);
+
+                            jQuery('#outreach-submission').addClass('hide-element');
+                            jQuery('#outreach-summary').removeClass('hide-element');
+                        } else {
+                            console.warn('Target div #outreach-form-summary not found on the page.');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+<?php
+}
+add_action('wp_footer', 'dd_elementor_success_scripts');
