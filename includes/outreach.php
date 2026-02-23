@@ -381,7 +381,7 @@ class DD_Outreach_Manager
                 box-sizing: border-box;
             }
 
-            .dd-note-title {
+            .dd-note-title.dd-note-title {
                 margin-top: 0;
                 font-size: 20px;
                 margin-bottom: 5px;
