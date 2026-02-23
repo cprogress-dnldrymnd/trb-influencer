@@ -224,13 +224,15 @@ function dd_elementor_success_scripts()
         .dd-message-overview-container {
             font-family: inherit;
             margin-top: 20px;
+            border-radius: 5px;
+            border: 1px solid #3B1527;
         }
 
         .dd-profile-header {
             display: flex;
             align-items: center;
             gap: 15px;
-            padding: 10px 20px;
+            padding: 15px 20px;
         }
 
         .dd-avatar {
@@ -267,11 +269,13 @@ function dd_elementor_success_scripts()
             letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
             fill: var(--e-global-color-accent);
             color: var(--e-global-color-accent);
+            border: 1px solid var(--e-global-color-accent);
             padding: 14px 23px 14px 23px;
+            border-radius: 5px;
         }
 
         .tags-container {
-            padding: 10px 20px;
+            padding: 15px 20px;
         }
 
         .dd-subject-title {
@@ -282,7 +286,7 @@ function dd_elementor_success_scripts()
             border-top: 1px solid #E7E7E7;
             border-bottom: 1px solid #E7E7E7;
             font-family: Inter !important;
-            padding: 10px 20px;
+            padding: 15px 20px;
         }
 
         .dd-message-content {
@@ -291,7 +295,7 @@ function dd_elementor_success_scripts()
             line-height: 1.6;
             max-height: 300px;
             overflow-y: auto;
-            padding: 10px 20px;
+            padding: 15px 20px;
             font-family: Inter;
         }
     </style>
