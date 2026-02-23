@@ -91,7 +91,8 @@ class DD_Outreach_Manager
                 border-bottom: 1px solid #E7E7E7;
             }
 
-            .dd-avatar {
+
+            .dd-avatar.dd-avatar.dd-avatar {
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
