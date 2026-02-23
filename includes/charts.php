@@ -157,7 +157,6 @@ class DD_Follower_Growth_Chart
                 width: 100%;
                 padding: 24px 32px;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 box-sizing: border-box;
             }
 
@@ -211,7 +210,6 @@ class DD_Follower_Growth_Chart
             #ddFollowerChart .apexcharts-datalabel text {
                 fill: #124B43 !important; /* Solid dark green text */
                 font-weight: 600 !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             }
         </style>
 
