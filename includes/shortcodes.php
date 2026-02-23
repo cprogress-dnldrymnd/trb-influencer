@@ -479,7 +479,7 @@ function shortcode_influencer_outreach_filter()
     <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item">
-                <?= select_filter('project_type', 'Project type', 'Select your tag filters', $influencer_search_fields['project_type'] ?? '') ?>
+                <?= select_filter('project_type', 'Project type', 'Filter by project type', $influencer_search_fields['project_type'] ?? '') ?>
             </div>
         </div>
     </form>

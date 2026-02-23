@@ -83,10 +83,13 @@ function my_custom_variable_setup()
     $influencer_search_fields['age'] = $age_options;
     $influencer_search_fields['filter'] = $filter_options;
 
-    $influencer_search_page = 1949;
+
+    $influencer_outreach_fields['project_type'] = $project_type_options;
+
 
     set_query_var('influencer_search_fields', $influencer_search_fields);
-    set_query_var('influencer_search_page', $influencer_search_page);
+    set_query_var('influencer_outreach_fields', $influencer_outreach_fields);
+    set_query_var('influencer_search_page', $influencer_search_page_id);
 }
 add_action('wp', 'my_custom_variable_setup');
 /**
