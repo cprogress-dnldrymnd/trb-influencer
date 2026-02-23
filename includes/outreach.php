@@ -522,8 +522,8 @@ class DD_Outreach_Manager
 
             .avatar-holder.avatar-holder img,
             .influencer-avatar-fallback {
-                width: 68px;
-                height: 68px;
+                width: var(--size, 68px);
+                height: var(--size, 68px);
                 border-radius: 50%;
                 overflow: hidden;
                 margin-right: 15px;
