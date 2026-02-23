@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic chronological data from post meta.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -50,11 +50,9 @@ class DD_Follower_Growth_Chart
 
         // 1. Group data by year-month and strictly retain the latest entry per month
         foreach ($raw_data as $entry) {
-            // Safely convert milliseconds to seconds, fallback to string parsing
             $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
             $month_key = date('Y-m', $ts);
 
-            // If this month doesn't exist yet, or if this entry is newer than the stored one, overwrite it.
             if (!isset($monthly_snapshots[$month_key]) || $ts > $monthly_snapshots[$month_key]['ts']) {
                 $monthly_snapshots[$month_key] = [
                     'ts'        => $ts,
@@ -190,29 +188,30 @@ class DD_Follower_Growth_Chart
             }
 
             .dd-pill-badge {
-                border: 1px solid #0B4646;
-                background-color: #DDEBE6;
-                color: #0B4646;
+                border: 1px solid #124B43;
+                background-color: #E2EBE8;
+                color: #124B43;
                 padding: 4px 12px;
                 border-radius: 12px;
-                font-weight: 500;
+                font-weight: 600;
                 margin-left: 10px;
             }
 
-            /* --- STRICT APEXCHARTS OVERRIDES --- */
-            /* Bypasses ApexCharts contrast checker to force custom colors on the data labels */
-            .apexcharts-datalabel rect {
-                fill: #DDEBE6 !important; /* Light green background */
-                stroke: #0B4646 !important; /* Dark green border */
+            /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
+            /* These explicitly bypass the ApexCharts JS contrast-checker to force your exact UI colors */
+            
+            #ddFollowerChart .apexcharts-datalabel rect {
+                fill: #E2EBE8 !important; /* Solid light green background from mockup */
+                stroke: #124B43 !important; /* Solid dark green border */
                 stroke-width: 1.5px !important;
-                rx: 10px !important; /* Pill shape */
-                ry: 10px !important;
+                rx: 12px !important; /* Perfectly rounded pill caps */
+                ry: 12px !important;
             }
 
-            .apexcharts-datalabel text {
-                fill: #0B4646 !important; /* Dark green text */
-                font-weight: 700 !important;
-                font-size: 11px !important;
+            #ddFollowerChart .apexcharts-datalabel text {
+                fill: #124B43 !important; /* Solid dark green text */
+                font-weight: 600 !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
             }
         </style>
 
@@ -246,10 +245,9 @@ class DD_Follower_Growth_Chart
                     return;
                 }
 
-                // Data mapping based on your explicit requirements
-                const chartTotals = ddChartPayload.totals; // Maps to Left Label and Bar Height
-                const chartGains = ddChartPayload.gains;   // Maps to Top Label
-                const chartLabels = ddChartPayload.labels; // Maps to Bottom Label
+                const chartTotals = ddChartPayload.totals; 
+                const chartGains = ddChartPayload.gains;   
+                const chartLabels = ddChartPayload.labels; 
 
                 document.getElementById('ddSummaryBadge').innerText = 'Gained ' + ddChartPayload.summary_gain + ' followers';
 
@@ -286,16 +284,23 @@ class DD_Follower_Growth_Chart
                     dataLabels: {
                         enabled: true,
                         formatter: function (val, opts) {
-                            // Fetch the calculated GAIN value from the payload instead of the TOTAL
                             const gain = chartGains[opts.dataPointIndex];
-                            return formatToK(gain);
+                            return formatToK(gain); // Removed '+' prefix to match mockup exactly
                         },
                         offsetY: -25,
+                        style: {
+                            fontSize: '11px',
+                            colors: ['#124B43'] // Fallback if CSS fails
+                        },
                         background: {
                             enabled: true,
+                            foreColor: '#124B43',
                             padding: 6,
+                            borderRadius: 12,
+                            borderWidth: 1.5,
+                            borderColor: '#124B43',
+                            opacity: 1, // Required to tell ApexCharts to render the SVG rect element so our CSS can style it
                             dropShadow: { enabled: false }
-                            // Note: Colors are explicitly handled by the CSS block above to prevent Apex JS overrides
                         }
                     },
                     xaxis: {
@@ -307,7 +312,6 @@ class DD_Follower_Growth_Chart
                         }
                     },
                     yaxis: {
-                        min: 0,
                         labels: {
                             formatter: formatToK,
                             style: { colors: '#555', fontSize: '11px' }
