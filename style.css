@@ -135,6 +135,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
       box-sizing: border-box;
       transition: border-color 0.2s;
       gap: 10px; }
+      .filter-widget .dropdown-container .dropdown-button .custom-group-error {
+        position: absolute;
+        left: 0;
+        top: -28px; }
       .filter-widget .dropdown-container .dropdown-button:hover {
         border-color: #9ca3af; }
       .filter-widget .dropdown-container .dropdown-button .arrow-holder {
