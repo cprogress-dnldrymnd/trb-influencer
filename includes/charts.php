@@ -198,7 +198,9 @@ class DD_Follower_Growth_Chart
 
             /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
             /* These explicitly bypass the ApexCharts JS contrast-checker to force your exact UI colors */
-            
+            #ddFollowerChart * {
+                font-family: Inter !important;
+            }
             #ddFollowerChart .apexcharts-datalabels rect {
                 fill: #F0FFF4 !important; /* Solid light green background from mockup */
                 stroke: #034146 !important; /* Solid dark green border */
