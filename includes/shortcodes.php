@@ -462,7 +462,6 @@ function shortcode_influencer_search_filter()
 add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 
 
-
 function shortcode_influencer_search_filter_main()
 {
     ob_start();

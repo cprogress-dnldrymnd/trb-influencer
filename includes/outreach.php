@@ -625,22 +625,9 @@ class DD_Outreach_Manager
         ob_start();
     ?>
         <div class="dd-dashboard-list-container">
-            <div class="dd-filter-search">
-                <input type="text" placeholder="Search by influencer or message">
-            </div>
-            <div class="dd-filter-controls">
-                <div class="dd-filter-label-row">
-                    <strong>Project type</strong>
-                    <a href="#" class="dd-filter-reset">Reset</a>
-                </div>
-                <select class="dd-filter-select">
-                    <option value="">Filter by project type</option>
-                    <option value="affiliate">Affiliate partnership</option>
-                    <option value="collaboration">Collaboration</option>
-                </select>
-                <div class="dd-filter-buttons-row">
-                    <button class="dd-filter-btn active">All</button>
-                    <button class="dd-filter-btn">Favourites</button>
+            <div class="influencer-search-filter-holder">
+                <div class="influencer-search-item">
+                    <?= select_filter('project_type', 'Project type', '', $influencer_search_fields['project_type'] ?? '') ?>
                 </div>
             </div>
 
