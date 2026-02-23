@@ -231,7 +231,6 @@ function convertDecimalToPercentage(float $decimal, int $precision = 2): string
 // echo convertDecimalToPercentage(1.2, 0);    // Outputs: 120%
 // echo convertDecimalToPercentage(0.005, 3);  // Outputs: 0.500%
 
-?>
 
 
 /**
