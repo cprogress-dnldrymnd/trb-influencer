@@ -461,6 +461,35 @@ function shortcode_influencer_search_filter()
 
 add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 
+
+
+function shortcode_influencer_outreach_filter()
+{
+    ob_start();
+
+    // 1. Safety check: Ensure fields variable is an array
+    $raw_fields = get_query_var('influencer_search_fields');
+    $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+
+    $influencer_search_page = get_query_var('influencer_search_page');
+
+    // 2. Safety check: Ensure permalink exists before echoing
+    $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
+?>
+    <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
+        <div class="influencer-search-filter-holder">
+            <div class="influencer-search-item">
+                <?= select_filter('project_type', 'Project type', 'Select your tag filters', $influencer_search_fields['project_type'] ?? '') ?>
+            </div>
+        </div>
+    </form>
+
+<?php
+    return ob_get_clean();
+}
+
+add_shortcode('influencer_outreach_filter', 'shortcode_influencer_outreach_filter');
+
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
