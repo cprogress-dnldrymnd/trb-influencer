@@ -208,7 +208,7 @@ class DD_Follower_Growth_Chart
             }
 
             #ddFollowerChart .apexcharts-datalabel text {
-                fill: #124B43 !important; /* Solid dark green text */
+                fill: #fff !important; /* Solid dark green text */
                 font-weight: 600 !important;
             }
         </style>
