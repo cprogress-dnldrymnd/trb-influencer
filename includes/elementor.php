@@ -176,11 +176,11 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     <div class="dd-message-overview-container">
 
         <div class="dd-overview-body">
-            <div class="dd-dynamic-tags">
-                <span class="dd-tag"><strong>Project type:</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
-                <span class="dd-tag"><strong>Project length:</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
-                <span class="dd-tag"><strong>Project Dates:</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
-                <span class="dd-tag"><strong>Budget:</strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
+            <div class="tags-container">
+                <span class="tag"><strong>Project type:</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
+                <span class="tag"><strong>Project length:</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
+                <span class="tag"><strong>Project Dates:</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
+                <span class="tag"><strong>Budget:</strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
             </div>
 
             <h3 class="dd-subject-title"><?php echo esc_html($data['subject']); ?></h3>
@@ -226,31 +226,6 @@ function dd_elementor_success_scripts()
             color: #555;
         }
 
-        .dd-overview-body {
-            border: 1px solid #90caf9;
-            border-radius: 8px;
-            background: #f4f6f8;
-            padding: 25px;
-            text-align: left;
-        }
-
-        .dd-profile-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .dd-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-        }
-
-        .dd-profile-info {
-            flex-grow: 1;
-            line-height: 1.4;
-        }
 
         .dd-btn-outline {
             margin-left: auto;
@@ -264,24 +239,8 @@ function dd_elementor_success_scripts()
             text-decoration: none;
         }
 
-        .dd-dynamic-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 25px;
-            padding-bottom: 25px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .dd-tag {
-            background: transparent;
-            border: 1px solid #00695c;
-            color: #004d40;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-        }
-
+     
+      
         .dd-subject-title {
             color: #004d40;
             margin-bottom: 15px;
