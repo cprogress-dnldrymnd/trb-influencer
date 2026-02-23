@@ -586,7 +586,7 @@ class DD_Outreach_Manager
     ?>
         <div class="dd-message-overview">
             <span class="m-overview">Message overview</span>
-            <span class="date">Sent at <?php echo esc_html($datesent_date_sent); ?></span>
+            <span class="date">Sent at <?php echo esc_html($sent_date); ?></span>
         </div>
         <div class="dd-message-overview-container">
             <div class="dd-profile-header">
