@@ -93,7 +93,7 @@ class DD_Outreach_Manager
             .dd-message-sent-date {
                 padding: 15px 20px;
                 border-bottom: 1px solid #E7E7E7;
-
+                font-size: 14px;
             }
 
             .dd-overview-header {
