@@ -469,7 +469,6 @@ class DD_Outreach_Manager
             $data[$id] = $field['value'];
         }
 
-        $influencer_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         $current_user_id = get_current_user_id();
 
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
@@ -489,7 +488,6 @@ class DD_Outreach_Manager
                 update_post_meta($post_id, sanitize_key($meta_key), $sanitized_value);
             }
 
-            update_post_meta($post_id, 'influencer_id', $influencer_id);
 
             if (function_exists('deduct_points_from_current_user')) {
                 deduct_points_from_current_user(1, 'Outreach Form Submission');
