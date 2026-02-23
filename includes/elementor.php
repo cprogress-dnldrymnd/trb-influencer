@@ -142,13 +142,12 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
     }
 });
 
-
 /**
  * Intercepts the Elementor Form submission to compile a custom HTML payload 
  * using the submitted field values and appends it to the AJAX response.
  * Execution is strictly limited to the 'outreach_form' form ID.
  *
- * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record       The form submission record.
+ * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record     The form submission record.
  * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler The AJAX handler managing the response.
  * @return void
  */
@@ -156,7 +155,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
 {
     // Retrieve the form ID to ensure this only runs for the target form
     $form_id = $record->get_form_settings('form_id');
-    
+
     if ('outreach_form' !== $form_id) {
         return; // Exit early if it's not the outreach_form
     }
@@ -170,11 +169,25 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
         $data[$id] = $field['value'];
     }
 
+    // Generate the current date
+    $date_sent = date_i18n(get_option('date_format'));
+
     // Capture the structured HTML layout
     ob_start();
 ?>
+    <div class="dd-message-overview">
+        <span class="m-overview">Message overview</span>
+        <span class="date"><?php echo esc_html($date_sent); ?></span>
+    </div>
     <div class="dd-message-overview-container">
-
+        <div class="dd-profile-header">
+            <img src="https://ui-avatars.com/api/?name=Cory+Ruth&background=random&rounded=true" alt="Profile" class="dd-avatar">
+            <div class="dd-profile-info">
+                <strong><?php echo get_the_title(); ?></strong><br>
+                <small>@<?php echo get_post_meta(get_the_ID(), 'instagramId', true); ?></small>
+            </div>
+            <a href="<?= get_the_permalink() ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
+        </div>
         <div class="dd-overview-body">
             <div class="tags-container">
                 <span class="tag"><strong>Project type:</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
@@ -183,7 +196,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
                 <span class="tag"><strong>Budget:</strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
             </div>
 
-            <h3 class="dd-subject-title"><?php echo esc_html($data['subject']); ?></h3>
+            <h3 class="dd-subject-title"><?php echo esc_html($data['subject'] ?? 'No Subject'); ?></h3>
 
             <div class="dd-message-content">
                 <?php echo nl2br(esc_html($data['message'] ?? 'No message provided.')); ?>
@@ -197,97 +210,3 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     $ajax_handler->add_response_data('dd_custom_html', $custom_html);
 }
 add_action('elementor_pro/forms/new_record', 'dd_custom_elementor_form_response', 10, 2);
-
-/**
- * Injects frontend JavaScript and CSS required to catch the Elementor AJAX response
- * and render the custom HTML layout inside a specific target div (#outreach-form-summary).
- *
- * @return void
- */
-function dd_elementor_success_scripts()
-{
-?>
-    <style>
-        .dd-message-overview-container {
-            font-family: inherit;
-            margin-top: 20px;
-        }
-
-        .dd-overview-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .dd-overview-header .dd-timestamp {
-            font-weight: normal;
-            color: #555;
-        }
-
-
-        .dd-btn-outline {
-            margin-left: auto;
-            padding: 8px 16px;
-            border: 1px solid #ff8a65;
-            color: #ff8a65;
-            text-transform: uppercase;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-
-        .tags-container {
-            padding: 10px 20px;
-        }
-      
-        .dd-subject-title {
-            color: #034146;
-            font-size: 18px !important;
-            font-weight: bold;
-            margin: 0;
-            border-top: 1px solid #E7E7E7;
-            border-bottom: 1px solid #E7E7E7;
-            font-family: Inter !important;
-            padding: 10px 20px;
-        }
-
-        .dd-message-content {
-            font-size: 15px;
-            color: #000000;
-            line-height: 1.6;
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 10px 20px;
-            font-family: Inter;
-        }
-    </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof jQuery !== 'undefined') {
-                // Listen for Elementor's native successful form submission event
-                jQuery(document).on('submit_success', function(event, response) {
-                    if (response && response.data && response.data.dd_custom_html) {
-                        var $form = jQuery(event.target);
-                        var $summaryTarget = jQuery('#outreach-form-summary');
-
-                        if ($summaryTarget.length) {
-                            // Inject the generated HTML into the specific target div
-                            $summaryTarget.html(response.data.dd_custom_html);
-
-                            jQuery('#outreach-submission').addClass('hide-element');
-                            jQuery('#outreach-summary').removeClass('hide-element');
-                        } else {
-                            console.warn('Target div #outreach-form-summary not found on the page.');
-                        }
-                    }
-                });
-            }
-        });
-    </script>
-<?php
-}
-add_action('wp_footer', 'dd_elementor_success_scripts');
