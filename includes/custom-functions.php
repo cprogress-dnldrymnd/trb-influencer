@@ -207,6 +207,32 @@ function wp_custom_number_format_short($number, $precision = 1)
 }
 
 
+/**
+ * Converts a decimal value to a formatted percentage string.
+ *
+ * This function multiplies the provided decimal by 100 and formats the output
+ * using number_format() to guarantee consistent decimal places. 
+ * Strict typing is enforced for both parameters and the return value.
+ *
+ * @param float $decimal   The raw decimal value to convert (e.g., 0.1234).
+ * @param int   $precision The number of decimal places for the output. Defaults to 2.
+ * @return string          The formatted percentage string appended with the '%' symbol.
+ */
+function convertDecimalToPercentage(float $decimal, int $precision = 2): string 
+{
+    $percentage = $decimal * 100;
+    
+    // number_format handles rounding and trailing zeros automatically
+    return number_format($percentage, $precision) . '%';
+}
+
+// Example Usage:
+// echo convertDecimalToPercentage(0.4567);    // Outputs: 45.67%
+// echo convertDecimalToPercentage(1.2, 0);    // Outputs: 120%
+// echo convertDecimalToPercentage(0.005, 3);  // Outputs: 0.500%
+
+?>
+
 
 /**
  * Helper function: Map 3-letter codes to 2-letter codes

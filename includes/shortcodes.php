@@ -151,6 +151,13 @@ function shortcode_influencer_followers()
 
 add_shortcode('influencer_followers', 'shortcode_influencer_followers');
 
+function shortcode_influencer_engagerate()
+{
+    return convertDecimalToPercentage(get_post_meta(get_the_ID(), 'engagerate', true));
+}
+
+add_shortcode('influencer_engagerate', 'shortcode_influencer_engagerate');
+
 function shortcode_influence_isverified()
 {
     $is_verified = get_post_meta(get_the_ID(), 'isverified', true);
