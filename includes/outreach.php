@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.6.0
+ * Version: 1.7.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -41,7 +41,7 @@ class DD_Outreach_Manager
         // AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
-
+        
         // AJAX Handlers for Notes CRUD
         add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
         add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
@@ -51,7 +51,6 @@ class DD_Outreach_Manager
 
         // Backend Meta Boxes
         add_action('add_meta_boxes', [$this, 'add_note_meta_box']);
-        add_action('save_post', [$this, 'save_note_meta_box']);
     }
 
     /**
@@ -349,7 +348,8 @@ class DD_Outreach_Manager
             .dd-notes-grid {
                 display: flex;
                 gap: 20px;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
+                align-items: flex-start;
                 margin-top: 20px;
             }
 
@@ -361,11 +361,19 @@ class DD_Outreach_Manager
                 border-radius: 8px;
                 padding: 20px;
                 box-sizing: border-box;
+                position: sticky;
+                top: 20px;
+            }
+
+            .dd-notes-list-container {
+                flex: 1;
+                min-width: 280px;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
             }
 
             .dd-steps-card {
-                flex: 1;
-                min-width: 280px;
                 background: #fff;
                 border: 1px solid #e0e0e0;
                 border-radius: 8px;
@@ -419,7 +427,7 @@ class DD_Outreach_Manager
                 font-size: 13px;
                 transition: opacity 0.2s;
             }
-
+            
             .dd-note-btn:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
@@ -465,14 +473,13 @@ class DD_Outreach_Manager
                 color: #ccc;
                 margin-top: 10px;
             }
-            .dd-note-btn {
-                padding: 12px 20px;
-                border: 1px solid #BCBCBC;
-            } 
-            #dd-save-note {
-                background-color:#FFE17B;
-                border-color: #FFE17B;;
-                color: #000000;
+
+            .dd-no-notes {
+                text-align: center;
+                color: #888;
+                padding: 20px;
+                border: 1px dashed #ccc;
+                border-radius: 8px;
             }
         </style>
     <?php
@@ -635,12 +642,13 @@ class DD_Outreach_Manager
 
     /**
      * Backend Meta Box setup for the wp-admin screen.
+     * Provides a read-only list of all notes created for the project.
      */
     public function add_note_meta_box()
     {
         add_meta_box(
             'dd_outreach_note_meta',
-            'Project Note',
+            'Project Notes Monitor',
             [$this, 'render_note_meta_box'],
             'outreach',
             'side',
@@ -653,97 +661,141 @@ class DD_Outreach_Manager
      */
     public function render_note_meta_box($post)
     {
-        $note_title   = get_post_meta($post->ID, 'dd_note_title', true);
-        $note_content = get_post_meta($post->ID, 'dd_note_content', true);
-        $note_date    = get_post_meta($post->ID, 'dd_note_date', true);
-
-        wp_nonce_field('dd_save_note_meta', 'dd_note_meta_nonce');
-
-        echo '<p><strong>Note Title:</strong><br>';
-        echo '<input type="text" name="dd_note_title" value="' . esc_attr($note_title) . '" style="width:100%;" /></p>';
-        echo '<p><strong>Note Content:</strong><br>';
-        echo '<textarea name="dd_note_content" rows="6" style="width:100%;">' . esc_textarea($note_content) . '</textarea></p>';
-
-        if ($note_date) {
-            echo '<p style="color:#888; font-size:12px;">Last updated: ' . esc_html(date_i18n('F jS, Y \a\t g:i a', strtotime($note_date))) . '</p>';
+        $notes = get_post_meta($post->ID, 'dd_outreach_project_notes', true);
+        
+        if (empty($notes) || !is_array($notes)) {
+            echo '<p style="color:#666;">No notes have been added to this project yet.</p>';
+            return;
         }
+
+        echo '<div style="max-height: 500px; overflow-y: auto;">';
+        foreach ($notes as $note) {
+            echo '<div style="background: #fdf5e6; border: 1px solid #e0e0e0; padding: 12px; margin-bottom: 12px; border-radius: 4px;">';
+            echo '<h4 style="margin: 0 0 5px 0;">' . esc_html($note['title']) . '</h4>';
+            echo '<p style="margin: 0 0 10px 0; font-size: 13px; color: #444;">' . nl2br(esc_html($note['content'])) . '</p>';
+            echo '<small style="color: #999;">Last edited: ' . esc_html(date_i18n('F jS, Y \a\t g:i a', strtotime($note['date']))) . '</small>';
+            echo '</div>';
+        }
+        echo '</div>';
     }
 
     /**
-     * Saves the backend meta box data when the post is saved/updated.
+     * Renders the HTML block for all notes assigned to a post.
+     * Reused by the main render view and the AJAX response.
      */
-    public function save_note_meta_box($post_id)
+    private function generate_notes_list_html($post_id) 
     {
-        if (!isset($_POST['dd_note_meta_nonce']) || !wp_verify_nonce($_POST['dd_note_meta_nonce'], 'dd_save_note_meta')) {
-            return;
-        }
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
-        }
-        if (!current_user_can('edit_post', $post_id)) {
-            return;
-        }
+        $notes = get_post_meta($post_id, 'dd_outreach_project_notes', true);
+        $html = '';
 
-        if (isset($_POST['dd_note_title'])) {
-            update_post_meta($post_id, 'dd_note_title', sanitize_text_field($_POST['dd_note_title']));
+        if (empty($notes) || !is_array($notes)) {
+            $html .= '<div class="dd-no-notes">No notes have been added to this project yet.</div>';
+        } else {
+            // Display newest notes first
+            $notes = array_reverse($notes); 
+
+            foreach ($notes as $note) {
+                $fmt_date = date_i18n('F jS, Y', strtotime($note['date']));
+                $title    = esc_html($note['title']);
+                $content  = nl2br(esc_html($note['content']));
+                $raw      = esc_textarea($note['content']);
+                $note_id  = esc_attr($note['id']);
+
+                $html .= '<div class="dd-steps-card" data-note-id="'.$note_id.'">';
+                $html .= '<h4 class="dd-note-title dd-display-note-title">'.$title.'</h4>';
+                $html .= '<div class="dd-steps-content dd-display-note-content">'.$content.'</div>';
+                // Hidden textarea retains raw format for editing
+                $html .= '<textarea class="dd-raw-note-content" style="display:none;">'.$raw.'</textarea>';
+                
+                $html .= '<div class="dd-steps-actions">';
+                $html .= '<button class="dd-delete-note dd-delete-btn" data-post-id="'.esc_attr($post_id).'" data-note-id="'.$note_id.'">DELETE NOTE</button>';
+                $html .= '<button class="dd-edit-note dd-edit-btn" data-post-id="'.esc_attr($post_id).'" data-note-id="'.$note_id.'">EDIT NOTE</button>';
+                $html .= '</div>';
+                
+                $html .= '<p class="dd-last-edited">Last edited '.$fmt_date.'</p>';
+                $html .= '</div>';
+            }
         }
-        if (isset($_POST['dd_note_content'])) {
-            update_post_meta($post_id, 'dd_note_content', sanitize_textarea_field($_POST['dd_note_content']));
-            update_post_meta($post_id, 'dd_note_date', current_time('mysql'));
-        }
+        return $html;
     }
 
     /**
-     * AJAX endpoint to save the note from the frontend view dashboard.
+     * AJAX endpoint to save or update a note from the frontend view dashboard.
      */
     public function ajax_save_outreach_note()
     {
         check_ajax_referer('dd_outreach_nonce', 'security');
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
             wp_send_json_error('Unauthorized.');
         }
 
+        $note_id = isset($_POST['note_id']) ? sanitize_text_field($_POST['note_id']) : '';
         $title   = isset($_POST['note_title']) ? sanitize_text_field($_POST['note_title']) : '';
         $content = isset($_POST['note_content']) ? sanitize_textarea_field($_POST['note_content']) : '';
         $date    = current_time('mysql');
 
-        update_post_meta($post_id, 'dd_note_title', $title);
-        update_post_meta($post_id, 'dd_note_content', $content);
-        update_post_meta($post_id, 'dd_note_date', $date);
+        $notes = get_post_meta($post_id, 'dd_outreach_project_notes', true);
+        if (!is_array($notes)) $notes = [];
 
-        wp_send_json_success([
-            'date' => date_i18n('F jS, Y \a\t g:i a', strtotime($date))
-        ]);
+        if (!empty($note_id)) {
+            // Update existing note
+            foreach ($notes as &$note) {
+                if ($note['id'] === $note_id) {
+                    $note['title'] = $title;
+                    $note['content'] = $content;
+                    $note['date'] = $date;
+                    break;
+                }
+            }
+        } else {
+            // Create new note
+            $notes[] = [
+                'id'      => uniqid('note_'),
+                'title'   => $title,
+                'content' => $content,
+                'date'    => $date
+            ];
+        }
+
+        update_post_meta($post_id, 'dd_outreach_project_notes', $notes);
+
+        // Return the fresh HTML for the notes list
+        wp_send_json_success($this->generate_notes_list_html($post_id));
     }
 
     /**
-     * AJAX endpoint to delete the note from the frontend view dashboard.
+     * AJAX endpoint to delete a specific note from the frontend view dashboard.
      */
     public function ajax_delete_outreach_note()
     {
         check_ajax_referer('dd_outreach_nonce', 'security');
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
             wp_send_json_error('Unauthorized.');
         }
 
-        delete_post_meta($post_id, 'dd_note_title');
-        delete_post_meta($post_id, 'dd_note_content');
-        delete_post_meta($post_id, 'dd_note_date');
+        $note_id = isset($_POST['note_id']) ? sanitize_text_field($_POST['note_id']) : '';
+        $notes = get_post_meta($post_id, 'dd_outreach_project_notes', true);
 
-        wp_send_json_success('Deleted.');
+        if (is_array($notes) && !empty($note_id)) {
+            // Filter out the deleted note
+            $notes = array_filter($notes, function($note) use ($note_id) {
+                return $note['id'] !== $note_id;
+            });
+            // Re-index array
+            $notes = array_values($notes);
+            update_post_meta($post_id, 'dd_outreach_project_notes', $notes);
+        }
+
+        // Return the fresh HTML for the notes list
+        wp_send_json_success($this->generate_notes_list_html($post_id));
     }
 
     /**
      * Renders the left-side panel (list and filters) via shortcode [dd_outreach_list].
-     *
-     * @param array $atts Shortcode attributes.
-     * @return string Compiled HTML block.
      */
     public function render_list_shortcode($atts)
     {
@@ -788,13 +840,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Helper function to generate the HTML for the item list, used by both the shortcode and AJAX.
-     * Implements multi-value LIKE query to handle arrays of project types/lengths extracted from the custom select tool.
-     *
-     * @param string $search_query Optional search string.
-     * @param array  $project_types Optional array of meta filters for project type.
-     * @param array  $project_lengths Optional array of meta filters for project length.
-     * @return string HTML output of the list.
+     * Helper function to generate the HTML for the item list.
      */
     private function generate_list_html($search_query = '', $project_types = [], $project_lengths = [])
     {
@@ -809,10 +855,8 @@ class DD_Outreach_Manager
             $args['s'] = sanitize_text_field($search_query);
         }
 
-        // We use AND at the top level because we want a project to match Type AND Length 
         $meta_query = ['relation' => 'AND'];
 
-        // Handle Project Type checkboxes (OR logic internally)
         if (!empty($project_types) && is_array($project_types)) {
             $type_query = ['relation' => 'OR'];
             foreach ($project_types as $type) {
@@ -824,12 +868,11 @@ class DD_Outreach_Manager
                     ];
                 }
             }
-            if (count($type_query) > 1) { // Apply only if valid filters exist inside
+            if (count($type_query) > 1) {
                 $meta_query[] = $type_query;
             }
         }
 
-        // Handle Project Length checkboxes (OR logic internally)
         if (!empty($project_lengths) && is_array($project_lengths)) {
             $length_query = ['relation' => 'OR'];
             foreach ($project_lengths as $length) {
@@ -841,13 +884,12 @@ class DD_Outreach_Manager
                     ];
                 }
             }
-            if (count($length_query) > 1) { // Apply only if valid filters exist inside
+            if (count($length_query) > 1) {
                 $meta_query[] = $length_query;
             }
         }
 
-        // Inject the meta query if any valid filters were collected
-        if (count($meta_query) > 1) {
+        if (count($meta_query) > 1) { 
             $args['meta_query'] = $meta_query;
         }
 
@@ -884,9 +926,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * AJAX endpoint to filter the outreach list based on search term and dropdowns.
-     *
-     * @return void
+     * AJAX endpoint to filter the outreach list.
      */
     public function ajax_filter_outreach_list()
     {
@@ -897,7 +937,7 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-
+        
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
         $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
@@ -908,9 +948,6 @@ class DD_Outreach_Manager
 
     /**
      * Renders the right-side panel placeholder via shortcode [dd_outreach_view].
-     *
-     * @param array $atts Shortcode attributes.
-     * @return string Compiled HTML block.
      */
     public function render_view_shortcode($atts)
     {
@@ -920,9 +957,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * AJAX endpoint to fetch specific outreach post details, including the saved note.
-     *
-     * @return void
+     * AJAX endpoint to fetch specific outreach post details.
      */
     public function ajax_get_outreach_details()
     {
@@ -943,19 +978,12 @@ class DD_Outreach_Manager
         $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
         $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
 
-        // Fetch meta values
         $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
         $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
         $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
         $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
         $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
         $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
-
-        // Fetch Note Data
-        $note_title     = get_post_meta($post_id, 'dd_note_title', true);
-        $note_content   = get_post_meta($post_id, 'dd_note_content', true);
-        $note_date_raw  = get_post_meta($post_id, 'dd_note_date', true);
-        $note_date_fmt  = $note_date_raw ? date_i18n('F jS, Y \a\t g:i a', strtotime($note_date_raw)) : '';
 
         ob_start();
     ?>
@@ -989,27 +1017,19 @@ class DD_Outreach_Manager
 
         <div class="dd-notes-grid">
             <div class="dd-note-card">
-                <h4 class="dd-note-title">📝 Create a note for this project</h4>
+                <h4 class="dd-note-title" id="dd-note-form-heading">📝 Create a note for this project</h4>
                 <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
-                <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title" value="">
+                <input type="hidden" id="dd-note-input-id" value="">
+                <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
                 <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
-                <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
-                        <path id="saved" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
-                    </svg> SAVE NOTE</button>
+                <div style="display:flex; gap:10px;">
+                    <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>">💾 SAVE NOTE</button>
+                    <button id="dd-cancel-edit-note" class="dd-delete-btn" style="display:none; margin-top:10px;">CANCEL</button>
+                </div>
             </div>
 
-            <div class="dd-steps-card" id="dd-saved-note-container" style="<?php echo empty($note_content) ? 'display:none;' : ''; ?>">
-                <h4 class="dd-note-title" id="dd-display-note-title"><?php echo esc_html($note_title); ?></h4>
-                <div class="dd-steps-content" id="dd-display-note-content">
-                    <?php echo nl2br(esc_html($note_content)); ?>
-                </div>
-                <textarea id="dd-raw-note-content" style="display:none;"><?php echo esc_textarea($note_content); ?></textarea>
-
-                <div class="dd-steps-actions">
-                    <button id="dd-delete-note" class="dd-delete-btn" data-post-id="<?php echo esc_attr($post_id); ?>">DELETE NOTE</button>
-                    <button id="dd-edit-note" class="dd-edit-btn">EDIT NOTE</button>
-                </div>
-                <p class="dd-last-edited" id="dd-display-note-date">Last edited <?php echo esc_html($note_date_fmt); ?></p>
+            <div class="dd-notes-list-container" id="dd-notes-list-wrapper">
+                <?php echo $this->generate_notes_list_html($post_id); ?>
             </div>
         </div>
 <?php
@@ -1018,10 +1038,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Enqueues the custom jQuery required to bridge the list clicks with the AJAX
-     * endpoint, handles filtering events, and coordinates Note CRUD operations.
-     *
-     * @return void
+     * Enqueues the custom jQuery.
      */
     public function enqueue_dashboard_scripts()
     {
@@ -1135,16 +1152,17 @@ class DD_Outreach_Manager
             // --- 3. Note CRUD Event Delegation ---
             var viewContainer = $('#dd-outreach-view-container');
 
-            // Save Action
+            // Save / Update Action
             viewContainer.on('click', '#dd-save-note', function(e) {
                 e.preventDefault();
                 var btn = $(this);
                 var postId = btn.data('post-id');
+                var noteId = $('#dd-note-input-id').val();
                 var title = $('#dd-note-input-title').val();
                 var content = $('#dd-note-input-content').val();
 
                 if (!content.trim()) {
-                    alert('Please enter a note before saving.');
+                    alert('Please enter note content before saving.');
                     return;
                 }
 
@@ -1157,22 +1175,18 @@ class DD_Outreach_Manager
                         action: 'dd_save_outreach_note',
                         security: ddOutreach.nonce,
                         post_id: postId,
+                        note_id: noteId,
                         note_title: title,
                         note_content: content
                     },
                     success: function(res) {
                         btn.text('💾 SAVE NOTE').prop('disabled', false);
                         if(res.success) {
-                            // Populate the Read-Only card with new data
-                            $('#dd-display-note-title').text(title);
-                            $('#dd-display-note-content').html(content.replace(/\\n/g, '<br>'));
-                            $('#dd-raw-note-content').val(content);
-                            $('#dd-display-note-date').text('Last edited ' + res.data.date);
+                            // Inject the freshly built list of notes into the wrapper
+                            $('#dd-notes-list-wrapper').html(res.data);
                             
-                            // Reveal the saved card and clear the input form
-                            $('#dd-saved-note-container').fadeIn();
-                            $('#dd-note-input-title').val('');
-                            $('#dd-note-input-content').val('');
+                            // Reset form back to \"Create\" state
+                            $('#dd-cancel-edit-note').trigger('click');
                         } else {
                             alert('An error occurred while saving the note.');
                         }
@@ -1180,24 +1194,43 @@ class DD_Outreach_Manager
                 });
             });
 
-            // Edit Action
-            viewContainer.on('click', '#dd-edit-note', function(e) {
+            // Edit Action (Populate Form)
+            viewContainer.on('click', '.dd-edit-note', function(e) {
                 e.preventDefault();
-                var currentTitle = $('#dd-display-note-title').text();
-                var currentContent = $('#dd-raw-note-content').val();
+                var card = $(this).closest('.dd-steps-card');
+                var noteId = $(this).data('note-id');
+                var currentTitle = card.find('.dd-display-note-title').text();
+                var currentContent = card.find('.dd-raw-note-content').val();
                 
+                $('#dd-note-input-id').val(noteId);
                 $('#dd-note-input-title').val(currentTitle);
                 $('#dd-note-input-content').val(currentContent);
+                
+                $('#dd-note-form-heading').text('✏️ Edit Note');
+                $('#dd-cancel-edit-note').show();
                 $('#dd-note-input-content').focus();
             });
 
+            // Cancel Edit Action
+            viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
+                e.preventDefault();
+                $('#dd-note-input-id').val('');
+                $('#dd-note-input-title').val('');
+                $('#dd-note-input-content').val('');
+                $('#dd-note-form-heading').text('📝 Create a note for this project');
+                $(this).hide();
+            });
+
             // Delete Action
-            viewContainer.on('click', '#dd-delete-note', function(e) {
+            viewContainer.on('click', '.dd-delete-note', function(e) {
                 e.preventDefault();
                 if (!confirm('Are you sure you want to permanently delete this note?')) return;
                 
                 var btn = $(this);
                 var postId = btn.data('post-id');
+                var noteId = btn.data('note-id');
+
+                btn.text('DELETING...').prop('disabled', true);
 
                 $.ajax({
                     url: ddOutreach.ajax_url,
@@ -1205,14 +1238,18 @@ class DD_Outreach_Manager
                     data: {
                         action: 'dd_delete_outreach_note',
                         security: ddOutreach.nonce,
-                        post_id: postId
+                        post_id: postId,
+                        note_id: noteId
                     },
                     success: function(res) {
                         if(res.success) {
-                            $('#dd-saved-note-container').fadeOut();
-                            $('#dd-note-input-title').val('');
-                            $('#dd-note-input-content').val('');
-                            $('#dd-raw-note-content').val('');
+                            // Inject updated notes list
+                            $('#dd-notes-list-wrapper').html(res.data);
+                            
+                            // If they delete the note they were currently editing, reset the form
+                            if ($('#dd-note-input-id').val() === noteId) {
+                                $('#dd-cancel-edit-note').trigger('click');
+                            }
                         }
                     }
                 });
