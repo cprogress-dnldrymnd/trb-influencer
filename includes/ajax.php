@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
@@ -15,6 +16,7 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
  */
 function my_custom_loop_filter_handler()
 {
+    $testing_html = '';
     // 1. GATHER INPUTS (explicit form values)
     $explicit = [
         'niche'        => isset($_POST['niche']) ? $_POST['niche'] : [],
@@ -180,7 +182,7 @@ function my_custom_loop_filter_handler()
     $min_results = 6;
     $has_broadening_filters = !empty($country) || !empty($followers) || !empty($lang)
         || (!empty($filter) && in_array('Include only verified influencers', $filter, true));
-        
+
     if ($query->found_posts < $min_results && $has_broadening_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
         $broadened_args = [
             'post_type'      => 'influencer',
@@ -188,7 +190,7 @@ function my_custom_loop_filter_handler()
             'post_status'    => 'publish',
             'paged'          => $paged, // <--- FIX 3: Add pagination to fallback
         ];
-        
+
         $content_tax = [];
         if (!empty($niche)) {
             $content_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
@@ -199,7 +201,7 @@ function my_custom_loop_filter_handler()
         if (!empty($content_tag)) {
             $content_tax[] = ['taxonomy' => 'content_tag', 'field' => 'slug', 'terms' => $content_tag];
         }
-        
+
         $broadened_tax = [];
         if (count($content_tax) > 1) {
             $content_tax['relation'] = 'OR';
@@ -216,7 +218,7 @@ function my_custom_loop_filter_handler()
         if (!empty($broadened_tax)) {
             $broadened_args['tax_query'] = $broadened_tax;
         }
-        
+
         $query = new WP_Query($broadened_args);
     }
 
@@ -228,7 +230,7 @@ function my_custom_loop_filter_handler()
             'post_status'    => 'publish',
             'paged'          => $paged, // <--- FIX 3: Add pagination to fallback
         ];
-        
+
         $fallback_tax = [];
         if (!empty($niche)) {
             $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
@@ -242,11 +244,13 @@ function my_custom_loop_filter_handler()
         if (!empty($fallback_tax)) {
             $fallback_args['tax_query'] = $fallback_tax;
         }
-        
+
         $query = new WP_Query($fallback_args);
-        
+
         // Last resort: if still 0, return all published (no filters)
         if (!$query->have_posts()) {
+
+
             $query = new WP_Query([
                 'post_type'      => 'influencer',
                 'posts_per_page' => 12,
@@ -254,6 +258,8 @@ function my_custom_loop_filter_handler()
                 'paged'          => $paged // <--- FIX 3: Add pagination to last resort
             ]);
         }
+
+        $testing_html .= '<div class="broadened-results-notice">Your search returned fewer than 6 results, so we broadened the search to show more influencers. Try adjusting your filters for a more specific match!</div>';
     }
 
     if ($query->have_posts()) {
@@ -269,7 +275,7 @@ function my_custom_loop_filter_handler()
         set_query_var('search_criteria', $search_criteria);
 
         $posts = $query->posts;
-        
+
         // Note: usort here sorts ONLY the 12 posts on the current page, not the whole DB.
         if (function_exists('influencer_calculate_match_score')) {
             usort($posts, function ($a, $b) use ($search_criteria) {
@@ -280,6 +286,8 @@ function my_custom_loop_filter_handler()
         }
 
         ob_start();
+
+        echo $testing_html; // For debugging broadening logic
         foreach ($posts as $post) {
             $GLOBALS['post'] = $post;
             setup_postdata($post);
@@ -294,11 +302,11 @@ function my_custom_loop_filter_handler()
 
         // --- UPDATE: Increment User Meta on Finish ---
         $number_of_searches = 0; // Safe fallback for non-logged-in users
-        
-        if ( is_user_logged_in() ) {
+
+        if (is_user_logged_in()) {
             $current_user_id = get_current_user_id();
             $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
-            if(empty($current_count)) {
+            if (empty($current_count)) {
                 $current_count = 0;
             }
             update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
@@ -312,7 +320,6 @@ function my_custom_loop_filter_handler()
             'max_pages'          => $query->max_num_pages, // <--- CRITICAL FIX for button visibility
             'number_of_searches' => $number_of_searches,
         ));
-        
     } else {
         // Clean the buffer even on error to prevent stray output
         ob_end_clean();
