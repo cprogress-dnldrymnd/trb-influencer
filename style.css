@@ -783,5 +783,7 @@ input:checked + .slider:before {
 .large-avatar .influencer-avatar-fallback {
   width: var(--size, 188px);
   height: var(--size, 188px); }
+.large-avatar .influencer-avatar-fallback {
+  font-size: 40px; }
 
 /*# sourceMappingURL=style.css.map */

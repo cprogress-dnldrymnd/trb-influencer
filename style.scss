@@ -987,4 +987,7 @@ input:checked + .slider:before {
         width: var(--size, 188px);
         height: var(--size, 188px);
     }
+     .influencer-avatar-fallback {
+        font-size: 40px;
+     }
 }
