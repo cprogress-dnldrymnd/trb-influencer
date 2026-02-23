@@ -72,6 +72,7 @@ function action_wp_head()
     }
     if ($is_free_trial) {
         echo ".hide-on-free-trial{ display: none; }";
+        #echo ".outreach-form-trigger{ display: none !important}";
     }
 
     $recently_viewed = get_recent_influencer_ids_array(5);
@@ -95,6 +96,7 @@ function action_wp_head()
     } else {
         echo '#starts-a-search { display: none !important; }';
     }
+    
 
 
     echo '</style>';
