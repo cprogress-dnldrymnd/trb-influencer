@@ -682,7 +682,8 @@ input:checked + .slider:before {
     .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief {
       padding: 13px;
       border: 1px solid #bcbcbc;
-      border-radius: 5px; }
+      border-radius: 5px;
+      flex-grow: 1; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
     color: #fff; }
 
