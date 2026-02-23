@@ -11,6 +11,7 @@
  * @param array        $request   The request arguments (Optional).
  * @return bool                   Returns false to stop execution if duplicate is detected.
  */
+/*
 add_filter('mycred_run_this', 'dd_prevent_duplicate_registration_points', 10, 3);
 
 function dd_prevent_duplicate_registration_points($run, $mycred = null, $request = array())
