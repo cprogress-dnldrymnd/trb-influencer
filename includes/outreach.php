@@ -195,7 +195,7 @@ class DD_Outreach_Manager
                 color: var(--e-global-color-ee06e41) !important;
             }
 
-            .submit-new a span {
+            .submit-new a span.elementor-button-text {
                 text-decoration: underline;
             }
 
