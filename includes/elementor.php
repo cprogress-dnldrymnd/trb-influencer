@@ -312,11 +312,8 @@ function dd_elementor_success_scripts()
                             // Inject the generated HTML into the specific target div
                             $summaryTarget.html(response.data.dd_custom_html);
 
-                            // Hide the form fields to clean up the UI
-                            jQuery('#outreach-submission').slideUp();
-
-                            // Force hide Elementor's default success message to prevent duplication
-                            jQuery('#elementor-message-success').hide();
+                            jQuery('#outreach-submission').hide();
+                            jQuery('#elementor-message-success').show();
                         } else {
                             console.warn('Target div #outreach-form-summary not found on the page.');
                         }
