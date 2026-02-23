@@ -41,7 +41,7 @@ class DD_Outreach_Manager
         // AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
-        
+
         // AJAX Handlers for Notes CRUD
         add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
         add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
@@ -419,7 +419,7 @@ class DD_Outreach_Manager
                 font-size: 13px;
                 transition: opacity 0.2s;
             }
-            
+
             .dd-note-btn:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
@@ -464,6 +464,15 @@ class DD_Outreach_Manager
                 font-size: 11px;
                 color: #ccc;
                 margin-top: 10px;
+            }
+            .dd-note-btn {
+                padding: 12px 20px;
+                border: 1px solid #BCBCBC;
+            } 
+            #dd-save-note {
+                background-color:#FFE17B;
+                border-color: #FFE17B;;
+                color: #000000;
             }
         </style>
     <?php
@@ -654,7 +663,7 @@ class DD_Outreach_Manager
         echo '<input type="text" name="dd_note_title" value="' . esc_attr($note_title) . '" style="width:100%;" /></p>';
         echo '<p><strong>Note Content:</strong><br>';
         echo '<textarea name="dd_note_content" rows="6" style="width:100%;">' . esc_textarea($note_content) . '</textarea></p>';
-        
+
         if ($note_date) {
             echo '<p style="color:#888; font-size:12px;">Last updated: ' . esc_html(date_i18n('F jS, Y \a\t g:i a', strtotime($note_date))) . '</p>';
         }
@@ -692,7 +701,7 @@ class DD_Outreach_Manager
         check_ajax_referer('dd_outreach_nonce', 'security');
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-        
+
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
             wp_send_json_error('Unauthorized.');
         }
@@ -718,7 +727,7 @@ class DD_Outreach_Manager
         check_ajax_referer('dd_outreach_nonce', 'security');
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
-        
+
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
             wp_send_json_error('Unauthorized.');
         }
@@ -838,7 +847,7 @@ class DD_Outreach_Manager
         }
 
         // Inject the meta query if any valid filters were collected
-        if (count($meta_query) > 1) { 
+        if (count($meta_query) > 1) {
             $args['meta_query'] = $meta_query;
         }
 
@@ -888,7 +897,7 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        
+
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
         $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
@@ -984,7 +993,9 @@ class DD_Outreach_Manager
                 <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
                 <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title" value="">
                 <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
-                <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>">💾 SAVE NOTE</button>
+                <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
+                        <path id="saved" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
+                    </svg> SAVE NOTE</button>
             </div>
 
             <div class="dd-steps-card" id="dd-saved-note-container" style="<?php echo empty($note_content) ? 'display:none;' : ''; ?>">
@@ -993,7 +1004,7 @@ class DD_Outreach_Manager
                     <?php echo nl2br(esc_html($note_content)); ?>
                 </div>
                 <textarea id="dd-raw-note-content" style="display:none;"><?php echo esc_textarea($note_content); ?></textarea>
-                
+
                 <div class="dd-steps-actions">
                     <button id="dd-delete-note" class="dd-delete-btn" data-post-id="<?php echo esc_attr($post_id); ?>">DELETE NOTE</button>
                     <button id="dd-edit-note" class="dd-edit-btn">EDIT NOTE</button>
