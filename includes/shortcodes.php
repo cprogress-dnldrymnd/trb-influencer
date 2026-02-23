@@ -424,9 +424,7 @@ function shortcode_influencer_search_filter()
             <div class="influencer-search-item">
                 <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '') ?>
             </div>
-            <div class="influencer-search-item">
-                <?= select_filter('gender', 'Gender', 'Select a gender', $influencer_search_fields['gender'] ?? '') ?>
-            </div>
+ 
         
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
