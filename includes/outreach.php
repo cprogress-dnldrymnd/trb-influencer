@@ -519,7 +519,8 @@ class DD_Outreach_Manager
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
-            .avatar-holder.avatar-holder img {
+
+            .avatar-holder.avatar-holder img, .influencer-avatar-fallback{
                 width: 68px;
                 height: 68px;
                 border-radius: 50%;
@@ -527,6 +528,17 @@ class DD_Outreach_Manager
                 margin-right: 15px;
                 border: 1px solid gray;
                 flex-shrink: 0;
+            }
+
+            .influencer-avatar-fallback {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #e2e8f0;
+                color: #475569;
+                font-size: 20px;
+                font-weight: 700;
+                text-transform: uppercase;
             }
         </style>
     <?php
@@ -953,7 +965,7 @@ class DD_Outreach_Manager
                 $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
 
-            
+
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
 

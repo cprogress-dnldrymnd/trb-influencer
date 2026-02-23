@@ -1636,7 +1636,7 @@ function dd_influencer_avatar_shortcode( $atts ) {
 
     // Build the HTML for the initials avatar
     // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
-    $html  = '<div class="influencer-avatar-fallback" style="display: inline-flex; align-items: center; justify-content: center; width: 150px; height: 150px; border-radius: 50%; background-color: #e2e8f0; color: #475569; font-size: 48px; font-weight: 700; text-transform: uppercase;">';
+    $html  = '<div class="influencer-avatar-fallback">';
     $html .= esc_html( $initials );
     $html .= '</div>';
 
