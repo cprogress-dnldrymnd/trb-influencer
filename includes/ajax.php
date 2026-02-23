@@ -1,5 +1,8 @@
 <?php
+
 /**
+ * Plugin Name: Influencer Loop Filter & Saves
+ * Description: Handles AJAX filtering for influencers, saving search criteria, and bookmarking influencers.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -7,11 +10,18 @@
 add_action('wp_ajax_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 
+/**
+ * Handles the custom loop filter AJAX request for the influencer archive.
+ *
+ * Gathers $_POST parameters, configures query pagination, and executes the WP_Query.
+ * Includes cascading fallback queries if the initial results are too narrow. Returns
+ * sorted HTML output, pagination data, and increments user search limits.
+ *
+ * @return void Outputs JSON response and terminates.
+ */
 function my_custom_loop_filter_handler()
 {
     // 1. GATHER INPUTS
-    // ... (Your existing input gathering code remains the same) ... 
-
     // [Truncated for brevity - assume inputs are gathered here as per your original code]
     $niche        = isset($_POST['niche']) ? $_POST['niche'] : [];
     $platform     = isset($_POST['platform']) ? $_POST['platform'] : [];
@@ -25,7 +35,7 @@ function my_custom_loop_filter_handler()
     // --- FIX 1: Capture the current page number ---
     $paged = (isset($_POST['paged']) && $_POST['paged']) ? intval($_POST['paged']) : 1;
 
-    // 3. BUILD THE QUERY ARGS
+    // 2. BUILD THE QUERY ARGS
     $args = [
         'post_type'      => 'influencer',
         'posts_per_page' => 12,
@@ -36,18 +46,11 @@ function my_custom_loop_filter_handler()
     // ... (Your Taxonomy and Meta Query logic remains exactly the same) ...
     // ... Copy your existing tax_query and meta_query logic here ...
 
-    // [Assuming tax_query and meta_query are built here as per your original code]
-    // Re-adding the logic blocks just for context of where they fit in the original file
-    // (You don't need to change the logic inside the tax/meta blocks, just keep them as is)
-
-    // ... 
-
     // 3. EXECUTE QUERY
     $query = new WP_Query($args);
 
     // --- BROADENING / FALLBACK LOGIC ---
     // You must also apply 'paged' to your fallback queries if you want pagination to work on fallbacks.
-
     $min_results = 6;
     $has_broadening_filters = !empty($country) || !empty($followers) || !empty($lang)
         || (!empty($filter) && in_array('Include only verified influencers', $filter, true));
@@ -100,29 +103,30 @@ function my_custom_loop_filter_handler()
             }
         }
         wp_reset_postdata();
-        
+
         $html_output = ob_get_clean();
 
         // --- UPDATE: Increment User Meta on Finish ---
-        if ( is_user_logged_in() ) {
+        $number_of_searches = 0;
+        if (is_user_logged_in()) {
             $current_user_id = get_current_user_id();
             $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
-            if(empty($current_count)) {
+
+            if (empty($current_count)) {
                 $current_count = 0;
             }
-            update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
+
+            $number_of_searches = $current_count + 1;
+            update_user_meta($current_user_id, 'number_of_searches', $number_of_searches);
         }
 
-        $number_of_searches = get_user_meta($current_user_id, 'number_of_searches', true);
         // --- FIX 4: Send 'max_pages' in the response ---
         wp_send_json_success(array(
-            'html'        => $html_output,
-            'found_posts' => $query->found_posts,
-            'max_pages'   => $query->max_num_pages, // <--- CRITICAL FIX for button visibility,
+            'html'               => $html_output,
+            'found_posts'        => $query->found_posts,
+            'max_pages'          => $query->max_num_pages, // <--- CRITICAL FIX for button visibility
             'number_of_searches' => $number_of_searches,
         ));
-
-        
     } else {
         ob_end_clean();
         wp_send_json_error('No posts found');
@@ -130,6 +134,141 @@ function my_custom_loop_filter_handler()
     wp_die();
 }
 
+
+add_action('wp_ajax_save_user_search', 'handle_save_search_ajax');
+
+/**
+ * AJAX Handler: Save User Search
+ * * Handles server-side logic when the "Save Search" button is clicked.
+ * Verifies security, validates/sanitizes filter inputs, creates a new post 
+ * in the 'saved-search' CPT, and saves the inputs as post meta data.
+ *
+ * @return void Outputs JSON response and terminates.
+ */
+function handle_save_search_ajax()
+{
+    // 1. Security Check
+    check_ajax_referer('save_search_nonce', 'security');
+
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => 'Please login to save searches.']);
+    }
+
+    $user_id = get_current_user_id();
+    $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
+
+    // 2. Sanitize Data
+    // We strictly define allowed keys to prevent garbage data
+    $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score'];
+    $clean_data = [];
+
+    foreach ($allowed_keys as $key) {
+        if (isset($raw_data[$key])) {
+            if (is_array($raw_data[$key])) {
+                // Sanitize array items (checkboxes)
+                $clean_data[$key] = array_map('sanitize_text_field', $raw_data[$key]);
+            } else {
+                // Sanitize string (range slider)
+                $clean_data[$key] = sanitize_text_field($raw_data[$key]);
+            }
+        }
+    }
+
+    // 3. Build Query String
+    // http_build_query creates the string: niche%5B0%5D=artist&niche%5B1%5D=beauty...
+    $query_string = http_build_query($clean_data);
+
+    // 4. Format Adjustment (Optional but requested)
+    // PHP adds indices [0], [1] by default. Your request used [] (%5B%5D).
+    // This regex replaces %5B0%5D, %5B1%5D, etc. with just %5B%5D
+    $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
+
+    // 5. Prepend the Question Mark
+    $final_string = '?' . $query_string;
+
+    // 6. Create Post
+    $post_args = [
+        'post_title'  => 'Search saved on ' . current_time('M j, Y @ g:i a'),
+        'post_type'   => 'saved-search',
+        'post_status' => 'publish',
+        'post_author' => $user_id,
+    ];
+
+    $post_id = wp_insert_post($post_args);
+
+    if (is_wp_error($post_id)) {
+        wp_send_json_error(['message' => 'Error creating save file.']);
+    }
+
+    // 7. Save the Single String
+    update_post_meta($post_id, 'search_query', $final_string);
+
+    wp_send_json_success(['message' => 'Search saved successfully!']);
+}
+
+
+add_action('wp_ajax_save_influencer', 'handle_save_influencer_ajax');
+
+/**
+ * AJAX Handler: Save or Unsave Influencer
+ * * Handles saving/bookmarking an individual influencer for the currently logged-in user.
+ * Generates a 'saved-influencer' post type linked to the requested ID. Capable of
+ * deleting the saved instance if the 'type' attribute passes as anything other than 'save'.
+ *
+ * @return void Outputs JSON response and terminates.
+ */
+function handle_save_influencer_ajax()
+{
+    // Security check
+    check_ajax_referer('save_influencer_nonce', 'security');
+
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        wp_send_json_error(array('message' => 'You must be logged in to save.'));
+    }
+
+    // Get the data
+    $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'save';
+
+    if (empty($influencer_id)) {
+        wp_send_json_error(array('message' => 'No Influencer ID provided.'));
+    }
+
+    if ($type == 'save') {
+        $current_user_id = get_current_user_id();
+
+        // Format: Jan 4, 2026 @ 8:57 pm
+        // Note: current_time gets the time based on your WP timezone settings
+        $post_title = 'Influencer saved on ' . current_time('M j, Y @ g:i a');
+
+        // Prepare Post Data
+        $new_post = array(
+            'post_title'    => $post_title,
+            'post_type'     => 'saved-influencer', // Ensure this Post Type is registered
+            'post_status'   => 'publish',
+            'post_author'   => $current_user_id,
+        );
+
+        // Insert the Post
+        $post_id = wp_insert_post($new_post);
+
+        if (is_wp_error($post_id)) {
+            wp_send_json_error(array('message' => 'Could not create post.'));
+        } else {
+            // Update Meta Data
+            update_post_meta($post_id, 'influencer_id', $influencer_id);
+
+            wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
+        }
+    } else {
+        $saved_id = is_influencer_saved($influencer_id); // Ensure this custom function exists in your env
+        if ($saved_id) {
+            wp_delete_post($saved_id, true);
+            wp_send_json_success(array('message' => 'Unsaved successfully!', 'id' => $saved_id));
+        }
+    }
+}
 /**
  * AJAX Handler: Save User Search
  * * This function handles the server-side logic when the "Save Search" button is clicked.
