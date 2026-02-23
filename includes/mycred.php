@@ -102,6 +102,34 @@ function deduct_points_from_current_user($points, $log_entry = 'Points deducted'
 }
 
 /**
+ * Retrieves the remaining (current) myCred points balance for the currently logged-in user.
+ *
+ * This function utilizes standard WordPress core functions to verify the user state
+ * and the myCred API to fetch the active balance. It specifically targets the 
+ * remaining points available for use, rather than the historical total.
+ * * @param string $point_type_key (Optional) The specific point type key to query in a multi-point setup. 
+ * Defaults to 'mycred_default' (the standard point type).
+ * @return float|int|bool The user's current remaining balance as a raw number. 
+ * Returns false if the user is not logged in, has an invalid ID, 
+ * or is explicitly excluded from using myCred.
+ */
+function get_current_user_remaining_mycred_balance($point_type_key = 'mycred_default')
+{
+    // Prevent processing overhead if the session does not belong to an authenticated user
+    if (! is_user_logged_in()) {
+        return false;
+    }
+
+    // Retrieve the active user's WordPress ID
+    $user_id = get_current_user_id();
+
+    // Query the myCred API for the current unformatted balance (remaining points)
+    $remaining_balance = mycred_get_users_balance($user_id, $point_type_key);
+
+    return $remaining_balance;
+}
+
+/**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard.
