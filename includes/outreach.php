@@ -170,8 +170,8 @@ class DD_Outreach_Manager
 
             .dd-footer a {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: var(--e-global-typography-2a20fd0-font-size);
-                font-weight: var(--e-global-typography-2a20fd0-font-weight);
+                font-size: 14px !important;
+                font-weight: 600 !important;
                 line-height: var(--e-global-typography-2a20fd0-line-height);
                 letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
             }
