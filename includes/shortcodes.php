@@ -483,6 +483,8 @@ function shortcode_influencer_search_filter_main()
         $fullbrieft_search_class = 'active';
     }
 
+    $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+
 ?>
     <?php if ($number_of_searches >= 3 && $is_free_trial) {  ?>
         <div class="trial-search-limit-notice">
@@ -493,7 +495,9 @@ function shortcode_influencer_search_filter_main()
             <div class="influencer-search-filter-holder">
                 <input type="hidden" value="true" name="search_active">
                 <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $fullbrieft_search_class ?>">
-                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required></textarea>
+                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required>
+                        <?= esc_html($brief) ?>
+                    </textarea>
                 </div>
 
                 <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search <?= $filtered_search_class ?>">
@@ -622,7 +626,7 @@ function shortcode_influencer_search_summary()
                         <?= wpautop(esc_html(wp_trim_words($brief, 25))) ?>
                     </div>
                 </div>
-                <a class="edit-summary-brieft" href="<?=  get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">
+                <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
                         <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
                         <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
