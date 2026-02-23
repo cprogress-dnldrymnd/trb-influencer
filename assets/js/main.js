@@ -7,7 +7,42 @@
         saved_search_trigger();
         saved_influencer_trigger();
         mobile_nav();
+        share_profile();
     });
+
+
+    function share_profile() {
+        const shareButton = document.querySelector('.share-profile a');
+
+        if (!shareButton) {
+            console.warn("Initialization aborted: '.share-profile' element not found.");
+            return;
+        }
+
+        /**
+         * Handles the click event for the share button.
+         * Prevents default anchor behavior, retrieves the current URL, 
+         * and asynchronously writes it to the system clipboard.
+         *
+         * @param {MouseEvent} event - The click event object.
+         */
+        shareButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+
+            const currentUrl = window.location.href;
+
+            try {
+                // Write the current URL directly to the clipboard
+                await navigator.clipboard.writeText(currentUrl);
+                console.log('URL copied to clipboard successfully.');
+
+                // Note: Insert user feedback logic here (e.g., UI state change)
+
+            } catch (error) {
+                console.error('Clipboard write failed:', error);
+            }
+        });
+    }
 
     function mobile_nav() {
         // Listen for click on the trigger element
