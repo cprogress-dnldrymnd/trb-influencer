@@ -467,7 +467,7 @@ class DD_Outreach_Manager
                 text-align: right;
                 font-size: 14px;
                 color: #8F8F8F;
-                margin-top: 10px;
+                margin-top: 10px !important;
                 display: block;
             }
 
