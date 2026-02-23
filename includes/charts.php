@@ -235,7 +235,7 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
                 if (ddChartPayload.labels.length === 0) {
-                    document.getElementById('ddFollowerChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
+                    document.getElementById('ddFollowerChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#000;">No follower data available for this creator.</p>';
                     document.getElementById('ddSummaryBadge').innerText = 'No Data';
                     return;
                 }
@@ -303,13 +303,13 @@ class DD_Follower_Growth_Chart
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                         labels: {
-                            style: { colors: '#555', fontSize: '12px' }
+                            style: { colors: '#000', fontSize: '12px' }
                         }
                     },
                     yaxis: {
                         labels: {
                             formatter: formatToK,
-                            style: { colors: '#555', fontSize: '11px' }
+                            style: { colors: '#000', fontSize: '11px' }
                         }
                     },
                     grid: {
