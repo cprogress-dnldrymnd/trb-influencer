@@ -425,7 +425,7 @@ function shortcode_influencer_search_filter()
                 <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '') ?>
             </div>
  
-        
+            <!--
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
                     <div class="header">
@@ -433,7 +433,7 @@ function shortcode_influencer_search_filter()
                     </div>
                     <input type="range" id="score" value="<?= $_GET['score'] ?? 50 ?>" name="score" min="0" max="100">
                 </div>
-            </div>
+            </div>-->
             <div class="influencer-search-item">
                 <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
                     <span class="elementor-button-content-wrapper">
