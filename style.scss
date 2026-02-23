@@ -991,3 +991,14 @@ input:checked + .slider:before {
         font-size: 40px;
      }
 }
+
+.medium-avatar {
+     .avatar-holder.avatar-holder img,
+    .influencer-avatar-fallback {
+        width: var(--size, 90px);
+        height: var(--size, 90px);
+    }
+     .influencer-avatar-fallback {
+        font-size: 25px;
+     }
+}
