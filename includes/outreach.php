@@ -286,6 +286,7 @@ class DD_Outreach_Manager
                 border-radius: 50%;
                 object-fit: cover;
                 margin-right: 15px;
+                border: 1px solid gray;
             }
 
             .dd-item-content {
