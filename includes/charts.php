@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic data from post meta.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -49,8 +49,8 @@ class DD_Follower_Growth_Chart
         }
 
         // Ensure raw data is strictly sorted chronologically (Oldest first).
-        // This handles cases where the meta array order is inverted (Newest first),
-        // guaranteeing the month-over-month subtraction and latest-entry overwrite process correctly.
+        // This is crucial because the input array is ordered newest-first. Sorting ensures
+        // the loop below correctly overwrites earlier dates with later dates to capture the true month-end total.
         usort($raw_data, function ($a, $b) {
             $time_a = isset($a['timestamp_ms']) ? $a['timestamp_ms'] : strtotime($a['date'] ?? 'now');
             $time_b = isset($b['timestamp_ms']) ? $b['timestamp_ms'] : strtotime($b['date'] ?? 'now');
@@ -59,7 +59,8 @@ class DD_Follower_Growth_Chart
 
         $monthly_snapshots = [];
 
-        // Group data by year-month and isolate the latest entry per month.
+        // Group data by year-month. Since data is sorted chronologically,
+        // later entries for the same month will overwrite earlier ones, leaving the month-end total.
         foreach ($raw_data as $entry) {
             // Fallback for timestamp processing if date string is malformed
             $date = isset($entry['date']) ? new DateTime($entry['date']) : (new DateTime())->setTimestamp($entry['timestamp_ms'] / 1000);
@@ -71,6 +72,7 @@ class DD_Follower_Growth_Chart
             ];
         }
 
+        // Ensure months are processed in order
         ksort($monthly_snapshots);
 
         $processed_months = [];
@@ -253,7 +255,9 @@ class DD_Follower_Growth_Chart
                 document.getElementById('ddSummaryBadge').innerText = 'Gained ' + ddChartPayload.summary_gain + ' followers';
 
                 const formatToK = (value) => {
-                    if (Math.abs(value) >= 1000) {
+                    // Handle negative values correctly for the label
+                    const absValue = Math.abs(value);
+                    if (absValue >= 1000) {
                         return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
                     }
                     return value.toString();
@@ -284,7 +288,7 @@ class DD_Follower_Growth_Chart
                     dataLabels: {
                         enabled: true,
                         formatter: formatToK,
-                        offsetY: -25,
+                        offsetY: -25, // Adjusts the pill position upwards from the top of the bar
                         style: {
                             fontSize: '11px',
                             colors: ['#1F4541']
@@ -295,7 +299,7 @@ class DD_Follower_Growth_Chart
                             borderRadius: 12,
                             borderWidth: 1,
                             borderColor: '#649E94',
-                            opacity: 0,
+                            opacity: 0, // Transparent background for the hollow pill look
                             dropShadow: {
                                 enabled: false
                             }
