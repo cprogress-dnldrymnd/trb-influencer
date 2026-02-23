@@ -67,8 +67,8 @@ class DD_Outreach_Manager
             .dd-message-overview-container {
                 font-family: inherit;
                 margin-top: 15px;
-                border-radius: 5px;
-                border: 1px solid #3B1527;
+                border-radius: 10px;
+                border: 2px solid #034146;
             }
 
             .dd-profile-header {
@@ -306,9 +306,6 @@ class DD_Outreach_Manager
             /* --- Notes Component Styles --- */
             .dd-outreach-view-container {
                 background: #f4f4f4;
-                border-radius: 8px;
-                padding: 30px;
-                min-height: 600px;
                 width: 100%;
                 box-sizing: border-box;
             }
