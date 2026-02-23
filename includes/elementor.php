@@ -218,7 +218,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
                     </span>
                 </a>
             </div>
-            <div class="button-box">
+            <div class="button-box close-outreach">
                 <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text">CLOSE</span>
