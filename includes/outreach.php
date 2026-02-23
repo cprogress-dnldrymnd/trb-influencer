@@ -360,7 +360,7 @@ class DD_Outreach_Manager
                 flex: 1;
                 min-width: 280px;
                 background: #fff;
-                border:2px solid #FFE17B;
+                border: 2px solid #FFE17B;
                 border-radius: 8px;
                 padding: 20px;
                 box-sizing: border-box;
@@ -376,7 +376,7 @@ class DD_Outreach_Manager
                 gap: 15px;
             }
 
-          
+
 
             .dd-note-title.dd-note-title {
                 margin-top: 0;

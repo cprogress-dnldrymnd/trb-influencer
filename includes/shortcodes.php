@@ -1602,19 +1602,6 @@ function roi_calculator()
 add_shortcode('roi_calculator', 'roi_calculator');
 
 
-<?php
-/**
- * Plugin Name: Influencer Avatar Shortcode
- * Description: Provides a shortcode [influencer_avatar] to display a featured image or an initials-based avatar fallback.
- * Version: 1.0.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
-}
-
 /**
  * Registers the [influencer_avatar] shortcode.
  *
