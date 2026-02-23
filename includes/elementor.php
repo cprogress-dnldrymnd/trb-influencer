@@ -382,7 +382,7 @@ function dd_elementor_success_scripts()
             color: #fff !important;
         }
 
-        .view-outreach a {
+        .close-outreach a {
             border-style: solid;
             border-color: var(--e-global-color-ee06e41) !important;
             background-color: transparent !important;
