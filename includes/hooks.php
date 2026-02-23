@@ -75,12 +75,24 @@ function action_wp_head()
     }
 
     $recently_viewed = get_recent_influencer_ids_array(5);
+    $current_user_id = get_current_user_id();
+    $ranked_niches = get_user_niche_ranking($current_user_id, 3);
+    $recently_viewed_stats = true;    
+    $ranked_niches_stats = true;    
 
     if(!$recently_viewed || count($recently_viewed) === 0) {
         echo '#dashboard-activity-recently-viewed-influencer { display: none !important; }';
+        $recently_viewed_stats = false;
     }
     
-    #dashboard-activity-most-engage-niches
+    if(count($ranked_niches) === 0) {
+        echo '#dashboard-activity-most-engage-niches { display: none !important; }';
+        $ranked_niches_stats = false;
+    }
+
+    if($ranked_niches_stats == false && $ranked_niches_stats == false) {
+        echo '#dashboard-activity { display: none !important; }';
+    }
 
 
     echo '</style>';
