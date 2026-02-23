@@ -644,7 +644,7 @@ class DD_Outreach_Manager
                         <div class="dd-outreach-item" data-post-id="<?php echo get_the_ID(); ?>">
                             <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" class="dd-item-avatar">
                             <div class="dd-item-content">
-                                <span class="dd-item-name"><?php echo esc_html($influencer_name); ?> ✓</span>
+                                <span class="dd-item-name"><?php echo esc_html($influencer_name); ?> </span>
                                 <span class="dd-item-handle">@<?php echo esc_html($influencer_handle); ?></span>
                                 <span class="dd-item-title"><?php the_title(); ?></span>
                                 <span class="dd-item-date"><?php echo get_the_date('M j, Y'); ?></span>
