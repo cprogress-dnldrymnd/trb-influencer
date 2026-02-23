@@ -35,7 +35,7 @@
             try {
                 // Write the current URL directly to the clipboard
                 await navigator.clipboard.writeText(currentUrl);
-                console.log('URL copied to clipboard successfully.');
+                alert('URL copied to clipboard successfully.');
 
                 // Note: Insert user feedback logic here (e.g., UI state change)
 
