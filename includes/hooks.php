@@ -89,8 +89,8 @@ function action_wp_head()
         echo '#dashboard-activity-most-engage-niches { display: none !important; }';
         $ranked_niches_stats = false;
     }
-    echo '#starts-a-search { display: none !important; }';
     if ($ranked_niches_stats == false && $ranked_niches_stats == false) {
+        echo '#starts-a-search { display: none !important; }';
         echo '#dashboard-activity { display: none !important; }';
     } else {
         echo '#starts-a-search { display: block !important; }';
