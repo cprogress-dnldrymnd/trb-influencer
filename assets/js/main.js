@@ -12,6 +12,7 @@
 
 
     function share_profile() {
+        console.log('x');
         const shareButton = document.querySelector('.share-profile a');
 
         if (!shareButton) {
