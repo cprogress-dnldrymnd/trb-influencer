@@ -365,6 +365,15 @@ function dd_elementor_success_scripts()
         .dd-footer {
             display: flex;
             gap: 15px;
+
+        }
+
+        .dd-footer a {
+            font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
+            font-size: var(--e-global-typography-2a20fd0-font-size);
+            font-weight: var(--e-global-typography-2a20fd0-font-weight);
+            line-height: var(--e-global-typography-2a20fd0-line-height);
+            letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
         }
 
         .view-outreach a {
