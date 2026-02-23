@@ -98,21 +98,10 @@ class DD_Follower_Growth_Chart {
     private function get_raw_follower_data(): array {
         // Injecting a truncated version of your provided array for immediate testing.
         // Replace this with your dynamic data retrieval logic.
-        return [
-            [ "timestamp_ms" => 1736812800000, "date" => "2025-01-14", "followers" => 19420 ],
-            [ "timestamp_ms" => 1738281600000, "date" => "2025-01-31", "followers" => 19367 ],
-            [ "timestamp_ms" => 1740009600000, "date" => "2025-02-20", "followers" => 19341 ],
-            [ "timestamp_ms" => 1741651200000, "date" => "2025-03-11", "followers" => 19315 ],
-            [ "timestamp_ms" => 1744243200000, "date" => "2025-04-10", "followers" => 19242 ],
-            [ "timestamp_ms" => 1747094400000, "date" => "2025-05-13", "followers" => 19139 ],
-            [ "timestamp_ms" => 1749600000000, "date" => "2025-06-11", "followers" => 19054 ],
-            [ "timestamp_ms" => 1752105600000, "date" => "2025-07-10", "followers" => 19007 ],
-            [ "timestamp_ms" => 1756166400000, "date" => "2025-08-26", "followers" => 18977 ],
-            [ "timestamp_ms" => 1758844800000, "date" => "2025-09-26", "followers" => 18903 ],
-            [ "timestamp_ms" => 1761609600000, "date" => "2025-10-28", "followers" => 18842 ],
-            [ "timestamp_ms" => 1764547200000, "date" => "2025-12-01", "followers" => 18774 ],
-            [ "timestamp_ms" => 1769299200000, "date" => "2026-01-25", "followers" => 18589 ]
-        ];
+        
+        $history = get_post_meta(get_the_ID(), 'creatordb_history', true);
+        return $history;
+        
     }
 
     /**
