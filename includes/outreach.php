@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.5.3
+ * Version: 1.6.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -41,9 +41,17 @@ class DD_Outreach_Manager
         // AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
+        
+        // AJAX Handlers for Notes CRUD
+        add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
+        add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
 
         // Enqueue necessary scripts for the interactive dashboard
         add_action('wp_enqueue_scripts', [$this, 'enqueue_dashboard_scripts']);
+
+        // Backend Meta Boxes
+        add_action('add_meta_boxes', [$this, 'add_note_meta_box']);
+        add_action('save_post', [$this, 'save_note_meta_box']);
     }
 
     /**
@@ -409,6 +417,12 @@ class DD_Outreach_Manager
                 cursor: pointer;
                 color: #333;
                 font-size: 13px;
+                transition: opacity 0.2s;
+            }
+            
+            .dd-note-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
             }
 
             .dd-steps-content {
@@ -611,6 +625,112 @@ class DD_Outreach_Manager
     }
 
     /**
+     * Backend Meta Box setup for the wp-admin screen.
+     */
+    public function add_note_meta_box()
+    {
+        add_meta_box(
+            'dd_outreach_note_meta',
+            'Project Note',
+            [$this, 'render_note_meta_box'],
+            'outreach',
+            'side',
+            'high'
+        );
+    }
+
+    /**
+     * Renders the HTML inside the backend meta box.
+     */
+    public function render_note_meta_box($post)
+    {
+        $note_title   = get_post_meta($post->ID, 'dd_note_title', true);
+        $note_content = get_post_meta($post->ID, 'dd_note_content', true);
+        $note_date    = get_post_meta($post->ID, 'dd_note_date', true);
+
+        wp_nonce_field('dd_save_note_meta', 'dd_note_meta_nonce');
+
+        echo '<p><strong>Note Title:</strong><br>';
+        echo '<input type="text" name="dd_note_title" value="' . esc_attr($note_title) . '" style="width:100%;" /></p>';
+        echo '<p><strong>Note Content:</strong><br>';
+        echo '<textarea name="dd_note_content" rows="6" style="width:100%;">' . esc_textarea($note_content) . '</textarea></p>';
+        
+        if ($note_date) {
+            echo '<p style="color:#888; font-size:12px;">Last updated: ' . esc_html(date_i18n('F jS, Y \a\t g:i a', strtotime($note_date))) . '</p>';
+        }
+    }
+
+    /**
+     * Saves the backend meta box data when the post is saved/updated.
+     */
+    public function save_note_meta_box($post_id)
+    {
+        if (!isset($_POST['dd_note_meta_nonce']) || !wp_verify_nonce($_POST['dd_note_meta_nonce'], 'dd_save_note_meta')) {
+            return;
+        }
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        if (isset($_POST['dd_note_title'])) {
+            update_post_meta($post_id, 'dd_note_title', sanitize_text_field($_POST['dd_note_title']));
+        }
+        if (isset($_POST['dd_note_content'])) {
+            update_post_meta($post_id, 'dd_note_content', sanitize_textarea_field($_POST['dd_note_content']));
+            update_post_meta($post_id, 'dd_note_date', current_time('mysql'));
+        }
+    }
+
+    /**
+     * AJAX endpoint to save the note from the frontend view dashboard.
+     */
+    public function ajax_save_outreach_note()
+    {
+        check_ajax_referer('dd_outreach_nonce', 'security');
+
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        
+        if (!$post_id || !current_user_can('edit_post', $post_id)) {
+            wp_send_json_error('Unauthorized.');
+        }
+
+        $title   = isset($_POST['note_title']) ? sanitize_text_field($_POST['note_title']) : '';
+        $content = isset($_POST['note_content']) ? sanitize_textarea_field($_POST['note_content']) : '';
+        $date    = current_time('mysql');
+
+        update_post_meta($post_id, 'dd_note_title', $title);
+        update_post_meta($post_id, 'dd_note_content', $content);
+        update_post_meta($post_id, 'dd_note_date', $date);
+
+        wp_send_json_success([
+            'date' => date_i18n('F jS, Y \a\t g:i a', strtotime($date))
+        ]);
+    }
+
+    /**
+     * AJAX endpoint to delete the note from the frontend view dashboard.
+     */
+    public function ajax_delete_outreach_note()
+    {
+        check_ajax_referer('dd_outreach_nonce', 'security');
+
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        
+        if (!$post_id || !current_user_can('edit_post', $post_id)) {
+            wp_send_json_error('Unauthorized.');
+        }
+
+        delete_post_meta($post_id, 'dd_note_title');
+        delete_post_meta($post_id, 'dd_note_content');
+        delete_post_meta($post_id, 'dd_note_date');
+
+        wp_send_json_success('Deleted.');
+    }
+
+    /**
      * Renders the left-side panel (list and filters) via shortcode [dd_outreach_list].
      *
      * @param array $atts Shortcode attributes.
@@ -756,7 +876,6 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to filter the outreach list based on search term and dropdowns.
-     * Expects project_type and project_length as arrays to accommodate multiple checkbox selections.
      *
      * @return void
      */
@@ -770,7 +889,6 @@ class DD_Outreach_Manager
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         
-        // Capture project type & length as arrays, map sanitization function to ensure safety
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
         $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
@@ -793,7 +911,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * AJAX endpoint to fetch specific outreach post details.
+     * AJAX endpoint to fetch specific outreach post details, including the saved note.
      *
      * @return void
      */
@@ -816,12 +934,19 @@ class DD_Outreach_Manager
         $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
         $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
 
+        // Fetch meta values
         $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
         $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
         $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
         $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
         $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
         $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
+
+        // Fetch Note Data
+        $note_title     = get_post_meta($post_id, 'dd_note_title', true);
+        $note_content   = get_post_meta($post_id, 'dd_note_content', true);
+        $note_date_raw  = get_post_meta($post_id, 'dd_note_date', true);
+        $note_date_fmt  = $note_date_raw ? date_i18n('F jS, Y \a\t g:i a', strtotime($note_date_raw)) : '';
 
         ob_start();
     ?>
@@ -857,21 +982,23 @@ class DD_Outreach_Manager
             <div class="dd-note-card">
                 <h4 class="dd-note-title">📝 Create a note for this project</h4>
                 <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
-                <input type="text" class="dd-note-input" placeholder="Note title">
-                <textarea class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
-                <button class="dd-note-btn">💾 SAVE NOTE</button>
+                <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title" value="">
+                <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
+                <button id="dd-save-note" class="dd-note-btn" data-post-id="<?php echo esc_attr($post_id); ?>">💾 SAVE NOTE</button>
             </div>
 
-            <div class="dd-steps-card">
-                <h4 class="dd-note-title">Follow up and discuss next steps</h4>
-                <div class="dd-steps-content">
-                    Project sent on <?php echo get_the_date('F jS', $post_id); ?> - interested but asked about usage rights and exclusivity. Wanted to discuss budget. They are open to working flexibly which works well for our project scope. Need to follow up after legal review and to discuss next steps.
+            <div class="dd-steps-card" id="dd-saved-note-container" style="<?php echo empty($note_content) ? 'display:none;' : ''; ?>">
+                <h4 class="dd-note-title" id="dd-display-note-title"><?php echo esc_html($note_title); ?></h4>
+                <div class="dd-steps-content" id="dd-display-note-content">
+                    <?php echo nl2br(esc_html($note_content)); ?>
                 </div>
+                <textarea id="dd-raw-note-content" style="display:none;"><?php echo esc_textarea($note_content); ?></textarea>
+                
                 <div class="dd-steps-actions">
-                    <button class="dd-delete-btn">DELETE NOTE</button>
-                    <button class="dd-edit-btn">EDIT NOTE</button>
+                    <button id="dd-delete-note" class="dd-delete-btn" data-post-id="<?php echo esc_attr($post_id); ?>">DELETE NOTE</button>
+                    <button id="dd-edit-note" class="dd-edit-btn">EDIT NOTE</button>
                 </div>
-                <p class="dd-last-edited">Last edited <?php echo get_the_date('F jS, Y', $post_id); ?></p>
+                <p class="dd-last-edited" id="dd-display-note-date">Last edited <?php echo esc_html($note_date_fmt); ?></p>
             </div>
         </div>
 <?php
@@ -881,7 +1008,7 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues the custom jQuery required to bridge the list clicks with the AJAX
-     * endpoint and automatically loads the first item. Also handles robust filtering events.
+     * endpoint, handles filtering events, and coordinates Note CRUD operations.
      *
      * @return void
      */
@@ -892,7 +1019,7 @@ class DD_Outreach_Manager
         $script = "
         jQuery(document).ready(function($) {
             
-            // Reusable function to bind click events to list items
+            // --- 1. Master-Detail List Click Loader ---
             function bindListItemClicks() {
                 $('.dd-outreach-item').off('click').on('click', function() {
                     var postId = $(this).data('post-id');
@@ -922,16 +1049,15 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Bind clicks on initial load
+            // Bind list clicks on initial load and click first item
             bindListItemClicks();
-
-            // Automatically select the first item on initial page load
             var firstItem = $('.dd-outreach-item').first();
             if (firstItem.length) {
                 firstItem.trigger('click');
             }
 
-            // Centralized Filter Trigger
+
+            // --- 2. Filtering Logic ---
             var filterTimer;
             
             function triggerFilter() {
@@ -943,7 +1069,6 @@ class DD_Outreach_Manager
                     var val = $(this).attr('data-label') || $(this).val();
                     selectedTypes.push(val);
                 });
-                // Fallback for standard dropdown
                 if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
                     selectedTypes.push($('select[name=\"project_type\"]').val());
                 }
@@ -954,7 +1079,6 @@ class DD_Outreach_Manager
                     var val = $(this).attr('data-label') || $(this).val();
                     selectedLengths.push(val);
                 });
-                // Fallback for standard dropdown
                 if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
                     selectedLengths.push($('select[name=\"project_length\"]').val());
                 }
@@ -974,9 +1098,8 @@ class DD_Outreach_Manager
                     success: function(response) {
                         if(response.success) {
                             $('#dd-outreach-list-container').html(response.data);
-                            bindListItemClicks(); // Rebind clicks to newly loaded DOM elements
+                            bindListItemClicks(); 
                             
-                            // Load the first item in the new filtered list
                             var newFirstItem = $('.dd-outreach-item').first();
                             if (newFirstItem.length) {
                                 newFirstItem.trigger('click');
@@ -988,15 +1111,100 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Listen for search typing
             $('#dd-outreach-search').on('keyup', function() {
                 clearTimeout(filterTimer);
                 filterTimer = setTimeout(triggerFilter, 500);
             });
 
-            // Listen for checkbox changes or standard select changes across BOTH filters
             $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"], input[name=\"project_length[]\"], select[name=\"project_length\"]', function() {
                 triggerFilter();
+            });
+
+
+            // --- 3. Note CRUD Event Delegation ---
+            var viewContainer = $('#dd-outreach-view-container');
+
+            // Save Action
+            viewContainer.on('click', '#dd-save-note', function(e) {
+                e.preventDefault();
+                var btn = $(this);
+                var postId = btn.data('post-id');
+                var title = $('#dd-note-input-title').val();
+                var content = $('#dd-note-input-content').val();
+
+                if (!content.trim()) {
+                    alert('Please enter a note before saving.');
+                    return;
+                }
+
+                btn.text('SAVING...').prop('disabled', true);
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_save_outreach_note',
+                        security: ddOutreach.nonce,
+                        post_id: postId,
+                        note_title: title,
+                        note_content: content
+                    },
+                    success: function(res) {
+                        btn.text('💾 SAVE NOTE').prop('disabled', false);
+                        if(res.success) {
+                            // Populate the Read-Only card with new data
+                            $('#dd-display-note-title').text(title);
+                            $('#dd-display-note-content').html(content.replace(/\\n/g, '<br>'));
+                            $('#dd-raw-note-content').val(content);
+                            $('#dd-display-note-date').text('Last edited ' + res.data.date);
+                            
+                            // Reveal the saved card and clear the input form
+                            $('#dd-saved-note-container').fadeIn();
+                            $('#dd-note-input-title').val('');
+                            $('#dd-note-input-content').val('');
+                        } else {
+                            alert('An error occurred while saving the note.');
+                        }
+                    }
+                });
+            });
+
+            // Edit Action
+            viewContainer.on('click', '#dd-edit-note', function(e) {
+                e.preventDefault();
+                var currentTitle = $('#dd-display-note-title').text();
+                var currentContent = $('#dd-raw-note-content').val();
+                
+                $('#dd-note-input-title').val(currentTitle);
+                $('#dd-note-input-content').val(currentContent);
+                $('#dd-note-input-content').focus();
+            });
+
+            // Delete Action
+            viewContainer.on('click', '#dd-delete-note', function(e) {
+                e.preventDefault();
+                if (!confirm('Are you sure you want to permanently delete this note?')) return;
+                
+                var btn = $(this);
+                var postId = btn.data('post-id');
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_delete_outreach_note',
+                        security: ddOutreach.nonce,
+                        post_id: postId
+                    },
+                    success: function(res) {
+                        if(res.success) {
+                            $('#dd-saved-note-container').fadeOut();
+                            $('#dd-note-input-title').val('');
+                            $('#dd-note-input-content').val('');
+                            $('#dd-raw-note-content').val('');
+                        }
+                    }
+                });
             });
 
         });
