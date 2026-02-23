@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.5.2
+ * Version: 1.5.3
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -259,7 +259,7 @@ class DD_Outreach_Manager
                 display: flex;
                 align-items: center;
                 padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
+                border-bottom: 1px solid #eee;
                 border-top: 1px solid transparent;
                 cursor: pointer;
                 transition: background 0.2s;
@@ -660,13 +660,14 @@ class DD_Outreach_Manager
 
     /**
      * Helper function to generate the HTML for the item list, used by both the shortcode and AJAX.
-     * Implements multi-value LIKE query to handle arrays of project types extracted from the custom select tool.
+     * Implements multi-value LIKE query to handle arrays of project types/lengths extracted from the custom select tool.
      *
      * @param string $search_query Optional search string.
      * @param array  $project_types Optional array of meta filters for project type.
+     * @param array  $project_lengths Optional array of meta filters for project length.
      * @return string HTML output of the list.
      */
-    private function generate_list_html($search_query = '', $project_types = [])
+    private function generate_list_html($search_query = '', $project_types = [], $project_lengths = [])
     {
         $args = [
             'post_type'      => 'outreach',
@@ -679,21 +680,46 @@ class DD_Outreach_Manager
             $args['s'] = sanitize_text_field($search_query);
         }
 
-        // Handle array of project types properly for checkboxes
+        // We use AND at the top level because we want a project to match Type AND Length 
+        $meta_query = ['relation' => 'AND'];
+
+        // Handle Project Type checkboxes (OR logic internally)
         if (!empty($project_types) && is_array($project_types)) {
-            $meta_query = ['relation' => 'OR'];
+            $type_query = ['relation' => 'OR'];
             foreach ($project_types as $type) {
                 if (!empty($type)) {
-                    $meta_query[] = [
+                    $type_query[] = [
                         'key'     => 'project_type',
                         'value'   => sanitize_text_field($type),
                         'compare' => 'LIKE'
                     ];
                 }
             }
-            if (count($meta_query) > 1) { // Only append if actual valid filters exist
-                $args['meta_query'] = $meta_query;
+            if (count($type_query) > 1) { // Apply only if valid filters exist inside
+                $meta_query[] = $type_query;
             }
+        }
+
+        // Handle Project Length checkboxes (OR logic internally)
+        if (!empty($project_lengths) && is_array($project_lengths)) {
+            $length_query = ['relation' => 'OR'];
+            foreach ($project_lengths as $length) {
+                if (!empty($length)) {
+                    $length_query[] = [
+                        'key'     => 'project_length',
+                        'value'   => sanitize_text_field($length),
+                        'compare' => 'LIKE'
+                    ];
+                }
+            }
+            if (count($length_query) > 1) { // Apply only if valid filters exist inside
+                $meta_query[] = $length_query;
+            }
+        }
+
+        // Inject the meta query if any valid filters were collected
+        if (count($meta_query) > 1) { 
+            $args['meta_query'] = $meta_query;
         }
 
         $query = new WP_Query($args);
@@ -729,8 +755,8 @@ class DD_Outreach_Manager
     }
 
     /**
-     * AJAX endpoint to filter the outreach list based on search term and dropdown.
-     * Expects project_type as an array to accommodate multiple checkbox selections.
+     * AJAX endpoint to filter the outreach list based on search term and dropdowns.
+     * Expects project_type and project_length as arrays to accommodate multiple checkbox selections.
      *
      * @return void
      */
@@ -743,10 +769,12 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        // Capture project type as array, map sanitization function to ensure safety
+        
+        // Capture project type & length as arrays, map sanitization function to ensure safety
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
+        $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
-        $html = $this->generate_list_html($search, $project_types);
+        $html = $this->generate_list_html($search, $project_types, $project_lengths);
 
         wp_send_json_success($html);
     }
@@ -909,17 +937,26 @@ class DD_Outreach_Manager
             function triggerFilter() {
                 var searchQuery = $('#dd-outreach-search').val();
                 
-                // Collect selected array of strings. Look for checkboxes primarily
+                // Collect project types
                 var selectedTypes = [];
                 $('input[name=\"project_type[]\"]:checked').each(function() {
-                    // Extract text string from data-label, fallback to value if missing
                     var val = $(this).attr('data-label') || $(this).val();
                     selectedTypes.push(val);
                 });
-
-                // Fallback for standard dropdown if no checkboxes are used
+                // Fallback for standard dropdown
                 if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
                     selectedTypes.push($('select[name=\"project_type\"]').val());
+                }
+
+                // Collect project lengths
+                var selectedLengths = [];
+                $('input[name=\"project_length[]\"]:checked').each(function() {
+                    var val = $(this).attr('data-label') || $(this).val();
+                    selectedLengths.push(val);
+                });
+                // Fallback for standard dropdown
+                if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
+                    selectedLengths.push($('select[name=\"project_length\"]').val());
                 }
 
                 $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
@@ -931,7 +968,8 @@ class DD_Outreach_Manager
                         action: 'dd_filter_outreach_list',
                         security: ddOutreach.nonce,
                         search: searchQuery,
-                        project_type: selectedTypes
+                        project_type: selectedTypes,
+                        project_length: selectedLengths
                     },
                     success: function(response) {
                         if(response.success) {
@@ -956,8 +994,8 @@ class DD_Outreach_Manager
                 filterTimer = setTimeout(triggerFilter, 500);
             });
 
-            // Listen for checkbox changes or standard select changes
-            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"]', function() {
+            // Listen for checkbox changes or standard select changes across BOTH filters
+            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"], input[name=\"project_length[]\"], select[name=\"project_length\"]', function() {
                 triggerFilter();
             });
 
