@@ -519,6 +519,15 @@ class DD_Outreach_Manager
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
+            .avatar-holder.avatar-holder img {
+                width: 68px;
+                height: 68px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-right: 15px;
+                border: 1px solid gray;
+                flex-shrink: 0;
+            }
         </style>
     <?php
     }
