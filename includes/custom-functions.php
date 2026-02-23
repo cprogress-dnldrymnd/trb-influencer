@@ -1079,3 +1079,38 @@ function get_unique_meta_values_by_post_type(string $meta_key, string $post_type
     // Return the results, ensuring it falls back to an empty array if null
     return is_array($results) ? $results : [];
 }
+
+
+/**
+ * Extracts up to two initials from a provided string.
+ *
+ * Utilizes regular expressions to isolate the first letter of the first 
+ * two words. Includes a fallback mechanism for single-word strings.
+ *
+ * @param string $string The source string (e.g., post title).
+ * @return string The extracted initials, capitalized.
+ */
+function dd_get_initials_from_string( $string ) {
+    $string = trim( $string );
+    if ( empty( $string ) ) {
+        return '';
+    }
+
+    // Match the first letter of each word boundaries, supporting Unicode
+    preg_match_all( '/\b\w/u', $string, $matches );
+
+    $initials = '';
+    
+    // Extract the first and (if available) second initial
+    if ( ! empty( $matches[0] ) ) {
+        $initials = mb_substr( $matches[0][0], 0, 1 );
+        if ( isset( $matches[0][1] ) ) {
+            $initials .= mb_substr( $matches[0][1], 0, 1 );
+        }
+    } else {
+        // Fallback for strings without clear word boundaries
+        $initials = mb_substr( $string, 0, 2 );
+    }
+
+    return mb_strtoupper( $initials );
+}

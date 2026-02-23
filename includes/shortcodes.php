@@ -1600,3 +1600,59 @@ function roi_calculator()
     return ob_get_clean();
 }
 add_shortcode('roi_calculator', 'roi_calculator');
+
+
+<?php
+/**
+ * Plugin Name: Influencer Avatar Shortcode
+ * Description: Provides a shortcode [influencer_avatar] to display a featured image or an initials-based avatar fallback.
+ * Version: 1.0.0
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly
+}
+
+/**
+ * Registers the [influencer_avatar] shortcode.
+ *
+ * Evaluates the specified or current post for a featured image. 
+ * If present, it returns the standard image tag. If absent, it relies
+ * on a helper function to generate an HTML-based initial avatar.
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string HTML output for the featured image or initial avatar.
+ */
+function dd_influencer_avatar_shortcode( $atts ) {
+    // Parse attributes, allowing an optional post_id and size override
+    $args = shortcode_atts( array(
+        'post_id' => get_the_ID(),
+        'size'    => 'thumbnail', // Accepts standard WordPress image sizes
+    ), $atts );
+
+    $post_id = intval( $args['post_id'] );
+
+    if ( ! $post_id ) {
+        return '';
+    }
+
+    // Output the featured image if it exists
+    if ( has_post_thumbnail( $post_id ) ) {
+        return get_the_post_thumbnail( $post_id, $args['size'], array( 'class' => 'influencer-avatar-img' ) );
+    }
+
+    // Fallback: Generate initials from the post title
+    $title    = get_the_title( $post_id );
+    $initials = dd_get_initials_from_string( $title );
+
+    // Build the HTML for the initials avatar
+    // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
+    $html  = '<div class="influencer-avatar-fallback" style="display: inline-flex; align-items: center; justify-content: center; width: 150px; height: 150px; border-radius: 50%; background-color: #e2e8f0; color: #475569; font-size: 48px; font-weight: 700; text-transform: uppercase;">';
+    $html .= esc_html( $initials );
+    $html .= '</div>';
+
+    return $html;
+}
+add_shortcode( 'influencer_avatar', 'dd_influencer_avatar_shortcode' );
