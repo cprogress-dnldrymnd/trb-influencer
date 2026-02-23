@@ -3,7 +3,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -44,33 +44,31 @@ class DD_Outreach_Manager {
 
     /**
      * Outputs consolidated CSS into the document <head>.
-     * Reuses standard message classes for both the form summary and the dynamic AJAX view.
+     * Restores the exact original CSS for the form summary and applies it to the view.
      *
      * @return void
      */
     public function inject_global_styles() {
         ?>
         <style>
-            /* Unified Summary & View Component Styles */
-            .dd-message-overview { display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 14px; font-weight: 500; color: #555; margin-bottom: 10px; }
-            .dd-message-overview-container { font-family: inherit; border-radius: 8px; border: 1px solid #4DB2A6; background: #fff; margin-bottom: 20px; }
-            .dd-profile-header { display: flex; align-items: center; gap: 15px; padding: 20px; border-bottom: 1px solid #E7E7E7; }
-            .dd-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+            /* --- Original Elementor Form Summary Styles --- */
+            .dd-message-overview { display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 16px; font-weight: 500; }
+            .dd-message-overview-container { font-family: inherit; margin-top: 15px; border-radius: 5px; border: 1px solid #3B1527; }
+            .dd-profile-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #E7E7E7; }
+            .dd-avatar { width: 50px; height: 50px; border-radius: 50%; }
             .dd-profile-info { flex-grow: 1; line-height: 1.4; }
-            .dd-profile-info strong { font-size: 20px; color: #333; }
-            .dd-profile-info small { color: #777; font-size: 14px; }
-            .dd-btn-outline { font-family: inherit; font-size: 12px; font-weight: bold; color: #ff9999; border: 1px solid #ffcccc; padding: 8px 15px; border-radius: 4px; text-decoration: none; background: transparent; }
-            .tags-container { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px; border-bottom: 1px solid #E7E7E7; margin: 0; }
-            .tag { border: 1px solid #4DB2A6; color: #4DB2A6; padding: 5px 12px; border-radius: 20px; font-size: 12px; }
-            .dd-subject-title { color: #1c4ea1; font-size: 18px !important; font-weight: bold; margin: 0; padding: 20px; font-family: Inter, sans-serif !important; border-bottom: none; }
-            .dd-message-content { font-size: 14px; color: #444; line-height: 1.6; max-height: 350px; overflow-y: auto; padding: 0 20px 25px 20px; font-family: Inter, sans-serif; }
-
-            /* Elementor specific footer buttons */
+            .dd-overview-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+            .dd-overview-header .dd-timestamp { font-weight: normal; color: #555; }
+            .dd-btn-outline { background-color: var(--e-global-color-1c4ea17); font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); fill: var(--e-global-color-accent); color: var(--e-global-color-accent); border: 1px solid var(--e-global-color-accent); padding: 14px 23px 14px 23px; border-radius: 5px; }
+            .dd-message-overview-container .tags-container.tags-container.tags-container { padding: 15px 20px; margin: 0; border-bottom: 1px solid #E7E7E7; }
+            .dd-subject-title { color: #034146; font-size: 18px !important; font-weight: bold; margin: 0; border-bottom: 1px solid #E7E7E7; font-family: Inter !important; padding: 15px 20px; }
+            .dd-message-content { font-size: 15px; color: #000000; line-height: 1.6; max-height: 300px; overflow-y: auto; padding: 15px 20px; font-family: Inter; }
             .dd-footer { display: flex; gap: 15px; margin-top: 15px; }
-            .view-outreach a { background-color: var(--e-global-color-accent, #4DB2A6) !important; border: 1px solid var(--e-global-color-accent, #4DB2A6); color: #fff !important; }
-            .close-outreach a { border: 1px solid var(--e-global-color-ee06e41, #ff9999) !important; background-color: transparent !important; color: var(--e-global-color-ee06e41, #ff9999) !important; }
+            .dd-footer a { font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); }
+            .view-outreach a { background-color: var(--e-global-color-accent) !important; border: 1px solid var(--e-global-color-accent); color: #fff !important; }
+            .close-outreach a { border-style: solid; border-color: var(--e-global-color-ee06e41) !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; }
 
-            /* Dashboard List Navigation Styles */
+            /* --- Dashboard List Navigation Styles --- */
             .dd-dashboard-list-container { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px; width: 100%; max-width: 350px; }
             .dd-filter-controls { margin-bottom: 20px; }
             .dd-list-search { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
@@ -90,11 +88,11 @@ class DD_Outreach_Manager {
             .dd-item-title { display: block; font-size: 12px; color: #4DB2A6; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
             .dd-item-date { color: #aaa; font-size: 11px; }
 
-            /* Dashboard View Layout & Note Styles */
+            /* --- Notes Component Styles --- */
             .dd-outreach-view-container { background: #f4f4f4; border-radius: 8px; padding: 30px; min-height: 600px; width: 100%; box-sizing: border-box; }
             .dd-view-placeholder { text-align: center; color: #888; margin-top: 50%; transform: translateY(-50%); display: block; }
             .dd-view-error { text-align: center; color: red; margin-top: 50%; transform: translateY(-50%); display: block; }
-            .dd-notes-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+            .dd-notes-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
             .dd-note-card { flex: 1; min-width: 280px; background: #fff; border: 1px solid #ffcc00; border-radius: 8px; padding: 20px; box-sizing: border-box; }
             .dd-steps-card { flex: 1; min-width: 280px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; box-sizing: border-box; }
             .dd-note-title { margin-top: 0; font-size: 16px; margin-bottom: 5px; color: #333; }
@@ -177,13 +175,13 @@ class DD_Outreach_Manager {
             <div class="dd-profile-header">
                 <img src="<?= wp_get_attachment_image_url(get_post_thumbnail_id(get_the_ID()), 'medium') ?>" alt="Profile" class="dd-avatar">
                 <div class="dd-profile-info">
-                    <strong><?php echo get_the_title(); ?> ✓</strong><br>
+                    <strong><?php echo get_the_title(); ?></strong><br>
                     <small>@<?php echo get_post_meta(get_the_ID(), 'instagramId', true); ?></small>
                 </div>
                 <a href="<?= get_the_permalink() ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
             </div>
             <div class="dd-overview-body">
-                <div class="tags-container">
+                <div class="tags-container tags-container tags-container">
                     <span class="tag"><strong>Project type:</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
                     <span class="tag"><strong>Project length:</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
                     <span class="tag"><strong>Project Dates:</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
@@ -201,6 +199,14 @@ class DD_Outreach_Manager {
             <div class="button-box view-outreach">
                 <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
                     <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17.081" height="18.396" viewBox="0 0 17.081 18.396">
+                                <g id="outreach_icon" data-name="outreach icon" transform="translate(-9.375 -6.25)">
+                                    <path id="Path_139" data-name="Path 139" d="M40.076,38.442a.649.649,0,0,1,.414.414l.69,2.069,1.59-4.77L38,37.745l2.069.69Z" transform="translate(-22.607 -23.619)" fill="#fff"></path>
+                                    <path id="Path_140" data-name="Path 140" d="M17.916,6.25a8.532,8.532,0,0,0-6.563,13.993l-1.281,3.521a.668.668,0,0,0,.151.69.66.66,0,0,0,.69.151l4.526-1.642a8.38,8.38,0,0,0,2.477.368,8.541,8.541,0,1,0,0-17.081Zm3.909,5.466L19.2,19.6a.657.657,0,0,1-.624.447.666.666,0,0,1-.624-.447L16.74,15.967l-3.633-1.209a.657.657,0,0,1-.447-.624.666.666,0,0,1,.447-.624l7.884-2.628a.647.647,0,0,1,.67.158.664.664,0,0,1,.158.67Z" fill="#fff"></path>
+                                </g>
+                            </svg>
+                        </span>
                         <span class="elementor-button-text">VIEW IN OUTREACH</span>
                     </span>
                 </a>
@@ -338,7 +344,6 @@ class DD_Outreach_Manager {
 
     /**
      * AJAX endpoint to fetch specific outreach post details.
-     * Refactored to reuse the HTML structure and classes from the Elementor form summary.
      *
      * @return void
      */
@@ -385,7 +390,7 @@ class DD_Outreach_Manager {
                 <a href="<?php echo get_permalink( $influencer_id ); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
             </div>
             <div class="dd-overview-body">
-                <div class="tags-container">
+                <div class="tags-container tags-container tags-container">
                     <span class="tag"><strong>Project type:</strong> <?php echo esc_html( $project_type ); ?></span>
                     <span class="tag"><strong>Project length:</strong> <?php echo esc_html( $project_length ); ?></span>
                     <span class="tag"><strong>Project Dates:</strong> <?php echo esc_html( $project_dates ); ?></span>
