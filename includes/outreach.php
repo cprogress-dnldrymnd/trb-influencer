@@ -528,13 +528,13 @@ class DD_Outreach_Manager
                 margin-right: 15px;
                 border: 1px solid gray;
                 flex-shrink: 0;
+                background-color: #e2e8f0;
             }
 
             .influencer-avatar-fallback {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background-color: #e2e8f0;
                 color: #475569;
                 font-size: 20px;
                 font-weight: 700;
