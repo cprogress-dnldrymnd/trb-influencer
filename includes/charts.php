@@ -127,6 +127,7 @@ class DD_Follower_Growth_Chart
     {
         global $post;
 
+        update_post_meta(get_the_ID(), 'followers', 19367); // For testing purposes only - remove in production
         if (is_single() && get_post_type() == 'influencer') {
             wp_enqueue_script('apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', [], '3.40.0', true);
 
