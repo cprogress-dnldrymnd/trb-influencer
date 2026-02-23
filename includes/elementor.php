@@ -335,6 +335,7 @@ function dd_elementor_success_scripts()
         .dd-message-overview-container .tags-container.tags-container.tags-container {
             padding: 15px 20px;
             margin: 0;
+            border-bottom: 1px solid #E7E7E7;
         }
 
         .dd-subject-title {
