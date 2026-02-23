@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.4.0
+ * Version: 1.4.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -486,7 +486,6 @@ class DD_Outreach_Manager
                 update_post_meta($post_id, sanitize_key($meta_key), $sanitized_value);
             }
 
-
             if (function_exists('deduct_points_from_current_user')) {
                 deduct_points_from_current_user(1, 'Outreach Form Submission');
             }
@@ -670,7 +669,7 @@ class DD_Outreach_Manager
     public function render_view_shortcode($atts)
     {
         return '<div id="dd-outreach-view-container" class="dd-outreach-view-container">
-            <span class="dd-view-placeholder">Select a project from the list to view details.</span>
+            <span class="dd-view-placeholder">Loading...</span>
         </div>';
     }
 
@@ -707,9 +706,6 @@ class DD_Outreach_Manager
 
         ob_start();
     ?>
-
-
-
         <div class="dd-message-overview-container">
             <div class="dd-profile-header">
                 <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" alt="Profile" class="dd-avatar">
@@ -766,7 +762,7 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues the custom jQuery required to bridge the list clicks with the AJAX
-     * endpoint.
+     * endpoint and automatically loads the first item.
      *
      * @return void
      */
@@ -776,6 +772,8 @@ class DD_Outreach_Manager
 
         $script = "
         jQuery(document).ready(function($) {
+            
+            // Handles dynamically loading project details on click
             $('.dd-outreach-item').on('click', function() {
                 var postId = $(this).data('post-id');
                 var container = $('#dd-outreach-view-container');
@@ -802,6 +800,12 @@ class DD_Outreach_Manager
                     }
                 });
             });
+
+            // Automatically select the first item on initial page load
+            var firstItem = $('.dd-outreach-item').first();
+            if (firstItem.length) {
+                firstItem.trigger('click');
+            }
         });
         ";
 
