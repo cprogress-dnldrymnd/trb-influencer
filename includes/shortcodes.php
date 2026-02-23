@@ -1622,7 +1622,7 @@ function dd_influencer_avatar_shortcode( $atts ) {
     $post_id = intval( $args['post_id'] );
 
     if ( ! $post_id ) {
-        return '';
+        $post_id = get_the_ID();
     }
 
     // Output the featured image if it exists
