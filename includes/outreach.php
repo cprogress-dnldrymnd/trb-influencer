@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.5.0
+ * Version: 1.5.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -69,7 +69,7 @@ class DD_Outreach_Manager
                 font-family: inherit;
                 margin-top: 15px;
                 border-radius: 10px;
-                border: 2px solid #034146;
+                background-color: #fff;
             }
 
             .mt-0 {
@@ -259,7 +259,6 @@ class DD_Outreach_Manager
                 display: flex;
                 align-items: center;
                 padding: 15px 20px;
-                border-top: 1px solid transparent;
                 border-bottom: 1px solid #eee;
                 cursor: pointer;
                 transition: background 0.2s;
@@ -268,8 +267,7 @@ class DD_Outreach_Manager
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
                 background: #FEF6F3;
-                border-top: 1px solid #3B1527;
-                border-bottom: 1px solid #3B1527;
+                border-left: 3px solid #E48D6C;
             }
 
             .dd-item-avatar {
@@ -635,7 +633,6 @@ class DD_Outreach_Manager
                     </div>
                     <div class="influencer-search-item">
                         <?php
-                        // Assuming select_filter is a custom function defined elsewhere in your theme/plugins
                         if (function_exists('select_filter')) {
                             echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
                         }
@@ -644,15 +641,14 @@ class DD_Outreach_Manager
 
                     <div class="influencer-search-item">
                         <?php
-                        // Assuming select_filter is a custom function defined elsewhere in your theme/plugins
                         if (function_exists('select_filter')) {
-                            echo select_filter('project_length', 'Project length', 'Filter by project lengtj', $influencer_outreach_fields['project_length'] ?? '');
+                            echo select_filter('project_length', 'Project length', 'Filter by project length', $influencer_outreach_fields['project_length'] ?? '');
                         }
                         ?>
                     </div>
                 </div>
             </div>
-            
+
             <div class="dd-item-list" id="dd-outreach-list-container">
                 <?php echo $this->generate_list_html(); ?>
             </div>
@@ -663,6 +659,7 @@ class DD_Outreach_Manager
 
     /**
      * Helper function to generate the HTML for the item list, used by both the shortcode and AJAX.
+     * Implements a forgiving 'LIKE' search for meta fields to ensure matches even if case or exact strings differ slightly.
      *
      * @param string $search_query Optional search string.
      * @param string $project_type Optional meta filter for project type.
@@ -686,7 +683,7 @@ class DD_Outreach_Manager
                 [
                     'key'     => 'project_type',
                     'value'   => sanitize_text_field($project_type),
-                    'compare' => '='
+                    'compare' => 'LIKE' // Using LIKE prevents strict case sensitivity or minor formatting issues
                 ]
             ];
         }
@@ -717,7 +714,7 @@ class DD_Outreach_Manager
             }
             wp_reset_postdata();
         } else {
-            $html .= '<p style="padding: 20px;">No outreach projects found matching your criteria.</p>';
+            $html .= '<p style="padding: 20px; color:#888;">No outreach projects found matching your criteria.</p>';
         }
 
         return $html;
@@ -846,7 +843,7 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues the custom jQuery required to bridge the list clicks with the AJAX
-     * endpoint and automatically loads the first item. Also handles filtering.
+     * endpoint and automatically loads the first item. Also handles robust filtering events.
      *
      * @return void
      */
@@ -896,14 +893,14 @@ class DD_Outreach_Manager
                 firstItem.trigger('click');
             }
 
-            // Handle Filtering Logic
+            // Centralized Filter Trigger
             var filterTimer;
             
             function triggerFilter() {
                 var searchQuery = $('#dd-outreach-search').val();
                 
-                // Check if custom select_filter output has an ID, otherwise fall back to name attribute
-                var projectTypeSelect = $('#project_type').length ? $('#project_type').val() : $('select[name=\"project_type\"]').val();
+                // Using a generic name selector to capture values even if the UI is hidden/customized
+                var projectTypeSelect = $('[name=\"project_type\"]').val();
 
                 $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
 
@@ -919,7 +916,7 @@ class DD_Outreach_Manager
                     success: function(response) {
                         if(response.success) {
                             $('#dd-outreach-list-container').html(response.data);
-                            bindListItemClicks(); // Rebind clicks to new elements
+                            bindListItemClicks(); // Rebind clicks to newly loaded DOM elements
                             
                             // Load the first item in the new filtered list
                             var newFirstItem = $('.dd-outreach-item').first();
@@ -933,14 +930,14 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Listen for search typing (with a small delay to prevent excessive AJAX calls)
+            // Listen for search typing
             $('#dd-outreach-search').on('keyup', function() {
                 clearTimeout(filterTimer);
                 filterTimer = setTimeout(triggerFilter, 500);
             });
 
-            // Listen for dropdown changes
-            $('select[name=\"project_type\"], #project_type').on('change', function() {
+            // Use event delegation for dropdown changes so it works with custom UI wrappers
+            $(document).on('change', '[name=\"project_type\"]', function() {
                 triggerFilter();
             });
 
