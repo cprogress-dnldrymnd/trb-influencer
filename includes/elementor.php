@@ -155,18 +155,6 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
-/**
- * Plugin Name: Elementor Custom Success Message Layout
- * Description: Overrides the default Elementor Form success message with a dynamically generated, structured layout displaying submitted data.
- * Plugin URI:  https://digitallydisruptive.co.uk/
- * Author:      Digitally Disruptive - Donald Raymundo
- * Author URI:  https://digitallydisruptive.co.uk/
- * Version:     1.0.0
- */
-
-if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly.
-}
 
 /**
  * Intercepts the Elementor Form submission to compile a custom HTML payload 
