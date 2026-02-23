@@ -257,6 +257,7 @@ class DD_Outreach_Manager
                 display: flex;
                 align-items: center;
                 padding: 15px 20px;
+                border-top: 1px solid transparent;
                 border-bottom: 1px solid #eee;
                 cursor: pointer;
                 transition: background 0.2s;
@@ -265,7 +266,8 @@ class DD_Outreach_Manager
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
                 background: #FEF6F3;
-                border-left: 3px solid #E48D6C;
+               border-top: 1px solid #3B1527;
+                border-bottom: 1px solid #3B1527;
             }
 
             .dd-item-avatar {
