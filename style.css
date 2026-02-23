@@ -661,6 +661,7 @@ input:checked + .slider:before {
   border-bottom: 1px solid #eee;
   padding: 20px;
   display: flex;
+  flex-direction: column;
   gap: 10px; }
   .influencer-search-summary.influencer-search-summary .search-summary-item {
     border: 1px solid var(--e-global-color-7355873);
@@ -678,9 +679,11 @@ input:checked + .slider:before {
       .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief-label svg {
         width: 20px;
         height: 20px; }
+    .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief {
+      padding: 13px;
+      border: 1px solid #bcbcbc;
+      border-radius: 5px; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
-    color: #fff; }
-  .influencer-search-summary.influencer-search-summary .search-summary-filters {
     color: #fff; }
 
 .pmpro_card.pmpro_content_message {

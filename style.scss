@@ -841,6 +841,7 @@ input:checked + .slider:before {
     border-bottom: 1px solid #eee;
     padding: 20px;
     display: flex;
+    flex-direction: column;
     gap: 10px;
     .search-summary-item {
         border: 1px solid var(--e-global-color-7355873);
@@ -860,12 +861,16 @@ input:checked + .slider:before {
                 height: 20px;
             }
         }
+        .summary-brief {
+            padding: 13px;
+            border: 1px solid #bcbcbc;
+            border-radius: 5px;
+        }
     }
     .search-summary-notes {
         color: #fff;
     }
     .search-summary-filters {
-        color: #fff;
     }
 }
 
