@@ -173,6 +173,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
 
     // Capture the ID of the page where the form was submitted via the AJAX POST payload
     $influencer_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+    $current_user_id = get_current_user_id();
 
     /**
      * Programmatically insert a new post of type 'outreach'.
@@ -185,7 +186,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
         'post_title'  => $post_title,
         'post_type'   => 'outreach',
         'post_status' => 'publish',
-        'post_author' => get_current_user_id(), // Attributes the post to the logged-in user submitting the form
+        'post_author' => $current_user_id, 
     ];
 
     $post_id = wp_insert_post($new_post_args);
@@ -201,7 +202,13 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
         // Store the page/influencer ID where the submission originated
         update_post_meta($post_id, 'influencer_id', $influencer_id);
 
-        deduct_points_from_current_user(1, 'Outreach Form Submission'); // Example function to deduct points, implement as needed
+        // Deduct point and fetch the updated balance for the frontend
+        deduct_points_from_current_user(1, 'Outreach Form Submission'); 
+        
+        if (function_exists('mycred_get_users_cred')) {
+            $updated_points = mycred_get_users_cred($current_user_id);
+            $ajax_handler->add_response_data('updated_points', $updated_points);
+        }
     }
 
     // Generate the current date
@@ -212,7 +219,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
 ?>
     <div class="dd-message-overview">
         <span class="m-overview">Message overview</span>
-        <span class="date"><?php echo esc_html($date_sent); ?></span>
+        <span class="date">Sent at <?php echo esc_html($date_sent); ?></span>
     </div>
     <div class="dd-message-overview-container">
         <div class="dd-profile-header">
@@ -273,6 +280,7 @@ add_action('elementor_pro/forms/new_record', 'dd_custom_elementor_form_response'
 /**
  * Injects frontend JavaScript and CSS required to catch the Elementor AJAX response
  * and render the custom HTML layout inside a specific target div (#outreach-form-summary).
+ * Also handles updating the `#current-points` DOM element dynamically.
  *
  * @return void
  */
@@ -366,7 +374,6 @@ function dd_elementor_success_scripts()
             font-family: Inter;
         }
 
-  
         .dd-footer {
             display: flex;
             gap: 15px;
@@ -404,6 +411,7 @@ function dd_elementor_success_scripts()
                     if (response && response.data && response.data.dd_custom_html) {
                         var $form = jQuery(event.target);
                         var $summaryTarget = jQuery('#outreach-form-summary');
+                        var $pointsTarget = jQuery('#current-points');
 
                         if ($summaryTarget.length) {
                             // Inject the generated HTML into the specific target div
@@ -411,6 +419,21 @@ function dd_elementor_success_scripts()
 
                             jQuery('#outreach-submission').addClass('hide-element');
                             jQuery('#outreach-summary').removeClass('hide-element');
+                            
+                            // Dynamically update the points balance
+                            if ($pointsTarget.length) {
+                                if (response.data.updated_points !== undefined) {
+                                    // Use the exact server-verified balance
+                                    $pointsTarget.text(response.data.updated_points);
+                                } else {
+                                    // Fallback: Client-side decrement if backend fetch fails
+                                    var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
+                                    var currentVal = parseInt(currentPointsStr, 10);
+                                    if (!isNaN(currentVal) && currentVal > 0) {
+                                        $pointsTarget.text(currentVal - 1);
+                                    }
+                                }
+                            }
                         } else {
                             console.warn('Target div #outreach-form-summary not found on the page.');
                         }
