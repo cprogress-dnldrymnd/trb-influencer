@@ -856,6 +856,7 @@ input:checked + .slider:before {
             gap: 12px;
             align-items: center;
             font-weight: 600;
+            white-space: nowrap;
             svg {
                 width: 20px;
                 height: 20px;
@@ -871,7 +872,8 @@ input:checked + .slider:before {
             display: flex;
             gap: 12px;
             align-items: center;
-            color: #F77D67;
+            color: #f77d67;
+            white-space: nowrap;
             svg {
                 width: 20px;
                 height: 20px;

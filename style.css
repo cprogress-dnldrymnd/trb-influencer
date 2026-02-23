@@ -675,7 +675,8 @@ input:checked + .slider:before {
       display: flex;
       gap: 12px;
       align-items: center;
-      font-weight: 600; }
+      font-weight: 600;
+      white-space: nowrap; }
       .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief-label svg {
         width: 20px;
         height: 20px; }
@@ -688,7 +689,8 @@ input:checked + .slider:before {
       display: flex;
       gap: 12px;
       align-items: center;
-      color: #F77D67; }
+      color: #f77d67;
+      white-space: nowrap; }
       .influencer-search-summary.influencer-search-summary .search-summary-item .edit-summary-brieft svg {
         width: 20px;
         height: 20px; }
