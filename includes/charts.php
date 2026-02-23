@@ -150,33 +150,9 @@ class DD_Follower_Growth_Chart
         ob_start();
 ?>
         <style>
-            .dd-chart-card {
-                background-color: #F3F1F0;
-                border: 1px solid #4A3F3F;
-                border-radius: 8px;
-                width: 100%;
-                padding: 24px 32px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-                box-sizing: border-box;
-            }
+          
 
-            .dd-chart-header {
-                display: flex;
-                align-items: center;
-                margin-bottom: 20px;
-                font-weight: 600;
-                color: #2D2D2D;
-                letter-spacing: 1px;
-                font-size: 14px;
-                text-transform: uppercase;
-            }
-
-            .dd-chart-header svg {
-                margin-right: 10px;
-                width: 18px;
-                height: 18px;
-            }
-
+        
             .dd-chart-footer {
                 display: flex;
                 justify-content: space-between;
@@ -216,12 +192,6 @@ class DD_Follower_Growth_Chart
         </style>
 
         <div class="dd-chart-card">
-            <div class="dd-chart-header">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
-                </svg>
-                Monthly Gain in Total Followers
-            </div>
 
             <div id="ddFollowerChart"></div>
 
