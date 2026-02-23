@@ -357,10 +357,7 @@ function dd_elementor_success_scripts()
             font-family: Inter;
         }
 
-        .dd-footer {
-            padding: 15px 20px;
-        }
-
+  
         .dd-footer {
             display: flex;
             gap: 15px;
