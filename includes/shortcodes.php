@@ -160,10 +160,17 @@ add_shortcode('influencer_avglikes', 'shortcode_influencer_avglikes');
 
 function shortcode_influencer_avgcomments()
 {
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'avglikes', true));
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'avgcomments', true));
 }
 
 add_shortcode('influencer_avgcomments', 'shortcode_influencer_avgcomments');
+
+function shortcode_influencer_posts()
+{
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'posts', true));
+}
+
+add_shortcode('influencer_posts', 'shortcode_influencer_posts');
 
 function shortcode_influencer_engagerate()
 {
