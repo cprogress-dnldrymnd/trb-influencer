@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic data from post meta.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -32,53 +32,51 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * Transforms raw daily/weekly follower statistics into a structured, 12-month dataset for frontend charting.
+     * Transforms raw daily/weekly follower statistics into a structured, 12-month dataset.
      *
-     * This function extracts the final recorded follower count for each month, calculates the 
-     * month-over-month difference (gain/loss), and formats the output into arrays perfectly 
-     * structured for ApexCharts consumption.
+     * Extracts the final recorded follower count per month, sorts them chronologically
+     * (oldest to latest), and isolates the totals for the Y-axis and the calculated deltas (gains) 
+     * for the data labels.
      *
      * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing 'labels' (x-axis), 'gains' (y-axis deltas), and 'totals' (y-axis absolutes).
+     * @return array Associative array containing 'labels' (x-axis), 'totals' (y-axis), and 'gains' (top labels).
      */
     private function prepare_monthly_chart_data(array $raw_data): array
     {
         // Return empty payload if no valid array is passed
         if (empty($raw_data)) {
-            return ['labels' => [], 'gains' => [], 'totals' => []];
+            return ['labels' => [], 'totals' => [], 'gains' => []];
         }
 
-        // Ensure raw data is strictly sorted chronologically (Oldest first).
-        // This is crucial because the input array is ordered newest-first. Sorting ensures
-        // the loop below correctly overwrites earlier dates with later dates to capture the true month-end total.
+        // 1. Sort the raw array strictly chronologically (Oldest first to Latest last).
         usort($raw_data, function ($a, $b) {
-            $time_a = isset($a['timestamp_ms']) ? $a['timestamp_ms'] : strtotime($a['date'] ?? 'now');
-            $time_b = isset($b['timestamp_ms']) ? $b['timestamp_ms'] : strtotime($b['date'] ?? 'now');
+            $time_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now');
+            $time_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now');
             return $time_a <=> $time_b;
         });
 
         $monthly_snapshots = [];
 
-        // Group data by year-month. Since data is sorted chronologically,
-        // later entries for the same month will overwrite earlier ones, leaving the month-end total.
+        // 2. Group data by year-month.
+        // Because data is sorted chronologically, the loop naturally overwrites 
+        // earlier dates with later dates for the same month, capturing the final month-end total.
         foreach ($raw_data as $entry) {
-            // Fallback for timestamp processing if date string is malformed
             $date = isset($entry['date']) ? new DateTime($entry['date']) : (new DateTime())->setTimestamp($entry['timestamp_ms'] / 1000);
             $month_key = $date->format('Y-m');
 
             $monthly_snapshots[$month_key] = [
                 'label'     => $date->format('M'),
-                'followers' => $entry['followers']
+                'followers' => (int)$entry['followers']
             ];
         }
 
-        // Ensure months are processed in order
+        // Ensure array keys are strictly sorted in chronological order
         ksort($monthly_snapshots);
 
         $processed_months = [];
         $previous_followers = null;
 
-        // Calculate the month-over-month delta.
+        // 3. Calculate the month-over-month delta (Gain)
         foreach ($monthly_snapshots as $key => $data) {
             $gain = ($previous_followers !== null) ? ($data['followers'] - $previous_followers) : 0;
 
@@ -91,19 +89,19 @@ class DD_Follower_Growth_Chart
             $previous_followers = $data['followers'];
         }
 
-        // Extract strictly the trailing 12 months.
+        // 4. Extract strictly the latest 12 months.
         $last_12_months = array_slice($processed_months, -12);
 
         $chart_payload = [
             'labels' => [],
-            'gains'  => [],
-            'totals' => []
+            'totals' => [], // Mapped to Requirement 4: Left Label / Bar height
+            'gains'  => []  // Mapped to Requirement 3: Top Label
         ];
 
         foreach ($last_12_months as $item) {
             $chart_payload['labels'][] = $item['month'];
-            $chart_payload['gains'][]  = $item['gain'];
             $chart_payload['totals'][] = $item['total'];
+            $chart_payload['gains'][]  = $item['gain'];
         }
 
         return $chart_payload;
@@ -117,9 +115,9 @@ class DD_Follower_Growth_Chart
      */
     private function get_raw_follower_data(int $post_id): array
     {
+        // Requirement 1: Data fetched directly from post meta
         $history = get_post_meta($post_id, 'creatordb_history', true);
 
-        // Ensure we are strictly returning an array to prevent fatal foreach errors downstream
         if (! is_array($history)) {
             return [];
         }
@@ -129,8 +127,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Registers and enqueues the necessary frontend scripts and dynamically injects the payload.
-     * * Evaluates the global post object to ensure scripts are only loaded when the specific
-     * shortcode is present, optimizing page load speeds.
      *
      * @return void
      */
@@ -141,10 +137,8 @@ class DD_Follower_Growth_Chart
         if (is_single() && get_post_type() == 'influencer') {
             wp_enqueue_script('apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', [], '3.40.0', true);
 
-            // Dummy handle used solely to attach inline localized script payloads.
             wp_enqueue_script('dd-chart-init', plugin_dir_url(__FILE__) . 'assets/js/dummy.js', ['apexcharts'], '1.0.0', true);
 
-            // Dynamically pass the current post ID to fetch the specific meta
             $raw_data = $this->get_raw_follower_data($post->ID);
             $processed_data = $this->prepare_monthly_chart_data($raw_data);
 
@@ -152,16 +146,12 @@ class DD_Follower_Growth_Chart
             $total_gain = !empty($processed_data['gains']) ? array_sum($processed_data['gains']) : 0;
             $processed_data['summary_gain'] = number_format($total_gain);
 
-            // Inject data securely into the DOM for ApexCharts to consume.
             wp_localize_script('dd-chart-init', 'ddChartPayload', $processed_data);
         }
     }
 
     /**
      * Handles the output of the [follower_growth_chart] shortcode.
-     *
-     * Constructs the HTML scaffolding, applies the scoped CSS, and initializes the
-     * ApexCharts instance targeting the localized payload.
      *
      * @return string The compiled HTML rendering the chart interface.
      */
@@ -241,32 +231,33 @@ class DD_Follower_Growth_Chart
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
-                // Stop execution if there is no data to chart (prevents JS errors)
                 if (ddChartPayload.labels.length === 0) {
                     document.getElementById('ddFollowerChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
                     document.getElementById('ddSummaryBadge').innerText = 'No Data';
                     return;
                 }
 
-                // Note: If you want to chart absolute totals instead of delta, change `ddChartPayload.gains` to `ddChartPayload.totals`
-                const chartData = ddChartPayload.gains;
-                const chartLabels = ddChartPayload.labels;
+                // Data mapping based on your explicit requirements
+                const chartTotals = ddChartPayload.totals; // Maps to Left Label and Bar Height
+                const chartGains = ddChartPayload.gains;   // Maps to Top Label
+                const chartLabels = ddChartPayload.labels; // Maps to Bottom Label
 
                 document.getElementById('ddSummaryBadge').innerText = 'Gained ' + ddChartPayload.summary_gain + ' followers';
 
                 const formatToK = (value) => {
-                    // Handle negative values correctly for the label
-                    const absValue = Math.abs(value);
+                    const num = Number(value);
+                    if (isNaN(num)) return value;
+                    const absValue = Math.abs(num);
                     if (absValue >= 1000) {
-                        return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
                     }
-                    return value.toString();
+                    return num.toString();
                 };
 
                 const options = {
                     series: [{
-                        name: 'Followers',
-                        data: chartData
+                        name: 'Total Followers',
+                        data: chartTotals // Requirement 4: Render bars against the total follower count
                     }],
                     chart: {
                         type: 'bar',
@@ -287,8 +278,14 @@ class DD_Follower_Growth_Chart
                     },
                     dataLabels: {
                         enabled: true,
-                        formatter: formatToK,
-                        offsetY: -25, // Adjusts the pill position upwards from the top of the bar
+                        formatter: function (val, opts) {
+                            // Requirement 3: Top label overrides the default value to show the GAIN
+                            const gain = chartGains[opts.dataPointIndex];
+                            const formattedGain = formatToK(gain);
+                            // Add a '+' prefix for positive gains for better UI clarity
+                            return gain > 0 ? '+' + formattedGain : formattedGain;
+                        },
+                        offsetY: -25,
                         style: {
                             fontSize: '11px',
                             colors: ['#1F4541']
@@ -299,7 +296,7 @@ class DD_Follower_Growth_Chart
                             borderRadius: 12,
                             borderWidth: 1,
                             borderColor: '#649E94',
-                            opacity: 0, // Transparent background for the hollow pill look
+                            opacity: 0,
                             dropShadow: {
                                 enabled: false
                             }
@@ -322,6 +319,7 @@ class DD_Follower_Growth_Chart
                     },
                     yaxis: {
                         labels: {
+                            // Requirement 4: Left label formatting represents Total Followers
                             formatter: formatToK,
                             style: {
                                 colors: '#555',
