@@ -1157,6 +1157,8 @@ function test()
         echo '<pre>';
         var_dump(get_post_meta(get_the_ID()));
         echo '</pre>';
+*/
+
         echo '<pre>';
         var_dump(get_post_meta(get_the_ID(), 'recentposts', true));
 
