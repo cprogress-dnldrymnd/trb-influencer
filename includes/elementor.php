@@ -256,11 +256,12 @@ function dd_elementor_success_scripts()
 
         .dd-message-content {
             font-size: 15px;
-            color: #333;
+            color: #000000;
             line-height: 1.6;
             max-height: 300px;
             overflow-y: auto;
             padding: 20px;
+            font-family: Inter;
         }
     </style>
 
