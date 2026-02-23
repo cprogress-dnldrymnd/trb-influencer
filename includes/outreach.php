@@ -70,7 +70,9 @@ class DD_Outreach_Manager
                 border-radius: 10px;
                 border: 2px solid #034146;
             }
-
+            .mt-0 {
+                margin-top: 0 !important;
+            }
             .dd-profile-header {
                 display: flex;
                 align-items: center;
@@ -713,7 +715,7 @@ class DD_Outreach_Manager
 
         ob_start();
     ?>
-        <div class="dd-message-overview-container">
+        <div class="dd-message-overview-container mt-0">
             <div class="dd-profile-header">
                 <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" alt="Profile" class="dd-avatar">
                 <div class="dd-profile-info">
