@@ -625,8 +625,10 @@ class DD_Outreach_Manager
         ob_start();
     ?>
         <div class="dd-dashboard-list-container">
+            <div class="dd-filter-search">
+                <input type="text" placeholder="Search by influencer or message">
+            </div>
             <div class="dd-filter-controls">
-                <input type="text" class="dd-list-search" placeholder="Search by influencer or message">
                 <div class="dd-filter-label-row">
                     <strong>Project type</strong>
                     <a href="#" class="dd-filter-reset">Reset</a>
