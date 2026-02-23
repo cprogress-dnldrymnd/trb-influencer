@@ -478,6 +478,7 @@ class DD_Outreach_Manager
             'post_type'   => 'outreach',
             'post_status' => 'publish',
             'post_author' => $current_user_id,
+            'post_content' => $data['message']
         ];
 
         $post_id = wp_insert_post($new_post_args);
