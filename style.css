@@ -684,6 +684,14 @@ input:checked + .slider:before {
       border: 1px solid #bcbcbc;
       border-radius: 5px;
       flex-grow: 1; }
+    .influencer-search-summary.influencer-search-summary .search-summary-item .edit-summary-brieft {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      color: #F77D67; }
+      .influencer-search-summary.influencer-search-summary .search-summary-item .edit-summary-brieft svg {
+        width: 20px;
+        height: 20px; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
     color: #fff; }
 

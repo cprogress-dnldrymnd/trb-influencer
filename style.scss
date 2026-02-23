@@ -867,6 +867,16 @@ input:checked + .slider:before {
             border-radius: 5px;
             flex-grow: 1;
         }
+        .edit-summary-brieft {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            color: #F77D67;
+            svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
     }
     .search-summary-notes {
         color: #fff;
