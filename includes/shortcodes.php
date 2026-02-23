@@ -452,7 +452,7 @@ function shortcode_influencer_search_filter()
             <div class="influencer-search-item">
                 <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '') ?>
             </div>
- 
+
             <!--
             <div class="influencer-search-item">
                 <div class="filter-widget range-filter">
@@ -1156,6 +1156,12 @@ function test()
         echo '<pre>';
         var_dump(get_post_meta(get_the_ID()));
         echo '</pre>';
+        echo '<pre>';
+
+        var_dump(get_post_meta(get_the_ID(), 'creatordb_history', true));
+
+        echo '</pre>';
+
         return ob_get_clean();
     }
 }
@@ -1645,34 +1651,35 @@ add_shortcode('roi_calculator', 'roi_calculator');
  * @param array $atts Shortcode attributes.
  * @return string HTML output for the featured image or initial avatar.
  */
-function dd_influencer_avatar_shortcode( $atts ) {
+function dd_influencer_avatar_shortcode($atts)
+{
     // Parse attributes, allowing an optional post_id and size override
-    $args = shortcode_atts( array(
+    $args = shortcode_atts(array(
         'post_id' => get_the_ID(),
         'size'    => 'thumbnail', // Accepts standard WordPress image sizes
-    ), $atts );
+    ), $atts);
 
-    $post_id = intval( $args['post_id'] );
+    $post_id = intval($args['post_id']);
 
-    if ( ! $post_id ) {
+    if (! $post_id) {
         $post_id = get_the_ID();
     }
 
     // Output the featured image if it exists
-    if ( has_post_thumbnail( $post_id ) ) {
-        return get_the_post_thumbnail( $post_id, $args['size'], array( 'class' => 'influencer-avatar-img' ) );
+    if (has_post_thumbnail($post_id)) {
+        return get_the_post_thumbnail($post_id, $args['size'], array('class' => 'influencer-avatar-img'));
     }
 
     // Fallback: Generate initials from the post title
-    $title    = get_the_title( $post_id );
-    $initials = dd_get_initials_from_string( $title );
+    $title    = get_the_title($post_id);
+    $initials = dd_get_initials_from_string($title);
 
     // Build the HTML for the initials avatar
     // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
     $html  = '<div class="influencer-avatar-fallback">';
-    $html .= esc_html( $initials );
+    $html .= esc_html($initials);
     $html .= '</div>';
 
     return $html;
 }
-add_shortcode( 'influencer_avatar', 'dd_influencer_avatar_shortcode' );
+add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
