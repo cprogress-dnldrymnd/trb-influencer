@@ -71,7 +71,7 @@ class DD_Follower_Growth_Chart
         }
 
         // Ensure array keys are strictly sorted in chronological order
-        ksort($monthly_snapshots);
+        usort($monthly_snapshots);
 
         $processed_months = [];
         $previous_followers = null;
