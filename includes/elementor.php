@@ -230,7 +230,7 @@ function dd_elementor_success_scripts()
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 25px;
+            padding: 10px 20px;
         }
 
         .dd-avatar {
