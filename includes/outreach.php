@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.5.1
+ * Version: 1.5.2
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -69,13 +69,11 @@ class DD_Outreach_Manager
                 font-family: inherit;
                 margin-top: 15px;
                 border-radius: 10px;
-                background-color: #fff;
+                border: 2px solid #034146;
             }
-
             .mt-0 {
                 margin-top: 0 !important;
             }
-
             .dd-profile-header {
                 display: flex;
                 align-items: center;
@@ -485,7 +483,7 @@ class DD_Outreach_Manager
             'post_type'   => 'outreach',
             'post_status' => 'publish',
             'post_author' => $current_user_id,
-            'post_content' => $data['message'] . '<div class="hide-element">' . get_the_title($data['influencer_id']) . '</div>'
+            'post_content' => $data['message'].'<div class="hide-element">'.get_the_title($data['influencer_id']).'</div>'
         ];
 
         $post_id = wp_insert_post($new_post_args);
@@ -632,17 +630,15 @@ class DD_Outreach_Manager
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
                     <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
+                        <?php 
+                        if(function_exists('select_filter')) {
                             echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
-                        }
-                        ?>
-                    </div>
-
-                    <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
-                            echo select_filter('project_length', 'Project length', 'Filter by project length', $influencer_outreach_fields['project_length'] ?? '');
+                        } else {
+                            echo '<select name="project_type" class="dd-filter-select">';
+                            echo '<option value="">Filter by project type</option>';
+                            echo '<option value="affiliate">Affiliate partnership</option>';
+                            echo '<option value="collaboration">Collaboration</option>';
+                            echo '</select>';
                         }
                         ?>
                     </div>
@@ -659,13 +655,13 @@ class DD_Outreach_Manager
 
     /**
      * Helper function to generate the HTML for the item list, used by both the shortcode and AJAX.
-     * Implements a forgiving 'LIKE' search for meta fields to ensure matches even if case or exact strings differ slightly.
+     * Implements multi-value LIKE query to handle arrays of project types extracted from the custom select tool.
      *
      * @param string $search_query Optional search string.
-     * @param string $project_type Optional meta filter for project type.
+     * @param array  $project_types Optional array of meta filters for project type.
      * @return string HTML output of the list.
      */
-    private function generate_list_html($search_query = '', $project_type = '')
+    private function generate_list_html($search_query = '', $project_types = [])
     {
         $args = [
             'post_type'      => 'outreach',
@@ -678,14 +674,21 @@ class DD_Outreach_Manager
             $args['s'] = sanitize_text_field($search_query);
         }
 
-        if (!empty($project_type)) {
-            $args['meta_query'] = [
-                [
-                    'key'     => 'project_type',
-                    'value'   => sanitize_text_field($project_type),
-                    'compare' => 'LIKE' // Using LIKE prevents strict case sensitivity or minor formatting issues
-                ]
-            ];
+        // Handle array of project types properly for checkboxes
+        if (!empty($project_types) && is_array($project_types)) {
+            $meta_query = ['relation' => 'OR'];
+            foreach ($project_types as $type) {
+                if (!empty($type)) {
+                    $meta_query[] = [
+                        'key'     => 'project_type',
+                        'value'   => sanitize_text_field($type),
+                        'compare' => 'LIKE'
+                    ];
+                }
+            }
+            if (count($meta_query) > 1) { // Only append if actual valid filters exist
+                $args['meta_query'] = $meta_query;
+            }
         }
 
         $query = new WP_Query($args);
@@ -698,7 +701,7 @@ class DD_Outreach_Manager
                 $influencer_id = get_post_meta($post_id, 'influencer_id', true);
                 $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
-
+                
                 $avatar = get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png';
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
@@ -722,6 +725,7 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to filter the outreach list based on search term and dropdown.
+     * Expects project_type as an array to accommodate multiple checkbox selections.
      *
      * @return void
      */
@@ -734,9 +738,10 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        $project_type = isset($_POST['project_type']) ? sanitize_text_field($_POST['project_type']) : '';
+        // Capture project type as array, map sanitization function to ensure safety
+        $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
 
-        $html = $this->generate_list_html($search, $project_type);
+        $html = $this->generate_list_html($search, $project_types);
 
         wp_send_json_success($html);
     }
@@ -899,8 +904,18 @@ class DD_Outreach_Manager
             function triggerFilter() {
                 var searchQuery = $('#dd-outreach-search').val();
                 
-                // Using a generic name selector to capture values even if the UI is hidden/customized
-                var projectTypeSelect = $('[name=\"project_type\"]').val();
+                // Collect selected array of strings. Look for checkboxes primarily
+                var selectedTypes = [];
+                $('input[name=\"project_type[]\"]:checked').each(function() {
+                    // Extract text string from data-label, fallback to value if missing
+                    var val = $(this).attr('data-label') || $(this).val();
+                    selectedTypes.push(val);
+                });
+
+                // Fallback for standard dropdown if no checkboxes are used
+                if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
+                    selectedTypes.push($('select[name=\"project_type\"]').val());
+                }
 
                 $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
 
@@ -911,7 +926,7 @@ class DD_Outreach_Manager
                         action: 'dd_filter_outreach_list',
                         security: ddOutreach.nonce,
                         search: searchQuery,
-                        project_type: projectTypeSelect
+                        project_type: selectedTypes
                     },
                     success: function(response) {
                         if(response.success) {
@@ -936,8 +951,8 @@ class DD_Outreach_Manager
                 filterTimer = setTimeout(triggerFilter, 500);
             });
 
-            // Use event delegation for dropdown changes so it works with custom UI wrappers
-            $(document).on('change', '[name=\"project_type\"]', function() {
+            // Listen for checkbox changes or standard select changes
+            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"]', function() {
                 triggerFilter();
             });
 
