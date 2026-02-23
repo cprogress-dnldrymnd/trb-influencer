@@ -259,7 +259,7 @@ function my_custom_loop_filter_handler()
             ]);
         }
 
-        $testing_html .= '<div class="broadened-results-notice">Your search returned fewer than 6 results, so we broadened the search to show more influencers. Try adjusting your filters for a more specific match!</div>';
+        $testing_html .= '<div class="broadened-results-notice">Last resort: if still 0, return all published (no filters). Your search returned fewer than 6 results, so we broadened the search to show more influencers. Try adjusting your filters for a more specific match!</div>';
     }
 
     if ($query->have_posts()) {
