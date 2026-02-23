@@ -180,8 +180,7 @@ class DD_Outreach_Manager
                 background-color: var(--e-global-color-accent) !important;
                 border: 1px solid var(--e-global-color-accent);
                 color: #fff !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
+              
             }
 
             .close-outreach a {
@@ -195,6 +194,8 @@ class DD_Outreach_Manager
                 border: none !important;
                 background-color: transparent !important;
                 color: var(--e-global-color-ee06e41) !important;
+                  padding-left: 0 !important;
+                padding-right: 0 !important;
             }
 
             .submit-new a span.elementor-button-text {
