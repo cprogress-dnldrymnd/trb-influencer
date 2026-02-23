@@ -146,8 +146,10 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
  * Intercepts the Elementor Form submission to compile a custom HTML payload 
  * using the submitted field values and appends it to the AJAX response.
  * Execution is strictly limited to the 'outreach_form' form ID.
+ * Additionally, generates a new 'outreach' post type entry and stores form fields
+ * and the origin page ID as post meta.
  *
- * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record     The form submission record.
+ * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record       The form submission record.
  * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler The AJAX handler managing the response.
  * @return void
  */
@@ -167,6 +169,35 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     // Normalize fields for easy key-based access
     foreach ($raw_fields as $id => $field) {
         $data[$id] = $field['value'];
+    }
+
+    // Capture the ID of the page where the form was submitted via the AJAX POST payload
+    $influencer_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+
+    /**
+     * Programmatically insert a new post of type 'outreach'.
+     * Defaults the post title to the submitted subject line.
+     */
+    $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
+    
+    $new_post_args = [
+        'post_title'  => $post_title,
+        'post_type'   => 'outreach',
+        'post_status' => 'publish',
+    ];
+
+    $post_id = wp_insert_post($new_post_args);
+
+    // If post creation is successful, iterate through normalized data to store as post meta
+    if (!is_wp_error($post_id)) {
+        foreach ($data as $meta_key => $meta_value) {
+            // Apply textarea sanitization for message to preserve line breaks, standard text sanitization otherwise
+            $sanitized_value = ('message' === $meta_key) ? sanitize_textarea_field($meta_value) : sanitize_text_field($meta_value);
+            update_post_meta($post_id, sanitize_key($meta_key), $sanitized_value);
+        }
+
+        // Store the page/influencer ID where the submission originated
+        update_post_meta($post_id, 'influencer_id', $influencer_id);
     }
 
     // Generate the current date
@@ -213,7 +244,8 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
                                     <path id="Path_139" data-name="Path 139" d="M40.076,38.442a.649.649,0,0,1,.414.414l.69,2.069,1.59-4.77L38,37.745l2.069.69Z" transform="translate(-22.607 -23.619)" fill="#fff"></path>
                                     <path id="Path_140" data-name="Path 140" d="M17.916,6.25a8.532,8.532,0,0,0-6.563,13.993l-1.281,3.521a.668.668,0,0,0,.151.69.66.66,0,0,0,.69.151l4.526-1.642a8.38,8.38,0,0,0,2.477.368,8.541,8.541,0,1,0,0-17.081Zm3.909,5.466L19.2,19.6a.657.657,0,0,1-.624.447.666.666,0,0,1-.624-.447L16.74,15.967l-3.633-1.209a.657.657,0,0,1-.447-.624.666.666,0,0,1,.447-.624l7.884-2.628a.647.647,0,0,1,.67.158.664.664,0,0,1,.158.67Z" fill="#fff"></path>
                                 </g>
-                            </svg> </span>
+                            </svg> 
+                        </span>
                         <span class="elementor-button-text">VIEW IN OUTREACH</span>
                     </span>
                 </a>
@@ -282,7 +314,6 @@ function dd_elementor_success_scripts()
             font-weight: normal;
             color: #555;
         }
-
 
         .dd-btn-outline {
             background-color: var(--e-global-color-1c4ea17);
