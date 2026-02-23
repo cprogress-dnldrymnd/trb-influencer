@@ -100,7 +100,7 @@ function action_wp_head()
     }
 
     if (!$current_balance || $current_balance <= 0) {
-        #echo ".outreach-form-trigger{ display: none !important}";
+        echo ".outreach-form-trigger{ display: none !important}";
     }
 
 
