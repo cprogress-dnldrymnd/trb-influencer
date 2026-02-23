@@ -181,9 +181,13 @@ class DD_Outreach_Manager
                 background: #fdfdfd;
                 border: 1px solid #eaeaea;
                 border-radius: 8px;
-                padding: 20px;
                 width: 100%;
                 max-width: 350px;
+            }
+
+            .outreach-filter {
+                padding: 20px;
+                border-bottom: 1px solid #BCBCBC;
             }
 
             .dd-filter-controls {
@@ -624,12 +628,14 @@ class DD_Outreach_Manager
         ob_start();
     ?>
         <div class="dd-dashboard-list-container">
-            <div class="influencer-search-filter-holder">
-                <div class="influencer-search-item">
-                    <input type="text" name="search" placeholder="Search by influencer or message">
-                </div>
-                <div class="influencer-search-item">
-                    <?= select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '') ?>
+            <div class="outreach-filter">
+                <div class="influencer-search-filter-holder">
+                    <div class="influencer-search-item">
+                        <input type="text" name="search" placeholder="Search by influencer or message">
+                    </div>
+                    <div class="influencer-search-item">
+                        <?= select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '') ?>
+                    </div>
                 </div>
             </div>
 
