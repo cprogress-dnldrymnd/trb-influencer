@@ -127,7 +127,6 @@ class DD_Follower_Growth_Chart
     {
         global $post;
 
-        // Only load assets if the shortcode is present on the current post/page.
         if (is_single() && get_post_type() == 'influencer') {
             wp_enqueue_script('apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', [], '3.40.0', true);
 
