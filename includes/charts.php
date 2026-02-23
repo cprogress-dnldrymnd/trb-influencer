@@ -197,7 +197,7 @@ class DD_Follower_Growth_Chart
 
             <div class="dd-chart-footer">
                 <div>
-                    In the last 12 months, <span class="dd-pill-badge" id="ddSummaryBadge">Loading...</span>
+                    In the last 12 months, <?= get_the_title() ?> <span class="dd-pill-badge" id="ddSummaryBadge">Loading...</span>
                 </div>
                 <div>
                     Last updated: <?php echo date('M d, Y'); ?>
