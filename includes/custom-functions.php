@@ -1033,3 +1033,46 @@ function get_niche_terms_sql($post_id = null)
 
     return '';
 }
+
+
+/**
+ * Retrieves an array of unique meta values for a specific meta key and post type.
+ *
+ * This function performs a direct database query joining the posts and postmeta tables.
+ * It strictly returns values associated with 'publish' status posts to ensure 
+ * data from drafts, auto-drafts, or revisions is excluded.
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
+ * @param string $meta_key  The meta key to search for.
+ * @param string $post_type The slug of the post type (e.g., 'outreach').
+ * * @return array An array of unique meta values. Returns an empty array if none found or on failure.
+ */
+function get_unique_meta_values_by_post_type(string $meta_key, string $post_type = 'outreach'): array
+{
+    global $wpdb;
+
+    // Ensure inputs are not empty before hitting the database
+    if (empty($meta_key) || empty($post_type)) {
+        return [];
+    }
+
+    $query = $wpdb->prepare(
+        "
+		SELECT DISTINCT pm.meta_value 
+		FROM {$wpdb->postmeta} pm
+		INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+		WHERE p.post_type = %s 
+		  AND p.post_status = 'publish' 
+		  AND pm.meta_key = %s
+		",
+        $post_type,
+        $meta_key
+    );
+
+    // get_col returns a 1D array of the selected column
+    $results = $wpdb->get_col($query);
+
+    // Return the results, ensuring it falls back to an empty array if null
+    return is_array($results) ? $results : [];
+}
