@@ -659,11 +659,10 @@ input:checked + .slider:before {
 .influencer-search-summary.influencer-search-summary {
   margin-bottom: 1.5em;
   border-bottom: 1px solid #eee;
-  padding: 20px;
-  border-radius: 10px;
-  background-color: var(--e-global-color-7355873); }
+  padding: 20px; }
   .influencer-search-summary.influencer-search-summary .search-summary-brief {
-    color: #fff; }
+    border: 1px solid var(--e-global-color-7355873);
+    border-radius: 10px; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
     color: #fff; }
   .influencer-search-summary.influencer-search-summary .search-summary-filters {

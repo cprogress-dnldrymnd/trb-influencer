@@ -612,9 +612,15 @@ function shortcode_influencer_search_summary()
 ?>
     <div class="influencer-search-summary">
         <?php if (! empty($brief)) : ?>
-            <p class="search-summary-brief">
-                <strong>Your brief:</strong> <?= esc_html(wp_trim_words($brief, 25)) ?>
-            </p>
+            <div class="search-summary-brief">
+                <div class="summary-brief-label"> <svg xmlns="http://www.w3.org/2000/svg" width="46.322" height="46.948" viewBox="0 0 46.322 46.948">
+                        <path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b" />
+                    </svg> Your brief:
+                </div>
+                <div class="summary-brief">
+                    <?= esc_html(wp_trim_words($brief, 25)) ?>
+                </div>
+            </div>
         <?php endif; ?>
         <?php if (! empty($parts)) : ?>
             <p class="search-summary-filters">
