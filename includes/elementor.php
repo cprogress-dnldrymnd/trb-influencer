@@ -240,18 +240,18 @@ function dd_elementor_success_scripts()
         }
 
         .tags-container {
-            padding: 20px;
+            padding: 10px 20px;
         }
       
         .dd-subject-title {
             color: #034146;
-            font-size: 18px;
+            font-size: 18px !important;
             font-weight: bold;
             margin: 0;
             border-top: 1px solid #E7E7E7;
             border-bottom: 1px solid #E7E7E7;
-            font-family: Inter;
-            padding: 20px;
+            font-family: Inter !important;
+            padding: 10px 20px;
         }
 
         .dd-message-content {
@@ -260,7 +260,7 @@ function dd_elementor_success_scripts()
             line-height: 1.6;
             max-height: 300px;
             overflow-y: auto;
-            padding: 20px;
+            padding: 10px 20px;
             font-family: Inter;
         }
     </style>
