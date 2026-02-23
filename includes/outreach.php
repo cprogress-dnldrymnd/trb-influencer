@@ -430,13 +430,14 @@ class DD_Outreach_Manager
             }
 
             .dd-steps-content {
-                background: #fdf5e6;
+                background: #FCF3D5;
                 padding: 15px;
                 border-radius: 8px;
-                font-size: 13px;
-                color: #444;
+                font-size: 14px;
+                color: #000;
                 margin-bottom: 15px;
                 line-height: 1.5;
+                border: 1px solid #FFE17B;
             }
 
             .dd-steps-actions {
