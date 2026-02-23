@@ -618,7 +618,7 @@ function shortcode_influencer_search_summary()
                     </svg> Your brief:
                 </div>
                 <div class="summary-brief">
-                    <?= esc_html(wp_trim_words($brief, 25)) ?>
+                    <?= wpautop(esc_html(wp_trim_words($brief, 25))) ?>
                 </div>
                 <div class="edit-summary-brieft">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
