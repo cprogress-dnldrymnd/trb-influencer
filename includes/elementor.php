@@ -200,6 +200,8 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
 
         // Store the page/influencer ID where the submission originated
         update_post_meta($post_id, 'influencer_id', $influencer_id);
+
+        deduct_points_from_current_user(1, 'Outreach Form Submission'); // Example function to deduct points, implement as needed
     }
 
     // Generate the current date
