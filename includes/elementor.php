@@ -367,15 +367,16 @@ function dd_elementor_success_scripts()
         }
 
         .view-outreach a {
-            background-color: var(--e-global-color-accent);
+            background-color: var(--e-global-color-accent) !important;
             border: 1px solid var(--e-global-color-accent);
+            color: #fff !important;
         }
 
         .view-outreach a {
             border-style: solid;
-            border-color: var(--e-global-color-ee06e41);
-            background-color: transparent;
-            color: var(--e-global-color-ee06e41);
+            border-color: var(--e-global-color-ee06e41) !important;
+            background-color: transparent !important;
+            color: var(--e-global-color-ee06e41) !important;
         }
     </style>
 
