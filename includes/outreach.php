@@ -521,26 +521,7 @@ class DD_Outreach_Manager
                 text-decoration: underline;
             }
 
-            .avatar-holder.avatar-holder img,
-            .influencer-avatar-fallback {
-                width: var(--size, 68px);
-                height: var(--size, 68px);
-                border-radius: 50%;
-                overflow: hidden;
-                border: 1px solid gray;
-                flex-shrink: 0;
-                background-color: #e2e8f0;
-            }
-
-            .influencer-avatar-fallback {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #475569;
-                font-size: 20px;
-                font-weight: 700;
-                text-transform: uppercase;
-            }
+           
         </style>
     <?php
     }
