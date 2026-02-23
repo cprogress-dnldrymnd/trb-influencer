@@ -520,8 +520,6 @@ class DD_Outreach_Manager
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
-
-           
         </style>
     <?php
     }
@@ -589,10 +587,12 @@ class DD_Outreach_Manager
         </div>
         <div class="dd-message-overview-container">
             <div class="dd-profile-header">
-                <img src="<?= wp_get_attachment_image_url(get_post_thumbnail_id(get_the_ID()), 'medium') ?>" alt="Profile" class="dd-avatar">
+                <div class="avatar-holder">
+                    <?= do_shortcode('[influencer_avatar post_id="' . esc_attr($data['influencer_id']) . '"]') ?>
+                </div>
                 <div class="dd-profile-info">
-                    <strong><?php echo get_the_title(); ?></strong><br>
-                    <small>@<?php echo get_post_meta(get_the_ID(), 'instagramId', true); ?></small>
+                    <strong><?php echo get_the_title($data['influencer_id']); ?></strong><br>
+                    <small>@<?php echo get_post_meta($data['influencer_id'], 'instagramId', true); ?></small>
                 </div>
                 <a href="<?= get_the_permalink() ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
             </div>
