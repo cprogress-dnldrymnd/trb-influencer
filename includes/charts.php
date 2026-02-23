@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic chronological data from post meta.
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -39,12 +39,12 @@ class DD_Follower_Growth_Chart
      * months, and handles carry-over calculations for any missing monthly snapshots.
      *
      * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing 'labels' (x-axis), 'totals' (y-axis), and 'gains' (top labels).
+     * @return array Associative array containing 'labels' (x-axis), 'totals' (y-axis), 'gains' (top labels), and 'last_updated'.
      */
     private function prepare_monthly_chart_data(array $raw_data): array
     {
         if (empty($raw_data)) {
-            return ['labels' => [], 'totals' => [], 'gains' => []];
+            return ['labels' => [], 'totals' => [], 'gains' => [], 'last_updated' => 'N/A'];
         }
 
         // 1. Find the absolute latest timestamp in the dataset to anchor the right-side of our chart
@@ -57,7 +57,6 @@ class DD_Follower_Growth_Chart
         }
 
         // 2. Build a rigid, continuous 12-month calendar backwards from the latest month.
-        // This ensures the X-axis is always flawless and tracks year-over-year transitions (e.g., Nov, Dec, Jan, Feb)
         $months = [];
         $latest_month_start = strtotime(date('Y-m-01', $latest_ts));
         for ($i = 11; $i >= 0; $i--) {
@@ -120,9 +119,10 @@ class DD_Follower_Growth_Chart
 
         // 6. Build the final charting payload
         $chart_payload = [
-            'labels' => [], 
-            'totals' => [], 
-            'gains'  => []  
+            'labels'       => [], 
+            'totals'       => [], 
+            'gains'        => [],
+            'last_updated' => date('M d, Y', $latest_ts) // Format the newest timestamp found in step 1
         ];
 
         foreach ($months as $key => $item) {
@@ -224,8 +224,8 @@ class DD_Follower_Growth_Chart
                 <div>
                     In the last 12 months, <?= get_the_title() ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
                 </div>
-                <div>
-                    Last updated: <?php echo date('M d, Y'); ?>
+                <div id="ddLastUpdated">
+                    Last updated: Loading...
                 </div>
             </div>
         </div>
@@ -235,8 +235,9 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
                 if (ddChartPayload.labels.length === 0) {
-                    document.getElementById('ddFollowerChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#000;">No follower data available for this creator.</p>';
+                    document.getElementById('ddFollowerChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
                     document.getElementById('ddSummaryBadge').innerText = 'No Data';
+                    document.getElementById('ddLastUpdated').innerText = 'Last updated: N/A';
                     return;
                 }
 
@@ -245,6 +246,7 @@ class DD_Follower_Growth_Chart
                 const chartLabels = ddChartPayload.labels; 
 
                 document.getElementById('ddSummaryBadge').innerText = ddChartPayload.summary_action + ' ' + ddChartPayload.summary_gain + ' followers';
+                document.getElementById('ddLastUpdated').innerText = 'Last updated: ' + ddChartPayload.last_updated;
 
                 const formatToK = (value) => {
                     const num = Number(value);
@@ -303,17 +305,17 @@ class DD_Follower_Growth_Chart
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                         labels: {
-                            style: { colors: '#000', fontSize: '12px' }
+                            style: { colors: '#555', fontSize: '12px' }
                         }
                     },
                     yaxis: {
                         labels: {
                             formatter: formatToK,
-                            style: { colors: '#000', fontSize: '11px' }
+                            style: { colors: '#555', fontSize: '11px' }
                         }
                     },
                     grid: {
-                        borderColor: '#BCBCBC',
+                        borderColor: '#E0E0E0',
                         xaxis: { lines: { show: false } },
                         yaxis: { lines: { show: true } }
                     }
