@@ -150,26 +150,14 @@ class DD_Follower_Growth_Chart
         ob_start();
 ?>
         <style>
-          
-
         
             .dd-chart-footer {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-top: 10px;
-                font-size: 13px;
-                color: #555;
-            }
-
-            .dd-pill-badge {
-                border: 1px solid #034146;
-                background-color: #E2EBE8;
-                color: #034146;
-                padding: 4px 12px;
-                border-radius: 12px;
-                font-weight: 600;
-                margin-left: 10px;
+                font-size: 14px;
+                font-family: Inter !important;
             }
 
             /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
@@ -197,7 +185,7 @@ class DD_Follower_Growth_Chart
 
             <div class="dd-chart-footer">
                 <div>
-                    In the last 12 months, <?= get_the_title() ?> <span class="dd-pill-badge" id="ddSummaryBadge">Loading...</span>
+                    In the last 12 months, <?= get_the_title() ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
                 </div>
                 <div>
                     Last updated: <?php echo date('M d, Y'); ?>
