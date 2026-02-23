@@ -942,7 +942,14 @@ input:checked + .slider:before {
     height: auto;
 }
 
-
 .hide-element {
     display: none !important;
+}
+
+.form-style-3 input,
+.form-style-3 textarea,
+.form-style-3 select {
+    padding: 12px 20px !important;
+    color: #000 !important;
+    border: 1px solid #BCBCBC !important;
 }
