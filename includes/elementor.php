@@ -355,6 +355,14 @@ function dd_elementor_success_scripts()
             padding: 15px 20px;
             font-family: Inter;
         }
+        .dd-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #E7E7E7;
+        }
+        .dd-footer {
+            display: flex;
+            gap: 15px;
+        }
     </style>
 
     <script>
