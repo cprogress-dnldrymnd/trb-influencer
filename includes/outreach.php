@@ -1066,7 +1066,7 @@ class DD_Outreach_Manager
                         </svg>
                         SAVE NOTE
                     </button>
-                    <button id="dd-cancel-edit-note" class="dd-delete-btn dd-note-btn" style="display:none; margin-top:10px;">CANCEL</button>
+                    <button id="dd-cancel-edit-note" class="dd-delete-btn dd-note-btn dd-note-btn-link" style="display:none; margin-top:10px;">CANCEL</button>
                 </div>
             </div>
 
