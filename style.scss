@@ -840,10 +840,26 @@ input:checked + .slider:before {
     margin-bottom: 1.5em;
     border-bottom: 1px solid #eee;
     padding: 20px;
+    display: flex;
+    gap: 10px;
     .search-summary-item {
         border: 1px solid var(--e-global-color-7355873);
         border-radius: 10px;
         padding: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 16px;
+        .summary-brief-label {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-weight: 600;
+            svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
     }
     .search-summary-notes {
         color: #fff;

@@ -659,11 +659,25 @@ input:checked + .slider:before {
 .influencer-search-summary.influencer-search-summary {
   margin-bottom: 1.5em;
   border-bottom: 1px solid #eee;
-  padding: 20px; }
+  padding: 20px;
+  display: flex;
+  gap: 10px; }
   .influencer-search-summary.influencer-search-summary .search-summary-item {
     border: 1px solid var(--e-global-color-7355873);
     border-radius: 10px;
-    padding: 20px; }
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 16px; }
+    .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief-label {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-weight: 600; }
+      .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief-label svg {
+        width: 20px;
+        height: 20px; }
   .influencer-search-summary.influencer-search-summary .search-summary-notes {
     color: #fff; }
   .influencer-search-summary.influencer-search-summary .search-summary-filters {
