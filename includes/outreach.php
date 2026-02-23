@@ -300,6 +300,7 @@ class DD_Outreach_Manager
                 text-overflow: ellipsis;
                 overflow: hidden;
                 white-space: nowrap;
+                max-width: 200px;
             }
 
             .dd-item-date {
