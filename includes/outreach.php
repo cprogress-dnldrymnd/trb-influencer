@@ -358,7 +358,7 @@ class DD_Outreach_Manager
                 flex: 1;
                 min-width: 280px;
                 background: #fff;
-                border: 1px solid #ffcc00;
+                border:2px solid #FFE17B;
                 border-radius: 8px;
                 padding: 20px;
                 box-sizing: border-box;
@@ -374,13 +374,7 @@ class DD_Outreach_Manager
                 gap: 15px;
             }
 
-            .dd-steps-card {
-                background: #fff;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 20px;
-                box-sizing: border-box;
-            }
+          
 
             .dd-note-title.dd-note-title {
                 margin-top: 0;
@@ -742,7 +736,7 @@ class DD_Outreach_Manager
                 $raw      = esc_textarea($note['content']);
                 $note_id  = esc_attr($note['id']);
 
-                $html .= '<div class="dd-steps-card" data-note-id="' . $note_id . '">';
+                $html .= '<div class="dd-steps-card dd-note-card" data-note-id="' . $note_id . '">';
                 $html .= '<h4 class="dd-note-title dd-display-note-title">' . $title . '</h4>';
                 $html .= '<div class="dd-steps-content dd-display-note-content">' . $content . '</div>';
                 // Hidden textarea retains raw format for editing
