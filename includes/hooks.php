@@ -76,7 +76,7 @@ function action_wp_head()
 
     $recently_viewed = get_recent_influencer_ids_array(5);
 
-    if(!$recently_viewed) {
+    if(!$recently_viewed || count($recently_viewed) === 0) {
         echo '#dashboard-activity-recently-viewed { display: none; }';
     }
     
