@@ -379,7 +379,7 @@ class DD_Outreach_Manager
             .dd-note-title.dd-note-title {
                 margin-top: 0;
                 font-size: 20px;
-                margin-bottom: 5px;
+                margin-bottom: 15px;
                 color: #3B1527;
                 font-weight: bold;
             }
