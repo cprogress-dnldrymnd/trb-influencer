@@ -271,6 +271,7 @@ class DD_Outreach_Manager
                 border-top: 1px solid transparent;
                 cursor: pointer;
                 transition: background 0.2s;
+                gap: 15px;
             }
 
             .dd-outreach-item:hover,
