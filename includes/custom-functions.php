@@ -84,8 +84,10 @@ function my_custom_variable_setup()
     $influencer_search_fields['filter'] = $filter_options;
 
     $project_type_options = get_unique_meta_values_by_post_type('project_type');
+    $project_length_options = get_unique_meta_values_by_post_type('project_length');
 
     $influencer_outreach_fields['project_type'] = $project_type_options;
+    $influencer_outreach_fields['project_length'] = $project_length_options;
 
 
     set_query_var('influencer_search_fields', $influencer_search_fields);

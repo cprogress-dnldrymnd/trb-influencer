@@ -71,9 +71,11 @@ class DD_Outreach_Manager
                 border-radius: 10px;
                 border: 2px solid #034146;
             }
+
             .mt-0 {
                 margin-top: 0 !important;
             }
+
             .dd-profile-header {
                 display: flex;
                 align-items: center;
@@ -266,7 +268,7 @@ class DD_Outreach_Manager
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
                 background: #FEF6F3;
-               border-top: 1px solid #3B1527;
+                border-top: 1px solid #3B1527;
                 border-bottom: 1px solid #3B1527;
             }
 
@@ -485,7 +487,7 @@ class DD_Outreach_Manager
             'post_type'   => 'outreach',
             'post_status' => 'publish',
             'post_author' => $current_user_id,
-            'post_content' => $data['message'].'<div class="hide-element">'.get_the_title($data['influencer_id']).'</div>'
+            'post_content' => $data['message'] . '<div class="hide-element">' . get_the_title($data['influencer_id']) . '</div>'
         ];
 
         $post_id = wp_insert_post($new_post_args);
@@ -632,23 +634,25 @@ class DD_Outreach_Manager
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
                     <div class="influencer-search-item">
-                        <?php 
+                        <?php
                         // Assuming select_filter is a custom function defined elsewhere in your theme/plugins
-                        if(function_exists('select_filter')) {
+                        if (function_exists('select_filter')) {
                             echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
-                        } else {
-                            // Fallback standard select
-                            echo '<select id="dd-project-type" name="project_type" class="dd-filter-select">';
-                            echo '<option value="">Filter by project type</option>';
-                            echo '<option value="affiliate">Affiliate partnership</option>';
-                            echo '<option value="collaboration">Collaboration</option>';
-                            echo '</select>';
+                        }
+                        ?>
+                    </div>
+
+                    <div class="influencer-search-item">
+                        <?php
+                        // Assuming select_filter is a custom function defined elsewhere in your theme/plugins
+                        if (function_exists('select_filter')) {
+                            echo select_filter('project_length', 'Project length', 'Filter by project lengtj', $influencer_outreach_fields['project_length'] ?? '');
                         }
                         ?>
                     </div>
                 </div>
             </div>
-
+            
             <div class="dd-item-list" id="dd-outreach-list-container">
                 <?php echo $this->generate_list_html(); ?>
             </div>
@@ -697,7 +701,7 @@ class DD_Outreach_Manager
                 $influencer_id = get_post_meta($post_id, 'influencer_id', true);
                 $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
-                
+
                 $avatar = get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png';
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
