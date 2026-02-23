@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic chronological data from post meta.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -32,10 +32,11 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * Transforms raw daily/weekly follower statistics into a structured, chronological 12-month dataset.
+     * Transforms raw daily/weekly follower statistics into a structured, contiguous 12-month dataset.
      *
-     * This method securely parses timestamps, groups the data by month (retaining only the latest
-     * snapshot per month), and calculates the month-over-month follower gain.
+     * This method anchors the timeline to the latest available data point, builds a strict
+     * 12-month calendar (resolving cross-year sorting issues), maps the data into those specific
+     * months, and handles carry-over calculations for any missing monthly snapshots.
      *
      * @param array $raw_data The raw multidimensional array of timeline statistics.
      * @return array Associative array containing 'labels' (x-axis), 'totals' (y-axis), and 'gains' (top labels).
@@ -46,52 +47,86 @@ class DD_Follower_Growth_Chart
             return ['labels' => [], 'totals' => [], 'gains' => []];
         }
 
-        $monthly_snapshots = [];
+        // 1. Find the absolute latest timestamp in the dataset to anchor the right-side of our chart
+        $latest_ts = 0;
+        foreach ($raw_data as $entry) {
+            $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
+            if ($ts > $latest_ts) {
+                $latest_ts = $ts;
+            }
+        }
 
-        // 1. Group data by year-month and strictly retain the latest entry per month
+        // 2. Build a rigid, continuous 12-month calendar backwards from the latest month.
+        // This ensures the X-axis is always flawless and tracks year-over-year transitions (e.g., Nov, Dec, Jan, Feb)
+        $months = [];
+        $latest_month_start = strtotime(date('Y-m-01', $latest_ts));
+        for ($i = 11; $i >= 0; $i--) {
+            $time = strtotime("-$i months", $latest_month_start);
+            $key = date('Y-m', $time);
+            $months[$key] = [
+                'label' => date('M', $time),
+                'total' => 0,
+                'gain'  => 0
+            ];
+        }
+
+        // 3. Extract the final snapshot of each month from the raw data
+        $monthly_snapshots = [];
         foreach ($raw_data as $entry) {
             $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
             $month_key = date('Y-m', $ts);
 
+            // Keep only the latest entry per month
             if (!isset($monthly_snapshots[$month_key]) || $ts > $monthly_snapshots[$month_key]['ts']) {
                 $monthly_snapshots[$month_key] = [
                     'ts'        => $ts,
-                    'label'     => date('M', $ts),
                     'followers' => (int)$entry['followers']
                 ];
             }
         }
 
-        // 2. Sort the array keys (Y-m) chronologically (e.g., '2025-11', '2025-12', '2026-01', '2026-02')
         ksort($monthly_snapshots);
 
-        $processed_months = [];
-        $previous_followers = null;
+        // 4. Establish a starting baseline (Total followers before our 12-month window began)
+        $twelve_months_keys = array_keys($months);
+        $first_month_key = $twelve_months_keys[0];
+        $last_known_total = null;
 
-        // 3. Calculate the month-over-month delta (Gain)
         foreach ($monthly_snapshots as $key => $data) {
-            $gain = ($previous_followers !== null) ? ($data['followers'] - $previous_followers) : 0;
-
-            $processed_months[] = [
-                'month' => $data['label'],
-                'total' => $data['followers'],
-                'gain'  => $gain
-            ];
-
-            $previous_followers = $data['followers'];
+            if ($key < $first_month_key) {
+                $last_known_total = $data['followers'];
+            }
         }
 
-        // 4. Extract strictly the latest 12 months for the chart
-        $last_12_months = array_slice($processed_months, -12);
+        // Fallback: If no history exists prior to the 12 months, use the earliest available snapshot
+        if ($last_known_total === null) {
+            $first_snapshot = reset($monthly_snapshots);
+            $last_known_total = $first_snapshot ? $first_snapshot['followers'] : 0;
+        }
 
+        // 5. Populate the 12-month timeline and calculate precise month-over-month deltas
+        foreach ($months as $key => &$month_data) {
+            if (isset($monthly_snapshots[$key])) {
+                $current_total = $monthly_snapshots[$key]['followers'];
+                $month_data['total'] = $current_total;
+                $month_data['gain']  = $current_total - $last_known_total;
+                $last_known_total = $current_total;
+            } else {
+                // If the creator wasn't scraped this month, carry forward their last known total (Gain = 0)
+                $month_data['total'] = $last_known_total;
+                $month_data['gain']  = 0;
+            }
+        }
+
+        // 6. Build the final charting payload
         $chart_payload = [
-            'labels' => [], // X-Axis (e.g., Nov, Dec, Jan, Feb)
-            'totals' => [], // Y-Axis & Bar Height (Total followers)
-            'gains'  => []  // Top Label (Followers gained this month)
+            'labels' => [], 
+            'totals' => [], 
+            'gains'  => []  
         ];
 
-        foreach ($last_12_months as $item) {
-            $chart_payload['labels'][] = $item['month'];
+        foreach ($months as $key => $item) {
+            $chart_payload['labels'][] = $item['label'];
             $chart_payload['totals'][] = $item['total'];
             $chart_payload['gains'][]  = $item['gain'];
         }
@@ -135,7 +170,7 @@ class DD_Follower_Growth_Chart
             // Calculate total gained across the rendered 12 months for the footer badge
             $total_gain = !empty($processed_data['gains']) ? array_sum($processed_data['gains']) : 0;
             
-            // Determine the prefix action and format the absolute value to prevent "Lost -500"
+            // Set dynamic action string and absolute value to prevent "Lost -500 followers" syntax
             $processed_data['summary_action'] = $total_gain < 0 ? 'Lost' : 'Gained';
             $processed_data['summary_gain'] = number_format(abs($total_gain));
 
@@ -153,7 +188,6 @@ class DD_Follower_Growth_Chart
         ob_start();
 ?>
         <style>
-        
             .dd-chart-footer {
                 display: flex;
                 justify-content: space-between;
@@ -210,7 +244,6 @@ class DD_Follower_Growth_Chart
                 const chartGains = ddChartPayload.gains;   
                 const chartLabels = ddChartPayload.labels; 
 
-                // Inject dynamic "Lost" or "Gained" based on PHP processing
                 document.getElementById('ddSummaryBadge').innerText = ddChartPayload.summary_action + ' ' + ddChartPayload.summary_gain + ' followers';
 
                 const formatToK = (value) => {
@@ -247,12 +280,12 @@ class DD_Follower_Growth_Chart
                         enabled: true,
                         formatter: function (val, opts) {
                             const gain = chartGains[opts.dataPointIndex];
-                            return formatToK(gain); // Removed '+' prefix to match mockup exactly
+                            return formatToK(gain);
                         },
                         offsetY: -25,
                         style: {
                             fontSize: '11px',
-                            colors: ['#034146'] // Fallback if CSS fails
+                            colors: ['#034146'] 
                         },
                         background: {
                             enabled: true,
@@ -261,7 +294,7 @@ class DD_Follower_Growth_Chart
                             borderRadius: 12,
                             borderWidth: 1.5,
                             borderColor: '#034146',
-                            opacity: 1, // Required to tell ApexCharts to render the SVG rect element so our CSS can style it
+                            opacity: 1, 
                             dropShadow: { enabled: false }
                         }
                     },
