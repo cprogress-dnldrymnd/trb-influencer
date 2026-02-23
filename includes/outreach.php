@@ -520,7 +520,8 @@ class DD_Outreach_Manager
                 text-decoration: underline;
             }
 
-            .avatar-holder.avatar-holder img, .influencer-avatar-fallback{
+            .avatar-holder.avatar-holder img,
+            .influencer-avatar-fallback {
                 width: 68px;
                 height: 68px;
                 border-radius: 50%;
@@ -1053,6 +1054,7 @@ class DD_Outreach_Manager
         <div class="dd-message-overview-container mt-0">
             <div class="dd-profile-header">
                 <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" alt="Profile" class="dd-avatar">
+                <?= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]') ?>
                 <div class="dd-profile-info">
                     <strong><?php echo esc_html($influencer_name); ?> </strong><br>
                     <small>@<?php echo esc_html($influencer_handle); ?></small>
