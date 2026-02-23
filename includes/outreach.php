@@ -280,7 +280,7 @@ class DD_Outreach_Manager
                 border-top: 1px solid #3B1527;
             }
 
-            .dd-item-avatar {
+            .dd-item-avatar.dd-item-avatar.dd-item-avatar {
                 width: 45px;
                 height: 45px;
                 border-radius: 50%;
