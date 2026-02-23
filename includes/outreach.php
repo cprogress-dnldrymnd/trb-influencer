@@ -714,7 +714,7 @@ class DD_Outreach_Manager
             <div class="dd-profile-header">
                 <img src="<?php echo get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png'; ?>" alt="Profile" class="dd-avatar">
                 <div class="dd-profile-info">
-                    <strong><?php echo esc_html($influencer_name); ?> ✓</strong><br>
+                    <strong><?php echo esc_html($influencer_name); ?> </strong><br>
                     <small>@<?php echo esc_html($influencer_handle); ?></small>
                 </div>
                 <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
