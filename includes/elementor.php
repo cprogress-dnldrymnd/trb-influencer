@@ -144,19 +144,6 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 
 
 /**
- * Plugin Name: Elementor Custom Success Message Layout
- * Description: Overrides the default Elementor Form success message with a dynamically generated, structured layout displaying submitted data.
- * Plugin URI:  https://digitallydisruptive.co.uk/
- * Author:      Digitally Disruptive - Donald Raymundo
- * Author URI:  https://digitallydisruptive.co.uk/
- * Version:     1.0.0
- */
-
-if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly.
-}
-
-/**
  * Intercepts the Elementor Form submission to compile a custom HTML payload 
  * using the submitted field values and appends it to the AJAX response.
  * Execution is strictly limited to the 'outreach_form' form ID.
@@ -169,7 +156,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
 {
     // Retrieve the form ID to ensure this only runs for the target form
     $form_id = $record->get_form_settings('form_id');
-
+    
     if ('outreach_form' !== $form_id) {
         return; // Exit early if it's not the outreach_form
     }
@@ -213,7 +200,7 @@ add_action('elementor_pro/forms/new_record', 'dd_custom_elementor_form_response'
 
 /**
  * Injects frontend JavaScript and CSS required to catch the Elementor AJAX response
- * and render the custom HTML layout inside the success container.
+ * and render the custom HTML layout inside a specific target div (#outreach-form-summary).
  *
  * @return void
  */
@@ -319,22 +306,20 @@ function dd_elementor_success_scripts()
                 jQuery(document).on('submit_success', function(event, response) {
                     if (response && response.data && response.data.dd_custom_html) {
                         var $form = jQuery(event.target);
-                        // Locate Elementor's success message wrapper
-                        var $messageContainer = $form.siblings('.elementor-message-success').length ?
-                            $form.siblings('.elementor-message-success') :
-                            $form.find('.elementor-message-success');
+                        var $summaryTarget = jQuery('#outreach-form-summary');
 
-                        // Replace text with our structured payload and strip default Elementor success styling
-                        if ($messageContainer.length) {
-                            $messageContainer.html(response.data.dd_custom_html).css({
-                                'background': 'transparent',
-                                'color': 'inherit',
-                                'padding': '0',
-                                'border': 'none',
-                                'box-shadow': 'none'
-                            });
-                            // Optionally, hide the form fields so only the summary is visible
+                        if ($summaryTarget.length) {
+                            // Inject the generated HTML into the specific target div
+                            $summaryTarget.html(response.data.dd_custom_html);
+
+                            // Hide the form fields to clean up the UI
                             $form.find('.elementor-form-fields-wrapper').slideUp();
+
+                            // Force hide Elementor's default success message to prevent duplication
+                            $form.siblings('.elementor-message-success').hide();
+                            $form.find('.elementor-message-success').hide();
+                        } else {
+                            console.warn('Target div #outreach-form-summary not found on the page.');
                         }
                     }
                 });
