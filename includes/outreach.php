@@ -383,14 +383,15 @@ class DD_Outreach_Manager
 
             .dd-note-title {
                 margin-top: 0;
-                font-size: 16px;
+                font-size: 20px;
                 margin-bottom: 5px;
-                color: #333;
+                color: #3B1527;
+                font-weight: bold;
             }
 
             .dd-note-desc {
-                font-size: 12px;
-                color: #888;
+                font-size: 14px;
+                color: #8F8F8F;
                 margin-bottom: 15px;
             }
 
@@ -1047,7 +1048,7 @@ class DD_Outreach_Manager
 
         <div class="dd-notes-grid">
             <div class="dd-note-card">
-                <h4 class="dd-note-title" id="dd-note-form-heading">📝 Create a note for this project</h4>
+                <h4 class="dd-note-title" id="dd-note-form-heading">🗒️ Create a note for this project</h4>
                 <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
                 <input type="hidden" id="dd-note-input-id" value="">
                 <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
@@ -1252,7 +1253,7 @@ class DD_Outreach_Manager
                 $('#dd-note-input-id').val('');
                 $('#dd-note-input-title').val('');
                 $('#dd-note-input-content').val('');
-                $('#dd-note-form-heading').text('📝 Create a note for this project');
+                $('#dd-note-form-heading').text('🗒️ Create a note for this project');
                 $(this).hide();
             });
 
