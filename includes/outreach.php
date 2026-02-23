@@ -944,7 +944,7 @@ class DD_Outreach_Manager
                 $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
 
-                $avatar = get_the_post_thumbnail_url($influencer_id, 'thumbnail') ?: 'default-avatar.png';
+            
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
 
