@@ -280,7 +280,7 @@ add_action('elementor_pro/forms/new_record', 'dd_custom_elementor_form_response'
 /**
  * Injects frontend JavaScript and CSS required to catch the Elementor AJAX response
  * and render the custom HTML layout inside a specific target div (#outreach-form-summary).
- * Also handles updating the `#current-points` DOM element dynamically.
+ * Also handles updating the `.current-points` DOM element dynamically.
  *
  * @return void
  */
@@ -411,7 +411,7 @@ function dd_elementor_success_scripts()
                     if (response && response.data && response.data.dd_custom_html) {
                         var $form = jQuery(event.target);
                         var $summaryTarget = jQuery('#outreach-form-summary');
-                        var $pointsTarget = jQuery('#current-points');
+                        var $pointsTarget = jQuery('.current-points');
 
                         if ($summaryTarget.length) {
                             // Inject the generated HTML into the specific target div
