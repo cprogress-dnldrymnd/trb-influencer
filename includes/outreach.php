@@ -471,9 +471,10 @@ class DD_Outreach_Manager
 
             .dd-last-edited {
                 text-align: right;
-                font-size: 11px;
-                color: #ccc;
+                font-size: 14px;
+                color: #8F8F8F;
                 margin-top: 10px;
+                display: block;
             }
 
             .dd-no-notes {
@@ -515,6 +516,7 @@ class DD_Outreach_Manager
 
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link {
                 border: none;
+                background-color: transparent;
             }
 
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
