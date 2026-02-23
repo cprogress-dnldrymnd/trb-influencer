@@ -2,8 +2,8 @@
 
 /**
  * Plugin Name: DD Follower Growth Chart
- * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic chronological data from post meta.
- * Version: 1.0.8
+ * Description: Renders a 12-month follower growth chart using ApexCharts, mapping Y-axis to follower gains.
+ * Version: 1.0.9
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -34,12 +34,8 @@ class DD_Follower_Growth_Chart
     /**
      * Transforms raw daily/weekly follower statistics into a structured, contiguous 12-month dataset.
      *
-     * This method anchors the timeline to the latest available data point, builds a strict
-     * 12-month calendar (resolving cross-year sorting issues), maps the data into those specific
-     * months, and handles carry-over calculations for any missing monthly snapshots.
-     *
      * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing 'labels' (x-axis), 'totals' (y-axis), 'gains' (top labels), and 'last_updated'.
+     * @return array Associative array containing 'labels' (x-axis), 'totals', 'gains', and 'last_updated'.
      */
     private function prepare_monthly_chart_data(array $raw_data): array
     {
@@ -97,7 +93,6 @@ class DD_Follower_Growth_Chart
             }
         }
 
-        // Fallback: If no history exists prior to the 12 months, use the earliest available snapshot
         if ($last_known_total === null) {
             $first_snapshot = reset($monthly_snapshots);
             $last_known_total = $first_snapshot ? $first_snapshot['followers'] : 0;
@@ -111,7 +106,6 @@ class DD_Follower_Growth_Chart
                 $month_data['gain']  = $current_total - $last_known_total;
                 $last_known_total = $current_total;
             } else {
-                // If the creator wasn't scraped this month, carry forward their last known total (Gain = 0)
                 $month_data['total'] = $last_known_total;
                 $month_data['gain']  = 0;
             }
@@ -122,7 +116,7 @@ class DD_Follower_Growth_Chart
             'labels'       => [], 
             'totals'       => [], 
             'gains'        => [],
-            'last_updated' => date('M d, Y', $latest_ts) // Format the newest timestamp found in step 1
+            'last_updated' => date('M d, Y', $latest_ts)
         ];
 
         foreach ($months as $key => $item) {
@@ -167,10 +161,8 @@ class DD_Follower_Growth_Chart
             $raw_data = $this->get_raw_follower_data($post->ID);
             $processed_data = $this->prepare_monthly_chart_data($raw_data);
 
-            // Calculate total gained across the rendered 12 months for the footer badge
             $total_gain = !empty($processed_data['gains']) ? array_sum($processed_data['gains']) : 0;
             
-            // Set dynamic action string and absolute value to prevent "Lost -500 followers" syntax
             $processed_data['summary_action'] = $total_gain < 0 ? 'Lost' : 'Gained';
             $processed_data['summary_gain'] = number_format(abs($total_gain));
 
@@ -198,20 +190,19 @@ class DD_Follower_Growth_Chart
             }
 
             /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
-            /* These explicitly bypass the ApexCharts JS contrast-checker to force your exact UI colors */
             #ddFollowerChart * {
                 font-family: Inter !important;
             }
             #ddFollowerChart .apexcharts-datalabels rect {
-                fill: #F0FFF4 !important; /* Solid light green background from mockup */
-                stroke: #034146 !important; /* Solid dark green border */
+                fill: #F0FFF4 !important; 
+                stroke: #034146 !important; 
                 stroke-width: 1.5px !important;
-                rx: 5px !important; /* Perfectly rounded pill caps */
+                rx: 5px !important; 
                 ry: 5px !important;
             }
 
             #ddFollowerChart .apexcharts-datalabels text {
-                fill: #034146 !important; /* Solid dark green text */
+                fill: #034146 !important; 
                 font-weight: 600 !important;
             }
         </style>
@@ -241,7 +232,7 @@ class DD_Follower_Growth_Chart
                     return;
                 }
 
-                const chartTotals = ddChartPayload.totals; 
+                // Data mapping: chartGains will now drive the height of the bars and Y-axis
                 const chartGains = ddChartPayload.gains;   
                 const chartLabels = ddChartPayload.labels; 
 
@@ -251,17 +242,21 @@ class DD_Follower_Growth_Chart
                 const formatToK = (value) => {
                     const num = Number(value);
                     if (isNaN(num)) return value;
+                    
+                    // Preserve the negative sign for display
+                    const sign = num < 0 ? '-' : '';
                     const absValue = Math.abs(num);
+                    
                     if (absValue >= 1000) {
-                        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                        return sign + (absValue / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
                     }
                     return num.toString();
                 };
 
                 const options = {
                     series: [{
-                        name: 'Total Followers',
-                        data: chartTotals
+                        name: 'Follower Gain',
+                        data: chartGains // Reverted back to using Gains for the bar height
                     }],
                     chart: {
                         type: 'bar',
@@ -274,17 +269,17 @@ class DD_Follower_Growth_Chart
                             columnWidth: '22%',
                             borderRadius: 4,
                             dataLabels: {
-                                position: 'top'
+                                // Dynamic positioning based on if the bar is pointing up (positive) or down (negative)
+                                position: 'top' 
                             }
                         }
                     },
                     dataLabels: {
                         enabled: true,
-                        formatter: function (val, opts) {
-                            const gain = chartGains[opts.dataPointIndex];
-                            return formatToK(gain);
+                        formatter: function (val) {
+                            return formatToK(val); 
                         },
-                        offsetY: -25,
+                        offsetY: -25, // Note: ApexCharts reverses offset automatically for negative bars
                         style: {
                             fontSize: '11px',
                             colors: ['#034146'] 
