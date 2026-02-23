@@ -146,8 +146,8 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
  * Intercepts the Elementor Form submission to compile a custom HTML payload 
  * using the submitted field values and appends it to the AJAX response.
  * Execution is strictly limited to the 'outreach_form' form ID.
- * Additionally, generates a new 'outreach' post type entry and stores form fields
- * and the origin page ID as post meta.
+ * Additionally, generates a new 'outreach' post type entry, assigns the current logged-in user 
+ * as the author, and stores form fields and the origin page ID as post meta.
  *
  * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record       The form submission record.
  * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler The AJAX handler managing the response.
@@ -177,6 +177,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     /**
      * Programmatically insert a new post of type 'outreach'.
      * Defaults the post title to the submitted subject line.
+     * Assigns the post_author to the currently authenticated user.
      */
     $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
     
@@ -184,6 +185,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
         'post_title'  => $post_title,
         'post_type'   => 'outreach',
         'post_status' => 'publish',
+        'post_author' => get_current_user_id(), // Attributes the post to the logged-in user submitting the form
     ];
 
     $post_id = wp_insert_post($new_post_args);
