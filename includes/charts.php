@@ -3,7 +3,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders a 12-month follower growth chart using ApexCharts, pulling dynamic chronological data from post meta.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -134,7 +134,10 @@ class DD_Follower_Growth_Chart
 
             // Calculate total gained across the rendered 12 months for the footer badge
             $total_gain = !empty($processed_data['gains']) ? array_sum($processed_data['gains']) : 0;
-            $processed_data['summary_gain'] = number_format($total_gain);
+            
+            // Determine the prefix action and format the absolute value to prevent "Lost -500"
+            $processed_data['summary_action'] = $total_gain < 0 ? 'Lost' : 'Gained';
+            $processed_data['summary_gain'] = number_format(abs($total_gain));
 
             wp_localize_script('dd-chart-init', 'ddChartPayload', $processed_data);
         }
@@ -207,7 +210,8 @@ class DD_Follower_Growth_Chart
                 const chartGains = ddChartPayload.gains;   
                 const chartLabels = ddChartPayload.labels; 
 
-                document.getElementById('ddSummaryBadge').innerText = 'Gained ' + ddChartPayload.summary_gain + ' followers';
+                // Inject dynamic "Lost" or "Gained" based on PHP processing
+                document.getElementById('ddSummaryBadge').innerText = ddChartPayload.summary_action + ' ' + ddChartPayload.summary_gain + ' followers';
 
                 const formatToK = (value) => {
                     const num = Number(value);
