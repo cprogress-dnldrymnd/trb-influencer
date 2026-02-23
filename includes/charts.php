@@ -313,7 +313,7 @@ class DD_Follower_Growth_Chart
                         }
                     },
                     grid: {
-                        borderColor: '#E0E0E0',
+                        borderColor: '#BCBCBC',
                         xaxis: { lines: { show: false } },
                         yaxis: { lines: { show: true } }
                     }
