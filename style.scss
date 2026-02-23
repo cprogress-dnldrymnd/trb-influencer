@@ -867,6 +867,12 @@ input:checked + .slider:before {
             border: 1px solid #bcbcbc;
             border-radius: 5px;
             flex-grow: 1;
+            .summary-brief-inner {
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
         }
         .edit-summary-brieft {
             display: flex;

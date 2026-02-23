@@ -685,6 +685,11 @@ input:checked + .slider:before {
       border: 1px solid #bcbcbc;
       border-radius: 5px;
       flex-grow: 1; }
+      .influencer-search-summary.influencer-search-summary .search-summary-item .summary-brief .summary-brief-inner {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden; }
     .influencer-search-summary.influencer-search-summary .search-summary-item .edit-summary-brieft {
       display: flex;
       gap: 12px;
