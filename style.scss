@@ -952,4 +952,9 @@ input:checked + .slider:before {
     padding: 12px 20px !important;
     color: #000 !important;
     border: 1px solid #BCBCBC !important;
+    font-family: Inter !important;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    max-width: 100%;
+    border-radius: 5px;
 }
