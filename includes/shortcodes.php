@@ -1119,7 +1119,7 @@ function test()
 {
     ob_start();
     echo '<pre>';
-    var_dump(get_post_meta(3861));
+    var_dump(get_post_meta(get_the_ID()));
     echo '</pre>';
     return ob_get_clean();
 }
