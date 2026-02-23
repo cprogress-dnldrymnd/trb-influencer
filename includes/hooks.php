@@ -73,6 +73,16 @@ function action_wp_head()
     if ($is_free_trial) {
         echo ".hide-on-free-trial{ display: none; }";
     }
+
+    $recently_viewed = get_recent_influencer_ids_array(5);
+
+    if(!$recently_viewed) {
+        echo '#dashboard-activity-recently-viewed { display: none; }';
+    }
+    
+    #dashboard-activity-most-engage-niches
+
+
     echo '</style>';
 }
 
