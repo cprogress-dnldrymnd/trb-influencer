@@ -989,6 +989,15 @@ function viewed_influencer_count()
 
 add_shortcode('viewed_influencer_count', 'viewed_influencer_count');
 
+
+function outreach_count()
+{
+    return count(get_outreach());
+}
+
+add_shortcode('outreach_count', 'outreach_count');
+
+
 function unlocked_influencer_count()
 {
     return count(get_user_purchased_post_ids('influencer', true));
