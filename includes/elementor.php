@@ -181,7 +181,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
     </div>
     <div class="dd-message-overview-container">
         <div class="dd-profile-header">
-            <img src="https://ui-avatars.com/api/?name=Cory+Ruth&background=random&rounded=true" alt="Profile" class="dd-avatar">
+            <img src="<?= wp_get_attachment_image_url(get_post_thumbnail_id(get_the_ID()), 'medium') ?>" alt="Profile" class="dd-avatar">
             <div class="dd-profile-info">
                 <strong><?php echo get_the_title(); ?></strong><br>
                 <small>@<?php echo get_post_meta(get_the_ID(), 'instagramId', true); ?></small>
