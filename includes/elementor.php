@@ -180,7 +180,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
      * Assigns the post_author to the currently authenticated user.
      */
     $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
-    
+
     $new_post_args = [
         'post_title'  => $post_title,
         'post_type'   => 'outreach',
@@ -237,7 +237,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
         </div>
 
         <div class="dd-footer">
-            <div class="button-box">
+            <div class="button-box view-outreach">
                 <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
@@ -246,7 +246,7 @@ function dd_custom_elementor_form_response($record, $ajax_handler)
                                     <path id="Path_139" data-name="Path 139" d="M40.076,38.442a.649.649,0,0,1,.414.414l.69,2.069,1.59-4.77L38,37.745l2.069.69Z" transform="translate(-22.607 -23.619)" fill="#fff"></path>
                                     <path id="Path_140" data-name="Path 140" d="M17.916,6.25a8.532,8.532,0,0,0-6.563,13.993l-1.281,3.521a.668.668,0,0,0,.151.69.66.66,0,0,0,.69.151l4.526-1.642a8.38,8.38,0,0,0,2.477.368,8.541,8.541,0,1,0,0-17.081Zm3.909,5.466L19.2,19.6a.657.657,0,0,1-.624.447.666.666,0,0,1-.624-.447L16.74,15.967l-3.633-1.209a.657.657,0,0,1-.447-.624.666.666,0,0,1,.447-.624l7.884-2.628a.647.647,0,0,1,.67.158.664.664,0,0,1,.158.67Z" fill="#fff"></path>
                                 </g>
-                            </svg> 
+                            </svg>
                         </span>
                         <span class="elementor-button-text">VIEW IN OUTREACH</span>
                     </span>
@@ -355,13 +355,27 @@ function dd_elementor_success_scripts()
             padding: 15px 20px;
             font-family: Inter;
         }
+
         .dd-footer {
             padding: 15px 20px;
             border-top: 1px solid #E7E7E7;
         }
+
         .dd-footer {
             display: flex;
             gap: 15px;
+        }
+
+        .view-outreach a {
+            background-color: var(--e-global-color-accent);
+            border: 1px solid var(--e-global-color-accent);
+        }
+
+        .view-outreach a {
+            border-style: solid;
+            border-color: var(--e-global-color-ee06e41);
+            background-color: transparent;
+            color: var(--e-global-color-ee06e41);
         }
     </style>
 
