@@ -83,6 +83,7 @@ function my_custom_variable_setup()
     $influencer_search_fields['age'] = $age_options;
     $influencer_search_fields['filter'] = $filter_options;
 
+    $project_type_options = get_unique_meta_values_by_post_type('project_type');
 
     $influencer_outreach_fields['project_type'] = $project_type_options;
 
