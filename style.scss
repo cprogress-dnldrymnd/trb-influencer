@@ -840,9 +840,10 @@ input:checked + .slider:before {
     margin-bottom: 1.5em;
     border-bottom: 1px solid #eee;
     padding: 20px;
-    .search-summary-brief {
+    .search-summary-item {
         border: 1px solid var(--e-global-color-7355873);
         border-radius: 10px;
+        padding: 20px;
     }
     .search-summary-notes {
         color: #fff;
