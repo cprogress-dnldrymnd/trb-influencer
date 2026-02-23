@@ -351,6 +351,7 @@ class DD_Outreach_Manager
                 flex-wrap: nowrap;
                 align-items: flex-start;
                 margin-top: 20px;
+                font-family: Inter;
             }
 
             .dd-note-card {
