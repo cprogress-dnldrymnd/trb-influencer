@@ -259,15 +259,15 @@ function dd_elementor_success_scripts()
 
 
         .dd-btn-outline {
-            margin-left: auto;
-            padding: 8px 16px;
-            border: 1px solid #ff8a65;
-            color: #ff8a65;
-            text-transform: uppercase;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            text-decoration: none;
+            background-color: var(--e-global-color-1c4ea17);
+            font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
+            font-size: var(--e-global-typography-2a20fd0-font-size);
+            font-weight: var(--e-global-typography-2a20fd0-font-weight);
+            line-height: var(--e-global-typography-2a20fd0-line-height);
+            letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
+            fill: var(--e-global-color-accent);
+            color: var(--e-global-color-accent);
+            padding: 14px 23px 14px 23px;
         }
 
         .tags-container {
