@@ -406,7 +406,7 @@ function shortcode_influencer_search_filter()
 ?>
     <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
-            <div class="influencer-search-item required-on-search">
+            <div class="influencer-search-item">
                 <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
@@ -506,7 +506,7 @@ function shortcode_influencer_search_filter_main()
                     <div class="influencer-search-item">
                         <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                     </div>
-                    <div class="influencer-search-item">
+                    <div class="influencer-search-item required-on-search">
                         <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
