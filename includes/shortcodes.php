@@ -1153,12 +1153,12 @@ function test()
 {
     if (current_user_can('administrator')) {
         ob_start();
+        /*
         echo '<pre>';
         var_dump(get_post_meta(get_the_ID()));
         echo '</pre>';
         echo '<pre>';
-
-        var_dump(get_post_meta(get_the_ID(), 'creatordb_history', true));
+        var_dump(get_post_meta(get_the_ID(), 'recentposts', true));
 
         echo '</pre>';
 
