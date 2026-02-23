@@ -262,7 +262,7 @@ class DD_Outreach_Manager
 
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
-                background: #f4f4f4;
+                background: #FEF6F3;
             }
 
             .dd-item-avatar {
@@ -279,32 +279,32 @@ class DD_Outreach_Manager
 
             .dd-item-name {
                 display: block;
-                font-size: 14px;
-                font-weight: bold;
-                color: #333;
+                font-size: 15px;
+                font-weight: 500;
+                color: #000000;
             }
 
             .dd-item-handle {
                 display: block;
-                color: #777;
-                font-size: 12px;
+                color: #000000;
+                font-size: 14px;
+                font-weight: 400;
             }
 
             .dd-item-title {
                 display: block;
-                font-size: 12px;
-                color: #4DB2A6;
+                font-size: 14px;
+                color: #034146;
                 font-weight: bold;
                 margin-top: 4px;
                 text-overflow: ellipsis;
                 overflow: hidden;
                 white-space: nowrap;
-                max-width: 200px;
             }
 
             .dd-item-date {
-                color: #aaa;
-                font-size: 11px;
+                color: #8F8F8F;
+                font-size: 13px;
             }
 
             /* --- Notes Component Styles --- */
