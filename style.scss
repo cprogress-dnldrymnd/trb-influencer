@@ -966,7 +966,7 @@ input:checked + .slider:before {
     height: var(--size, 68px);
     border-radius: 50%;
     overflow: hidden;
-    border: 1px solid gray;
+    border: 2px solid #000;
     flex-shrink: 0;
     background-color: #e2e8f0;
 }
