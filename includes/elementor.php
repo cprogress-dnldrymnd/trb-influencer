@@ -278,9 +278,16 @@ function dd_elementor_success_scripts()
 {
 ?>
     <style>
+        .dd-message-overview {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            font-size: 16px;
+            font-weight: 500;
+        }
         .dd-message-overview-container {
             font-family: inherit;
-            margin-top: 20px;
+            margin-top: 15px;
             border-radius: 5px;
             border: 1px solid #3B1527;
         }
@@ -361,6 +368,7 @@ function dd_elementor_success_scripts()
         .dd-footer {
             display: flex;
             gap: 15px;
+            margin-top: 15px;
 
         }
 
