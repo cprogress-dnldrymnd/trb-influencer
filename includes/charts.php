@@ -2,8 +2,8 @@
 
 /**
  * Plugin Name: DD Follower Growth Chart
- * Description: Renders a 12-month follower growth chart using ApexCharts, mapping Y-axis to follower gains.
- * Version: 1.0.9
+ * Description: Renders a 12-month follower growth chart using ApexCharts, mapping Y-axis to follower gains with year labels.
+ * Version: 1.1.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -59,7 +59,8 @@ class DD_Follower_Growth_Chart
             $time = strtotime("-$i months", $latest_month_start);
             $key = date('Y-m', $time);
             $months[$key] = [
-                'label' => date('M', $time),
+                // Updated to include the full year (e.g., 'Nov 2025')
+                'label' => date('M Y', $time), 
                 'total' => 0,
                 'gain'  => 0
             ];
@@ -186,12 +187,12 @@ class DD_Follower_Growth_Chart
                 align-items: center;
                 margin-top: 10px;
                 font-size: 14px;
-                font-family: Inter !important;
+                font-family: Inter, sans-serif !important;
             }
 
             /* --- STRICT APEXCHARTS SVG OVERRIDES --- */
             #ddFollowerChart * {
-                font-family: Inter !important;
+                font-family: Inter, sans-serif !important;
             }
             #ddFollowerChart .apexcharts-datalabels rect {
                 fill: #F0FFF4 !important; 
@@ -213,7 +214,7 @@ class DD_Follower_Growth_Chart
 
             <div class="dd-chart-footer">
                 <div>
-                    In the last 12 months, <?= get_the_title() ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
+                    In the last 12 months, <?= esc_html(get_the_title()) ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
                 </div>
                 <div id="ddLastUpdated">
                     Last updated: Loading...
@@ -232,7 +233,6 @@ class DD_Follower_Growth_Chart
                     return;
                 }
 
-                // Data mapping: chartGains will now drive the height of the bars and Y-axis
                 const chartGains = ddChartPayload.gains;   
                 const chartLabels = ddChartPayload.labels; 
 
@@ -243,7 +243,6 @@ class DD_Follower_Growth_Chart
                     const num = Number(value);
                     if (isNaN(num)) return value;
                     
-                    // Preserve the negative sign for display
                     const sign = num < 0 ? '-' : '';
                     const absValue = Math.abs(num);
                     
@@ -256,7 +255,7 @@ class DD_Follower_Growth_Chart
                 const options = {
                     series: [{
                         name: 'Follower Gain',
-                        data: chartGains // Reverted back to using Gains for the bar height
+                        data: chartGains 
                     }],
                     chart: {
                         type: 'bar',
@@ -269,7 +268,6 @@ class DD_Follower_Growth_Chart
                             columnWidth: '22%',
                             borderRadius: 4,
                             dataLabels: {
-                                // Dynamic positioning based on if the bar is pointing up (positive) or down (negative)
                                 position: 'top' 
                             }
                         }
@@ -279,7 +277,7 @@ class DD_Follower_Growth_Chart
                         formatter: function (val) {
                             return formatToK(val); 
                         },
-                        offsetY: -25, // Note: ApexCharts reverses offset automatically for negative bars
+                        offsetY: -25, 
                         style: {
                             fontSize: '11px',
                             colors: ['#034146'] 
@@ -313,6 +311,17 @@ class DD_Follower_Growth_Chart
                         borderColor: '#E0E0E0',
                         xaxis: { lines: { show: false } },
                         yaxis: { lines: { show: true } }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        theme: 'light',
+                        y: {
+                            formatter: function (val) {
+                                // Formatting the tooltip output to use the exact number string logic
+                                const prefix = val >= 0 ? '+' : '';
+                                return prefix + val.toLocaleString() + " followers";
+                            }
+                        }
                     }
                 };
 
