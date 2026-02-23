@@ -1117,11 +1117,13 @@ add_shortcode('most_engage_niches_graph', 'most_engage_niches_graph');
 
 function test()
 {
-    ob_start();
-    echo '<pre>';
-    var_dump(get_post_meta(get_the_ID()));
-    echo '</pre>';
-    return ob_get_clean();
+    if (current_user_can('administrator')) {
+        ob_start();
+        echo '<pre>';
+        var_dump(get_post_meta(get_the_ID()));
+        echo '</pre>';
+        return ob_get_clean();
+    }
 }
 add_shortcode('test', 'test');
 
