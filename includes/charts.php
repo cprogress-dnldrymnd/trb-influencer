@@ -48,6 +48,15 @@ class DD_Follower_Growth_Chart
             return ['labels' => [], 'gains' => [], 'totals' => []];
         }
 
+        // Ensure raw data is strictly sorted chronologically (Oldest first).
+        // This handles cases where the meta array order is inverted (Newest first),
+        // guaranteeing the month-over-month subtraction and latest-entry overwrite process correctly.
+        usort($raw_data, function ($a, $b) {
+            $time_a = isset($a['timestamp_ms']) ? $a['timestamp_ms'] : strtotime($a['date'] ?? 'now');
+            $time_b = isset($b['timestamp_ms']) ? $b['timestamp_ms'] : strtotime($b['date'] ?? 'now');
+            return $time_a <=> $time_b;
+        });
+
         $monthly_snapshots = [];
 
         // Group data by year-month and isolate the latest entry per month.
