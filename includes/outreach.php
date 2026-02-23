@@ -576,7 +576,7 @@ class DD_Outreach_Manager
                 $updated_points = mycred_get_users_cred($current_user_id);
                 $ajax_handler->add_response_data('updated_points', $updated_points);
             }
-            $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
+            $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
         } else {
             $sent_date = date_i18n(get_option('date_format'));
         }
@@ -1031,7 +1031,7 @@ class DD_Outreach_Manager
         $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
         $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
         $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
-        $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
+        $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
 
         ob_start();
     ?>
