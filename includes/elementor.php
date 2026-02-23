@@ -271,8 +271,8 @@ function dd_elementor_success_scripts()
                             // Inject the generated HTML into the specific target div
                             $summaryTarget.html(response.data.dd_custom_html);
 
-                            jQuery('#outreach-submission').hide();
-                            jQuery('#elementor-message-success').show();
+                            jQuery('#outreach-submission').addClass('hide-element');
+                            jQuery('#outreach-summary').removeClass('hide-element');
                         } else {
                             console.warn('Target div #outreach-form-summary not found on the page.');
                         }
