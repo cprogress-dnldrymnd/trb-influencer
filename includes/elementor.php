@@ -359,7 +359,6 @@ function dd_elementor_success_scripts()
 
         .dd-footer {
             padding: 15px 20px;
-            border-top: 1px solid #E7E7E7;
         }
 
         .dd-footer {
