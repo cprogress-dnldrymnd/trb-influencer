@@ -41,7 +41,7 @@ class DD_Outreach_Manager
         // AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
-        
+
         // AJAX Handlers for Notes CRUD
         add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
         add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
@@ -427,7 +427,7 @@ class DD_Outreach_Manager
                 font-size: 13px;
                 transition: opacity 0.2s;
             }
-            
+
             .dd-note-btn:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
@@ -480,6 +480,17 @@ class DD_Outreach_Manager
                 padding: 20px;
                 border: 1px dashed #ccc;
                 border-radius: 8px;
+            }
+
+            .dd-note-btn {
+                padding: 12px 20px !important;
+                border: 1px solid #BCBCBC;
+            }
+
+            #dd-save-note {
+                background-color: #FFE17B;
+                border-color: #FFE17B;
+                color: #000000;
             }
         </style>
     <?php
@@ -662,7 +673,7 @@ class DD_Outreach_Manager
     public function render_note_meta_box($post)
     {
         $notes = get_post_meta($post->ID, 'dd_outreach_project_notes', true);
-        
+
         if (empty($notes) || !is_array($notes)) {
             echo '<p style="color:#666;">No notes have been added to this project yet.</p>';
             return;
@@ -683,7 +694,7 @@ class DD_Outreach_Manager
      * Renders the HTML block for all notes assigned to a post.
      * Reused by the main render view and the AJAX response.
      */
-    private function generate_notes_list_html($post_id) 
+    private function generate_notes_list_html($post_id)
     {
         $notes = get_post_meta($post_id, 'dd_outreach_project_notes', true);
         $html = '';
@@ -692,7 +703,7 @@ class DD_Outreach_Manager
             $html .= '<div class="dd-no-notes">No notes have been added to this project yet.</div>';
         } else {
             // Display newest notes first
-            $notes = array_reverse($notes); 
+            $notes = array_reverse($notes);
 
             foreach ($notes as $note) {
                 $fmt_date = date_i18n('F jS, Y', strtotime($note['date']));
@@ -701,18 +712,18 @@ class DD_Outreach_Manager
                 $raw      = esc_textarea($note['content']);
                 $note_id  = esc_attr($note['id']);
 
-                $html .= '<div class="dd-steps-card" data-note-id="'.$note_id.'">';
-                $html .= '<h4 class="dd-note-title dd-display-note-title">'.$title.'</h4>';
-                $html .= '<div class="dd-steps-content dd-display-note-content">'.$content.'</div>';
+                $html .= '<div class="dd-steps-card" data-note-id="' . $note_id . '">';
+                $html .= '<h4 class="dd-note-title dd-display-note-title">' . $title . '</h4>';
+                $html .= '<div class="dd-steps-content dd-display-note-content">' . $content . '</div>';
                 // Hidden textarea retains raw format for editing
-                $html .= '<textarea class="dd-raw-note-content" style="display:none;">'.$raw.'</textarea>';
-                
+                $html .= '<textarea class="dd-raw-note-content" style="display:none;">' . $raw . '</textarea>';
+
                 $html .= '<div class="dd-steps-actions">';
-                $html .= '<button class="dd-delete-note dd-delete-btn" data-post-id="'.esc_attr($post_id).'" data-note-id="'.$note_id.'">DELETE NOTE</button>';
-                $html .= '<button class="dd-edit-note dd-edit-btn" data-post-id="'.esc_attr($post_id).'" data-note-id="'.$note_id.'">EDIT NOTE</button>';
+                $html .= '<button class="dd-delete-note dd-delete-btn" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">DELETE NOTE</button>';
+                $html .= '<button class="dd-edit-note dd-edit-btn" data-post-id="' . esc_attr($post_id) . '" data-note-id="' . $note_id . '">EDIT NOTE</button>';
                 $html .= '</div>';
-                
-                $html .= '<p class="dd-last-edited">Last edited '.$fmt_date.'</p>';
+
+                $html .= '<p class="dd-last-edited">Last edited ' . $fmt_date . '</p>';
                 $html .= '</div>';
             }
         }
@@ -782,7 +793,7 @@ class DD_Outreach_Manager
 
         if (is_array($notes) && !empty($note_id)) {
             // Filter out the deleted note
-            $notes = array_filter($notes, function($note) use ($note_id) {
+            $notes = array_filter($notes, function ($note) use ($note_id) {
                 return $note['id'] !== $note_id;
             });
             // Re-index array
@@ -889,7 +900,7 @@ class DD_Outreach_Manager
             }
         }
 
-        if (count($meta_query) > 1) { 
+        if (count($meta_query) > 1) {
             $args['meta_query'] = $meta_query;
         }
 
@@ -937,7 +948,7 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        
+
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
         $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
