@@ -75,6 +75,8 @@ function action_wp_head()
         #echo ".outreach-form-trigger{ display: none !important}";
     }
 
+    $current_balance = get_current_user_remaining_mycred_balance();
+
     $recently_viewed = get_recent_influencer_ids_array(5);
     $current_user_id = get_current_user_id();
     $ranked_niches = get_user_niche_ranking($current_user_id, 3);
@@ -96,7 +98,10 @@ function action_wp_head()
     } else {
         echo '#starts-a-search { display: none !important; }';
     }
-    
+
+    if (!$current_balance || $current_balance <= 0) {
+        echo ".outreach-form-trigger{ display: none !important}";
+    }
 
 
     echo '</style>';
