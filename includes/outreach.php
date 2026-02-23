@@ -576,16 +576,17 @@ class DD_Outreach_Manager
                 $updated_points = mycred_get_users_cred($current_user_id);
                 $ajax_handler->add_response_data('updated_points', $updated_points);
             }
+            $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
+        } else {
+            $sent_date = date_i18n(get_option('date_format'));
         }
-
-        $sent_date      = get_the_date('g:i A, F jS, Y', $post_id);
 
 
         ob_start();
     ?>
         <div class="dd-message-overview">
             <span class="m-overview">Message overview</span>
-            <span class="date">Sent at <?php echo esc_html($sent_date); ?></span>
+            <span class="date">Sent at <?php echo esc_html($datesent_date_sent); ?></span>
         </div>
         <div class="dd-message-overview-container">
             <div class="dd-profile-header">
