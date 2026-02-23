@@ -949,7 +949,9 @@ class DD_Outreach_Manager
                 $date = get_the_date('M j, Y');
 
                 $html .= '<div class="dd-outreach-item" data-post-id="' . esc_attr($post_id) . '">';
+                $html .= '<div class="avatar-holder">';
                 $html .= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]');
+                $html .= '</div>';
                 $html .= '<div class="dd-item-content">';
                 $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . '</span>';
                 $html .= '<span class="dd-item-handle">@' . esc_html($influencer_handle) . '</span>';
