@@ -929,3 +929,35 @@ input:checked + .slider:before {
 .pmpro_btn-print.pmpro_btn-print {
     color: var(--e-global-color-2ba2932);
 }
+
+.form-style-2 input,
+.form-style-2 textarea,
+.form-style-2 select {
+    padding: 12px 20px !important;
+    color: #000 !important;
+}
+
+.form-style-2 .elementor-button-icon svg {
+    width: 25px;
+    height: auto;
+}
+
+.elementor-field-type-html {
+    order: 1;
+}
+
+.elementor-button-close {
+    background-color: transparent !important;
+    color: #8f8f8f !important;
+    border-color: #8f8f8f !important;
+}
+
+.elementor-button-close:hover {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-color: ##000 !important;
+}
+
+.hide-element {
+    display: none !important;
+}
