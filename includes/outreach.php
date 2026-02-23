@@ -189,6 +189,16 @@ class DD_Outreach_Manager
                 color: var(--e-global-color-ee06e41) !important;
             }
 
+            .submit-new a {
+                border: none;
+                background-color: transparent !important;
+                color: var(--e-global-color-ee06e41) !important;
+            }
+
+            .submit-new a span {
+                text-decoration: underline;
+            }
+
             /* --- Dashboard List Navigation Styles --- */
             .dd-dashboard-list-container {
                 background: #fdfdfd;
@@ -634,6 +644,13 @@ class DD_Outreach_Manager
                 <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text">CLOSE</span>
+                    </span>
+                </a>
+            </div>
+            <div class="button-box submit-new">
+                <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-text"> Send another message</span>
                     </span>
                 </a>
             </div>
