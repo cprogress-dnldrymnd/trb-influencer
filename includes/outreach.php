@@ -281,8 +281,8 @@ class DD_Outreach_Manager
             }
 
             .dd-item-avatar.dd-item-avatar.dd-item-avatar {
-                width: 45px;
-                height: 45px;
+                width: 68px;
+                height: 68px;
                 border-radius: 50%;
                 object-fit: cover;
                 margin-right: 15px;
