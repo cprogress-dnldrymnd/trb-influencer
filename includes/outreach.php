@@ -482,15 +482,23 @@ class DD_Outreach_Manager
                 border-radius: 8px;
             }
 
-            .dd-note-btn {
+            .dd-note-btn.dd-note-btn.dd-note-btn {
                 padding: 12px 20px !important;
                 border: 1px solid #BCBCBC;
+                font-family: Inter !important;
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.6px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
 
             #dd-save-note {
                 background-color: #FFE17B;
                 border-color: #FFE17B;
                 color: #000000;
+
             }
         </style>
     <?php
