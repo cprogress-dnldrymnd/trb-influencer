@@ -1168,25 +1168,31 @@ function dd_get_initials_from_string( $string ) {
     return mb_strtoupper( $initials );
 }
 
+
 /**
- * Converts a Unix timestamp into a 'Year ShortMonth Day+Ordinal' format.
- * Utilizes the DateTimeImmutable class for robust, timezone-aware operations.
+ * Converts a millisecond or second-based Unix timestamp into a 'Y M jS' format.
+ * Automatically detects 13-digit millisecond timestamps and normalizes them to seconds.
  *
- * @param int    $timestamp The Unix timestamp to convert.
- * @param string $timezone  The timezone identifier (e.g., 'Asia/Manila'). Defaults to 'UTC'.
- * @return string           The formatted date string (e.g., '2025 Oct 23rd').
- * @throws Exception        If the provided timezone string is invalid.
+ * @param int|string $timestamp The Unix timestamp to convert (seconds or milliseconds).
+ * @param string     $timezone  The timezone identifier (e.g., 'UTC', 'Asia/Manila').
+ * @return string               The formatted date string (e.g., '2025 May 20th').
+ * @throws Exception            If the timezone or DateTime instantiation fails.
  */
-function formatTimestampToOrdinalDate(int $timestamp, string $timezone = 'UTC'): string {
-    // Prefixing the timestamp with '@' explicitly tells DateTime to treat it as a UTC Unix timestamp
+function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UTC'): string {
+    // Cast to integer to ensure strict typing during mathematical operations
+    $timestamp = (int) $timestamp;
+    
+    // Check if the timestamp is in milliseconds (typically 13 digits long)
+    // 10000000000 corresponds to '2286-11-20', assuming typical present-day data bounds
+    if ($timestamp > 10000000000) {
+        $timestamp = (int) floor($timestamp / 1000);
+    }
+
+    // Prefix with '@' to force DateTime to interpret the value as a UTC Unix timestamp
     $date = new DateTimeImmutable('@' . $timestamp);
     
-    // Convert to the target timezone
+    // Apply the desired timezone
     $date = $date->setTimezone(new DateTimeZone($timezone));
     
     return $date->format('Y M jS');
 }
-
-// Example Usage:
-$timestamp = 1761216000; // Corresponds to Oct 23, 2025
-echo formatTimestampToOrdinalDate($timestamp, 'Asia/Manila');

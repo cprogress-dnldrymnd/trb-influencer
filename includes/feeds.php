@@ -356,7 +356,7 @@ class CreatorDB_Instagram_Feed
             </blockquote>
             <div class="feed-footer">
                 <div class="date">
-                    <?= formatTimestampToOrdinalDate($updateDate) ?>
+                    <?= formatNormalizedTimestamp($updateDate) ?>
                 </div>
                 <div class="post-stats">
                     <div class="post-stat-item">
