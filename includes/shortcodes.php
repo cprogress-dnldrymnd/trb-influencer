@@ -174,7 +174,10 @@ add_shortcode('influencer_posts', 'shortcode_influencer_posts');
 
 function shortcode_influencer_engagerate()
 {
-    return convertDecimalToPercentage(get_post_meta(get_the_ID(), 'engagerate', true));
+    $engagerate = get_post_meta(get_the_ID(), 'engagerate', true);
+    if ($engagerate) {
+        return convertDecimalToPercentage(floatval($engagerate));
+    }
 }
 
 add_shortcode('influencer_engagerate', 'shortcode_influencer_engagerate');
