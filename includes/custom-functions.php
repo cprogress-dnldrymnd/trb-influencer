@@ -226,10 +226,6 @@ function convertDecimalToPercentage(float $decimal, int $precision = 2): string
     return number_format($percentage, $precision) . '%';
 }
 
-// Example Usage:
-// echo convertDecimalToPercentage(0.4567);    // Outputs: 45.67%
-// echo convertDecimalToPercentage(1.2, 0);    // Outputs: 120%
-// echo convertDecimalToPercentage(0.005, 3);  // Outputs: 0.500%
 
 
 

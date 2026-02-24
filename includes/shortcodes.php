@@ -1738,3 +1738,105 @@ function shortcode_influencer_hashtags()
 }
 
 add_shortcode('influencer_hashtags', 'shortcode_influencer_hashtags');
+
+
+/**
+ * Calculates and outputs the follower growth from the latest 2 months.
+ *
+ * Usage: [creatordb_follower_growth] (Uses current post ID)
+ * Usage: [creatordb_follower_growth post_id="123"] (Uses specific post ID)
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string The formatted HTML output displaying raw growth and percentage.
+ */
+function shortcode_influencer_follower_growth( $atts ) {
+	// Extract shortcode attributes with sensible defaults.
+	$args = shortcode_atts(
+		array(
+			'post_id' => get_the_ID(),
+		),
+		$atts
+	);
+
+	$post_id = intval( $args['post_id'] );
+
+	if ( empty( $post_id ) ) {
+		return '';
+	}
+
+	// Retrieve the history array from post meta.
+	$history = get_post_meta( $post_id, 'creatordb_history', true );
+
+	if ( empty( $history ) || ! is_array( $history ) || count( $history ) < 2 ) {
+		return '';
+	}
+
+	// Sort the array by timestamp_ms in descending order to ensure index 0 is always the latest.
+	usort( $history, function ( $a, $b ) {
+		return $b['timestamp_ms'] <=> $a['timestamp_ms'];
+	});
+
+	// The latest data point is now guaranteed to be at the start of the array.
+	$latest_entry = $history[0];
+	$latest_followers = intval( $latest_entry['followers'] );
+
+	try {
+		// Instantiate DateTime for the latest entry to accurately subtract 2 calendar months.
+		$latest_date = new DateTime( $latest_entry['date'] );
+		$target_date = clone $latest_date;
+		$target_date->modify( '-2 months' );
+		$target_timestamp = $target_date->getTimestamp();
+	} catch ( Exception $e ) {
+		return '';
+	}
+
+	// Initialize variables to find the closest historical entry to our target date.
+	$closest_entry = null;
+	$shortest_diff = PHP_INT_MAX;
+
+	/**
+	 * Iterate through the history array to find the entry closest to exactly 2 months ago.
+	 * We calculate the absolute difference in seconds to find the nearest neighbor.
+	 */
+	foreach ( $history as $entry ) {
+		$entry_timestamp = strtotime( $entry['date'] );
+		
+		if ( false === $entry_timestamp ) {
+			continue; // Skip malformed dates.
+		}
+
+		$diff = abs( $target_timestamp - $entry_timestamp );
+
+		if ( $diff < $shortest_diff ) {
+			$shortest_diff = $diff;
+			$closest_entry = $entry;
+		}
+	}
+
+	if ( null === $closest_entry ) {
+		return '';
+	}
+
+	// Calculate the actual metrics.
+	$past_followers = intval( $closest_entry['followers'] );
+	$growth_count   = $latest_followers - $past_followers;
+	
+	// Calculate the raw decimal variance to pass into the strict-typed helper function.
+	$raw_decimal_growth = ( $past_followers > 0 ) ? (float) ( $growth_count / $past_followers ) : 0.0;
+
+	// Format the outputs. 
+	$formatted_count   = ( $growth_count > 0 ? '+' : '' ) . number_format( $growth_count );
+	
+	// Prefix with a '+' for positive growth, then append the percentage string returned by the helper.
+	$formatted_percent = ( $raw_decimal_growth > 0 ? '+' : '' ) . convertDecimalToPercentage( $raw_decimal_growth );
+
+	// Output wrapped in a span for easy front-end styling. (Removed explicit %% since the helper appends it).
+	return sprintf(
+		'<span class="creatordb-follower-growth" data-latest-date="%s" data-past-date="%s">%s (%s)</span>',
+		esc_attr( $latest_entry['date'] ),
+		esc_attr( $closest_entry['date'] ),
+		esc_html( $formatted_count ),
+		esc_html( $formatted_percent )
+	);
+}
+add_shortcode( 'influencer_follower_growth', 'shortcode_influencer_follower_growth' );
