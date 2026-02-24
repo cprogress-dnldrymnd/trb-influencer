@@ -369,7 +369,7 @@ class CreatorDB_Instagram_Feed
         $title = sanitize_text_field($post['title'] ?? '');
         $likes = intval($post['likes'] ?? 0);
         $comments = intval($post['comments'] ?? 0);
-        $engageeRate = intval($post['engageeRate'] ?? 0);
+        $engageRate = intval($post['engageRate'] ?? 0);
 
         if (empty($shortcode)) {
             return '<div class="cdb-ig-card"><p class="cdb-ig-empty">' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';

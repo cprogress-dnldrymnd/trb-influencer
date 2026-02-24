@@ -208,28 +208,22 @@ function wp_custom_number_format_short($number, $precision = 1)
 
 
 /**
- * Converts a high-precision decimal string to a formatted percentage string.
+ * Converts a decimal value to a formatted percentage string.
  *
- * This function utilizes BCMath to prevent IEEE 754 floating-point precision loss
- * often encountered with extremely long decimal representations. It multiplies 
- * the provided decimal by 100 using string-based arithmetic and formats the output
- * using number_format() to guarantee consistent decimal places. Strict typing 
- * is enforced.
+ * This function multiplies the provided decimal by 100 and formats the output
+ * using number_format() to guarantee consistent decimal places. 
+ * Strict typing is enforced for both parameters and the return value.
  *
- * @param string|float $decimal   The raw decimal value to convert. Strongly typed as string to prevent upstream float truncation.
- * @param int          $precision The number of decimal places for the output. Defaults to 2.
- * @return string                 The formatted percentage string appended with the '%' symbol.
+ * @param float $decimal   The raw decimal value to convert (e.g., 0.1234).
+ * @param int   $precision The number of decimal places for the output. Defaults to 2.
+ * @return string          The formatted percentage string appended with the '%' symbol.
  */
-function convertDecimalToPercentage(string|float $decimal, int $precision = 2): string 
+function convertDecimalToPercentage(float $decimal, int $precision = 2): string 
 {
-    // Coerce to string to ensure BCMath handles the raw literal structure without floating-point degradation
-    $decimalString = (string) $decimal;
-
-    // Multiply by 100 using arbitrary precision, scaling to $precision + 2 to safely accommodate rounding
-    $percentageString = bcmul($decimalString, '100', $precision + 2);
+    $percentage = $decimal * 100;
     
     // number_format handles rounding and trailing zeros automatically
-    return number_format((float) $percentageString, $precision) . '%';
+    return number_format($percentage, $precision) . '%';
 }
 
 // Example Usage:
