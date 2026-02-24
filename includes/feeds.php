@@ -75,6 +75,7 @@ class CreatorDB_Instagram_Feed
                 border: 1px solid #BCBCBC;
                 border-radius: 10px;
                 overflow: hidden;
+                position: relative;
             }
 
             .cdb-ig-card * {
@@ -145,9 +146,20 @@ class CreatorDB_Instagram_Feed
                 display: flex;
                 flex-direction: column;
                 gap: 15px;
+                position: absolute;
+                bottom:0 ;
+                left: 0;
+                right: 0;
             }
             .feed-footer .date {
                 font-size: 10px;
+            }
+            .feed-footer .title {
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+                display: -webkit-box;
+                overflow: hidden;
+                font-size: 12px;
             }
         ";
 
