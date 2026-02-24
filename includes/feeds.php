@@ -140,7 +140,11 @@ class CreatorDB_Instagram_Feed
                 color: #BCBCBC;
             }
             .feed-footer {
+                border-top: 1px solid #BCBCBC;
                 padding: 15px;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
             }
             .feed-footer .date {
                 font-size: 10px;
