@@ -61,7 +61,6 @@ class CreatorDB_Instagram_Feed
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
                 gap: 20px;
-                padding: 20px 0;
                 align-items: start; /* Prevents stretching cards vertically if heights differ */
             }
 
