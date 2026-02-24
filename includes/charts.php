@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.8.0
+ * Version: 1.8.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -49,7 +49,6 @@ class DD_Follower_Growth_Chart
             return ['series_data' => []];
         }
 
-        // Sort chronologically (Oldest to Newest) to ensure linear timeline plotting
         usort($raw_data, function ($a, $b) {
             $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
             $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
@@ -58,7 +57,6 @@ class DD_Follower_Growth_Chart
 
         $series_data = [];
 
-        // Map data directly to [timestamp, value] pairs for ApexCharts Datetime X-axis
         foreach ($raw_data as $entry) {
             $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
             $series_data[] = [ $ts_ms, (int)$entry['followers'] ];
@@ -78,7 +76,6 @@ class DD_Follower_Growth_Chart
             return ['series_data' => []];
         }
 
-        // Sort strictly chronologically to accurately calculate sequential delta
         usort($raw_data, function ($a, $b) {
             $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
             $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
@@ -93,14 +90,11 @@ class DD_Follower_Growth_Chart
             $current_followers = (int)$entry['followers'];
 
             if ($previous_followers !== null && $previous_followers > 0) {
-                // Calculate percentage growth rate
                 $growth_rate = (($current_followers - $previous_followers) / $previous_followers) * 100;
             } else {
-                // Anchor the baseline to 0 on the first node
                 $growth_rate = 0;
             }
 
-            // Cap floating precision to 3 decimal places for optimized frontend processing
             $series_data[] = [ $ts_ms, round($growth_rate, 3) ];
             
             $previous_followers = $current_followers;
@@ -120,7 +114,6 @@ class DD_Follower_Growth_Chart
             return ['labels' => [], 'totals' => [], 'gains' => [], 'last_updated' => 'N/A'];
         }
 
-        // 1. Find the absolute latest timestamp in the dataset to anchor the right-side of our chart
         $latest_ts = 0;
         foreach ($raw_data as $entry) {
             $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
@@ -129,7 +122,6 @@ class DD_Follower_Growth_Chart
             }
         }
 
-        // 2. Build a rigid, continuous 12-month calendar backwards from the latest month.
         $months = [];
         $latest_month_start = strtotime(date('Y-m-01', $latest_ts));
         for ($i = 11; $i >= 0; $i--) {
@@ -142,13 +134,11 @@ class DD_Follower_Growth_Chart
             ];
         }
 
-        // 3. Extract the final snapshot of each month from the raw data
         $monthly_snapshots = [];
         foreach ($raw_data as $entry) {
             $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
             $month_key = date('Y-m', $ts);
 
-            // Keep only the latest entry per month
             if (!isset($monthly_snapshots[$month_key]) || $ts > $monthly_snapshots[$month_key]['ts']) {
                 $monthly_snapshots[$month_key] = [
                     'ts'        => $ts,
@@ -159,7 +149,6 @@ class DD_Follower_Growth_Chart
 
         ksort($monthly_snapshots);
 
-        // 4. Establish a starting baseline (Total followers before our 12-month window began)
         $twelve_months_keys = array_keys($months);
         $first_month_key = $twelve_months_keys[0];
         $last_known_total = null;
@@ -175,7 +164,6 @@ class DD_Follower_Growth_Chart
             $last_known_total = $first_snapshot ? $first_snapshot['followers'] : 0;
         }
 
-        // 5. Populate the 12-month timeline and calculate precise month-over-month deltas
         foreach ($months as $key => &$month_data) {
             if (isset($monthly_snapshots[$key])) {
                 $current_total = $monthly_snapshots[$key]['followers'];
@@ -188,7 +176,6 @@ class DD_Follower_Growth_Chart
             }
         }
 
-        // 6. Build the final charting payload
         $chart_payload = [
             'labels'       => [], 
             'totals'       => [], 
@@ -214,7 +201,6 @@ class DD_Follower_Growth_Chart
             return ['series_data' => []];
         }
 
-        // Sort chronologically (Oldest to Newest)
         usort($raw_data, function ($a, $b) {
             $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
             $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
@@ -225,9 +211,10 @@ class DD_Follower_Growth_Chart
 
         foreach ($raw_data as $entry) {
             $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
+            // Now correctly extracting 'avglikes' to perfectly match the table data
             $series_data[] = [
                 'ts'    => $ts_ms,
-                'likes' => isset($entry['likes']) ? (int)$entry['likes'] : 0
+                'likes' => isset($entry['avglikes']) ? (float)$entry['avglikes'] : 0
             ];
         }
 
@@ -263,18 +250,15 @@ class DD_Follower_Growth_Chart
 
             $raw_data = $this->get_raw_follower_data($post->ID);
             
-            // Process all four required datasets
             $monthly_data     = $this->prepare_monthly_chart_data($raw_data);
             $timeline_data    = $this->prepare_timeline_chart_data($raw_data);
             $growth_rate_data = $this->prepare_growth_rate_chart_data($raw_data);
             $like_range_data  = $this->prepare_like_range_data($raw_data);
 
-            // Compute summary variables for the monthly view
             $total_gain = !empty($monthly_data['gains']) ? array_sum($monthly_data['gains']) : 0;
             $monthly_data['summary_action'] = $total_gain < 0 ? 'Loss' : 'Gained';
             $monthly_data['summary_gain'] = number_format(abs($total_gain));
 
-            // Bundle the payloads into a unified localization object
             $unified_payload = [
                 'monthly'     => $monthly_data,
                 'timeline'    => $timeline_data,
@@ -314,7 +298,6 @@ class DD_Follower_Growth_Chart
                 padding: 0 10px;
             }
 
-            /* --- STRICT APEXCHARTS SVG OVERRIDES FOR MONTHLY VIEW --- */
             #ddMonthlyChart * {
                 font-family: Inter, sans-serif !important;
             }
@@ -594,7 +577,6 @@ class DD_Follower_Growth_Chart
                 padding: 0 10px;
             }
 
-            /* --- TIME FILTERS STYLING --- */
             .dd-time-filters.dd-time-filters.dd-time-filters {
                 display: inline-flex;
                 background: #ffff;
@@ -942,8 +924,14 @@ class DD_Follower_Growth_Chart
                 const rawLikeData = payloadLikeRange.series_data;
 
                 const formatToK = (value) => {
-                    if (value >= 1000) return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-                    return value.toString();
+                    const num = Number(value);
+                    if (isNaN(num)) return value;
+                    const absValue = Math.abs(num);
+                    if (absValue >= 1000) {
+                        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                    }
+                    // For smaller floats like average likes (e.g. 566.79), round to a clean integer.
+                    return Math.round(num).toLocaleString();
                 };
 
                 const updateRangeUI = (days) => {
