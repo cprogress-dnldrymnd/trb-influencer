@@ -1245,7 +1245,7 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     // 4. Iterate and render each tag with randomized properties
     foreach ($display_tags as $tag) {
         // Randomize visual properties
-        $font_size = mt_rand(100, 200) / 100; // Generates sizes between 0.8rem and 1.8rem
+        $font_size = mt_rand(120, 200) / 100;  
         $color     = $palette[array_rand($palette)]; // Pick a random color
         $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
         $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
