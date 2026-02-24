@@ -1747,10 +1747,13 @@ add_shortcode('influencer_hashtags', 'shortcode_influencer_hashtags');
  * Usage: [creatordb_follower_growth post_id="123"] (Uses specific post ID)
  *
  * @param array $atts Shortcode attributes.
- * @return string The formatted HTML output displaying raw growth and percentage.
+ * @return string The formatted HTML output displaying raw growth and percentage, or N/A if data is unavailable.
  */
 function shortcode_influencer_follower_growth($atts)
 {
+    // Define a consistent fallback output for missing data to maintain DOM structure.
+    $na_output = '<span class="creatordb-follower-growth">N/A</span>';
+
     // Extract shortcode attributes with sensible defaults.
     $args = shortcode_atts(
         array(
@@ -1762,14 +1765,14 @@ function shortcode_influencer_follower_growth($atts)
     $post_id = intval($args['post_id']);
 
     if (empty($post_id)) {
-        return '';
+        return $na_output;
     }
 
     // Retrieve the history array from post meta.
     $history = get_post_meta($post_id, 'creatordb_history', true);
 
     if (empty($history) || ! is_array($history) || count($history) < 2) {
-        return '';
+        return $na_output;
     }
 
     // Sort the array by timestamp_ms in descending order to ensure index 0 is always the latest.
@@ -1788,7 +1791,7 @@ function shortcode_influencer_follower_growth($atts)
         $target_date->modify('-1 month'); // Modified to target a 1-month delta
         $target_timestamp = $target_date->getTimestamp();
     } catch (Exception $e) {
-        return '';
+        return $na_output;
     }
 
     // Initialize variables to find the closest historical entry to our target date.
@@ -1815,7 +1818,7 @@ function shortcode_influencer_follower_growth($atts)
     }
 
     if (null === $closest_entry) {
-        return '';
+        return $na_output;
     }
 
     // Calculate the actual metrics.
