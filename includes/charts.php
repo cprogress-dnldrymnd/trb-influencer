@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.8.2
+ * Version: 1.8.3
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -858,7 +858,7 @@ class DD_Follower_Growth_Chart
                 background-color: #000;
                 top: -2px;
                 transition: left 0.4s ease; 
-                cursor: pointer; /* Makes it clear it's interactive */
+                cursor: pointer; 
                 z-index: 10;
             }
             
@@ -895,7 +895,7 @@ class DD_Follower_Growth_Chart
             /* Hover Reveal */
             .dd-gradient-marker:hover::after {
                 opacity: 1;
-                transform: translateX(-50%) translateY(-8px); /* Lift slightly on hover */
+                transform: translateX(-50%) translateY(-8px); 
             }
             .dd-gradient-marker:hover::before {
                 opacity: 1;
@@ -905,7 +905,6 @@ class DD_Follower_Growth_Chart
 
         <div class="dd-range-card" id="ddLikeRangeWrapper">
             <div class="dd-range-header">
-           
                 <div class="dd-time-filters">
                     <button class="dd-time-btn active" data-days="30">Last 30 days</button>
                     <button class="dd-time-btn" data-days="90">Last 90 days</button>
@@ -913,23 +912,29 @@ class DD_Follower_Growth_Chart
                 </div>
             </div>
 
-            <div class="dd-range-stats">
-                <div class="dd-stat-block">
-                    <div class="dd-stat-value val-min">0</div>
-                    <div class="dd-stat-label">Minimum</div>
+            <div id="ddLikeRangeContent">
+                <div class="dd-range-stats">
+                    <div class="dd-stat-block">
+                        <div class="dd-stat-value val-min">0</div>
+                        <div class="dd-stat-label">Minimum</div>
+                    </div>
+                    <div class="dd-stat-block" style="text-align:center; justify-content:center;">
+                        <div class="dd-stat-value val-avg">0</div>
+                        <div class="dd-stat-label">Average</div>
+                    </div>
+                    <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
+                        <div class="dd-stat-value val-max">0</div>
+                        <div class="dd-stat-label">Maximum</div>
+                    </div>
                 </div>
-                <div class="dd-stat-block" style="text-align:center; justify-content:center;">
-                    <div class="dd-stat-value val-avg">0</div>
-                    <div class="dd-stat-label">Average</div>
-                </div>
-                <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
-                    <div class="dd-stat-value val-max">0</div>
-                    <div class="dd-stat-label">Maximum</div>
+
+                <div class="dd-gradient-track">
+                    <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
                 </div>
             </div>
-
-            <div class="dd-gradient-track">
-                <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
+            
+            <div id="ddLikeRangeEmpty" style="display: none; text-align: center; padding: 40px 20px; color: #888; font-size: 14px;">
+                No like range data available.
             </div>
         </div>
 
@@ -939,9 +944,12 @@ class DD_Follower_Growth_Chart
 
                 const payloadLikeRange = ddChartPayload.like_range;
                 const container = document.getElementById('ddLikeRangeWrapper');
+                const contentDiv = container.querySelector('#ddLikeRangeContent');
+                const emptyDiv = container.querySelector('#ddLikeRangeEmpty');
                 
                 if (!payloadLikeRange || payloadLikeRange.series_data.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No like range data available.</p>';
+                    contentDiv.style.display = 'none';
+                    emptyDiv.style.display = 'block';
                     return;
                 }
 
@@ -964,36 +972,40 @@ class DD_Follower_Growth_Chart
                     
                     const filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
 
+                    // Check if there are no items
                     if (filteredLikes.length === 0) {
-                        container.querySelector('.val-min').innerText = '0';
-                        container.querySelector('.val-max').innerText = '0';
-                        container.querySelector('.val-avg').innerText = '0';
-                        container.querySelector('.range-marker').style.left = '0%';
-                        container.querySelector('.range-marker').setAttribute('data-value', '0');
+                        contentDiv.style.display = 'none';
+                        emptyDiv.style.display = 'block';
                         return;
                     }
 
                     const min = Math.min(...filteredLikes);
                     const max = Math.max(...filteredLikes);
+
+                    // If there are less than 2 points, OR the data points are totally identical, 
+                    // we cannot accurately display a comparative range line. 
+                    if (filteredLikes.length < 2 || min === max) {
+                        contentDiv.style.display = 'none';
+                        emptyDiv.style.display = 'block';
+                        return;
+                    }
+
+                    // Otherwise, render the UI wrapper and populate the data
+                    contentDiv.style.display = 'block';
+                    emptyDiv.style.display = 'none';
+
                     const avg = filteredLikes.reduce((a, b) => a + b, 0) / filteredLikes.length;
-                    
                     const formattedAvg = formatToK(avg);
 
                     container.querySelector('.val-min').innerText = formatToK(min);
                     container.querySelector('.val-max').innerText = formatToK(max);
                     container.querySelector('.val-avg').innerText = formattedAvg;
 
-                    let markerPercent = 50; 
-                    if (max > min) {
-                        markerPercent = ((avg - min) / (max - min)) * 100;
-                    } else {
-                        markerPercent = 100; // Push marker to the end if min and max are equal
-                    }
+                    // Calculate marker position securely
+                    const markerPercent = ((avg - min) / (max - min)) * 100;
                     
                     const markerEl = container.querySelector('.range-marker');
                     markerEl.style.left = `${markerPercent}%`;
-                    
-                    // Inject value into data attribute for the CSS tooltip to display on hover
                     markerEl.setAttribute('data-value', formattedAvg);
                 };
 
