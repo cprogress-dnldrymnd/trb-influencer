@@ -116,22 +116,6 @@ class CreatorDB_Instagram_Feed
                 margin-bottom: 40px;
             }
 
-            .cdb-ig-btn {
-                background-color: #ff8a65; 
-                color: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 10px 24px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                transition: background-color 0.2s, opacity 0.2s;
-            }
-
-            .cdb-ig-btn:hover {
-                background-color: #ff7043;
-            }
 
             .cdb-ig-btn:disabled {
                 opacity: 0.6;
@@ -307,7 +291,7 @@ class CreatorDB_Instagram_Feed
                 <div class="cdb-ig-load-more-wrapper">
                     <button
                         id="cdb-ig-load-more"
-                        class="cdb-ig-btn"
+                        class="cdb-ig-btn load--more-button"
                         data-post-id="<?php echo esc_attr($post_id); ?>"
                         data-offset="<?php echo esc_attr($items_per_page); ?>"
                         data-nonce="<?php echo esc_attr(wp_create_nonce('cdb_ig_load_more_nonce')); ?>">
