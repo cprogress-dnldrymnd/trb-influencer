@@ -412,7 +412,7 @@ function shortcode_influencer_match_score()
     $phrases = influencer_get_matched_criteria_labels($post_id, $criteria);
     $tooltip = !empty($phrases) ? implode("\n", $phrases) : '';
 
-    $html = '<span class="influencer-match-score-wrap">✨ ' . (int) $score . '% Match Score';
+    $html = '<span class="influencer-match-score-wrap"><span class="influencer-match-score-trigger">✨ ' . (int) $score . '% Match Score</span>';
     if ($tooltip) {
         $html .= '<span class="influencer-match-score-tooltip">' . esc_html($tooltip) . '</span>';
     }
