@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.8.3
+ * Version: 1.8.2
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -116,7 +116,7 @@ class DD_Follower_Growth_Chart
 
         $latest_ts = 0;
         foreach ($raw_data as $entry) {
-            $ts = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']);
+            $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
             if ($ts > $latest_ts) {
                 $latest_ts = $ts;
             }
@@ -136,7 +136,7 @@ class DD_Follower_Growth_Chart
 
         $monthly_snapshots = [];
         foreach ($raw_data as $entry) {
-            $ts = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']);
+            $ts = isset($entry['timestamp_ms']) ? (int)($entry['timestamp_ms'] / 1000) : strtotime($entry['date']);
             $month_key = date('Y-m', $ts);
 
             if (!isset($monthly_snapshots[$month_key]) || $ts > $monthly_snapshots[$month_key]['ts']) {
@@ -775,7 +775,6 @@ class DD_Follower_Growth_Chart
 ?>
         <style>
             .dd-range-card {
-                background-color: #EFEFEF; 
                 border: 1px solid #E0E0E0;
                 border-radius: 8px;
                 width: 100%;
@@ -789,7 +788,6 @@ class DD_Follower_Growth_Chart
                 align-items: center;
                 margin-bottom: 30px;
             }
-         
             /* Inherits the exact tab styling requested */
             .dd-time-filters.dd-time-filters.dd-time-filters {
                 display: inline-flex;
@@ -903,19 +901,11 @@ class DD_Follower_Growth_Chart
                 opacity: 1;
                 transform: translateX(-50%) translateY(-4px);
             }
-            .dd-empty-state {
-                text-align: center;
-                padding: 40px 20px;
-                color: #888;
-                font-size: 14px;
-                background: #FFF;
-                border-radius: 8px;
-            }
         </style>
 
         <div class="dd-range-card" id="ddLikeRangeWrapper">
             <div class="dd-range-header">
-              
+           
                 <div class="dd-time-filters">
                     <button class="dd-time-btn active" data-days="30">Last 30 days</button>
                     <button class="dd-time-btn" data-days="90">Last 90 days</button>
@@ -923,25 +913,23 @@ class DD_Follower_Growth_Chart
                 </div>
             </div>
 
-            <div id="ddLikeRangeContent">
-                <div class="dd-range-stats">
-                    <div class="dd-stat-block">
-                        <div class="dd-stat-value val-min">0</div>
-                        <div class="dd-stat-label">Minimum</div>
-                    </div>
-                    <div class="dd-stat-block" style="text-align:center; justify-content:center;">
-                        <div class="dd-stat-value val-avg">0</div>
-                        <div class="dd-stat-label">Average</div>
-                    </div>
-                    <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
-                        <div class="dd-stat-value val-max">0</div>
-                        <div class="dd-stat-label">Maximum</div>
-                    </div>
+            <div class="dd-range-stats">
+                <div class="dd-stat-block">
+                    <div class="dd-stat-value val-min">0</div>
+                    <div class="dd-stat-label">Minimum</div>
                 </div>
+                <div class="dd-stat-block" style="text-align:center; justify-content:center;">
+                    <div class="dd-stat-value val-avg">0</div>
+                    <div class="dd-stat-label">Average</div>
+                </div>
+                <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
+                    <div class="dd-stat-value val-max">0</div>
+                    <div class="dd-stat-label">Maximum</div>
+                </div>
+            </div>
 
-                <div class="dd-gradient-track">
-                    <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
-                </div>
+            <div class="dd-gradient-track">
+                <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
             </div>
         </div>
 
@@ -951,17 +939,13 @@ class DD_Follower_Growth_Chart
 
                 const payloadLikeRange = ddChartPayload.like_range;
                 const container = document.getElementById('ddLikeRangeWrapper');
-                const contentArea = document.getElementById('ddLikeRangeContent');
                 
                 if (!payloadLikeRange || payloadLikeRange.series_data.length === 0) {
-                    contentArea.innerHTML = '<div class="dd-empty-state">No like range data available.</div>';
+                    container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No like range data available.</p>';
                     return;
                 }
 
                 const rawLikeData = payloadLikeRange.series_data;
-
-                // Cache the original HTML structure so we can restore it if we transition out of an empty state
-                const originalHTML = contentArea.innerHTML;
 
                 const formatToK = (value) => {
                     const num = Number(value);
@@ -980,21 +964,17 @@ class DD_Follower_Growth_Chart
                     
                     const filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
 
-                    const min = Math.min(...filteredLikes);
-                    const max = Math.max(...filteredLikes);
-
-                    // Check if there's enough varied data to form a range. 
-                    // If less than 2 items, OR if all items are identical (min equals max), there is no "range".
-                    if (filteredLikes.length < 2 || min === max) {
-                        contentArea.innerHTML = '<div class="dd-empty-state">No like range data available.</div>';
+                    if (filteredLikes.length === 0) {
+                        container.querySelector('.val-min').innerText = '0';
+                        container.querySelector('.val-max').innerText = '0';
+                        container.querySelector('.val-avg').innerText = '0';
+                        container.querySelector('.range-marker').style.left = '0%';
+                        container.querySelector('.range-marker').setAttribute('data-value', '0');
                         return;
                     }
 
-                    // Restore the visual layout if it was previously set to empty
-                    if (contentArea.innerHTML.includes('dd-empty-state')) {
-                        contentArea.innerHTML = originalHTML;
-                    }
-
+                    const min = Math.min(...filteredLikes);
+                    const max = Math.max(...filteredLikes);
                     const avg = filteredLikes.reduce((a, b) => a + b, 0) / filteredLikes.length;
                     
                     const formattedAvg = formatToK(avg);
@@ -1003,8 +983,12 @@ class DD_Follower_Growth_Chart
                     container.querySelector('.val-max').innerText = formatToK(max);
                     container.querySelector('.val-avg').innerText = formattedAvg;
 
-                    // Calculate marker position
-                    const markerPercent = ((avg - min) / (max - min)) * 100;
+                    let markerPercent = 50; 
+                    if (max > min) {
+                        markerPercent = ((avg - min) / (max - min)) * 100;
+                    } else {
+                        markerPercent = 100; // Push marker to the end if min and max are equal
+                    }
                     
                     const markerEl = container.querySelector('.range-marker');
                     markerEl.style.left = `${markerPercent}%`;
