@@ -326,6 +326,7 @@ class CreatorDB_Instagram_Feed
     {
         $shortcode = sanitize_text_field($post['shortcode'] ?? '');
         $updateDate = sanitize_text_field($post['updateDate'] ?? '');
+        $title = sanitize_text_field($post['title'] ?? '');
         if (empty($shortcode)) {
             return '<div class="cdb-ig-card"><p class="cdb-ig-empty">' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';
         }
@@ -364,6 +365,9 @@ class CreatorDB_Instagram_Feed
                 </div>
             </blockquote>
             <div class="feed-footer">
+                <div class="title">
+                    <?= $title ?>
+                </div>
                 <div class="date">
                     <?= formatNormalizedTimestamp($updateDate) ?>
                 </div>
