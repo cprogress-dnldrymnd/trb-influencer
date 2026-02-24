@@ -370,7 +370,7 @@ class CreatorDB_Instagram_Feed
         $likes = intval($post['likes'] ?? 0);
         $comments = intval($post['comments'] ?? 0);
         $engageeRate = intval($post['e'] ?? 0);
-        
+
         if (empty($shortcode)) {
             return '<div class="cdb-ig-card"><p class="cdb-ig-empty">' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';
         }
@@ -381,7 +381,7 @@ class CreatorDB_Instagram_Feed
     ?>
         <div class="cdb-ig-card">
             <a href="<?php echo esc_url($permalink); ?>" target="_blank" rel="noopener noreferrer" class="cdb-ig-card-link" aria-label="View Instagram Post"></a>
-            
+
             <blockquote class="instagram-media" scrolling="no" data-instgrm-permalink="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#FFF; ">
                 <div style="padding:16px;">
                     <a href="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" style="background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank">
@@ -435,7 +435,7 @@ class CreatorDB_Instagram_Feed
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
                                 <path d="M21.0002 20H6.2002C5.08009 20 4.51962 20 4.0918 19.782C3.71547 19.5902 3.40973 19.2844 3.21799 18.908C3 18.4802 3 17.9201 3 16.8V5M21 7L15.1543 12.115C14.4542 12.7275 14.1041 13.0339 13.7207 13.161C13.2685 13.311 12.7775 13.2946 12.3363 13.1149C11.9623 12.9625 11.6336 12.6337 10.9758 11.9759C10.3323 11.3324 10.0105 11.0106 9.64355 10.8584C9.21071 10.6788 8.72875 10.6569 8.28142 10.7965C7.90221 10.9149 7.55252 11.2062 6.8534 11.7888L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
-                            <span class="text-sm text-gray-900"><?= function_exists('convertDecimalToPercentage') ? convertDecimalToPercentage($engageeRate) : $engageeRate ?></span>
+                            <span class="text-sm text-gray-900"><?= function_exists('convertDecimalToPercentage') ? convertDecimalToPercentage($engageeRate, 3) : $engageeRate ?></span>
                         </div>
                     </div>
                 </div>
