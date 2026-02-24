@@ -1226,7 +1226,7 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     // Extract only up to the requested limit
     $display_tags = array_slice($hashtags, 0, $limit);
 
-    // 2. Define a color palette inspired by your second image (Oranges, Purples, Blues, Brown)
+
     $palette = [
         '#034146',
         '#F77D67',
