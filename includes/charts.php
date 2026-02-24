@@ -571,7 +571,6 @@ class DD_Follower_Growth_Chart
         <style>
             .dd-growth-rate-card {
                 /* Applied the specific light grey background requested in the aesthetic reference */
-                background-color: #EFEFEF; 
                 border: 1px solid #E0E0E0;
                 border-radius: 8px;
                 width: 100%;
