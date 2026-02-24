@@ -792,4 +792,11 @@ input:checked + .slider:before {
 .medium-avatar .influencer-avatar-fallback {
   font-size: 25px; }
 
+.load--more-button.load--more-button.load--more-button {
+  background-color: var(--e-global-color-primary);
+  border-color: var(--e-global-color-primary);
+  font-family: 'Inter';
+  color: var(--e-global-color-2ba2932);
+  padding: 15px 20px; }
+
 /*# sourceMappingURL=style.css.map */
