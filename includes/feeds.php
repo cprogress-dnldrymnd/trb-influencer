@@ -71,6 +71,9 @@ class CreatorDB_Instagram_Feed
                 flex-direction: column;
                 width: 100%;
                 background: transparent;
+                height: 100%;
+                background-color: #ffffff;
+                border: 1px solid #BCBCBC;
             }
 
             /* Overriding Instagram's inline blockquote margins to fit our grid perfectly */
