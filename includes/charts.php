@@ -569,7 +569,6 @@ class DD_Follower_Growth_Chart
             .dd-time-btn.dd-time-btn.dd-time-btn {
                 background: transparent;
                 border: none;
-                color: #888;
                 padding: 11px 18px;
                 font-size: 12px;
                 font-family: Inter, sans-serif;
@@ -578,6 +577,7 @@ class DD_Follower_Growth_Chart
                 border-right: 1px solid #E5E5E5;
                 transition: color 0.2s ease;
                 letter-spacing: 0.6px;
+                border-radius: 0;
             }
             .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
                 border-right: none;
@@ -587,6 +587,7 @@ class DD_Follower_Growth_Chart
             }
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
                 color: #fff; /* Highlights active filter in orange */
+                background: #f77d67;
             }
 
             .dd-growth-rate-footer {
