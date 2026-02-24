@@ -1213,6 +1213,7 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 function render_hashtag_cloud(array $hashtags, int $limit = 10): void
 {
     // 1. Validate and prepare the data
+    ob_start();
 
     if (empty($hashtags)) {
         return;
@@ -1268,4 +1269,6 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10): void
     }
 
     echo '</div>';
+
+    return ob_get_clean();
 }
