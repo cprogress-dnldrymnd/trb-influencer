@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -26,10 +26,15 @@ class DD_Follower_Growth_Chart
     public function __construct()
     {
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
+        
         // Monthly Growth Bar Chart Shortcode
         add_shortcode('follower_growth_chart', [$this, 'render_monthly_shortcode']);
+        
         // Total Followers Timeline Line Chart Shortcode
         add_shortcode('follower_timeline_chart', [$this, 'render_timeline_shortcode']);
+        
+        // Follower Growth Rate Area Chart Shortcode
+        add_shortcode('follower_growth_rate_chart', [$this, 'render_growth_rate_shortcode']);
     }
 
     /**
@@ -60,6 +65,54 @@ class DD_Follower_Growth_Chart
         foreach ($raw_data as $entry) {
             $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
             $series_data[] = [ $ts_ms, (int)$entry['followers'] ];
+        }
+
+        return [
+            'series_data' => $series_data
+        ];
+    }
+
+    /**
+     * Transforms raw timeline statistics into a calculated percentage growth rate dataset.
+     *
+     * Iterates through chronological data to calculate point-to-point growth percentage 
+     * using standard calculation: ((Current - Previous) / Previous) * 100.
+     *
+     * @param array $raw_data The raw multidimensional array of timeline statistics.
+     * @return array Associative array containing the calculated growth rate series data.
+     */
+    private function prepare_growth_rate_chart_data(array $raw_data): array
+    {
+        if (empty($raw_data)) {
+            return ['series_data' => []];
+        }
+
+        // Sort strictly chronologically to accurately calculate sequential delta
+        usort($raw_data, function ($a, $b) {
+            $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
+            $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
+            return $ts_a <=> $ts_b;
+        });
+
+        $series_data = [];
+        $previous_followers = null;
+
+        foreach ($raw_data as $entry) {
+            $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
+            $current_followers = (int)$entry['followers'];
+
+            if ($previous_followers !== null && $previous_followers > 0) {
+                // Calculate percentage growth rate
+                $growth_rate = (($current_followers - $previous_followers) / $previous_followers) * 100;
+            } else {
+                // Anchor the baseline to 0 on the first node
+                $growth_rate = 0;
+            }
+
+            // Cap floating precision to 3 decimal places for optimized frontend processing
+            $series_data[] = [ $ts_ms, round($growth_rate, 3) ];
+            
+            $previous_followers = $current_followers;
         }
 
         return [
@@ -196,9 +249,10 @@ class DD_Follower_Growth_Chart
 
             $raw_data = $this->get_raw_follower_data($post->ID);
             
-            // Process both data representations
-            $monthly_data = $this->prepare_monthly_chart_data($raw_data);
-            $timeline_data = $this->prepare_timeline_chart_data($raw_data);
+            // Process all three required datasets
+            $monthly_data     = $this->prepare_monthly_chart_data($raw_data);
+            $timeline_data    = $this->prepare_timeline_chart_data($raw_data);
+            $growth_rate_data = $this->prepare_growth_rate_chart_data($raw_data);
 
             // Compute summary variables for the monthly view
             $total_gain = !empty($monthly_data['gains']) ? array_sum($monthly_data['gains']) : 0;
@@ -207,8 +261,9 @@ class DD_Follower_Growth_Chart
 
             // Bundle the payloads into a unified localization object
             $unified_payload = [
-                'monthly'  => $monthly_data,
-                'timeline' => $timeline_data
+                'monthly'     => $monthly_data,
+                'timeline'    => $timeline_data,
+                'growth_rate' => $growth_rate_data
             ];
 
             wp_localize_script('dd-chart-init', 'ddChartPayload', $unified_payload);
@@ -409,8 +464,6 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 padding: 0 10px;
             }
-
-            /* --- TIMELINE VIEW SPECIFICS --- */
             #ddTimelineChart * {
                 font-family: Inter, sans-serif !important;
             }
@@ -431,7 +484,7 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
                 const payloadTimeline = ddChartPayload.timeline;
-                const payloadMonthly = ddChartPayload.monthly; // Used for last_updated string
+                const payloadMonthly = ddChartPayload.monthly;
 
                 const formatToK = (value) => {
                     const num = Number(value);
@@ -500,6 +553,150 @@ class DD_Follower_Growth_Chart
 
                 const timelineChart = new ApexCharts(document.querySelector("#ddTimelineChart"), timelineOptions);
                 timelineChart.render();
+            });
+        </script>
+<?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Handles the output of the [follower_growth_rate_chart] shortcode (Growth Percentage Area Graph).
+     *
+     * @return string The compiled HTML and JS rendering the growth rate area chart.
+     */
+    public function render_growth_rate_shortcode(): string
+    {
+        ob_start();
+?>
+        <style>
+            .dd-growth-rate-card {
+                /* Applied the specific light grey background requested in the aesthetic reference */
+                background-color: #EFEFEF; 
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 16px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+            .dd-growth-rate-footer {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                margin-top: 10px;
+                font-size: 13px;
+                color: #888;
+                font-family: Inter, sans-serif !important;
+                padding: 0 10px;
+            }
+            #ddGrowthRateChart * {
+                font-family: Inter, sans-serif !important;
+            }
+            #ddGrowthRateChart .apexcharts-tooltip-marker {
+                background-color: #00BFFF !important; /* Cyan marker to match line color */
+            }
+        </style>
+
+        <div class="dd-growth-rate-card">
+            <div id="ddGrowthRateChart"></div>
+            <div class="dd-growth-rate-footer">
+                <div id="ddGrowthRateLastUpdated">Last updated: Loading...</div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
+
+                const payloadGrowthRate = ddChartPayload.growth_rate;
+                const payloadMonthly = ddChartPayload.monthly; 
+
+                if (payloadGrowthRate.series_data.length === 0) {
+                    document.getElementById('ddGrowthRateChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No growth rate data available.</p>';
+                    document.getElementById('ddGrowthRateLastUpdated').innerText = 'Last updated: N/A';
+                    return;
+                }
+
+                document.getElementById('ddGrowthRateLastUpdated').innerText = 'Last updated: ' + payloadMonthly.last_updated;
+
+                const growthRateOptions = {
+                    series: [{
+                        name: 'Growth Rate',
+                        data: payloadGrowthRate.series_data
+                    }],
+                    chart: {
+                        type: 'area', // Generates the smooth fill below the line
+                        height: 350,
+                        toolbar: { show: false },
+                        zoom: { enabled: false },
+                        background: 'transparent' // Allows the CSS card background to bleed through natively
+                    },
+                    colors: ['#00BFFF'], // The cyan line color requested
+                    fill: {
+                        type: 'solid',
+                        opacity: 0.15 // Creates the subtle light blue background area
+                    },
+                    stroke: { 
+                        curve: 'smooth', // Smoothes out the vertices 
+                        width: 2 
+                    },
+                    dataLabels: { enabled: false },
+                    annotations: {
+                        // Injects the prominent red baseline explicitly at 0
+                        yaxis: [
+                            {
+                                y: 0,
+                                borderColor: '#FF4560', 
+                                borderWidth: 1.5,
+                                strokeDashArray: 0
+                            }
+                        ]
+                    },
+                    xaxis: {
+                        type: 'datetime',
+                        labels: {
+                            format: 'MM-dd',
+                            style: { colors: '#888', fontSize: '12px' }
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                        tooltip: { enabled: false }
+                    },
+                    yaxis: {
+                        title: {
+                            text: 'Growth rate (%)',
+                            style: {
+                                color: '#888',
+                                fontSize: '12px',
+                                fontWeight: 400,
+                                fontFamily: 'Inter, sans-serif'
+                            }
+                        },
+                        labels: {
+                            formatter: function (val) {
+                                return val.toFixed(1); // Standardizes the scale to 1 decimal place (e.g., -0.2)
+                            },
+                            style: { colors: '#888', fontSize: '11px' }
+                        }
+                    },
+                    grid: {
+                        borderColor: '#E0E0E0',
+                        xaxis: { lines: { show: false } },
+                        yaxis: { lines: { show: true } }
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        x: { format: 'yyyy-MM-dd' },
+                        y: {
+                            formatter: function (val) {
+                                return val + "%"; // Appends percentage symbol in tooltip for clarity
+                            }
+                        }
+                    }
+                };
+
+                const growthRateChart = new ApexCharts(document.querySelector("#ddGrowthRateChart"), growthRateOptions);
+                growthRateChart.render();
             });
         </script>
 <?php
