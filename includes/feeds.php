@@ -259,26 +259,31 @@ class CreatorDB_Instagram_Feed
 
     /**
      * Renders the HTML markup for a single Instagram card.
-     * * @param array $post A single associative array containing post data.
+     * Includes referrer-policy bypass for Instagram CDN hotlink protection.
+     *
+     * @param array $post A single associative array containing post data.
      * @return string The HTML markup for the card.
      */
     private function render_single_card(array $post): string
     {
-        // Extract and sanitize data directly from the passed array
+        // Extract data. Using esc_url_raw for URLs to prevent encoding complex CDN signature parameters (&) too early.
         $shortcode     = sanitize_text_field($post['shortcode'] ?? '');
         $title         = wp_kses_post($post['title'] ?? '');
-        $photo_url     = esc_url($post['photoURL'] ?? '');
-        $carousel_urls = array_map('esc_url', $post['carouselUrls'] ?? []);
+        $photo_url     = esc_url_raw($post['photoURL'] ?? '');
+        $carousel_urls = array_map('esc_url_raw', $post['carouselUrls'] ?? []);
 
-        // Data mapping (adjust these keys based on your full array structure)
+        // Data mapping
         $date          = esc_html($post['date'] ?? '2025-05-19');
         $likes         = absint($post['likes'] ?? 3);
         $comments      = absint($post['comments'] ?? 7);
         $er            = esc_html($post['er'] ?? '0.05%');
         $username      = sanitize_text_field($post['username'] ?? 'cam24fps');
         $followers     = esc_html($post['followers'] ?? '18.6K');
-        $profile_pic   = esc_url($post['profilePic'] ?? 'https://via.placeholder.com/40');
 
+        // Ensure profile pic falls back gracefully
+        $profile_pic   = esc_url_raw($post['profilePic'] ?? 'https://via.placeholder.com/40');
+
+        // Determine main image
         $display_image = ! empty($carousel_urls) ? $carousel_urls[0] : $photo_url;
         $post_url      = 'https://www.instagram.com/p/' . $shortcode . '/';
         $trimmed_title = wp_trim_words($title, 20, '&hellip;');
@@ -288,7 +293,7 @@ class CreatorDB_Instagram_Feed
         <div class="cdb-ig-card">
 
             <div class="cdb-ig-header">
-                <img src="<?php echo $profile_pic; ?>" alt="<?php esc_attr_e('Profile', 'creatordb-ig-feed'); ?>" class="cdb-ig-avatar">
+                <img src="<?php echo esc_url($profile_pic); ?>" alt="<?php esc_attr_e('Profile', 'creatordb-ig-feed'); ?>" class="cdb-ig-avatar" referrerpolicy="no-referrer">
                 <div class="cdb-ig-user-info">
                     <div class="cdb-ig-username"><?php echo $username; ?></div>
                     <div class="cdb-ig-followers"><?php echo $followers; ?> <?php esc_html_e('followers', 'creatordb-ig-feed'); ?></div>
@@ -301,7 +306,7 @@ class CreatorDB_Instagram_Feed
             <div class="cdb-ig-media">
                 <?php if ($display_image) : ?>
                     <a href="<?php echo esc_url($post_url); ?>" target="_blank" rel="noopener noreferrer">
-                        <img src="<?php echo $display_image; ?>" alt="<?php esc_attr_e('Instagram Post', 'creatordb-ig-feed'); ?>" loading="lazy">
+                        <img src="<?php echo esc_url($display_image); ?>" alt="<?php esc_attr_e('Instagram Post', 'creatordb-ig-feed'); ?>" loading="lazy" referrerpolicy="no-referrer">
                         <?php if (count($carousel_urls) > 1) : ?>
                             <div class="cdb-ig-indicator">
                                 <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
