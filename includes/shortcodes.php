@@ -1836,3 +1836,11 @@ function shortcode_influencer_follower_growth( $atts ) {
 	);
 }
 add_shortcode( 'influencer_follower_growth', 'shortcode_influencer_follower_growth' );
+
+function shortcode_saved_search_url() {
+    global $influencer_discovery_page_id;
+    $search_query = get_field('search_query', get_the_ID());
+
+    return get_the_permalink($influencer_discovery_page_id);
+}
+add_shortcode( 'saved_search_url', 'shortcode_saved_search_url' );

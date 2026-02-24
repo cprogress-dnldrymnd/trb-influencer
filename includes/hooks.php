@@ -12,9 +12,10 @@
  */
 function dd_set_global_pmpro_variable()
 {
-    global $current_membership_level, $is_free_trial, $number_of_searches;
+    global $current_membership_level, $is_free_trial, $number_of_searches, $influencer_discovery_page_id;
 
     $number_of_searches = number_of_searches();
+    $influencer_discovery_page_id = 1949;
     // Verify the function exists to prevent fatal errors if PMPro is inactive
     if (function_exists('get_pmpro_membership_level_shortcode')) {
         $current_membership_level = get_pmpro_membership_level_shortcode();
