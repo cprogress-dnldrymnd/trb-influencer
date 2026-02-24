@@ -422,12 +422,13 @@ function shortcode_influencer_match_score()
 add_shortcode('influencer_match_score', 'shortcode_influencer_match_score');
 
 
-function shortcode_influencer_recentposts_reels() {
+function shortcode_influencer_recentposts_reels()
+{
     $recentposts = get_post_meta(get_the_ID(), 'recentposts', true);
     $recentreels = get_post_meta(get_the_ID(), 'recentreels', true);
     $merge = array_merge($recentposts ?? [], $recentreels ?? []);
     $count = count($merge);
-            
+
     return $count;
 }
 add_shortcode('influencer_recentposts_reels', 'shortcode_influencer_recentposts_reels');
@@ -1167,7 +1168,7 @@ function test()
 {
     if (current_user_can('administrator')) {
         ob_start();
-   
+
         echo '<pre>';
         var_dump(get_post_meta(get_the_ID()));
         echo '</pre>';
@@ -1699,3 +1700,88 @@ function dd_influencer_avatar_shortcode($atts)
     return $html;
 }
 add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
+
+/**
+ * Generates a randomized HTML hashtag cloud based on a provided array.
+ * * This function shuffles the input array, limits the output to a specified
+ * maximum (default 10), and applies randomized inline CSS for font size, 
+ * color (from a predefined palette), and vertical translation to create a 
+ * staggered, organic layout similar to the provided design reference.
+ *
+ * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
+ * @param int   $limit    Maximum number of hashtags to display.
+ * @return void Outputs HTML directly.
+ */
+function render_hashtag_cloud(array $hashtags, int $limit = 10): void
+{
+    // 1. Validate and prepare the data
+    $hashtags = [
+        '#blender3d',
+        '#blenderart',
+        '#2',
+        '#godspeed',
+        '#blender',
+        '#blendercommunity',
+        '#medieval',
+        '#shortfilm',
+        '#photocinematica',
+        '#cgi',
+        '#3dart',
+        '#animation',
+        '#render'
+    ];
+    if (empty($hashtags)) {
+        return;
+    }
+
+    // Randomize the array order
+    shuffle($hashtags);
+
+
+
+    // Extract only up to the requested limit
+    $display_tags = array_slice($hashtags, 0, $limit);
+
+    // 2. Define a color palette inspired by your second image (Oranges, Purples, Blues, Brown)
+    $palette = [
+        '#ff7300', // Vibrant Orange
+        '#ffaa77', // Light Orange/Peach
+        '#ffb899', // Pale Orange
+        '#4a3b8c', // Deep Purple/Blue
+        '#6252d6', // Bright Purple/Blue
+        '#9e92ff', // Light Purple
+        '#612b00', // Dark Brown
+    ];
+
+    // 3. Render the container
+    echo '<div class="hashtag-cloud-container">';
+
+    // 4. Iterate and render each tag with randomized properties
+    foreach ($display_tags as $tag) {
+        // Randomize visual properties
+        $font_size = mt_rand(120, 280) / 100; // Between 1.2rem and 2.8rem
+        $color     = $palette[array_rand($palette)]; // Pick a random color
+        $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
+        $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
+
+        // Construct inline styles
+        $style = sprintf(
+            'font-size: %1$srem; color: %2$s; transform: translateY(%3$spx); margin: 0 %4$spx;',
+            $font_size,
+            $color,
+            $offset_y,
+            $margin_x
+        );
+
+        // Output the individual hashtag span
+        printf(
+            '<span class="hashtag-item" style="%1$s">%2$s</span>',
+            esc_attr($style),
+            esc_html($tag)
+        );
+    }
+
+    echo '</div>';
+}
+
+add_shortcode('hashtag_cloud', 'render_hashtag_cloud');
