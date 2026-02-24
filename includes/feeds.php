@@ -128,6 +128,13 @@ class CreatorDB_Instagram_Feed
                 justify-content: space-between;
                 gap: 15px;
                 padding: 10px 15px;
+            }
+            .post-stats .post-stat-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .post-stats .post-stat-item svg{
                 color: #BCBCBC;
             }
         ";
