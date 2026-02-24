@@ -152,10 +152,13 @@ class CreatorDB_Instagram_Feed
                 background-color: #fff;
             }
             .feed-footer .date-post-stats {
+                padding-top: 15px;
                 display: flex;
                 justify-content: space-between;
-                align-items: center;
                 border-top: 1px solid #BCBCBC;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
             }
             .feed-footer .date {
                 font-size: 10px;
