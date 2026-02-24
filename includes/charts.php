@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.8.2
+ * Version: 1.8.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -211,6 +211,7 @@ class DD_Follower_Growth_Chart
 
         foreach ($raw_data as $entry) {
             $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
+            // Now correctly extracting 'avglikes' to perfectly match the table data
             $series_data[] = [
                 'ts'    => $ts_ms,
                 'likes' => isset($entry['avglikes']) ? (float)$entry['avglikes'] : 0
@@ -774,31 +775,14 @@ class DD_Follower_Growth_Chart
         ob_start();
 ?>
         <style>
-            .dd-range-card {
-                background-color: #EFEFEF; 
-                border: 1px solid #E0E0E0;
-                border-radius: 8px;
-                width: 100%;
-                padding: 24px 32px;
-                font-family: Inter, sans-serif !important;
-                box-sizing: border-box;
-            }
+         
             .dd-range-header {
                 display: flex;
-                justify-content: space-between;
+                justify-content: flex-end;
                 align-items: center;
                 margin-bottom: 30px;
             }
-            .dd-range-title {
-                font-size: 14px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-                color: #111;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
+         
 
             /* Inherits the exact tab styling requested */
             .dd-time-filters.dd-time-filters.dd-time-filters {
@@ -855,7 +839,7 @@ class DD_Follower_Growth_Chart
                 font-size: 13px;
             }
 
-            /* Gradient Bar & Hoverable Marker */
+            /* Gradient Bar */
             .dd-gradient-track {
                 height: 12px;
                 border-radius: 10px;
@@ -870,57 +854,12 @@ class DD_Follower_Growth_Chart
                 background-color: #000;
                 top: -2px;
                 transition: left 0.4s ease; 
-                cursor: pointer; /* Makes it clear it's interactive */
-                z-index: 10;
-            }
-            
-            /* CSS Tooltip Implementation */
-            .dd-gradient-marker::after {
-                content: attr(data-value);
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%) translateY(-5px);
-                background-color: #111;
-                color: #fff;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 500;
-                white-space: nowrap;
-                opacity: 0;
-                pointer-events: none;
-                transition: all 0.2s ease;
-            }
-            .dd-gradient-marker::before {
-                content: '';
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%) translateY(-1px);
-                border: 4px solid transparent;
-                border-top-color: #111;
-                opacity: 0;
-                pointer-events: none;
-                transition: all 0.2s ease;
-            }
-            /* Hover Reveal */
-            .dd-gradient-marker:hover::after {
-                opacity: 1;
-                transform: translateX(-50%) translateY(-8px); /* Lift slightly on hover */
-            }
-            .dd-gradient-marker:hover::before {
-                opacity: 1;
-                transform: translateX(-50%) translateY(-4px);
             }
         </style>
 
         <div class="dd-range-card" id="ddLikeRangeWrapper">
             <div class="dd-range-header">
-                <div class="dd-range-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    LIKE RANGE
-                </div>
+             
                 <div class="dd-time-filters">
                     <button class="dd-time-btn active" data-days="30">Last 30 days</button>
                     <button class="dd-time-btn" data-days="90">Last 90 days</button>
@@ -944,7 +883,7 @@ class DD_Follower_Growth_Chart
             </div>
 
             <div class="dd-gradient-track">
-                <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
+                <div class="dd-gradient-marker range-marker" style="left: 0%;"></div>
             </div>
         </div>
 
@@ -984,19 +923,16 @@ class DD_Follower_Growth_Chart
                         container.querySelector('.val-max').innerText = '0';
                         container.querySelector('.val-avg').innerText = '0';
                         container.querySelector('.range-marker').style.left = '0%';
-                        container.querySelector('.range-marker').setAttribute('data-value', '0');
                         return;
                     }
 
                     const min = Math.min(...filteredLikes);
                     const max = Math.max(...filteredLikes);
                     const avg = filteredLikes.reduce((a, b) => a + b, 0) / filteredLikes.length;
-                    
-                    const formattedAvg = formatToK(avg);
 
                     container.querySelector('.val-min').innerText = formatToK(min);
                     container.querySelector('.val-max').innerText = formatToK(max);
-                    container.querySelector('.val-avg').innerText = formattedAvg;
+                    container.querySelector('.val-avg').innerText = formatToK(avg);
 
                     let markerPercent = 50; 
                     if (max > min) {
@@ -1005,11 +941,7 @@ class DD_Follower_Growth_Chart
                         markerPercent = 100; // Push marker to the end if min and max are equal
                     }
                     
-                    const markerEl = container.querySelector('.range-marker');
-                    markerEl.style.left = `${markerPercent}%`;
-                    
-                    // Inject value into data attribute for the CSS tooltip to display on hover
-                    markerEl.setAttribute('data-value', formattedAvg);
+                    container.querySelector('.range-marker').style.left = `${markerPercent}%`;
                 };
 
                 const tabs = container.querySelectorAll('.dd-time-btn');
