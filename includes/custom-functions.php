@@ -1167,3 +1167,26 @@ function dd_get_initials_from_string( $string ) {
 
     return mb_strtoupper( $initials );
 }
+
+/**
+ * Converts a Unix timestamp into a 'Year ShortMonth Day+Ordinal' format.
+ * Utilizes the DateTimeImmutable class for robust, timezone-aware operations.
+ *
+ * @param int    $timestamp The Unix timestamp to convert.
+ * @param string $timezone  The timezone identifier (e.g., 'Asia/Manila'). Defaults to 'UTC'.
+ * @return string           The formatted date string (e.g., '2025 Oct 23rd').
+ * @throws Exception        If the provided timezone string is invalid.
+ */
+function formatTimestampToOrdinalDate(int $timestamp, string $timezone = 'UTC'): string {
+    // Prefixing the timestamp with '@' explicitly tells DateTime to treat it as a UTC Unix timestamp
+    $date = new DateTimeImmutable('@' . $timestamp);
+    
+    // Convert to the target timezone
+    $date = $date->setTimezone(new DateTimeZone($timezone));
+    
+    return $date->format('Y M jS');
+}
+
+// Example Usage:
+$timestamp = 1761216000; // Corresponds to Oct 23, 2025
+echo formatTimestampToOrdinalDate($timestamp, 'Asia/Manila');

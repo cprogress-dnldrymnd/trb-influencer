@@ -316,7 +316,7 @@ class CreatorDB_Instagram_Feed
     private function render_single_card(array $post): string
     {
         $shortcode = sanitize_text_field($post['shortcode'] ?? '');
-
+        $updateDate = sanitize_text_field($post['updateDate'] ?? '');
         if (empty($shortcode)) {
             return '<div class="cdb-ig-card"><p class="cdb-ig-empty">' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';
         }
@@ -354,24 +354,29 @@ class CreatorDB_Instagram_Feed
                     </a>
                 </div>
             </blockquote>
-            <div class="post-stats">
-                <div class="post-stat-item">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
-                        <path d="M12 8.19444C10 3.5 3 4 3 10C3 16.0001 12 21 12 21C12 21 21 16.0001 21 10C21 4 14 3.5 12 8.19444Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                    <span class="text-sm text-gray-900">3</span>
+            <div class="feed-footer">
+                <div class="date">
+                    <?= formatTimestampToOrdinalDate($updateDate) ?>
                 </div>
-                <div class="post-stat-item">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
-                        <path d="M21 14.8V7.19995V7.19666C21 6.07875 21 5.51945 20.7822 5.09204C20.5905 4.71572 20.2841 4.40973 19.9078 4.21799C19.48 4 18.9203 4 17.8002 4H6.2002C5.08009 4 4.51962 4 4.0918 4.21799C3.71547 4.40973 3.40973 4.71572 3.21799 5.09204C3 5.51986 3 6.07985 3 7.19995V18.671C3 19.7367 3 20.2696 3.21846 20.5432C3.40845 20.7813 3.69644 20.9197 4.00098 20.9194C4.35115 20.919 4.76744 20.5861 5.59961 19.9203L7.12357 18.7012C7.44844 18.4413 7.61084 18.3114 7.79172 18.219C7.95219 18.137 8.12279 18.0771 8.29932 18.0408C8.49829 18 8.70652 18 9.12256 18H17.8001C18.9202 18 19.48 18 19.9078 17.782C20.2841 17.5902 20.5905 17.2844 20.7822 16.908C21 16.4806 21 15.9212 21 14.8032V14.8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                    <span class="text-sm text-gray-900">27</span>
-                </div>
-                <div class="post-stat-item">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
-                        <path d="M21.0002 20H6.2002C5.08009 20 4.51962 20 4.0918 19.782C3.71547 19.5902 3.40973 19.2844 3.21799 18.908C3 18.4802 3 17.9201 3 16.8V5M21 7L15.1543 12.115C14.4542 12.7275 14.1041 13.0339 13.7207 13.161C13.2685 13.311 12.7775 13.2946 12.3363 13.1149C11.9623 12.9625 11.6336 12.6337 10.9758 11.9759C10.3323 11.3324 10.0105 11.0106 9.64355 10.8584C9.21071 10.6788 8.72875 10.6569 8.28142 10.7965C7.90221 10.9149 7.55252 11.2062 6.8534 11.7888L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                    <span class="text-sm text-gray-900">0.16%</span>
+                <div class="post-stats">
+                    <div class="post-stat-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
+                            <path d="M12 8.19444C10 3.5 3 4 3 10C3 16.0001 12 21 12 21C12 21 21 16.0001 21 10C21 4 14 3.5 12 8.19444Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <span class="text-sm text-gray-900">3</span>
+                    </div>
+                    <div class="post-stat-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
+                            <path d="M21 14.8V7.19995V7.19666C21 6.07875 21 5.51945 20.7822 5.09204C20.5905 4.71572 20.2841 4.40973 19.9078 4.21799C19.48 4 18.9203 4 17.8002 4H6.2002C5.08009 4 4.51962 4 4.0918 4.21799C3.71547 4.40973 3.40973 4.71572 3.21799 5.09204C3 5.51986 3 6.07985 3 7.19995V18.671C3 19.7367 3 20.2696 3.21846 20.5432C3.40845 20.7813 3.69644 20.9197 4.00098 20.9194C4.35115 20.919 4.76744 20.5861 5.59961 19.9203L7.12357 18.7012C7.44844 18.4413 7.61084 18.3114 7.79172 18.219C7.95219 18.137 8.12279 18.0771 8.29932 18.0408C8.49829 18 8.70652 18 9.12256 18H17.8001C18.9202 18 19.48 18 19.9078 17.782C20.2841 17.5902 20.5905 17.2844 20.7822 16.908C21 16.4806 21 15.9212 21 14.8032V14.8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <span class="text-sm text-gray-900">27</span>
+                    </div>
+                    <div class="post-stat-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
+                            <path d="M21.0002 20H6.2002C5.08009 20 4.51962 20 4.0918 19.782C3.71547 19.5902 3.40973 19.2844 3.21799 18.908C3 18.4802 3 17.9201 3 16.8V5M21 7L15.1543 12.115C14.4542 12.7275 14.1041 13.0339 13.7207 13.161C13.2685 13.311 12.7775 13.2946 12.3363 13.1149C11.9623 12.9625 11.6336 12.6337 10.9758 11.9759C10.3323 11.3324 10.0105 11.0106 9.64355 10.8584C9.21071 10.6788 8.72875 10.6569 8.28142 10.7965C7.90221 10.9149 7.55252 11.2062 6.8534 11.7888L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <span class="text-sm text-gray-900">0.16%</span>
+                    </div>
                 </div>
             </div>
         </div>
