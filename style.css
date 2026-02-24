@@ -804,4 +804,14 @@ input:checked + .slider:before {
   padding: 15px 20px;
   cursor: pointer; }
 
+.header--icon-box .elementor-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: 1px solid #3B1527;
+  background-color: #fff; }
+
 /*# sourceMappingURL=style.css.map */
