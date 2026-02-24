@@ -257,19 +257,18 @@ class CreatorDB_Instagram_Feed
         return ob_get_clean();
     }
 
-    /**
+/**
      * Renders the HTML markup for a single Instagram card.
-     * Includes referrer-policy bypass for Instagram CDN hotlink protection.
+     * Utilizes the /media/?size=l endpoint to bypass CDN token expiration.
      *
      * @param array $post A single associative array containing post data.
      * @return string The HTML markup for the card.
      */
     private function render_single_card(array $post): string
     {
-        // Extract data. Using esc_url_raw for URLs to prevent encoding complex CDN signature parameters (&) too early.
+        // Extract and sanitize base data
         $shortcode     = sanitize_text_field($post['shortcode'] ?? '');
         $title         = wp_kses_post($post['title'] ?? '');
-        $photo_url     = esc_url_raw($post['photoURL'] ?? '');
         $carousel_urls = array_map('esc_url_raw', $post['carouselUrls'] ?? []);
 
         // Data mapping
@@ -279,12 +278,12 @@ class CreatorDB_Instagram_Feed
         $er            = esc_html($post['er'] ?? '0.05%');
         $username      = sanitize_text_field($post['username'] ?? 'cam24fps');
         $followers     = esc_html($post['followers'] ?? '18.6K');
-
-        // Ensure profile pic falls back gracefully
         $profile_pic   = esc_url_raw($post['profilePic'] ?? 'https://via.placeholder.com/40');
 
-        // Determine main image
-        $display_image = ! empty($carousel_urls) ? $carousel_urls[0] : $photo_url;
+        // Dynamically construct the display image using Instagram's media redirect endpoint
+        // This ensures the image URL never expires, unlike the raw CDN links.
+        $display_image = 'https://www.instagram.com/p/' . $shortcode . '/media/?size=l';
+        
         $post_url      = 'https://www.instagram.com/p/' . $shortcode . '/';
         $trimmed_title = wp_trim_words($title, 20, '&hellip;');
 
@@ -304,7 +303,7 @@ class CreatorDB_Instagram_Feed
             </div>
 
             <div class="cdb-ig-media">
-                <?php if ($display_image) : ?>
+                <?php if ($shortcode) : ?>
                     <a href="<?php echo esc_url($post_url); ?>" target="_blank" rel="noopener noreferrer">
                         <img src="<?php echo esc_url($display_image); ?>" alt="<?php esc_attr_e('Instagram Post', 'creatordb-ig-feed'); ?>" loading="lazy" referrerpolicy="no-referrer">
                         <?php if (count($carousel_urls) > 1) : ?>
