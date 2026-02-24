@@ -560,14 +560,14 @@ class DD_Follower_Growth_Chart
             }
 
             /* --- TIME FILTERS STYLING --- */
-            .dd-time-filters {
+            .dd-time-filters.dd-time-filters.dd-time-filters {
                 display: inline-flex;
                 background: #F3F3F3;
                 border: 1px solid #E5E5E5;
                 border-radius: 6px;
                 overflow: hidden;
             }
-            .dd-time-btn {
+            .dd-time-btn.dd-time-btn.dd-time-btn {
                 background: transparent;
                 border: none;
                 color: #888;
@@ -579,13 +579,13 @@ class DD_Follower_Growth_Chart
                 border-right: 1px solid #E5E5E5;
                 transition: color 0.2s ease;
             }
-            .dd-time-btn:last-child {
+            .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
                 border-right: none;
             }
-            .dd-time-btn:hover {
+            .dd-time-btn.dd-time-btn.dd-time-btn:hover {
                 background: #EBEBEB;
             }
-            .dd-time-btn.active {
+            .dd-time-btn.dd-time-btn.dd-time-btn.active {
                 color: #FF7347; /* Highlights active filter in orange */
             }
 
