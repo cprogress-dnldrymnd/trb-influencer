@@ -778,7 +778,7 @@ class DD_Follower_Growth_Chart
          
             .dd-range-header {
                 display: flex;
-                justify-content: space-between;
+                justify-content: flex-end;
                 align-items: center;
                 margin-bottom: 30px;
             }
