@@ -775,31 +775,14 @@ class DD_Follower_Growth_Chart
         ob_start();
 ?>
         <style>
-            .dd-range-card {
-                background-color: #EFEFEF; 
-                border: 1px solid #E0E0E0;
-                border-radius: 8px;
-                width: 100%;
-                padding: 24px 32px;
-                font-family: Inter, sans-serif !important;
-                box-sizing: border-box;
-            }
+         
             .dd-range-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 30px;
             }
-            .dd-range-title {
-                font-size: 14px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-                color: #111;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
+         
 
             /* Inherits the exact tab styling requested */
             .dd-time-filters.dd-time-filters.dd-time-filters {
@@ -878,10 +861,7 @@ class DD_Follower_Growth_Chart
 
         <div class="dd-range-card" id="ddLikeRangeWrapper">
             <div class="dd-range-header">
-                <div class="dd-range-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    LIKE RANGE
-                </div>
+             
                 <div class="dd-time-filters">
                     <button class="dd-time-btn active" data-days="30">Last 30 days</button>
                     <button class="dd-time-btn" data-days="90">Last 90 days</button>
