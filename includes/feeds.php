@@ -130,6 +130,7 @@ class CreatorDB_Instagram_Feed
                 display: flex;
                 justify-content: space-between;
                 gap: 15px;
+                width: 100%;
             }
             .post-stats .post-stat-item {
                 display: flex;
