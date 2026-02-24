@@ -1208,9 +1208,8 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
  *
  * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
  * @param int   $limit    Maximum number of hashtags to display.
- * @return void Outputs HTML directly.
  */
-function render_hashtag_cloud(array $hashtags, int $limit = 10): void
+function render_hashtag_cloud(array $hashtags, int $limit = 10)
 {
     // 1. Validate and prepare the data
     ob_start();
@@ -1229,15 +1228,15 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10): void
 
     // 2. Define a color palette inspired by your second image (Oranges, Purples, Blues, Brown)
     $palette = [
-        '#034146', 
-        '#F77D67', 
-        '#8F8F8F', 
-        '#3B1527', 
-        '#E4A800', 
-        '#F77D67D6', 
-        '#612b00', 
+        '#034146',
+        '#F77D67',
+        '#8F8F8F',
+        '#3B1527',
+        '#E4A800',
+        '#F77D67D6',
+        '#612b00',
         '#034146B8',
-        '#000', 
+        '#000',
     ];
 
     // 3. Render the container
