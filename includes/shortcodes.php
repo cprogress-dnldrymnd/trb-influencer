@@ -712,41 +712,61 @@ function shortcode_influencer_last_updated()
 add_shortcode('influencer_last_updated', 'shortcode_influencer_last_updated');
 
 
+/**
+ * Retrieves and displays 'topic' terms associated with the current post.
+ * Iterates through the assigned terms and outputs them as styled chip elements.
+ * * @return string HTML output containing the influencer topics.
+ */
 function shortcode_influencer_topics()
 {
     ob_start();
 
-?>
+    // Fetch terms for the 'topic' taxonomy
+    $terms = get_the_terms(get_the_ID(), 'topic');
+
+    ?>
     <div class="chips-holder influencer-topics-holder">
-        <span class="chip style-2">WELLBEING</span>
-        <span class="chip style-2">NUTRITION</span>
-        <span class="chip style-2">DIETING</span>
-        <span class="chip style-2">HEALTH & WELLNESS</span>
-        <span class="chip style-2">WOMENS HEALTH</span>
+        <?php
+        // Verify terms exist and no WP_Error was returned before looping
+        if (!empty($terms) && !is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                // Escaped for security, converted to uppercase to match previous hardcoded styling
+                echo '<span class="chip style-2">' . esc_html(strtoupper($term->name)) . '</span>';
+            }
+        }
+        ?>
     </div>
-<?php
+    <?php
     return ob_get_clean();
 }
 add_shortcode('influencer_topics', 'shortcode_influencer_topics');
 
 
+/**
+ * Retrieves and displays 'niche' terms associated with the current post.
+ * Iterates through the assigned terms and outputs them as styled chip elements.
+ * * @return string HTML output containing the influencer niches.
+ */
 function shortcode_influencer_niches()
 {
     ob_start();
+    
+    // Fetch terms for the 'niche' taxonomy
+    $terms = get_the_terms(get_the_ID(), 'niche');
 
-?>
+    ?>
     <div class="chips-holder influencer-niches-holder">
-        <span class="chip style-2 bg-2">explore</span>
-        <span class="chip style-2 bg-2">reel</span>
-        <span class="chip style-2 bg-2">newyear</span>
-        <span class="chip style-2 bg-2">selflove</span>
-        <span class="chip style-2 bg-2">delicious</span>
-        <span class="chip style-2 bg-2">dessert</span>
-        <span class="chip style-2 bg-2">healthylifestyle</span>
-        <span class="chip style-2 bg-2">pizza</span>
-        <span class="chip style-2 bg-2">yummy</span>
+        <?php
+        // Verify terms exist and no WP_Error was returned before looping
+        if (!empty($terms) && !is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                // Escaped for security, converted to lowercase to match previous hardcoded styling
+                echo '<span class="chip style-2 bg-2">' . esc_html(strtolower($term->name)) . '</span>';
+            }
+        }
+        ?>
     </div>
-<?php
+    <?php
     return ob_get_clean();
 }
 add_shortcode('influencer_niches', 'shortcode_influencer_niches');
