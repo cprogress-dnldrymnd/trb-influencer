@@ -1063,3 +1063,16 @@ input:checked + .slider:before {
     font-family: Inter, sans-serif;
     margin-bottom: 24px;
 }
+
+@media (min-width: 1024px) {
+    .single-niches {
+        .influencer-niche-container {
+            .niche-term {
+                display: block !important;
+            }
+            .niche-toggle {
+                display: none !important;
+            }
+        }
+    }
+}
