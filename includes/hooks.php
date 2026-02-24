@@ -129,7 +129,7 @@ function dd_restrict_dashboard_template_access()
     $is_restricted = function_exists('get_field') ? get_field('members_only', $object_id) : false;
 
     // 3. Condition: User is NOT logged in AND the page is restricted.
-    if (! is_user_logged_in() && $is_restricted) {
+    if (! is_user_logged_in() && $is_restricted || ! is_user_logged_in() && is_single() && get_post_type() == 'influencer') {
 
         // Check if the current page is using the specific template file.
         // Note: This path is relative to the active theme's root directory.
