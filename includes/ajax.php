@@ -16,7 +16,6 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
  */
 function my_custom_loop_filter_handler()
 {
-    $testing_html = '';
     // 1. GATHER INPUTS (explicit form values)
     $explicit = [
         'niche'        => isset($_POST['niche']) ? $_POST['niche'] : [],
@@ -259,7 +258,7 @@ function my_custom_loop_filter_handler()
             ]);
         }
 
-        $testing_html .= '<div class="broadened-results-notice">Last resort: if still 0, return all published (no filters). Your search returned fewer than 6 results, so we broadened the search to show more influencers. Try adjusting your filters for a more specific match!</div>';
+      
     }
 
     if ($query->have_posts()) {
@@ -287,7 +286,6 @@ function my_custom_loop_filter_handler()
 
         ob_start();
 
-        echo $testing_html; // For debugging broadening logic
         foreach ($posts as $post) {
             $GLOBALS['post'] = $post;
             setup_postdata($post);
