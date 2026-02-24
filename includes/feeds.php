@@ -74,6 +74,8 @@ class CreatorDB_Instagram_Feed
                 height: 100%;
                 background-color: #ffffff;
                 border: 1px solid #BCBCBC;
+                border-radius: 10px;
+                overflow: hidden;
             }
 
             /* Overriding Instagram's inline blockquote margins to fit our grid perfectly */
@@ -82,6 +84,7 @@ class CreatorDB_Instagram_Feed
                 width: 100% !important;
                 max-width: 100% !important;
                 min-width: unset !important;
+                border: none !important;
             }
 
             /* Empty State Message */
