@@ -1228,13 +1228,15 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10): void
 
     // 2. Define a color palette inspired by your second image (Oranges, Purples, Blues, Brown)
     $palette = [
-        '#ff7300', // Vibrant Orange
-        '#ffaa77', // Light Orange/Peach
-        '#ffb899', // Pale Orange
-        '#4a3b8c', // Deep Purple/Blue
-        '#6252d6', // Bright Purple/Blue
-        '#9e92ff', // Light Purple
-        '#612b00', // Dark Brown
+        '#034146', 
+        '#F77D67', 
+        '#8F8F8F', 
+        '#3B1527', 
+        '#E4A800', 
+        '#F77D67D6', 
+        '#612b00', 
+        '#034146B8',
+        '#000', 
     ];
 
     // 3. Render the container
@@ -1243,7 +1245,7 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10): void
     // 4. Iterate and render each tag with randomized properties
     foreach ($display_tags as $tag) {
         // Randomize visual properties
-        $font_size = mt_rand(120, 280) / 100; // Between 1.2rem and 2.8rem
+        $font_size = mt_rand(80, 180) / 100; // Generates sizes between 0.8rem and 1.8rem
         $color     = $palette[array_rand($palette)]; // Pick a random color
         $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
         $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
