@@ -824,21 +824,19 @@ class DD_Follower_Growth_Chart
                 justify-content: space-between;
                 align-items: flex-end;
                 margin-bottom: 12px;
+                font-family: Inter, sans-serif;
             }
             .dd-stat-block {
                 display: flex;
-                align-items: baseline;
+                align-items: center;
                 gap: 6px;
             }
             .dd-stat-value {
-                font-size: 24px;
+                font-size: 21px;
                 font-weight: 600;
-                color: #111;
             }
             .dd-stat-label {
-                font-size: 12px;
-                color: #555;
-                padding-bottom: 3px;
+                font-size: 13px;
             }
 
             /* Gradient Bar */
