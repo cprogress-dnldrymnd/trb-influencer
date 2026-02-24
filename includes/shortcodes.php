@@ -1712,8 +1712,9 @@ add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
  * @param int   $limit    Maximum number of hashtags to display.
  * @return void Outputs HTML directly.
  */
-function render_hashtag_cloud(array $hashtags, int $limit = 10): void
+function render_hashtag_cloud()
 {
+    $limit = 10;
     // 1. Validate and prepare the data
     $hashtags = [
         '#blender3d',
@@ -1730,6 +1731,7 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10): void
         '#animation',
         '#render'
     ];
+
     if (empty($hashtags)) {
         return;
     }
