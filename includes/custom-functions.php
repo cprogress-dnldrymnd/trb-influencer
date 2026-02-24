@@ -218,10 +218,10 @@ function wp_custom_number_format_short($number, $precision = 1)
  * @param int   $precision The number of decimal places for the output. Defaults to 2.
  * @return string          The formatted percentage string appended with the '%' symbol.
  */
-function convertDecimalToPercentage(float $decimal, int $precision = 2): string 
+function convertDecimalToPercentage(float $decimal, int $precision = 2): string
 {
     $percentage = $decimal * 100;
-    
+
     // number_format handles rounding and trailing zeros automatically
     return number_format($percentage, $precision) . '%';
 }
@@ -1143,29 +1143,30 @@ function get_unique_meta_values_by_post_type(string $meta_key, string $post_type
  * @param string $string The source string (e.g., post title).
  * @return string The extracted initials, capitalized.
  */
-function dd_get_initials_from_string( $string ) {
-    $string = trim( $string );
-    if ( empty( $string ) ) {
+function dd_get_initials_from_string($string)
+{
+    $string = trim($string);
+    if (empty($string)) {
         return '';
     }
 
     // Match the first letter of each word boundaries, supporting Unicode
-    preg_match_all( '/\b\w/u', $string, $matches );
+    preg_match_all('/\b\w/u', $string, $matches);
 
     $initials = '';
-    
+
     // Extract the first and (if available) second initial
-    if ( ! empty( $matches[0] ) ) {
-        $initials = mb_substr( $matches[0][0], 0, 1 );
-        if ( isset( $matches[0][1] ) ) {
-            $initials .= mb_substr( $matches[0][1], 0, 1 );
+    if (! empty($matches[0])) {
+        $initials = mb_substr($matches[0][0], 0, 1);
+        if (isset($matches[0][1])) {
+            $initials .= mb_substr($matches[0][1], 0, 1);
         }
     } else {
         // Fallback for strings without clear word boundaries
-        $initials = mb_substr( $string, 0, 2 );
+        $initials = mb_substr($string, 0, 2);
     }
 
-    return mb_strtoupper( $initials );
+    return mb_strtoupper($initials);
 }
 
 
@@ -1178,10 +1179,11 @@ function dd_get_initials_from_string( $string ) {
  * @return string               The formatted date string (e.g., '2025 May 20th').
  * @throws Exception            If the timezone or DateTime instantiation fails.
  */
-function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UTC'): string {
+function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UTC'): string
+{
     // Cast to integer to ensure strict typing during mathematical operations
     $timestamp = (int) $timestamp;
-    
+
     // Check if the timestamp is in milliseconds (typically 13 digits long)
     // 10000000000 corresponds to '2286-11-20', assuming typical present-day data bounds
     if ($timestamp > 10000000000) {
@@ -1190,9 +1192,93 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 
     // Prefix with '@' to force DateTime to interpret the value as a UTC Unix timestamp
     $date = new DateTimeImmutable('@' . $timestamp);
-    
+
     // Apply the desired timezone
     $date = $date->setTimezone(new DateTimeZone($timezone));
-    
+
     return $date->format('Y M jS');
+}
+
+/**
+ * Generates a randomized HTML hashtag cloud based on a provided array.
+ * * This function shuffles the input array, limits the output to a specified
+ * maximum (default 10), and applies randomized inline CSS for font size, 
+ * color (from a predefined palette), and vertical translation to create a 
+ * staggered, organic layout similar to the provided design reference.
+ *
+ * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
+ * @param int   $limit    Maximum number of hashtags to display.
+ * @return void Outputs HTML directly.
+ */
+function render_hashtag_cloud(array $hashtags, int $limit = 10): void
+{
+    // 1. Validate and prepare the data
+    $hashtags = [
+        '#blender3d',
+        '#blenderart',
+        '#2',
+        '#godspeed',
+        '#blender',
+        '#blendercommunity',
+        '#medieval',
+        '#shortfilm',
+        '#photocinematica',
+        '#cgi',
+        '#3dart',
+        '#animation',
+        '#render'
+    ];
+
+    if (empty($hashtags)) {
+        return;
+    }
+
+    // Randomize the array order
+    shuffle($hashtags);
+
+
+
+    // Extract only up to the requested limit
+    $display_tags = array_slice($hashtags, 0, $limit);
+
+    // 2. Define a color palette inspired by your second image (Oranges, Purples, Blues, Brown)
+    $palette = [
+        '#ff7300', // Vibrant Orange
+        '#ffaa77', // Light Orange/Peach
+        '#ffb899', // Pale Orange
+        '#4a3b8c', // Deep Purple/Blue
+        '#6252d6', // Bright Purple/Blue
+        '#9e92ff', // Light Purple
+        '#612b00', // Dark Brown
+    ];
+
+    // 3. Render the container
+    echo '<div class="hashtag-cloud-container">';
+
+    // 4. Iterate and render each tag with randomized properties
+    foreach ($display_tags as $tag) {
+        // Randomize visual properties
+        $font_size = mt_rand(120, 280) / 100; // Between 1.2rem and 2.8rem
+        $color     = $palette[array_rand($palette)]; // Pick a random color
+        $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
+        $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
+
+        // Construct inline styles
+        $style = sprintf(
+            'font-size: %1$srem; color: %2$s; transform: translateY(%3$spx); margin: 0 %4$spx;',
+            $font_size,
+            $color,
+            $offset_y,
+            $margin_x
+        );
+
+        // Output the individual hashtag span
+        printf(
+            '<span class="hashtag-item" style="%1$s">%2$s</span>',
+            esc_attr($style),
+            esc_html($tag)
+        );
+    }
+
+    echo '</div>';
 }
