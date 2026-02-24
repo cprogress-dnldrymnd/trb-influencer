@@ -421,6 +421,17 @@ function shortcode_influencer_match_score()
 }
 add_shortcode('influencer_match_score', 'shortcode_influencer_match_score');
 
+
+function shortcode_influencer_recentposts_reels() {
+    $recentposts = get_post_meta(get_the_ID(), 'recentposts', true);
+    $recentreels = get_post_meta(get_the_ID(), 'recentreels', true);
+    $merge = array_merge($recentposts ?? [], $recentreels ?? []);
+    $count = count($merge);
+            
+    return $count;
+}
+add_shortcode('influencer_recentposts_reels', 'shortcode_influencer_recentposts_reels');
+
 function shortcode_influencer_search_filter()
 {
     ob_start();
@@ -486,6 +497,7 @@ function shortcode_influencer_search_filter()
 }
 
 add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
+
 
 
 function shortcode_influencer_search_filter_main()
