@@ -78,6 +78,9 @@ class CreatorDB_Instagram_Feed
                 overflow: hidden;
             }
 
+            .cdb-ig-card * {
+                font-family: Inter;
+            }
             /* Overriding Instagram's inline blockquote margins to fit our grid perfectly */
             .cdb-ig-card .instagram-media {
                 margin: 0 !important;
@@ -133,6 +136,7 @@ class CreatorDB_Instagram_Feed
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                font-size: 14px;
             }
             .post-stats .post-stat-item svg{
                 color: #BCBCBC;
