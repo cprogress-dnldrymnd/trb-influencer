@@ -724,7 +724,7 @@ function shortcode_influencer_topics()
     // Fetch terms for the 'topic' taxonomy
     $terms = get_the_terms(get_the_ID(), 'topic');
 
-    ?>
+?>
     <div class="chips-holder influencer-topics-holder">
         <?php
         // Verify terms exist and no WP_Error was returned before looping
@@ -736,7 +736,7 @@ function shortcode_influencer_topics()
         }
         ?>
     </div>
-    <?php
+<?php
     return ob_get_clean();
 }
 add_shortcode('influencer_topics', 'shortcode_influencer_topics');
@@ -750,11 +750,11 @@ add_shortcode('influencer_topics', 'shortcode_influencer_topics');
 function shortcode_influencer_niches()
 {
     ob_start();
-    
+
     // Fetch terms for the 'niche' taxonomy
     $terms = get_the_terms(get_the_ID(), 'niche');
 
-    ?>
+?>
     <div class="chips-holder influencer-niches-holder">
         <?php
         // Verify terms exist and no WP_Error was returned before looping
@@ -766,7 +766,7 @@ function shortcode_influencer_niches()
         }
         ?>
     </div>
-    <?php
+<?php
     return ob_get_clean();
 }
 add_shortcode('influencer_niches', 'shortcode_influencer_niches');
@@ -1749,98 +1749,100 @@ add_shortcode('influencer_hashtags', 'shortcode_influencer_hashtags');
  * @param array $atts Shortcode attributes.
  * @return string The formatted HTML output displaying raw growth and percentage.
  */
-function shortcode_influencer_follower_growth( $atts ) {
-	// Extract shortcode attributes with sensible defaults.
-	$args = shortcode_atts(
-		array(
-			'post_id' => get_the_ID(),
-		),
-		$atts
-	);
+function shortcode_influencer_follower_growth($atts)
+{
+    // Extract shortcode attributes with sensible defaults.
+    $args = shortcode_atts(
+        array(
+            'post_id' => get_the_ID(),
+        ),
+        $atts
+    );
 
-	$post_id = intval( $args['post_id'] );
+    $post_id = intval($args['post_id']);
 
-	if ( empty( $post_id ) ) {
-		return '';
-	}
+    if (empty($post_id)) {
+        return '';
+    }
 
-	// Retrieve the history array from post meta.
-	$history = get_post_meta( $post_id, 'creatordb_history', true );
+    // Retrieve the history array from post meta.
+    $history = get_post_meta($post_id, 'creatordb_history', true);
 
-	if ( empty( $history ) || ! is_array( $history ) || count( $history ) < 2 ) {
-		return '';
-	}
+    if (empty($history) || ! is_array($history) || count($history) < 2) {
+        return '';
+    }
 
-	// Sort the array by timestamp_ms in descending order to ensure index 0 is always the latest.
-	usort( $history, function ( $a, $b ) {
-		return $b['timestamp_ms'] <=> $a['timestamp_ms'];
-	});
+    // Sort the array by timestamp_ms in descending order to ensure index 0 is always the latest.
+    usort($history, function ($a, $b) {
+        return $b['timestamp_ms'] <=> $a['timestamp_ms'];
+    });
 
-	// The latest data point is now guaranteed to be at the start of the array.
-	$latest_entry = $history[0];
-	$latest_followers = intval( $latest_entry['followers'] );
+    // The latest data point is now guaranteed to be at the start of the array.
+    $latest_entry = $history[0];
+    $latest_followers = intval($latest_entry['followers']);
 
-	try {
-		// Instantiate DateTime for the latest entry to accurately subtract 1 calendar month.
-		$latest_date = new DateTime( $latest_entry['date'] );
-		$target_date = clone $latest_date;
-		$target_date->modify( '-1 month' ); // Modified to target a 1-month delta
-		$target_timestamp = $target_date->getTimestamp();
-	} catch ( Exception $e ) {
-		return '';
-	}
+    try {
+        // Instantiate DateTime for the latest entry to accurately subtract 1 calendar month.
+        $latest_date = new DateTime($latest_entry['date']);
+        $target_date = clone $latest_date;
+        $target_date->modify('-1 month'); // Modified to target a 1-month delta
+        $target_timestamp = $target_date->getTimestamp();
+    } catch (Exception $e) {
+        return '';
+    }
 
-	// Initialize variables to find the closest historical entry to our target date.
-	$closest_entry = null;
-	$shortest_diff = PHP_INT_MAX;
+    // Initialize variables to find the closest historical entry to our target date.
+    $closest_entry = null;
+    $shortest_diff = PHP_INT_MAX;
 
-	/**
-	 * Iterate through the history array to find the entry closest to exactly 1 month ago.
-	 * We calculate the absolute difference in seconds to find the nearest neighbor.
-	 */
-	foreach ( $history as $entry ) {
-		$entry_timestamp = strtotime( $entry['date'] );
-		
-		if ( false === $entry_timestamp ) {
-			continue; // Skip malformed dates.
-		}
+    /**
+     * Iterate through the history array to find the entry closest to exactly 1 month ago.
+     * We calculate the absolute difference in seconds to find the nearest neighbor.
+     */
+    foreach ($history as $entry) {
+        $entry_timestamp = strtotime($entry['date']);
 
-		$diff = abs( $target_timestamp - $entry_timestamp );
+        if (false === $entry_timestamp) {
+            continue; // Skip malformed dates.
+        }
 
-		if ( $diff < $shortest_diff ) {
-			$shortest_diff = $diff;
-			$closest_entry = $entry;
-		}
-	}
+        $diff = abs($target_timestamp - $entry_timestamp);
 
-	if ( null === $closest_entry ) {
-		return '';
-	}
+        if ($diff < $shortest_diff) {
+            $shortest_diff = $diff;
+            $closest_entry = $entry;
+        }
+    }
 
-	// Calculate the actual metrics.
-	$past_followers = intval( $closest_entry['followers'] );
-	$growth_count   = $latest_followers - $past_followers;
-	
-	// Calculate the raw decimal variance to pass into the strict-typed helper function.
-	$raw_decimal_growth = ( $past_followers > 0 ) ? (float) ( $growth_count / $past_followers ) : 0.0;
-	
-	// Prefix with a '+' for positive growth, then append the percentage string returned by the helper.
-	$formatted_percent = ( $raw_decimal_growth > 0 ? '+' : '' ) . convertDecimalToPercentage( $raw_decimal_growth );
+    if (null === $closest_entry) {
+        return '';
+    }
 
-	// Output wrapped in a span for easy front-end styling, returning exclusively the percentage string.
-	return sprintf(
-		'<span class="creatordb-follower-growth" data-latest-date="%s" data-past-date="%s">%s</span>',
-		esc_attr( $latest_entry['date'] ),
-		esc_attr( $closest_entry['date'] ),
-		esc_html( $formatted_percent )
-	);
+    // Calculate the actual metrics.
+    $past_followers = intval($closest_entry['followers']);
+    $growth_count   = $latest_followers - $past_followers;
+
+    // Calculate the raw decimal variance to pass into the strict-typed helper function.
+    $raw_decimal_growth = ($past_followers > 0) ? (float) ($growth_count / $past_followers) : 0.0;
+
+    // Prefix with a '+' for positive growth, then append the percentage string returned by the helper.
+    $formatted_percent = ($raw_decimal_growth > 0 ? '+' : '') . convertDecimalToPercentage($raw_decimal_growth);
+
+    // Output wrapped in a span for easy front-end styling, returning exclusively the percentage string.
+    return sprintf(
+        '<span class="creatordb-follower-growth" data-latest-date="%s" data-past-date="%s">%s</span>',
+        esc_attr($latest_entry['date']),
+        esc_attr($closest_entry['date']),
+        esc_html($formatted_percent)
+    );
 }
-add_shortcode( 'influencer_follower_growth', 'shortcode_influencer_follower_growth' );
+add_shortcode('influencer_follower_growth', 'shortcode_influencer_follower_growth');
 
-function shortcode_saved_search_url() {
+function shortcode_saved_search_url()
+{
     global $influencer_discovery_page_id;
     $search_query = get_field('search_query', get_the_ID());
 
-    return get_the_permalink($influencer_discovery_page_id);
+    return get_the_permalink($influencer_discovery_page_id) . $search_query;
 }
-add_shortcode( 'saved_search_url', 'shortcode_saved_search_url' );
+add_shortcode('saved_search_url', 'shortcode_saved_search_url');
