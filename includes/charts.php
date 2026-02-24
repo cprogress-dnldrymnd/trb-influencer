@@ -577,6 +577,7 @@ class DD_Follower_Growth_Chart
                 font-weight: 500;
                 border-right: 1px solid #E5E5E5;
                 transition: color 0.2s ease;
+                letter-spacing: 0.6px;
             }
             .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
                 border-right: none;
