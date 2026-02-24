@@ -129,7 +129,6 @@ class CreatorDB_Instagram_Feed
                 display: flex;
                 justify-content: space-between;
                 gap: 15px;
-                padding: 10px 15px;
             }
             .post-stats .post-stat-item {
                 display: flex;
@@ -139,6 +138,12 @@ class CreatorDB_Instagram_Feed
             }
             .post-stats .post-stat-item svg{
                 color: #BCBCBC;
+            }
+            .feed-footer {
+                padding: 15px;
+            }
+            .feed-footer .date {
+                font-size: 10px;
             }
         ";
 
