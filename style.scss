@@ -1008,4 +1008,5 @@ input:checked + .slider:before {
     font-family: 'Inter';
     color: var(--e-global-color-2ba2932);
     padding: 15px 20px;
+    cursor: pointer;
 }
