@@ -584,9 +584,11 @@ class DD_Follower_Growth_Chart
             }
             .dd-time-btn.dd-time-btn.dd-time-btn:hover {
                 background: #f77d67;
+                color: #fff; 
             }
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
-                color: #fff; /* Highlights active filter in orange */
+                background: #f77d67;
+                color: #fff; 
                 background: #f77d67;
             }
 
