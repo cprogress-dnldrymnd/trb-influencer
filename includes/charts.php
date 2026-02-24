@@ -583,10 +583,10 @@ class DD_Follower_Growth_Chart
                 border-right: none;
             }
             .dd-time-btn.dd-time-btn.dd-time-btn:hover {
-                background: #EBEBEB;
+                background: #f77d67;
             }
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
-                color: #FF7347; /* Highlights active filter in orange */
+                color: #fff; /* Highlights active filter in orange */
             }
 
             .dd-growth-rate-footer {
