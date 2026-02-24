@@ -47,6 +47,7 @@ include 'includes/acf.php';
 include 'includes/elementor.php';
 include 'includes/outreach.php';
 include 'includes/charts.php';
+include 'includes/feeds.php';
 include 'includes/shortcodes.php';
 include 'includes/ajax.php';
 //include 'includes/openai.php';
