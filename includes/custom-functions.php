@@ -1199,15 +1199,17 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
     return $date->format('Y M jS');
 }
 
+
 /**
  * Generates a randomized HTML hashtag cloud based on a provided array.
  * * This function shuffles the input array, limits the output to a specified
- * maximum (default 10), and applies randomized inline CSS for font size, 
- * color (from a predefined palette), and vertical translation to create a 
- * staggered, organic layout similar to the provided design reference.
+ * maximum (default 10), and applies randomized inline CSS for font size 
+ * and vertical translation. Colors are pulled from a shuffled palette to 
+ * prevent repetition unless the tag count exceeds the palette size.
  *
  * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
  * @param int   $limit    Maximum number of hashtags to display.
+ * @return string         Returns the buffered HTML output.
  */
 function render_hashtag_cloud(array $hashtags, int $limit = 10)
 {
@@ -1215,17 +1217,14 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     ob_start();
 
     if (empty($hashtags)) {
-        return;
+        return ob_get_clean();
     }
 
     // Randomize the array order
     shuffle($hashtags);
 
-
-
     // Extract only up to the requested limit
     $display_tags = array_slice($hashtags, 0, $limit);
-
 
     $palette = [
         '#034146',
@@ -1239,6 +1238,11 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
         '#000',
     ];
 
+    // Shuffle the palette to ensure random assignment without immediate repetition
+    shuffle($palette);
+    $palette_count = count($palette);
+    $color_index = 0;
+
     // 3. Render the container
     echo '<div class="hashtag-cloud-container">';
 
@@ -1246,7 +1250,12 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     foreach ($display_tags as $tag) {
         // Randomize visual properties
         $font_size = mt_rand(120, 200) / 100;  
-        $color     = $palette[array_rand($palette)]; // Pick a random color
+        
+        // Select color sequentially from the shuffled palette. 
+        // Modulo operator ensures it loops safely if tag count > palette count.
+        $color     = $palette[$color_index % $palette_count]; 
+        $color_index++;
+
         $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
         $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
 
