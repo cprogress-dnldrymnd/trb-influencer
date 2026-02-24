@@ -856,5 +856,76 @@ input:checked + .slider:before {
     display: block !important; }
   .single-niches .influencer-niche-container .niche-toggle {
     display: none !important; } }
+/*
+ * .tooltip-wrapper
+ * Establishes a new stacking context and positioning block.
+ * This ensures the absolute-positioned tooltip child anchors to this element 
+ * rather than the document body.
+ */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  /* Indicates to the user that contextual help is available */ }
+
+/*
+ * .influencer-match-score-tooltip
+ * The core tooltip styling. Uses absolute positioning to float above the trigger.
+ * Utilizes max-content to prevent awkward text wrapping, capped by a max-width.
+ */
+.influencer-match-score-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  /* Positions directly above the wrapper with a 10px gap */
+  left: 50%;
+  transform: translateX(-50%);
+  /* Centrally aligns the tooltip relative to the wrapper */
+  width: max-content;
+  max-width: 250px;
+  padding: 8px 12px;
+  background-color: #1e293b;
+  color: #f8fafc;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 9999;
+  /* Ensures the tooltip renders above adjacent DOM elements */
+  /* * Hidden state mechanics. 
+   * Using pointer-events: none prevents the hidden element from blocking clicks.
+   */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, bottom 0.2s ease-in-out; }
+
+/*
+ * .influencer-match-score-tooltip::after
+ * Generates the directional arrow (caret) pointing down to the trigger element.
+ * Constructed using transparent borders.
+ */
+.influencer-match-score-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent; }
+
+/*
+ * State Modifiers
+ * Triggers the visibility and transition when the wrapper is hovered or focused.
+ * The slight bottom offset change creates a subtle rising animation.
+ */
+.tooltip-wrapper:hover .influencer-match-score-tooltip,
+.tooltip-wrapper:focus .influencer-match-score-tooltip,
+.tooltip-wrapper:focus-within .influencer-match-score-tooltip {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 8px);
+  /* Shifts down slightly during the reveal */ }
 
 /*# sourceMappingURL=style.css.map */
