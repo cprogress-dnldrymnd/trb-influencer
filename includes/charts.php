@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: DD Follower Growth Chart
- * Description: Renders a comprehensive follower analytics interface utilizing ApexCharts, featuring tabbed navigation for timeline and growth data.
- * Version: 1.3.0
+ * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
+ * Version: 1.4.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -14,7 +14,7 @@ if (! defined('ABSPATH')) {
 
 /**
  * Core class responsible for handling the Follower Growth Chart logic,
- * data transformations, and frontend rendering via shortcode.
+ * data transformations, and frontend rendering via distinct shortcodes.
  */
 class DD_Follower_Growth_Chart
 {
@@ -26,7 +26,10 @@ class DD_Follower_Growth_Chart
     public function __construct()
     {
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
-        add_shortcode('follower_growth_chart', [$this, 'render_shortcode']);
+        // Monthly Growth Bar Chart Shortcode
+        add_shortcode('follower_growth_chart', [$this, 'render_monthly_shortcode']);
+        // Total Followers Timeline Line Chart Shortcode
+        add_shortcode('follower_timeline_chart', [$this, 'render_timeline_shortcode']);
     }
 
     /**
@@ -44,7 +47,7 @@ class DD_Follower_Growth_Chart
             return ['series_data' => []];
         }
 
-        // Sort chronologically (Oldest to Newest) to ensure a linear timeline plotting
+        // Sort chronologically (Oldest to Newest) to ensure linear timeline plotting
         usort($raw_data, function ($a, $b) {
             $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
             $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
@@ -213,50 +216,15 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * Handles the output of the [follower_growth_chart] shortcode, encompassing the tabbed UI and rendering context.
+     * Handles the output of the [follower_growth_chart] shortcode (Monthly Bar Graph).
      *
-     * @return string The compiled HTML and JS rendering the tabbed chart interface.
+     * @return string The compiled HTML and JS rendering the monthly chart.
      */
-    public function render_shortcode(): string
+    public function render_monthly_shortcode(): string
     {
         ob_start();
 ?>
         <style>
-            /* --- TABBED INTERFACE STYLING --- */
-            .dd-tabs-container {
-                display: flex;
-                margin-bottom: 15px;
-                gap: 8px;
-            }
-            .dd-tab-btn {
-                background: #FFFFFF;
-                border: 1px solid #E0E0E0;
-                color: #555555;
-                padding: 10px 16px;
-                border-radius: 6px;
-                font-family: Inter, sans-serif;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-            .dd-tab-btn:hover {
-                background: #F9F9F9;
-            }
-            .dd-tab-btn.active {
-                color: #FF7347;
-                border-color: #FF7347;
-                background: #FFF5F2;
-            }
-
-            .dd-tab-content {
-                display: none;
-            }
-            .dd-tab-content.active {
-                display: block;
-            }
-
-            /* --- CHART CARD STYLING --- */
             .dd-chart-card {
                 background-color: #FFFFFF;
                 border: 1px solid #E0E0E0;
@@ -292,43 +260,16 @@ class DD_Follower_Growth_Chart
                 fill: #034146 !important; 
                 font-weight: 600 !important;
             }
-
-            /* --- TIMELINE VIEW SPECIFICS --- */
-            #ddTimelineChart * {
-                font-family: Inter, sans-serif !important;
-            }
-            #ddTimelineChart .apexcharts-tooltip-marker {
-                background-color: #FF7347 !important;
-            }
-            .dd-timeline-footer {
-                justify-content: flex-end; /* Timeline view only requires the right-aligned updated string */
-            }
         </style>
 
-        <div class="dd-tabs-container">
-            <button class="dd-tab-btn active" data-target="tab-timeline">Total followers</button>
-            <button class="dd-tab-btn" data-target="tab-monthly">Follower growth</button>
-        </div>
-
-        <div id="tab-timeline" class="dd-tab-content active">
-            <div class="dd-chart-card">
-                <div id="ddTimelineChart"></div>
-                <div class="dd-chart-footer dd-timeline-footer">
-                    <div id="ddTimelineLastUpdated">Last updated: Loading...</div>
+        <div class="dd-chart-card">
+            <div id="ddMonthlyChart"></div>
+            <div class="dd-chart-footer">
+                <div>
+                    In the last 12 months, <?= esc_html(get_the_title()) ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
                 </div>
-            </div>
-        </div>
-
-        <div id="tab-monthly" class="dd-tab-content">
-            <div class="dd-chart-card">
-                <div id="ddMonthlyChart"></div>
-                <div class="dd-chart-footer">
-                    <div>
-                        In the last 12 months, <?= esc_html(get_the_title()) ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
-                    </div>
-                    <div id="ddMonthlyLastUpdated">
-                        Last updated: Loading...
-                    </div>
+                <div id="ddMonthlyLastUpdated">
+                    Last updated: Loading...
                 </div>
             </div>
         </div>
@@ -338,28 +279,18 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
                 const payloadMonthly = ddChartPayload.monthly;
-                const payloadTimeline = ddChartPayload.timeline;
 
-                // Tab switching logic
-                const tabButtons = document.querySelectorAll('.dd-tab-btn');
-                const tabContents = document.querySelectorAll('.dd-tab-content');
+                if (payloadMonthly.labels.length === 0) {
+                    document.getElementById('ddMonthlyChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
+                    document.getElementById('ddSummaryBadge').innerText = 'No Data';
+                    document.getElementById('ddMonthlyLastUpdated').innerText = 'Last updated: N/A';
+                    return;
+                }
 
-                tabButtons.forEach(button => {
-                    button.addEventListener('click', function() {
-                        tabButtons.forEach(btn => btn.classList.remove('active'));
-                        tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById('ddSummaryBadge').classList.add(payloadMonthly.summary_action);
+                document.getElementById('ddSummaryBadge').innerText = payloadMonthly.summary_action + ' ' + payloadMonthly.summary_gain + ' followers';
+                document.getElementById('ddMonthlyLastUpdated').innerText = 'Last updated: ' + payloadMonthly.last_updated;
 
-                        this.classList.add('active');
-                        const targetId = this.getAttribute('data-target');
-                        document.getElementById(targetId).classList.add('active');
-
-                        // Dispatch resize event to force ApexCharts to recalculate SVG canvas widths correctly 
-                        // when a previously display:none container becomes active.
-                        window.dispatchEvent(new Event('resize'));
-                    });
-                });
-
-                // Shared formatter logic
                 const formatToK = (value) => {
                     const num = Number(value);
                     if (isNaN(num)) return value;
@@ -371,146 +302,204 @@ class DD_Follower_Growth_Chart
                     return num.toString();
                 };
 
-                // --- 1. INITIALIZE TIMELINE LINE CHART ---
+                const monthlyOptions = {
+                    series: [{
+                        name: 'Follower Gain',
+                        data: payloadMonthly.gains 
+                    }],
+                    chart: {
+                        type: 'bar',
+                        height: 350,
+                        toolbar: { show: false }
+                    },
+                    colors: ['#FF8A7A'],
+                    plotOptions: {
+                        bar: {
+                            columnWidth: '22%',
+                            borderRadius: 4,
+                            dataLabels: { position: 'top' }
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function (val) {
+                            return formatToK(val); 
+                        },
+                        offsetY: -25, 
+                        style: {
+                            fontSize: '11px',
+                            colors: ['#034146'] 
+                        },
+                        background: {
+                            enabled: true,
+                            foreColor: '#034146',
+                            padding: 6,
+                            borderRadius: 12,
+                            borderWidth: 1.5,
+                            borderColor: '#034146',
+                            opacity: 1, 
+                            dropShadow: { enabled: false }
+                        }
+                    },
+                    xaxis: {
+                        categories: payloadMonthly.labels,
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                        labels: {
+                            style: { colors: '#555', fontSize: '12px' }
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: formatToK,
+                            style: { colors: '#555', fontSize: '11px' }
+                        }
+                    },
+                    grid: {
+                        borderColor: '#E0E0E0',
+                        xaxis: { lines: { show: false } },
+                        yaxis: { lines: { show: true } }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        theme: 'light',
+                        y: {
+                            formatter: function (val) {
+                                const prefix = val >= 0 ? '+' : '';
+                                return prefix + val.toLocaleString() + " followers";
+                            }
+                        }
+                    }
+                };
+
+                const monthlyChart = new ApexCharts(document.querySelector("#ddMonthlyChart"), monthlyOptions);
+                monthlyChart.render();
+            });
+        </script>
+<?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Handles the output of the [follower_timeline_chart] shortcode (Timeline Line Graph).
+     *
+     * @return string The compiled HTML and JS rendering the timeline chart.
+     */
+    public function render_timeline_shortcode(): string
+    {
+        ob_start();
+?>
+        <style>
+            .dd-chart-card {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 16px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+            .dd-timeline-footer {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                margin-top: 10px;
+                font-size: 13px;
+                color: #888;
+                font-family: Inter, sans-serif !important;
+                padding: 0 10px;
+            }
+
+            /* --- TIMELINE VIEW SPECIFICS --- */
+            #ddTimelineChart * {
+                font-family: Inter, sans-serif !important;
+            }
+            #ddTimelineChart .apexcharts-tooltip-marker {
+                background-color: #FF7347 !important;
+            }
+        </style>
+
+        <div class="dd-chart-card">
+            <div id="ddTimelineChart"></div>
+            <div class="dd-timeline-footer">
+                <div id="ddTimelineLastUpdated">Last updated: Loading...</div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
+
+                const payloadTimeline = ddChartPayload.timeline;
+                const payloadMonthly = ddChartPayload.monthly; // Used for last_updated string
+
+                const formatToK = (value) => {
+                    const num = Number(value);
+                    if (isNaN(num)) return value;
+                    const sign = num < 0 ? '-' : '';
+                    const absValue = Math.abs(num);
+                    if (absValue >= 1000) {
+                        return sign + (absValue / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                    }
+                    return num.toString();
+                };
+
                 if (payloadTimeline.series_data.length === 0) {
                     document.getElementById('ddTimelineChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No timeline data available.</p>';
-                } else {
-                    document.getElementById('ddTimelineLastUpdated').innerText = 'Last updated: ' + payloadMonthly.last_updated;
-
-                    const timelineOptions = {
-                        series: [{
-                            name: 'Followers',
-                            data: payloadTimeline.series_data
-                        }],
-                        chart: {
-                            type: 'line',
-                            height: 350,
-                            toolbar: { show: false },
-                            zoom: { enabled: false }
-                        },
-                        colors: ['#FF7347'],
-                        stroke: { curve: 'straight', width: 2 },
-                        dataLabels: { enabled: false },
-                        xaxis: {
-                            type: 'datetime',
-                            labels: {
-                                format: 'MM-dd',
-                                style: { colors: '#888', fontSize: '12px' }
-                            },
-                            axisBorder: { show: true, color: '#E0E0E0' },
-                            axisTicks: { show: true, color: '#E0E0E0' },
-                            tooltip: { enabled: false }
-                        },
-                        yaxis: {
-                            labels: {
-                                formatter: formatToK,
-                                style: { colors: '#888', fontSize: '11px' }
-                            }
-                        },
-                        grid: {
-                            borderColor: '#E0E0E0',
-                            xaxis: { lines: { show: true } },
-                            yaxis: { lines: { show: true } }
-                        },
-                        tooltip: {
-                            theme: 'dark',
-                            x: { format: 'yyyy-MM-dd' },
-                            y: {
-                                formatter: function (val) {
-                                    return val.toLocaleString();
-                                }
-                            }
-                        }
-                    };
-
-                    const timelineChart = new ApexCharts(document.querySelector("#ddTimelineChart"), timelineOptions);
-                    timelineChart.render();
+                    document.getElementById('ddTimelineLastUpdated').innerText = 'Last updated: N/A';
+                    return;
                 }
 
+                document.getElementById('ddTimelineLastUpdated').innerText = 'Last updated: ' + payloadMonthly.last_updated;
 
-                // --- 2. INITIALIZE MONTHLY BAR CHART ---
-                if (payloadMonthly.labels.length === 0) {
-                    document.getElementById('ddMonthlyChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
-                    document.getElementById('ddSummaryBadge').innerText = 'No Data';
-                    document.getElementById('ddMonthlyLastUpdated').innerText = 'Last updated: N/A';
-                } else {
-                    document.getElementById('ddSummaryBadge').classList.add(payloadMonthly.summary_action);
-                    document.getElementById('ddSummaryBadge').innerText = payloadMonthly.summary_action + ' ' + payloadMonthly.summary_gain + ' followers';
-                    document.getElementById('ddMonthlyLastUpdated').innerText = 'Last updated: ' + payloadMonthly.last_updated;
-
-                    const monthlyOptions = {
-                        series: [{
-                            name: 'Follower Gain',
-                            data: payloadMonthly.gains 
-                        }],
-                        chart: {
-                            type: 'bar',
-                            height: 350,
-                            toolbar: { show: false }
+                const timelineOptions = {
+                    series: [{
+                        name: 'Followers',
+                        data: payloadTimeline.series_data
+                    }],
+                    chart: {
+                        type: 'line',
+                        height: 350,
+                        toolbar: { show: false },
+                        zoom: { enabled: false }
+                    },
+                    colors: ['#FF7347'],
+                    stroke: { curve: 'straight', width: 2 },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        type: 'datetime',
+                        labels: {
+                            format: 'MM-dd',
+                            style: { colors: '#888', fontSize: '12px' }
                         },
-                        colors: ['#FF8A7A'],
-                        plotOptions: {
-                            bar: {
-                                columnWidth: '22%',
-                                borderRadius: 4,
-                                dataLabels: { position: 'top' }
-                            }
-                        },
-                        dataLabels: {
-                            enabled: true,
+                        axisBorder: { show: true, color: '#E0E0E0' },
+                        axisTicks: { show: true, color: '#E0E0E0' },
+                        tooltip: { enabled: false }
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: formatToK,
+                            style: { colors: '#888', fontSize: '11px' }
+                        }
+                    },
+                    grid: {
+                        borderColor: '#E0E0E0',
+                        xaxis: { lines: { show: true } },
+                        yaxis: { lines: { show: true } }
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        x: { format: 'yyyy-MM-dd' },
+                        y: {
                             formatter: function (val) {
-                                return formatToK(val); 
-                            },
-                            offsetY: -25, 
-                            style: {
-                                fontSize: '11px',
-                                colors: ['#034146'] 
-                            },
-                            background: {
-                                enabled: true,
-                                foreColor: '#034146',
-                                padding: 6,
-                                borderRadius: 12,
-                                borderWidth: 1.5,
-                                borderColor: '#034146',
-                                opacity: 1, 
-                                dropShadow: { enabled: false }
-                            }
-                        },
-                        xaxis: {
-                            categories: payloadMonthly.labels,
-                            axisBorder: { show: false },
-                            axisTicks: { show: false },
-                            labels: {
-                                style: { colors: '#555', fontSize: '12px' }
-                            }
-                        },
-                        yaxis: {
-                            labels: {
-                                formatter: formatToK,
-                                style: { colors: '#555', fontSize: '11px' }
-                            }
-                        },
-                        grid: {
-                            borderColor: '#E0E0E0',
-                            xaxis: { lines: { show: false } },
-                            yaxis: { lines: { show: true } }
-                        },
-                        tooltip: {
-                            enabled: true,
-                            theme: 'light',
-                            y: {
-                                formatter: function (val) {
-                                    const prefix = val >= 0 ? '+' : '';
-                                    return prefix + val.toLocaleString() + " followers";
-                                }
+                                return val.toLocaleString();
                             }
                         }
-                    };
+                    }
+                };
 
-                    const monthlyChart = new ApexCharts(document.querySelector("#ddMonthlyChart"), monthlyOptions);
-                    monthlyChart.render();
-                }
+                const timelineChart = new ApexCharts(document.querySelector("#ddTimelineChart"), timelineOptions);
+                timelineChart.render();
             });
         </script>
 <?php
