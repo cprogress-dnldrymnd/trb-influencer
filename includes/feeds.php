@@ -258,93 +258,42 @@ class CreatorDB_Instagram_Feed
     }
 
 /**
-     * Renders the HTML markup for a single Instagram card.
-     * Utilizes the /media/?size=l endpoint to bypass CDN token expiration.
+     * Renders the HTML markup for a single Instagram card using the native embed iframe.
+     * This guarantees media delivery by offloading CDN token management to Meta.
      *
      * @param array $post A single associative array containing post data.
      * @return string The HTML markup for the card.
      */
     private function render_single_card(array $post): string
     {
-        // Extract and sanitize base data
-        $shortcode     = sanitize_text_field($post['shortcode'] ?? '');
-        $title         = wp_kses_post($post['title'] ?? '');
-        $carousel_urls = array_map('esc_url_raw', $post['carouselUrls'] ?? []);
+        // Extract and sanitize the shortcode
+        $shortcode = sanitize_text_field($post['shortcode'] ?? '');
 
-        // Data mapping
-        $date          = esc_html($post['date'] ?? '2025-05-19');
-        $likes         = absint($post['likes'] ?? 3);
-        $comments      = absint($post['comments'] ?? 7);
-        $er            = esc_html($post['er'] ?? '0.05%');
-        $username      = sanitize_text_field($post['username'] ?? 'cam24fps');
-        $followers     = esc_html($post['followers'] ?? '18.6K');
-        $profile_pic   = esc_url_raw($post['profilePic'] ?? 'https://via.placeholder.com/40');
+        // Fallback if no shortcode exists in the array
+        if (empty($shortcode)) {
+            return '<div class="cdb-ig-card cdb-ig-broken-link"><p>' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';
+        }
 
-        // Dynamically construct the display image using Instagram's media redirect endpoint
-        // This ensures the image URL never expires, unlike the raw CDN links.
-        $display_image = 'https://www.instagram.com/p/' . $shortcode . '/media/?size=l';
-        
-        $post_url      = 'https://www.instagram.com/p/' . $shortcode . '/';
-        $trimmed_title = wp_trim_words($title, 20, '&hellip;');
+        // Construct the native Instagram embed URL
+        // Appending /embed/ automatically loads the responsive widget
+        $iframe_src = 'https://www.instagram.com/p/' . $shortcode . '/embed/';
 
         ob_start();
-    ?>
+        ?>
         <div class="cdb-ig-card">
-
-            <div class="cdb-ig-header">
-                <img src="<?php echo esc_url($profile_pic); ?>" alt="<?php esc_attr_e('Profile', 'creatordb-ig-feed'); ?>" class="cdb-ig-avatar" referrerpolicy="no-referrer">
-                <div class="cdb-ig-user-info">
-                    <div class="cdb-ig-username"><?php echo $username; ?></div>
-                    <div class="cdb-ig-followers"><?php echo $followers; ?> <?php esc_html_e('followers', 'creatordb-ig-feed'); ?></div>
-                </div>
-                <a href="https://instagram.com/<?php echo esc_attr($username); ?>" target="_blank" rel="noopener noreferrer" class="cdb-ig-btn-view">
-                    <?php esc_html_e('View profile', 'creatordb-ig-feed'); ?>
-                </a>
-            </div>
-
-            <div class="cdb-ig-media">
-                <?php if ($shortcode) : ?>
-                    <a href="<?php echo esc_url($post_url); ?>" target="_blank" rel="noopener noreferrer">
-                        <img src="<?php echo esc_url($display_image); ?>" alt="<?php esc_attr_e('Instagram Post', 'creatordb-ig-feed'); ?>" loading="lazy" referrerpolicy="no-referrer">
-                        <?php if (count($carousel_urls) > 1) : ?>
-                            <div class="cdb-ig-indicator">
-                                <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                    <path d="M22 4h-2V2h2v2zm0 4h-2V6h2v2zm0 4h-2v-2h2v2zm0 4h-2v-2h2v2zm0 4h-2v-2h2v2zm-4 0h-2v-2h2v2zm-4 0h-2v-2h2v2zm-4 0H8v-2h2v2zm-4 0H4v-2h2v2zM2 20h2v2H2v-2zm0-4h2v2H2v-2zm0-4h2v2H2v-2zm0-4h2v2H2V8zm0-4h2v2H2V4zm4 0h2v2H6V4zm4 0h2v2h-2V4zm4 0h2v2h-2V4zm4 0h2v2h-2V4z" />
-                                </svg>
-                            </div>
-                        <?php endif; ?>
-                    </a>
-                <?php else : ?>
-                    <div class="cdb-ig-broken-link">
-                        <div class="cdb-ig-broken-icon">📸</div>
-                        <p><?php esc_html_e('The link to this photo or video may be broken, or the post may have been removed.', 'creatordb-ig-feed'); ?></p>
-                        <a href="<?php echo esc_url($post_url); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Visit Instagram', 'creatordb-ig-feed'); ?></a>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <div class="cdb-ig-content">
-                <a href="<?php echo esc_url($post_url); ?>" target="_blank" rel="noopener noreferrer" class="cdb-ig-view-more">
-                    <?php esc_html_e('View more on Instagram', 'creatordb-ig-feed'); ?>
-                </a>
-                <div class="cdb-ig-actions">
-                    <span class="cdb-action-left">♡ 💬 ↗</span>
-                    <span class="cdb-action-right">⚑</span>
-                </div>
-                <p class="cdb-ig-caption"><strong><?php echo $username; ?></strong> <?php echo $trimmed_title; ?></p>
-            </div>
-
-            <div class="cdb-ig-footer">
-                <span class="cdb-ig-date"><?php echo $date; ?></span>
-                <div class="cdb-ig-metrics">
-                    <span>♡ <?php echo $likes; ?></span>
-                    <span>💬 <?php echo $comments; ?></span>
-                    <span>📈 <?php echo $er; ?></span>
-                </div>
-            </div>
-
+            <iframe 
+                src="<?php echo esc_url($iframe_src); ?>" 
+                class="cdb-ig-iframe"
+                width="100%" 
+                height="480" 
+                frameborder="0" 
+                scrolling="no" 
+                allowtransparency="true"
+                allow="encrypted-media"
+                style="background: white; border: none; border-radius: 8px; overflow: hidden; width: 100%; max-width: 100%;">
+            </iframe>
         </div>
-<?php
+        <?php
         return ob_get_clean();
     }
 
