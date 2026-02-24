@@ -112,8 +112,7 @@ class CreatorDB_Instagram_Feed
             /* Load More Button Wrapper and Styling */
             .cdb-ig-load-more-wrapper {
                 text-align: center;
-                margin-top: 20px;
-                margin-bottom: 40px;
+                margin-top: 30px;
             }
 
 
