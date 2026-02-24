@@ -799,7 +799,7 @@ input:checked + .slider:before {
 .load--more-button.load--more-button.load--more-button {
   background-color: var(--e-global-color-primary);
   border-color: var(--e-global-color-primary);
-  font-family: 'Inter';
+  font-family: "Inter";
   color: var(--e-global-color-2ba2932);
   padding: 15px 20px;
   cursor: pointer; }
@@ -811,7 +811,7 @@ input:checked + .slider:before {
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  border: 1px solid #3B1527;
+  border: 1px solid #3b1527;
   background-color: #fff; }
 
 /* Container for the hashtag cloud */
@@ -829,8 +829,6 @@ input:checked + .slider:before {
 /* Individual hashtag styling */
 .hashtag-item {
   display: inline-block;
-  font-family: 'Impact', 'Arial Black', sans-serif;
-  /* Thick, bold fonts match the design */
   font-weight: 900;
   text-transform: lowercase;
   /* Optional: forces consistent casing */

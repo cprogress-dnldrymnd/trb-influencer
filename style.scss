@@ -395,7 +395,7 @@ input:checked + .slider:before {
         background-color: #ffe0e0;
         border-color: red;
         color: red;
-    } 
+    }
     &.style-2 {
         font-size: 15px;
         border-radius: 5px;
@@ -970,7 +970,7 @@ input:checked + .slider:before {
     height: var(--size, 68px);
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid var( --e-global-color-secondary );
+    border: 2px solid var(--e-global-color-secondary);
     flex-shrink: 0;
     background-color: #e2e8f0;
 }
@@ -991,26 +991,26 @@ input:checked + .slider:before {
         width: var(--size, 188px);
         height: var(--size, 188px);
     }
-     .influencer-avatar-fallback {
+    .influencer-avatar-fallback {
         font-size: 40px;
-     }
+    }
 }
 
 .medium-avatar {
-     .avatar-holder.avatar-holder img,
+    .avatar-holder.avatar-holder img,
     .influencer-avatar-fallback {
         width: var(--size, 90px);
         height: var(--size, 90px);
     }
-     .influencer-avatar-fallback {
+    .influencer-avatar-fallback {
         font-size: 25px;
-     }
+    }
 }
 
 .load--more-button.load--more-button.load--more-button {
     background-color: var(--e-global-color-primary);
     border-color: var(--e-global-color-primary);
-    font-family: 'Inter';
+    font-family: "Inter";
     color: var(--e-global-color-2ba2932);
     padding: 15px 20px;
     cursor: pointer;
@@ -1024,7 +1024,7 @@ input:checked + .slider:before {
         align-items: center;
         justify-content: center;
         border-radius: 5px;
-        border: 1px solid #3B1527;
+        border: 1px solid #3b1527;
         background-color: #fff;
     }
 }
@@ -1043,7 +1043,6 @@ input:checked + .slider:before {
 /* Individual hashtag styling */
 .hashtag-item {
     display: inline-block;
-    font-family: 'Impact', 'Arial Black', sans-serif; /* Thick, bold fonts match the design */
     font-weight: 900;
     text-transform: lowercase; /* Optional: forces consistent casing */
     letter-spacing: -0.5px; /* Pulls letters slightly closer together */

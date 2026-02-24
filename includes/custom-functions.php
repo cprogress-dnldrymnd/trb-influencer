@@ -1213,21 +1213,6 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 function render_hashtag_cloud(array $hashtags, int $limit = 10): void
 {
     // 1. Validate and prepare the data
-    $hashtags = [
-        '#blender3d',
-        '#blenderart',
-        '#2',
-        '#godspeed',
-        '#blender',
-        '#blendercommunity',
-        '#medieval',
-        '#shortfilm',
-        '#photocinematica',
-        '#cgi',
-        '#3dart',
-        '#animation',
-        '#render'
-    ];
 
     if (empty($hashtags)) {
         return;
