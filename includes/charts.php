@@ -570,7 +570,7 @@ class DD_Follower_Growth_Chart
                 background: transparent;
                 border: none;
                 color: #888;
-                padding: 8px 16px;
+                padding: 11px 18px;
                 font-size: 12px;
                 font-family: Inter, sans-serif;
                 cursor: pointer;
