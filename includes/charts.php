@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.7.0
+ * Version: 1.8.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -35,6 +35,9 @@ class DD_Follower_Growth_Chart
         
         // Follower Growth Rate Area Chart Shortcode
         add_shortcode('follower_growth_rate_chart', [$this, 'render_growth_rate_shortcode']);
+
+        // Like Range Component Shortcode
+        add_shortcode('follower_like_range_chart', [$this, 'render_like_range_shortcode']);
     }
 
     /**
@@ -203,6 +206,37 @@ class DD_Follower_Growth_Chart
     }
 
     /**
+     * Transforms raw timeline statistics into a structured dataset for the Like Range component.
+     */
+    private function prepare_like_range_data(array $raw_data): array
+    {
+        if (empty($raw_data)) {
+            return ['series_data' => []];
+        }
+
+        // Sort chronologically (Oldest to Newest)
+        usort($raw_data, function ($a, $b) {
+            $ts_a = isset($a['timestamp_ms']) ? (int)$a['timestamp_ms'] : strtotime($a['date'] ?? 'now') * 1000;
+            $ts_b = isset($b['timestamp_ms']) ? (int)$b['timestamp_ms'] : strtotime($b['date'] ?? 'now') * 1000;
+            return $ts_a <=> $ts_b;
+        });
+
+        $series_data = [];
+
+        foreach ($raw_data as $entry) {
+            $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
+            $series_data[] = [
+                'ts'    => $ts_ms,
+                'likes' => isset($entry['likes']) ? (int)$entry['likes'] : 0
+            ];
+        }
+
+        return [
+            'series_data' => $series_data
+        ];
+    }
+
+    /**
      * Retrieves the raw statistics array dynamically from the current post's meta.
      */
     private function get_raw_follower_data(int $post_id): array
@@ -229,10 +263,11 @@ class DD_Follower_Growth_Chart
 
             $raw_data = $this->get_raw_follower_data($post->ID);
             
-            // Process all three required datasets
+            // Process all four required datasets
             $monthly_data     = $this->prepare_monthly_chart_data($raw_data);
             $timeline_data    = $this->prepare_timeline_chart_data($raw_data);
             $growth_rate_data = $this->prepare_growth_rate_chart_data($raw_data);
+            $like_range_data  = $this->prepare_like_range_data($raw_data);
 
             // Compute summary variables for the monthly view
             $total_gain = !empty($monthly_data['gains']) ? array_sum($monthly_data['gains']) : 0;
@@ -243,7 +278,8 @@ class DD_Follower_Growth_Chart
             $unified_payload = [
                 'monthly'     => $monthly_data,
                 'timeline'    => $timeline_data,
-                'growth_rate' => $growth_rate_data
+                'growth_rate' => $growth_rate_data,
+                'like_range'  => $like_range_data
             ];
 
             wp_localize_script('dd-chart-init', 'ddChartPayload', $unified_payload);
@@ -299,7 +335,7 @@ class DD_Follower_Growth_Chart
             <div id="ddMonthlyChart"></div>
             <div class="dd-chart-footer">
                 <div>
-                    In the last 12 months, <?= esc_html(get_the_title()) ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
+                    In the last 12 months, <?php echo esc_html(get_the_title()); ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
                 </div>
                 <div id="ddMonthlyLastUpdated">
                     Last updated: Loading...
@@ -589,7 +625,6 @@ class DD_Follower_Growth_Chart
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
                 background: #f77d67;
                 color: #fff; 
-                background: #f77d67;
             }
 
             .dd-growth-rate-footer {
@@ -721,29 +756,21 @@ class DD_Follower_Growth_Chart
                 growthRateChart.render();
 
                 // --- TAB FILTER LOGIC ---
-                const timeButtons = document.querySelectorAll('.dd-time-btn');
+                const timeButtons = document.querySelectorAll('.dd-growth-rate-header .dd-time-btn');
                 
                 timeButtons.forEach(btn => {
                     btn.addEventListener('click', function() {
-                        // Handle UI Active state
                         timeButtons.forEach(b => b.classList.remove('active'));
                         this.classList.add('active');
 
-                        // Determine timeframe
                         const daysToFilter = parseInt(this.getAttribute('data-days'));
                         const allData = payloadGrowthRate.series_data;
                         
                         if (allData.length > 0) {
-                            // Find the latest timestamp in the dataset to act as "Today"
                             const latestTs = allData[allData.length - 1][0];
-                            
-                            // Calculate the cutoff date by subtracting (days * milliseconds in a day)
                             const cutoffTs = latestTs - (daysToFilter * 24 * 60 * 60 * 1000);
-                            
-                            // Filter dataset
                             const filteredData = allData.filter(point => point[0] >= cutoffTs);
                             
-                            // Dynamically update the ApexChart instance
                             growthRateChart.updateSeries([{
                                 data: filteredData
                             }]);
@@ -751,8 +778,217 @@ class DD_Follower_Growth_Chart
                     });
                 });
 
-                // Trigger a default click on 'Last 30 days' to initially filter the view 
-                document.querySelector('.dd-time-btn[data-days="30"]').click();
+                document.querySelector('.dd-growth-rate-header .dd-time-btn[data-days="30"]').click();
+            });
+        </script>
+<?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Handles the output of the [follower_like_range_chart] shortcode (Like Range Gradient Component).
+     */
+    public function render_like_range_shortcode(): string
+    {
+        ob_start();
+?>
+        <style>
+            .dd-range-card {
+                background-color: #EFEFEF; 
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 32px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+            .dd-range-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 30px;
+            }
+            .dd-range-title {
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                color: #111;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            /* Inherits the exact tab styling requested */
+            .dd-time-filters.dd-time-filters.dd-time-filters {
+                display: inline-flex;
+                background: #ffff;
+                border: 1px solid #f77d67;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            .dd-time-btn.dd-time-btn.dd-time-btn {
+                background: transparent;
+                border: none;
+                padding: 11px 18px;
+                font-size: 12px;
+                font-family: Inter, sans-serif;
+                cursor: pointer;
+                font-weight: 500;
+                border-right: 1px solid #E5E5E5;
+                transition: color 0.2s ease;
+                letter-spacing: 0.6px;
+                border-radius: 0;
+                color: #888;
+            }
+            .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
+                border-right: none;
+            }
+            .dd-time-btn.dd-time-btn.dd-time-btn:hover {
+                background: #f77d67;
+                color: #fff; 
+            }
+            .dd-time-btn.dd-time-btn.dd-time-btn.active {
+                background: #f77d67;
+                color: #fff; 
+            }
+
+            /* Stats Display */
+            .dd-range-stats {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-bottom: 12px;
+            }
+            .dd-stat-block {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+            }
+            .dd-stat-value {
+                font-size: 24px;
+                font-weight: 600;
+                color: #111;
+            }
+            .dd-stat-label {
+                font-size: 12px;
+                color: #555;
+                padding-bottom: 3px;
+            }
+
+            /* Gradient Bar */
+            .dd-gradient-track {
+                height: 12px;
+                border-radius: 10px;
+                background: linear-gradient(to right, #FF8A7A, #FFEA00, #A2FF00, #0B4646);
+                position: relative;
+                width: 100%;
+            }
+            .dd-gradient-marker {
+                position: absolute;
+                height: 16px; 
+                width: 2px;
+                background-color: #000;
+                top: -2px;
+                transition: left 0.4s ease; 
+            }
+        </style>
+
+        <div class="dd-range-card" id="ddLikeRangeWrapper">
+            <div class="dd-range-header">
+                <div class="dd-range-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    LIKE RANGE
+                </div>
+                <div class="dd-time-filters">
+                    <button class="dd-time-btn active" data-days="30">Last 30 days</button>
+                    <button class="dd-time-btn" data-days="90">Last 90 days</button>
+                    <button class="dd-time-btn" data-days="365">Last 12 months</button>
+                </div>
+            </div>
+
+            <div class="dd-range-stats">
+                <div class="dd-stat-block">
+                    <div class="dd-stat-value val-min">0</div>
+                    <div class="dd-stat-label">Minimum</div>
+                </div>
+                <div class="dd-stat-block" style="text-align:center; justify-content:center;">
+                    <div class="dd-stat-value val-avg">0</div>
+                    <div class="dd-stat-label">Average</div>
+                </div>
+                <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
+                    <div class="dd-stat-value val-max">0</div>
+                    <div class="dd-stat-label">Maximum</div>
+                </div>
+            </div>
+
+            <div class="dd-gradient-track">
+                <div class="dd-gradient-marker range-marker" style="left: 0%;"></div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof ddChartPayload === 'undefined') return;
+
+                const payloadLikeRange = ddChartPayload.like_range;
+                const container = document.getElementById('ddLikeRangeWrapper');
+                
+                if (!payloadLikeRange || payloadLikeRange.series_data.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No like range data available.</p>';
+                    return;
+                }
+
+                const rawLikeData = payloadLikeRange.series_data;
+
+                const formatToK = (value) => {
+                    if (value >= 1000) return (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                    return value.toString();
+                };
+
+                const updateRangeUI = (days) => {
+                    const latestTs = rawLikeData[rawLikeData.length - 1].ts;
+                    const cutoffTs = latestTs - (days * 24 * 60 * 60 * 1000);
+                    
+                    const filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
+
+                    if (filteredLikes.length === 0) {
+                        container.querySelector('.val-min').innerText = '0';
+                        container.querySelector('.val-max').innerText = '0';
+                        container.querySelector('.val-avg').innerText = '0';
+                        container.querySelector('.range-marker').style.left = '0%';
+                        return;
+                    }
+
+                    const min = Math.min(...filteredLikes);
+                    const max = Math.max(...filteredLikes);
+                    const avg = filteredLikes.reduce((a, b) => a + b, 0) / filteredLikes.length;
+
+                    container.querySelector('.val-min').innerText = formatToK(min);
+                    container.querySelector('.val-max').innerText = formatToK(max);
+                    container.querySelector('.val-avg').innerText = formatToK(avg);
+
+                    let markerPercent = 50; 
+                    if (max > min) {
+                        markerPercent = ((avg - min) / (max - min)) * 100;
+                    } else {
+                        markerPercent = 100; // Push marker to the end if min and max are equal
+                    }
+                    
+                    container.querySelector('.range-marker').style.left = `${markerPercent}%`;
+                };
+
+                const tabs = container.querySelectorAll('.dd-time-btn');
+                tabs.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        tabs.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        updateRangeUI(parseInt(this.getAttribute('data-days')));
+                    });
+                });
+
+                // Trigger default UI state
+                container.querySelector('.dd-time-btn[data-days="30"]').click();
             });
         </script>
 <?php
