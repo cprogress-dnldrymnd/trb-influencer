@@ -150,6 +150,7 @@ class CreatorDB_Instagram_Feed
                 bottom:0 ;
                 left: 0;
                 right: 0;
+                background-color: #fff;
             }
             .feed-footer .date {
                 font-size: 10px;
@@ -160,6 +161,7 @@ class CreatorDB_Instagram_Feed
                 display: -webkit-box;
                 overflow: hidden;
                 font-size: 12px;
+                min-height: 45px;
             }
         ";
 
