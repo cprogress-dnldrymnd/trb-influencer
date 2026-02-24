@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.5.0
+ * Version: 1.6.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -39,12 +39,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Transforms raw timeline statistics into a structured dataset for the continuous datetime line chart.
-     *
-     * This method maps the chronological data directly into timestamp-value tuples
-     * strictly required by the ApexCharts datetime x-axis configuration.
-     *
-     * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing the timeline series data.
      */
     private function prepare_timeline_chart_data(array $raw_data): array
     {
@@ -74,12 +68,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Transforms raw timeline statistics into a calculated percentage growth rate dataset.
-     *
-     * Iterates through chronological data to calculate point-to-point growth percentage 
-     * using standard calculation: ((Current - Previous) / Previous) * 100.
-     *
-     * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing the calculated growth rate series data.
      */
     private function prepare_growth_rate_chart_data(array $raw_data): array
     {
@@ -122,9 +110,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Transforms raw daily/weekly follower statistics into a structured, contiguous 12-month dataset.
-     *
-     * @param array $raw_data The raw multidimensional array of timeline statistics.
-     * @return array Associative array containing 'labels' (x-axis), 'totals', 'gains', and 'last_updated'.
      */
     private function prepare_monthly_chart_data(array $raw_data): array
     {
@@ -219,9 +204,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Retrieves the raw statistics array dynamically from the current post's meta.
-     *
-     * @param int $post_id The ID of the current post/page to fetch meta from.
-     * @return array The raw timeline data, or an empty array if meta is missing/invalid.
      */
     private function get_raw_follower_data(int $post_id): array
     {
@@ -236,8 +218,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Registers and enqueues the necessary frontend scripts and dynamically injects the combined payload.
-     *
-     * @return void
      */
     public function enqueue_scripts(): void
     {
@@ -272,8 +252,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Handles the output of the [follower_growth_chart] shortcode (Monthly Bar Graph).
-     *
-     * @return string The compiled HTML and JS rendering the monthly chart.
      */
     public function render_monthly_shortcode(): string
     {
@@ -437,8 +415,6 @@ class DD_Follower_Growth_Chart
 
     /**
      * Handles the output of the [follower_timeline_chart] shortcode (Timeline Line Graph).
-     *
-     * @return string The compiled HTML and JS rendering the timeline chart.
      */
     public function render_timeline_shortcode(): string
     {
@@ -560,9 +536,7 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * Handles the output of the [follower_growth_rate_chart] shortcode (Growth Percentage Area Graph).
-     *
-     * @return string The compiled HTML and JS rendering the growth rate area chart.
+     * Handles the output of the [follower_growth_rate_chart] shortcode with integrated Time Filters.
      */
     public function render_growth_rate_shortcode(): string
     {
@@ -570,7 +544,7 @@ class DD_Follower_Growth_Chart
 ?>
         <style>
             .dd-growth-rate-card {
-                /* Applied the specific light grey background requested in the aesthetic reference */
+                background-color: #EFEFEF; 
                 border: 1px solid #E0E0E0;
                 border-radius: 8px;
                 width: 100%;
@@ -578,6 +552,43 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 box-sizing: border-box;
             }
+            .dd-growth-rate-header {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 10px;
+                padding: 0 10px;
+            }
+
+            /* --- TIME FILTERS STYLING --- */
+            .dd-time-filters {
+                display: inline-flex;
+                background: #F3F3F3;
+                border: 1px solid #E5E5E5;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            .dd-time-btn {
+                background: transparent;
+                border: none;
+                color: #888;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-family: Inter, sans-serif;
+                cursor: pointer;
+                font-weight: 500;
+                border-right: 1px solid #E5E5E5;
+                transition: color 0.2s ease;
+            }
+            .dd-time-btn:last-child {
+                border-right: none;
+            }
+            .dd-time-btn:hover {
+                background: #EBEBEB;
+            }
+            .dd-time-btn.active {
+                color: #FF7347; /* Highlights active filter in orange */
+            }
+
             .dd-growth-rate-footer {
                 display: flex;
                 justify-content: flex-end;
@@ -592,12 +603,22 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
             }
             #ddGrowthRateChart .apexcharts-tooltip-marker {
-                background-color: #00BFFF !important; /* Cyan marker to match line color */
+                background-color: #00BFFF !important; 
             }
         </style>
 
         <div class="dd-growth-rate-card">
+            
+            <div class="dd-growth-rate-header">
+                <div class="dd-time-filters">
+                    <button class="dd-time-btn" data-days="7">Last 7 days</button>
+                    <button class="dd-time-btn active" data-days="30">Last 30 days</button>
+                    <button class="dd-time-btn" data-days="90">Last 90 days</button>
+                </div>
+            </div>
+
             <div id="ddGrowthRateChart"></div>
+            
             <div class="dd-growth-rate-footer">
                 <div id="ddGrowthRateLastUpdated">Last updated: Loading...</div>
             </div>
@@ -621,27 +642,26 @@ class DD_Follower_Growth_Chart
                 const growthRateOptions = {
                     series: [{
                         name: 'Growth Rate',
-                        data: payloadGrowthRate.series_data
+                        data: payloadGrowthRate.series_data // Will be dynamically sliced by filters
                     }],
                     chart: {
-                        type: 'area', // Generates the smooth fill below the line
+                        type: 'area', 
                         height: 350,
                         toolbar: { show: false },
                         zoom: { enabled: false },
-                        background: 'transparent' // Allows the CSS card background to bleed through natively
+                        background: 'transparent' 
                     },
-                    colors: ['#00BFFF'], // The cyan line color requested
+                    colors: ['#00BFFF'], 
                     fill: {
                         type: 'solid',
-                        opacity: 0.15 // Creates the subtle light blue background area
+                        opacity: 0.15 
                     },
                     stroke: { 
-                        curve: 'smooth', // Smoothes out the vertices 
+                        curve: 'smooth',  
                         width: 2 
                     },
                     dataLabels: { enabled: false },
                     annotations: {
-                        // Injects the prominent red baseline explicitly at 0
                         yaxis: [
                             {
                                 y: 0,
@@ -673,7 +693,7 @@ class DD_Follower_Growth_Chart
                         },
                         labels: {
                             formatter: function (val) {
-                                return val.toFixed(1); // Standardizes the scale to 1 decimal place (e.g., -0.2)
+                                return val.toFixed(1); 
                             },
                             style: { colors: '#888', fontSize: '11px' }
                         }
@@ -688,7 +708,7 @@ class DD_Follower_Growth_Chart
                         x: { format: 'yyyy-MM-dd' },
                         y: {
                             formatter: function (val) {
-                                return val + "%"; // Appends percentage symbol in tooltip for clarity
+                                return val + "%"; 
                             }
                         }
                     }
@@ -696,6 +716,40 @@ class DD_Follower_Growth_Chart
 
                 const growthRateChart = new ApexCharts(document.querySelector("#ddGrowthRateChart"), growthRateOptions);
                 growthRateChart.render();
+
+                // --- TAB FILTER LOGIC ---
+                const timeButtons = document.querySelectorAll('.dd-time-btn');
+                
+                timeButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // Handle UI Active state
+                        timeButtons.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+
+                        // Determine timeframe
+                        const daysToFilter = parseInt(this.getAttribute('data-days'));
+                        const allData = payloadGrowthRate.series_data;
+                        
+                        if (allData.length > 0) {
+                            // Find the latest timestamp in the dataset to act as "Today"
+                            const latestTs = allData[allData.length - 1][0];
+                            
+                            // Calculate the cutoff date by subtracting (days * milliseconds in a day)
+                            const cutoffTs = latestTs - (daysToFilter * 24 * 60 * 60 * 1000);
+                            
+                            // Filter dataset
+                            const filteredData = allData.filter(point => point[0] >= cutoffTs);
+                            
+                            // Dynamically update the ApexChart instance
+                            growthRateChart.updateSeries([{
+                                data: filteredData
+                            }]);
+                        }
+                    });
+                });
+
+                // Trigger a default click on 'Last 30 days' to initially filter the view 
+                document.querySelector('.dd-time-btn[data-days="30"]').click();
             });
         </script>
 <?php
