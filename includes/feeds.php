@@ -4,7 +4,7 @@
  * Plugin Name: CreatorDB Instagram Feed
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: An object-oriented WordPress plugin to render CreatorDB-style Instagram arrays via shortcode using native embed blockquotes with dynamic height and Load More functionality.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: creatordb-ig-feed
@@ -78,9 +78,20 @@ class CreatorDB_Instagram_Feed
                 position: relative;
             }
 
+            /* Invisible Overlay Anchor to make the entire card clickable */
+            .cdb-ig-card-link {
+                position: absolute;
+                inset: 0; /* Shorthand for top, right, bottom, left: 0 */
+                z-index: 10;
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
             .cdb-ig-card * {
                 font-family: Inter;
             }
+
             /* Overriding Instagram's inline blockquote margins to fit our grid perfectly */
             .cdb-ig-card .instagram-media {
                 margin: 0 !important;
@@ -126,21 +137,25 @@ class CreatorDB_Instagram_Feed
                 opacity: 0.6;
                 cursor: not-allowed;
             }
+
             .post-stats {
                 display: flex;
                 justify-content: space-between;
                 gap: 15px;
                 width: 100%;
             }
+
             .post-stats .post-stat-item {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 font-size: 14px;
             }
+
             .post-stats .post-stat-item svg{
                 color: #BCBCBC;
             }
+
             .feed-footer {
                 padding: 15px;
                 display: flex;
@@ -152,6 +167,7 @@ class CreatorDB_Instagram_Feed
                 right: 0;
                 background-color: #fff;
             }
+
             .feed-footer .date-post-stats {
                 padding-top: 15px;
                 display: flex;
@@ -161,9 +177,11 @@ class CreatorDB_Instagram_Feed
                 align-items: flex-start;
                 gap: 15px;
             }
+
             .feed-footer .date {
                 font-size: 10px;
             }
+
             .feed-footer .title {
                 -webkit-line-clamp: 3;
                 -webkit-box-orient: vertical;
@@ -340,7 +358,6 @@ class CreatorDB_Instagram_Feed
 
     /**
      * Renders the HTML markup for a single Instagram card using the native blockquote embed.
-     * This structure allows Instagram's embed.js to calculate and apply the correct iframe height.
      *
      * @param array $post A single associative array containing post data.
      * @return string The HTML markup for the card.
@@ -353,6 +370,7 @@ class CreatorDB_Instagram_Feed
         $likes = intval($post['likes'] ?? 0);
         $comments = intval($post['comments'] ?? 0);
         $engageeRate = intval($post['e'] ?? 0);
+        
         if (empty($shortcode)) {
             return '<div class="cdb-ig-card"><p class="cdb-ig-empty">' . esc_html__('Invalid post data.', 'creatordb-ig-feed') . '</p></div>';
         }
@@ -362,6 +380,8 @@ class CreatorDB_Instagram_Feed
         ob_start();
     ?>
         <div class="cdb-ig-card">
+            <a href="<?php echo esc_url($permalink); ?>" target="_blank" rel="noopener noreferrer" class="cdb-ig-card-link" aria-label="View Instagram Post"></a>
+            
             <blockquote class="instagram-media" scrolling="no" data-instgrm-permalink="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#FFF; ">
                 <div style="padding:16px;">
                     <a href="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" style="background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank">
@@ -396,26 +416,26 @@ class CreatorDB_Instagram_Feed
                 </div>
                 <div class="date-post-stats">
                     <div class="date">
-                        <?= formatNormalizedTimestamp($updateDate) ?>
+                        <?= function_exists('formatNormalizedTimestamp') ? formatNormalizedTimestamp($updateDate) : $updateDate ?>
                     </div>
                     <div class="post-stats">
                         <div class="post-stat-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
                                 <path d="M12 8.19444C10 3.5 3 4 3 10C3 16.0001 12 21 12 21C12 21 21 16.0001 21 10C21 4 14 3.5 12 8.19444Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
-                            <span class="text-sm text-gray-900"><?= wp_custom_number_format_short($likes) ?></span>
+                            <span class="text-sm text-gray-900"><?= function_exists('wp_custom_number_format_short') ? wp_custom_number_format_short($likes) : $likes ?></span>
                         </div>
                         <div class="post-stat-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
                                 <path d="M21 14.8V7.19995V7.19666C21 6.07875 21 5.51945 20.7822 5.09204C20.5905 4.71572 20.2841 4.40973 19.9078 4.21799C19.48 4 18.9203 4 17.8002 4H6.2002C5.08009 4 4.51962 4 4.0918 4.21799C3.71547 4.40973 3.40973 4.71572 3.21799 5.09204C3 5.51986 3 6.07985 3 7.19995V18.671C3 19.7367 3 20.2696 3.21846 20.5432C3.40845 20.7813 3.69644 20.9197 4.00098 20.9194C4.35115 20.919 4.76744 20.5861 5.59961 19.9203L7.12357 18.7012C7.44844 18.4413 7.61084 18.3114 7.79172 18.219C7.95219 18.137 8.12279 18.0771 8.29932 18.0408C8.49829 18 8.70652 18 9.12256 18H17.8001C18.9202 18 19.48 18 19.9078 17.782C20.2841 17.5902 20.5905 17.2844 20.7822 16.908C21 16.4806 21 15.9212 21 14.8032V14.8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
-                            <span class="text-sm text-gray-900"><?= wp_custom_number_format_short($comments) ?></span>
+                            <span class="text-sm text-gray-900"><?= function_exists('wp_custom_number_format_short') ? wp_custom_number_format_short($comments) : $comments ?></span>
                         </div>
                         <div class="post-stat-item">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="text-gray-300">
                                 <path d="M21.0002 20H6.2002C5.08009 20 4.51962 20 4.0918 19.782C3.71547 19.5902 3.40973 19.2844 3.21799 18.908C3 18.4802 3 17.9201 3 16.8V5M21 7L15.1543 12.115C14.4542 12.7275 14.1041 13.0339 13.7207 13.161C13.2685 13.311 12.7775 13.2946 12.3363 13.1149C11.9623 12.9625 11.6336 12.6337 10.9758 11.9759C10.3323 11.3324 10.0105 11.0106 9.64355 10.8584C9.21071 10.6788 8.72875 10.6569 8.28142 10.7965C7.90221 10.9149 7.55252 11.2062 6.8534 11.7888L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
-                            <span class="text-sm text-gray-900"><?= convertDecimalToPercentage($engageeRate) ?></span>
+                            <span class="text-sm text-gray-900"><?= function_exists('convertDecimalToPercentage') ? convertDecimalToPercentage($engageeRate) : $engageeRate ?></span>
                         </div>
                     </div>
                 </div>
