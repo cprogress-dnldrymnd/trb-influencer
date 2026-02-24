@@ -412,11 +412,11 @@ function shortcode_influencer_match_score()
     $phrases = influencer_get_matched_criteria_labels($post_id, $criteria);
     $tooltip = !empty($phrases) ? implode("\n", $phrases) : '';
 
-    $html = '<span class="influencer-match-score-wrap"><span class="influencer-match-score-trigger">✨ ' . (int) $score . '% Match Score</span>';
+    $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">✨ ' . (int) $score . '% Match Score</span>';
     if ($tooltip) {
         $html .= '<span class="influencer-match-score-tooltip">' . esc_html($tooltip) . '</span>';
     }
-    $html .= '</span>';
+    $html .= '</div>';
     return $html;
 }
 add_shortcode('influencer_match_score', 'shortcode_influencer_match_score');
