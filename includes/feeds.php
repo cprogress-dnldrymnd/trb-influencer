@@ -362,7 +362,7 @@ class CreatorDB_Instagram_Feed
         ob_start();
     ?>
         <div class="cdb-ig-card">
-            <blockquote class="instagram-media" data-instgrm-permalink="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#FFF; ">
+            <blockquote class="instagram-media" scrolling="no" data-instgrm-permalink="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#FFF; ">
                 <div style="padding:16px;">
                     <a href="<?php echo esc_url($permalink); ?>?utm_source=ig_embed&amp;utm_campaign=loading" style="background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank">
                         <div style="display: flex; flex-direction: row; align-items: center;">
