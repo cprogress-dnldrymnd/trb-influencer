@@ -164,7 +164,7 @@ class DD_Follower_Growth_Chart
 
             $total_gain = !empty($processed_data['gains']) ? array_sum($processed_data['gains']) : 0;
             
-            $processed_data['summary_action'] = $total_gain < 0 ? 'Lost' : 'Gained';
+            $processed_data['summary_action'] = $total_gain < 0 ? 'Loss' : 'Gained';
             $processed_data['summary_gain'] = number_format(abs($total_gain));
 
             wp_localize_script('dd-chart-init', 'ddChartPayload', $processed_data);
