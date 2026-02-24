@@ -1709,7 +1709,9 @@ function shortcode_influencer_hashtags()
 
 
     $html = '<div class="influencer-hashtags">';
+    $html = '<div class="influencer-hashtags-title">';
     $html .= $count . ' NUMBER OF HASHTAGS';
+    $html .= '</div>';
     $html .= render_hashtag_cloud($hashtags);
     $html .= '</div>';
     return $html;
