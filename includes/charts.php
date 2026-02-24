@@ -236,7 +236,9 @@ class DD_Follower_Growth_Chart
                 const chartGains = ddChartPayload.gains;   
                 const chartLabels = ddChartPayload.labels; 
 
+                document.getElementById('ddSummaryBadge').classList.add(ddChartPayload.summary_action);
                 document.getElementById('ddSummaryBadge').innerText = ddChartPayload.summary_action + ' ' + ddChartPayload.summary_gain + ' followers';
+
                 document.getElementById('ddLastUpdated').innerText = 'Last updated: ' + ddChartPayload.last_updated;
 
                 const formatToK = (value) => {
