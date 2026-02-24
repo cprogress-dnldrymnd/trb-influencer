@@ -1701,7 +1701,7 @@ function dd_influencer_avatar_shortcode($atts)
 }
 add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
 
-function influencer_hashtags()
+function shortcode_influencer_hashtags()
 {
 
     $hashtags = get_post_meta(get_the_ID(), 'hashtags', true);
@@ -1710,3 +1710,5 @@ function influencer_hashtags()
     $html .= '</div>';
     return $html;
 }
+
+add_shortcode('influencer_hashtags', 'shortcode_influencer_hashtags');
