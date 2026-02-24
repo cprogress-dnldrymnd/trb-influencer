@@ -544,7 +544,6 @@ class DD_Follower_Growth_Chart
 ?>
         <style>
             .dd-growth-rate-card {
-                background-color: #EFEFEF; 
                 border: 1px solid #E0E0E0;
                 border-radius: 8px;
                 width: 100%;
@@ -562,8 +561,8 @@ class DD_Follower_Growth_Chart
             /* --- TIME FILTERS STYLING --- */
             .dd-time-filters.dd-time-filters.dd-time-filters {
                 display: inline-flex;
-                background: #F3F3F3;
-                border: 1px solid #E5E5E5;
+                background: #ffff;
+                border: 1px solid #f77d67;
                 border-radius: 6px;
                 overflow: hidden;
             }
@@ -572,7 +571,7 @@ class DD_Follower_Growth_Chart
                 border: none;
                 color: #888;
                 padding: 8px 16px;
-                font-size: 13px;
+                font-size: 12px;
                 font-family: Inter, sans-serif;
                 cursor: pointer;
                 font-weight: 500;
