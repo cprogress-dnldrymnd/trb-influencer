@@ -845,6 +845,9 @@ input:checked + .slider:before {
 
 .influencer-hashtags-title {
   font-size: 15px;
-  font-weight: 600; }
+  font-weight: 600;
+  letter-spacing: 0.75px;
+  font-family: Inter, sans-serif;
+  margin-bottom: 24px; }
 
 /*# sourceMappingURL=style.css.map */
