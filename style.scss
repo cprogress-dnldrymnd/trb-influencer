@@ -391,6 +391,11 @@ input:checked + .slider:before {
     font-size: 13px;
     font-weight: 500;
     line-height: 1;
+    &.Lost {
+        background-color: #ffe0e0;
+        border-color: red;
+        color: red;
+    } 
     &.style-2 {
         font-size: 15px;
         border-radius: 5px;
