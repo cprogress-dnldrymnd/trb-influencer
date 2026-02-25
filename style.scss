@@ -541,10 +541,7 @@ input:checked + .slider:before {
             --icon-size: 14px;
             --breadcrumbs-gap: 7px;
         }
-
-        @media (max-width: 1340px) {
-            padding: 10px;
-        }
+     
     }
 
     @media (max-width: 1024px) {

@@ -418,9 +418,6 @@ input:checked + .slider:before {
   .breadcrumbs {
     --icon-size: 14px;
     --breadcrumbs-gap: 7px; } }
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .breadcrumbs {
-    padding: 10px; } }
 
   @media (max-width: 1024px) {
     .breadcrumbs {
