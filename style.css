@@ -377,14 +377,14 @@ input:checked + .slider:before {
     margin-bottom: 0; }
 
 .breadcrumbs {
+  --breadcrumbs-gap: 10px;
+  --icon-size: 16px;
   background-color: #edf7f6;
   padding: 14px;
   border-radius: 5px;
-  font-size: 16px;
   font-family: Inter, sans-serif;
   color: #034146;
-  --breadcrumbs-gap: 10px;
-  --icon-size: 16px; }
+  font-size: var(--icon-size); }
   .breadcrumbs ul {
     list-style: none;
     padding: 0;
@@ -414,6 +414,10 @@ input:checked + .slider:before {
       @media (max-width: 767px) {
         .breadcrumbs ul li {
           font-size: 10px; } }
+  @media (max-width: 1440px) {
+    .breadcrumbs {
+      --icon-size: 14px;
+      --breadcrumbs-gap: 7px; } }
   @media (max-width: 1024px) {
     .breadcrumbs {
       --breadcrumbs-gap: 5px;

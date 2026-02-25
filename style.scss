@@ -491,14 +491,14 @@ input:checked + .slider:before {
 }
 
 .breadcrumbs {
+    --breadcrumbs-gap: 10px;
+    --icon-size: 16px;
     background-color: #edf7f6;
     padding: 14px;
     border-radius: 5px;
-    font-size: 16px;
     font-family: Inter, sans-serif;
     color: #034146;
-    --breadcrumbs-gap: 10px;
-    --icon-size: 16px;
+    font-size: var(--icon-size);
     ul {
         list-style: none;
         padding: 0;
@@ -535,6 +535,10 @@ input:checked + .slider:before {
                 font-size: 10px;
             }
         }
+    }
+    @media (max-width: 1440px) {
+        --icon-size: 14px;
+        --breadcrumbs-gap: 7px;
     }
     @media (max-width: 1024px) {
         --breadcrumbs-gap: 5px;
@@ -1100,18 +1104,20 @@ input:checked + .slider:before {
     bottom: calc(100% + 10px); /* Positions directly above the wrapper with a 10px gap */
     left: 50%;
     transform: translateX(-50%); /* Centrally aligns the tooltip relative to the wrapper */
-    
+
     width: max-content;
     max-width: 250px;
     padding: 8px 12px;
-    
+
     background-color: #1e293b;
     color: #f8fafc;
     font-size: 0.875rem;
     font-weight: 500;
     text-align: center;
     border-radius: 6px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
     z-index: 9999; /* Ensures the tooltip renders above adjacent DOM elements */
 
     /* * Hidden state mechanics. 
@@ -1120,7 +1126,10 @@ input:checked + .slider:before {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, bottom 0.2s ease-in-out;
+    transition:
+        opacity 0.2s ease-in-out,
+        visibility 0.2s ease-in-out,
+        bottom 0.2s ease-in-out;
 }
 
 /*
