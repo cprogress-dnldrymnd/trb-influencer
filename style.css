@@ -932,4 +932,8 @@ input:checked + .slider:before {
   bottom: calc(100% + 8px);
   /* Shifts down slightly during the reveal */ }
 
+@media (max-width: 1340px) {
+  .header-points.header-points {
+    font-size: 14px !important; } }
+
 /*# sourceMappingURL=style.css.map */
