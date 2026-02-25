@@ -1214,6 +1214,7 @@ input:checked + .slider:before {
 @media (max-width: 1199px) {
     #listing-grid-growth {
         flex-direction: column;
+        gap: 7px;;
         > div {
             flex-direction: row-reverse;
             align-items: center;

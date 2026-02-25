@@ -962,7 +962,8 @@ input:checked + .slider:before {
     display: none !important; } }
 @media (max-width: 1199px) {
   #listing-grid-growth {
-    flex-direction: column; }
+    flex-direction: column;
+    gap: 7px; }
     #listing-grid-growth > div {
       flex-direction: row-reverse;
       align-items: center;
