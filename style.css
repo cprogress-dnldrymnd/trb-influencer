@@ -959,12 +959,12 @@ input:checked + .slider:before {
     display: none !important; } }
 @media (max-width: 1340px) {
   .show-mw1340 {
-    display: block !important; } }
+    display: flex !important; } }
 @media (min-width: 1341px) {
   .hide-mw1340 {
     display: block !important; }
 
   .show-mw1340 {
-    display: none !important; } }
+    display: flex !important; } }
 
 /*# sourceMappingURL=style.css.map */
