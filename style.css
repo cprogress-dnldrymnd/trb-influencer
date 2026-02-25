@@ -601,6 +601,10 @@ input:checked + .slider:before {
   #dashboard-sidebar .sidebar-content {
     height: calc(100vh - var(--admin-bar-height, 0) - var(--dashboard-sidebar-logo-height, 88px));
     max-height: calc(100vh - var(--admin-bar-height, 0) - var(--dashboard-sidebar-logo-height, 88px)); }
+  @media (max-width: 1024px) {
+    #dashboard-sidebar {
+      height: calc(100vh - var(--admin-bar-height, 0));
+      max-height: calc(100vh - var(--admin-bar-height, 0)); } }
 
 #influencer-discovery-sidebar .e-n-menu-title-text {
   position: relative; }
