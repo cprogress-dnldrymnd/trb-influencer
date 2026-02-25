@@ -8,6 +8,11 @@
         saved_influencer_trigger();
         mobile_nav();
         share_profile();
+        dashboardLogoHeightVar();
+
+        $(window).on('resize', function () {
+            dashboardLogoHeightVar();
+        });
         /*
         updateMembersHeaderHeightVar();
 
@@ -36,6 +41,24 @@
             $('body').css('--members-area-header-height', headerHeight + 'px');
         }
     }
+
+
+    function dashboardLogoHeightVar() {
+        // Cache the DOM element to optimize performance
+        var $dashboardLogoHeight = $('#dashboard-sidebar-logo');
+
+        // Verify the element exists before attempting calculations
+        if ($dashboardLogoHeight.length) {
+            // Retrieve the full rendered height, including padding and borders
+            var dashboardLogoHeight = $header.outerHeight();
+
+            // Inject the calculated height as a CSS variable into the body element
+            $('body').css('--dashboard-sidebar-logo-height', dashboardLogoHeight + 'px');
+        }
+    }
+
+
+    dashboard - sidebar - logo
 
     function share_profile() {
         console.log('x');
