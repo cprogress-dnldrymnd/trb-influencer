@@ -1203,6 +1203,9 @@ input:checked + .slider:before {
     .hide-mw1340 {
         display: none !important;
     }
+}
+
+@media (min-width: 1341px) {
     .show-mw1340 {
         display: none !important;
     }

@@ -956,8 +956,8 @@ input:checked + .slider:before {
 
 @media (max-width: 1340px) {
   .hide-mw1340 {
-    display: none !important; }
-
+    display: none !important; } }
+@media (min-width: 1341px) {
   .show-mw1340 {
     display: none !important; } }
 
