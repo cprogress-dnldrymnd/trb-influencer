@@ -414,10 +414,14 @@ input:checked + .slider:before {
       @media (max-width: 767px) {
         .breadcrumbs ul li {
           font-size: 10px; } }
-  @media (max-width: 1440px) and (min-width: 1025px) {
-    .breadcrumbs {
-      --icon-size: 14px;
-      --breadcrumbs-gap: 7px; } }
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .breadcrumbs {
+    --icon-size: 14px;
+    --breadcrumbs-gap: 7px; } }
+@media (min-width: 1025px) and (max-width: 1340px) {
+  .breadcrumbs {
+    padding: 10px; } }
+
   @media (max-width: 1024px) {
     .breadcrumbs {
       --breadcrumbs-gap: 5px;

@@ -536,10 +536,17 @@ input:checked + .slider:before {
             }
         }
     }
-    @media (max-width: 1440px) and (min-width: 1025px) {
-        --icon-size: 14px;
-        --breadcrumbs-gap: 7px;
+    @media (min-width: 1025px) {
+        @media (max-width: 1440px) {
+            --icon-size: 14px;
+            --breadcrumbs-gap: 7px;
+        }
+
+        @media (max-width: 1340px) {
+            padding: 10px;
+        }
     }
+
     @media (max-width: 1024px) {
         --breadcrumbs-gap: 5px;
         --icon-size: 10px;
