@@ -938,9 +938,13 @@ input:checked + .slider:before {
 @media (min-width: 1025px) and (max-width: 1340px) {
   #members-area-header #members-area-inner {
     flex-direction: column-reverse; } }
-@media (min-width: 1025px) {
-  #members-area-header #members-area-inner #members-area-inner-right, #members-area-header #members-area-inner #members-area-inner-left {
+@media (min-width: 1025px) and (max-width: 1340px) {
+  #members-area-header #members-area-inner #members-area-inner-right,
+  #members-area-header #members-area-inner #members-area-inner-left {
     width: 100%;
     padding: 0; } }
+@media (min-width: 1025px) and (max-width: 1340px) {
+  #members-area-header #members-area-inner {
+    gap: 10px; } }
 
 /*# sourceMappingURL=style.css.map */
