@@ -817,7 +817,9 @@ function breadcrumbs()
                 <?php } ?>
 
             <?php } else { ?>
-                <li><span><?= get_the_title() ?></span></li>
+                <?php if (!is_page(1565)) { ?>
+                    <li><span><?= get_the_title() ?></span></li>
+                <?php } ?>
             <?php } ?>
 
         </ul>
