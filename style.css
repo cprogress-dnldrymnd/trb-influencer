@@ -414,7 +414,7 @@ input:checked + .slider:before {
       @media (max-width: 767px) {
         .breadcrumbs ul li {
           font-size: 10px; } }
-@media (min-width: 1025px) and (max-width: 1440px) {
+@media (min-width: 1341px) and (max-width: 1440px) {
   .breadcrumbs {
     --icon-size: 14px;
     --breadcrumbs-gap: 7px; } }
