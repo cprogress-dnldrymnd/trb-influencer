@@ -935,5 +935,11 @@ input:checked + .slider:before {
 @media (max-width: 1340px) {
   .header-points.header-points * {
     font-size: 14px !important; } }
+@media (min-width: 1025px) and (max-width: 1340px) {
+  #members-area-header #members-area-inner {
+    flex-direction: column-reverse; } }
+@media (min-width: 1025px) {
+  #members-area-header #members-area-inner #members-area-inner-right, #members-area-header #members-area-inner #members-area-inner-left {
+    width: 100%; } }
 
 /*# sourceMappingURL=style.css.map */

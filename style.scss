@@ -1166,3 +1166,16 @@ input:checked + .slider:before {
         font-size: 14px !important;
     }
 }
+
+@media (min-width: 1025px) {
+    #members-area-header {
+        #members-area-inner {
+            @media (max-width: 1340px) {
+                flex-direction: column-reverse;
+            }
+            #members-area-inner-right, #members-area-inner-left {
+                width: 100%;
+            }
+        }
+    }
+}
