@@ -1868,4 +1868,4 @@ function shortcode_intagram_id_fixed()
         }
     }
 }
-add_shortcode('instagramid', 'shortcode_saved_search_url');
+add_shortcode('instagram_id', 'shortcode_saved_search_url');
