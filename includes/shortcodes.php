@@ -1851,3 +1851,21 @@ function shortcode_saved_search_url()
     return get_the_permalink($influencer_discovery_page_id) . $search_query;
 }
 add_shortcode('saved_search_url', 'shortcode_saved_search_url');
+
+
+function shortcode_intagram_id_fixed()
+{
+    $instagramid = get_post_meta(get_the_ID(), 'instagramid', true);
+    if ($instagramid) {
+        return $instagramid;
+    } else {
+        $instagramid = get_post_meta(get_the_ID(), 'instagramId', true);
+        if ($instagramid) {
+
+            return $instagramid;
+        } else {
+            return '';
+        }
+    }
+}
+add_shortcode('instagramid', 'shortcode_saved_search_url');
