@@ -536,7 +536,7 @@ input:checked + .slider:before {
             }
         }
     }
-    @media (max-width: 1440px) {
+    @media (max-width: 1440px) and (min-width: 1025px) {
         --icon-size: 14px;
         --breadcrumbs-gap: 7px;
     }
@@ -1161,8 +1161,7 @@ input:checked + .slider:before {
     bottom: calc(100% + 8px); /* Shifts down slightly during the reveal */
 }
 
-
-@media(max-width: 1340px) {
+@media (max-width: 1340px) {
     .header-points.header-points {
         font-size: 14px !important;
     }
