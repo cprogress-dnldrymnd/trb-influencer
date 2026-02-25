@@ -746,6 +746,9 @@ input:checked + .slider:before {
   gap: 20px; }
   #pmpro_levels .pmpro_section_content > p:first-child {
     display: none; }
+  @media (max-width: 1024px) {
+    #pmpro_levels .pmpro_section_content {
+      flex-direction: column; } }
 
 .pmpro_btn-print.pmpro_btn-print {
   color: var(--e-global-color-2ba2932); }
