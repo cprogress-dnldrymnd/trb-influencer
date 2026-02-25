@@ -1189,4 +1189,9 @@ input:checked + .slider:before {
             }
         }
     }
+    #breadcrumbs-mobile {
+        @media (max-width: 1340px) {
+            display: block !important;
+        }
+    }
 }

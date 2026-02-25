@@ -948,4 +948,8 @@ input:checked + .slider:before {
   #members-area-header #members-area-inner #members-area-inner-left {
     display: none; } }
 
+@media (min-width: 1025px) and (max-width: 1340px) {
+  #breadcrumbs-mobile {
+    display: block !important; } }
+
 /*# sourceMappingURL=style.css.map */
