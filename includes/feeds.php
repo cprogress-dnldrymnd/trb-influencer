@@ -314,7 +314,7 @@ class CreatorDB_Instagram_Feed
 
         $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
         $offset  = isset($_POST['offset']) ? intval($_POST['offset']) : 4;
-        $limit   = 4;
+        $limit   = 8;
 
         if (!$post_id) {
             wp_send_json_error('Invalid Post ID');
