@@ -1181,7 +1181,6 @@ input:checked + .slider:before {
 @media (min-width: 1025px) {
     #members-area-header {
         #members-area-inner {
-            #members-area-inner-right,
             #members-area-inner-left {
                 @media (max-width: 1340px) {
                     display: none;
