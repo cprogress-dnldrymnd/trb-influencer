@@ -940,6 +940,7 @@ input:checked + .slider:before {
     flex-direction: column-reverse; } }
 @media (min-width: 1025px) {
   #members-area-header #members-area-inner #members-area-inner-right, #members-area-header #members-area-inner #members-area-inner-left {
-    width: 100%; } }
+    width: 100%;
+    padding: 0; } }
 
 /*# sourceMappingURL=style.css.map */

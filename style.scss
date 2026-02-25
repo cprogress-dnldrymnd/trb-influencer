@@ -1175,6 +1175,7 @@ input:checked + .slider:before {
             }
             #members-area-inner-right, #members-area-inner-left {
                 width: 100%;
+                padding: 0;
             }
         }
     }
