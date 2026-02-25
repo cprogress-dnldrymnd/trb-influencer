@@ -956,9 +956,9 @@ input:checked + .slider:before {
 
 @media (max-width: 1340px) {
   .hide-mw1340 {
-    display: none !important; } }
-@media (max-width: 1340px) {
+    display: none !important; }
+
   .show-mw1340 {
-    display: flex !important; } }
+    display: none !important; } }
 
 /*# sourceMappingURL=style.css.map */
