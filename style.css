@@ -960,5 +960,14 @@ input:checked + .slider:before {
 @media (min-width: 1341px) {
   .show-mw1340 {
     display: none !important; } }
+@media (max-width: 1199px) {
+  #listing-grid-growth {
+    flex-direction: column; }
+    #listing-grid-growth > div {
+      flex-direction: row-reverse;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+      width: 100%; } }
 
 /*# sourceMappingURL=style.css.map */

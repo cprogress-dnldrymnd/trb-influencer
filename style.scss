@@ -1210,3 +1210,16 @@ input:checked + .slider:before {
         display: none !important;
     }
 }
+
+@media (max-width: 1199px) {
+    #listing-grid-growth {
+        flex-direction: column;
+        > div {
+            flex-direction: row-reverse;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+            width: 100%;
+        }
+    }
+}
