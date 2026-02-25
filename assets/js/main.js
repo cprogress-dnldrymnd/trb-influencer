@@ -45,12 +45,12 @@
 
     function dashboardLogoHeightVar() {
         // Cache the DOM element to optimize performance
-        var $dashboardLogoHeight = $('#dashboard-sidebar-logo');
+        var $dashboardLogo = $('#dashboard-sidebar-logo');
 
         // Verify the element exists before attempting calculations
-        if ($dashboardLogoHeight.length) {
+        if ($dashboardLogo.length) {
             // Retrieve the full rendered height, including padding and borders
-            var dashboardLogoHeight = $header.outerHeight();
+            var dashboardLogoHeight = $dashboardLogo.outerHeight();
 
             // Inject the calculated height as a CSS variable into the body element
             $('body').css('--dashboard-sidebar-logo-height', dashboardLogoHeight + 'px');
