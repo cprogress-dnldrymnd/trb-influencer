@@ -587,7 +587,7 @@ input:checked + .slider:before {
         > div {
             flex-grow: 1;
         }
-        @media(max-width: 575px) {
+        @media (max-width: 575px) {
             flex-direction: column;
         }
     }
@@ -780,7 +780,7 @@ input:checked + .slider:before {
         max-height: calc(100vh - var(--admin-bar-height, 0) - var(--dashboard-sidebar-logo-height, 88px));
     }
     @media (max-width: 1024px) {
-       height: auto;
+        height: auto;
     }
 }
 #influencer-discovery-sidebar .e-n-menu-title-text {
@@ -939,7 +939,7 @@ input:checked + .slider:before {
         > p:first-child {
             display: none;
         }
-        @media(max-width: 1024px) {
+        @media (max-width: 1024px) {
             flex-direction: column;
         }
     }
@@ -1196,5 +1196,17 @@ input:checked + .slider:before {
         @media (max-width: 1340px) {
             display: block !important;
         }
+    }
+}
+
+@media (max-width: 1340px) {
+    .hide-mw1340 {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1340px) {
+    .show-mw1340 {
+        display: block !important;
     }
 }
