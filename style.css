@@ -944,15 +944,8 @@ input:checked + .slider:before {
   .header-points.header-points * {
     font-size: 14px !important; } }
 @media (min-width: 1025px) and (max-width: 1340px) {
-  #members-area-header #members-area-inner {
-    flex-direction: column-reverse; } }
-@media (min-width: 1025px) and (max-width: 1340px) {
   #members-area-header #members-area-inner #members-area-inner-right,
   #members-area-header #members-area-inner #members-area-inner-left {
-    width: 100%;
-    padding: 0; } }
-@media (min-width: 1025px) and (max-width: 1340px) {
-  #members-area-header #members-area-inner {
-    gap: 10px; } }
+    display: none; } }
 
 /*# sourceMappingURL=style.css.map */
