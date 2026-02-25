@@ -587,6 +587,9 @@ input:checked + .slider:before {
         > div {
             flex-grow: 1;
         }
+        @media(max-width: 575px) {
+            flex-direction: column;
+        }
     }
     .influencer-search-item-field {
         textarea {
