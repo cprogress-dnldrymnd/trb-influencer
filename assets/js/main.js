@@ -8,12 +8,13 @@
         saved_influencer_trigger();
         mobile_nav();
         share_profile();
+        /*
         updateMembersHeaderHeightVar();
-        
+
         // Re-calculate the height dynamically whenever the browser window is resized
         $(window).on('resize', function () {
             updateMembersHeaderHeightVar();
-        });
+        });*/
     });
 
 
