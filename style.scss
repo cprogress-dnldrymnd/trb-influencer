@@ -1014,8 +1014,8 @@ input:checked + .slider:before {
 .medium-avatar {
     .avatar-holder.avatar-holder img,
     .influencer-avatar-fallback {
-        width: var(--size, 90px);
-        height: var(--size, 90px);
+        width: var(--size, clamp(50px, 4.5vw, 90px));
+        height: var(--size, clamp(50px, 4.5vw, 90px));
     }
     .influencer-avatar-fallback {
         font-size: 25px;
