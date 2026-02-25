@@ -1210,12 +1210,3 @@ input:checked + .slider:before {
         display: flex !important;
     }
 }
-
-@media (min-width: 1341px) {
-    .hide-mw1340 {
-        display: block !important;
-    }
-    .show-mw1340 {
-        display: flex !important;
-    }
-}
