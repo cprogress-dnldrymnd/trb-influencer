@@ -1012,4 +1012,27 @@ input:checked + .slider:before {
 .pmpro_level-current .pmpro_btn {
   background-color: var(--e-global-color-secondary); }
 
+.notice-wrap.notice-wrap.notice-wrap {
+  opacity: 1; }
+  .notice-wrap.notice-wrap.notice-wrap h1 {
+    font-size: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background-color: var(--e-global-color-5c6006e);
+    color: #fff;
+    font-family: "Inter"; }
+  .notice-wrap.notice-wrap.notice-wrap .notice-item {
+    line-height: auto;
+    color: #000;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    overflow: hidden; }
+    .notice-wrap.notice-wrap.notice-wrap .notice-item p {
+      font-size: 14px; }
+    .notice-wrap.notice-wrap.notice-wrap .notice-item.succes {
+      background-color: var(--e-global-color-71dc021); }
+
 /*# sourceMappingURL=style.css.map */
