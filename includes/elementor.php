@@ -113,6 +113,40 @@ add_action('elementor/query/saved_lists', function ($query) {
     }
 });
 
+
+/**
+ * Elementor Custom Query Filter: saved_search
+ * Filters the query to show posts defined in 'saved-search' CPT meta.
+ */
+add_action('elementor/query/saved_search', function ($query) {
+
+    // 1. Security: If not logged in, show nothing.
+    if (! is_user_logged_in()) {
+        $query->set('post__in', [0]);
+        return;
+    }
+
+
+    $influencer_ids = get_saved_search();
+
+    // 3. Apply the IDs to the Elementor Query
+    if (! empty($influencer_ids)) {
+        // Ensure they are integers
+
+        $query->set('post__in', $influencer_ids);
+
+        // Optional: If you want to keep the order they were saved in:
+        // $query->set( 'orderby', 'post__in' );
+    } else {
+        // No saved items found, force empty result
+        $query->set('post__in', [0]);
+    }
+});
+
+
+
+
+
 /**
  * Elementor Custom Query Filter: unlocked_influencers
  * Filters the query to show posts purchased by current user.
