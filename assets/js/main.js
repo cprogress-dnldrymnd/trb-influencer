@@ -58,7 +58,6 @@
     }
 
 
-    dashboard - sidebar - logo
 
     function share_profile() {
         console.log('x');
