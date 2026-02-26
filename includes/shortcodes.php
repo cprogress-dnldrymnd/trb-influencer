@@ -422,11 +422,27 @@ function shortcode_influencer_match_score()
 add_shortcode('influencer_match_score', 'shortcode_influencer_match_score');
 
 
+/**
+ * Shortcode to count and merge recent posts and reels meta data.
+ * Retrieves meta values and strictly validates them as arrays to prevent TypeErrors during array_merge.
+ *
+ * @return int The combined count of recent posts and reels.
+ */
 function shortcode_influencer_recentposts_reels()
 {
+    // Retrieve post meta values
     $recentposts = get_post_meta(get_the_ID(), 'recentposts', true);
     $recentreels = get_post_meta(get_the_ID(), 'recentreels', true);
-    $merge = array_merge($recentposts ?? [], $recentreels ?? []);
+
+    // Strictly ensure both variables are arrays. 
+    // If get_post_meta returns an empty string or bool, fallback to an empty array.
+    $valid_posts = is_array($recentposts) ? $recentposts : [];
+    $valid_reels = is_array($recentreels) ? $recentreels : [];
+
+    // Safely merge the validated arrays
+    $merge = array_merge($valid_posts, $valid_reels);
+    
+    // Count the total items
     $count = count($merge);
 
     return $count;
