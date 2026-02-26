@@ -177,7 +177,8 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 
 /**
  * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor elements.
- * Hooks into the advanced sections of widgets (common), containers, sections, and columns.
+ * Hooks into the advanced sections of widgets (common), legacy sections, and legacy columns.
+ * For Flexbox Containers, binds to 'section_layout' but maps visually to TAB_ADVANCED.
  *
  * @param \Elementor\Element_Base $element The current element instance being evaluated.
  * @param array                   $args    Additional arguments passed by the hook.
@@ -189,7 +190,7 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 		'dd_mycred_visibility_section',
 		[
 			'label' => esc_html__( 'MyCred Visibility', 'dd-elementor-mycred' ),
-			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
+			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED, // Forces rendering in the Advanced tab regardless of hook binding
 		]
 	);
 
@@ -211,12 +212,16 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 
 	$element->end_controls_section();
 }
+
 // Attach to Widgets
 add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-// Attach to Containers
-add_action( 'elementor/element/container/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
+// Attach to Flexbox Containers (Using section_layout as the injection point)
+add_action( 'elementor/element/container/section_layout/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
 // Attach to Legacy Sections
 add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
 // Attach to Legacy Columns
 add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
 
@@ -263,6 +268,7 @@ function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_B
 
 	return $should_render;
 }
+
 // Filter rendering for Widgets
 add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
 // Filter rendering for Containers
