@@ -1,8 +1,11 @@
 (function ($) {
     jQuery(document).ready(function () {
-        
+
         nicheToggle();
-        fetch_influencers(false);
+        if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
+            fetch_influencers(false);
+        }
+
         influencer_select_filters();
         influencer_search_trigger();
         saved_search_trigger();
@@ -157,7 +160,7 @@
         // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
         button.text('Loading...'); // Change button text while loading
-        console.log(ajax_vars.search_results_page_id);
+
         $.ajax({
             url: ajax_vars.ajax_url,
             type: 'POST',
