@@ -176,15 +176,24 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 });
 
 /**
- * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor elements.
- * Hooks strictly into the advanced sections to prevent Elementor CSS compiler conflicts.
+ * Universally injects the custom "MyCred Visibility" controls into the Advanced tab.
+ * By hooking into the global 'after_section_end' and specifically targeting 'section_effects',
+ * we safely inject the controls across Widgets, Containers, Sections, and Columns
+ * without disrupting Elementor's flexbox CSS generation logic.
  *
- * @param \Elementor\Element_Base $element The current element instance being evaluated.
- * @param array                   $args    Additional arguments passed by the hook.
+ * @param \Elementor\Element_Base $element    The current element instance being evaluated.
+ * @param string                  $section_id The ID of the section that just finished rendering.
+ * @param array                   $args       Additional arguments passed by the hook.
  * @return void
  */
-function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $args ) {
-	// Initialize a new controls section specifically for MyCred Visibility logic
+function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $section_id, $args ) {
+	// 'section_effects' (Motion Effects) natively exists in the Advanced Tab for all structural elements.
+	// We only fire our injection immediately after this section to guarantee placement safety.
+	if ( 'section_effects' !== $section_id ) {
+		return;
+	}
+
+	// Initialize the visibility control block
 	$element->start_controls_section(
 		'dd_mycred_visibility_section',
 		[
@@ -193,7 +202,7 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 		]
 	);
 
-	// Register the Select control to define the MyCred balance condition for rendering
+	// Register the logic selector
 	$element->add_control(
 		'dd_mycred_condition',
 		[
@@ -211,35 +220,25 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 
 	$element->end_controls_section();
 }
-
-// Attach to Widgets (Base Elements)
-add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
-// Attach to Flexbox Containers (Using native section_advanced to preserve CSS compilation)
-add_action( 'elementor/element/container/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
-// Attach to Legacy Sections
-add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
-// Attach to Legacy Columns
-add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+// One global hook covers all element architectures
+add_action( 'elementor/element/after_section_end', 'dd_add_mycred_visibility_control', 10, 3 );
 
 
 /**
  * Intercepts the render pipeline and evaluates the element's visibility against the user's MyCred balance.
- * Prevents widgets, containers, sections, or columns from rendering on the frontend if the condition is not met.
+ * Prevents elements from rendering on the frontend if the condition is not met.
  *
  * @param bool                    $should_render Boolean indicating if the element is scheduled to render.
  * @param \Elementor\Element_Base $element       The active element instance payload.
  * @return bool Modified boolean dictating if the element outputs HTML to the buffer.
  */
 function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_Base $element ) {
-	// Abort early if inside the Elementor Editor to preserve UI interactivity.
+	// Abort early if inside the Elementor Editor to preserve UI interactivity
 	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 		return $should_render;
 	}
 
-	// Retrieve the specific display settings for this localized element instance
+	// Retrieve the specific display settings for this localized element
 	$settings = $element->get_settings_for_display();
 
 	// Bail early if the condition is set to 'always' or is undefined
@@ -247,16 +246,22 @@ function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_B
 		return $should_render;
 	}
 
-	// Fetch the current user's ID
+	$balance = 0;
 	$user_id = get_current_user_id();
 	
-	// Default balance to 0. If a user is logged in, fetch their specific point meta key and cast to float.
-	$balance = 0;
+	// Fetch balance: Prefers official MyCred API, falls back to direct meta query 'mycred_default'
 	if ( $user_id ) {
-		$balance = (float) get_user_meta( $user_id, 'mycred_default', true );
+		if ( function_exists( 'mycred_get_users_balance' ) ) {
+			$balance = mycred_get_users_balance( $user_id );
+		} else {
+			$balance = get_user_meta( $user_id, 'mycred_default', true );
+		}
 	}
 
-	// Evaluate the selected condition against the user's fetched raw meta balance
+	// Strictly cast to float to prevent string comparison failures
+	$balance = (float) $balance;
+
+	// Evaluate conditions
 	if ( 'has_points' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
 		return false; 
 	}
@@ -265,14 +270,11 @@ function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_B
 		return false; 
 	}
 
-	return $should_render; // Proceed with standard rendering pipeline, keeping Container CSS intact
+	return $should_render;
 }
 
-// Filter rendering for Widgets
+// Bind the evaluation logic to all structural element rendering pipelines
 add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-// Filter rendering for Containers
 add_filter( 'elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-// Filter rendering for Legacy Sections
 add_filter( 'elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-// Filter rendering for Legacy Columns
 add_filter( 'elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
