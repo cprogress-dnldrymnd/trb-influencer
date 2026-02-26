@@ -1278,3 +1278,9 @@ input:checked + .slider:before {
         display: none;
     }
 }
+
+.pmpro_level-current {
+    .pmpro_btn {
+        background-color: var(--e-global-color-secondary);
+    }
+}
