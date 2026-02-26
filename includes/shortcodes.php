@@ -919,15 +919,21 @@ function custom_avatar_dropdown_shortcode($atts)
         // Fallback: Generate initials from the post title
 
         $current_user = wp_get_current_user();
-        // Get the first name
-        $nickname = $current_user->nickname;
+        $first_name = $current_user->user_firstname;
+        $last_name = $current_user->user_lastname;
+        if (!$first_name && !$last_name) {
+            $name = $current_user->nickname;
+        } else {
+            $name = $first_name . ' ' . $last_name;
+        }
+
 
         $email = $current_user->user_email;
 
         // Build the HTML for the initials avatar
         // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
         $avatar_html  = '<div class="avatar-fallback">';
-        $avatar_html .= esc_html(dd_get_initials_from_string($nickname ? $nickname : $email));
+        $avatar_html .= esc_html(dd_get_initials_from_string($name ? $name : $email));
         $avatar_html .= '</div>';
     }
 
