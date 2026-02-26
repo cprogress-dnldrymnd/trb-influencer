@@ -1315,6 +1315,7 @@ input:checked + .slider:before {
             height: auto;
                   display: flex;
             align-items: center;
+                justify-content: center;
         }
         &.succes {
             background-color: var(--e-global-color-71dc021);

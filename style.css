@@ -1039,7 +1039,8 @@ input:checked + .slider:before {
       border-right: 1px solid #37ee6d;
       height: auto;
       display: flex;
-      align-items: center; }
+      align-items: center;
+      justify-content: center; }
     .notice-wrap.notice-wrap.notice-wrap .notice-item.succes {
       background-color: var(--e-global-color-71dc021); }
 
