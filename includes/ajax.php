@@ -307,7 +307,7 @@ function my_custom_loop_filter_handler()
             if (empty($current_count)) {
                 $current_count = 0;
             }
-            update_user_meta($current_user_id, 'number_of_searches', 111);
+            update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
             $number_of_searches = get_user_meta($current_user_id, 'number_of_searches', true);
         }
 

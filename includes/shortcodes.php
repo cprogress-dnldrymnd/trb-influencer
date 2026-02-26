@@ -586,8 +586,8 @@ add_shortcode('influencer_search_filter_main', 'shortcode_influencer_search_filt
  */
 function shortcode_influencer_search_summary()
 {
-    $search_page_id = 1949;
-    if ((int) get_queried_object_id() !== $search_page_id) {
+    global $search_results_page_id;
+    if ((int) get_queried_object_id() !== $search_results_page_id) {
         return '';
     }
 
