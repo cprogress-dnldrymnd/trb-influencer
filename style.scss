@@ -1235,7 +1235,7 @@ input:checked + .slider:before {
     border: none;
     box-shadow: none;
     > .pmpro_card_content {
-        padding: 0;
+        padding: 0 !important;
         margin-bottom: 30px;
     }
     > .pmpro_card_actions {
