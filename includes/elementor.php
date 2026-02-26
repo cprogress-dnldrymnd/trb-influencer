@@ -176,52 +176,55 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 });
 
 /**
- * Injects the custom "Disable Widget" control into the Advanced tab of all Elementor widgets.
- * * Hooked into 'elementor/element/common/_section_style/after_section_end' to register 
+ * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor widgets.
+ * Hooked into 'elementor/element/common/_section_style/after_section_end' to register 
  * a new controls section immediately following the standard layout controls.
  *
  * @param \Elementor\Element_Base $element The current element instance being evaluated.
  * @param array                   $args    Additional arguments passed by the hook.
  * @return void
  */
-function dd_add_disable_widget_control( \Elementor\Element_Base $element, $args ) {
-	// Initialize a new controls section specifically for Visibility logic
+function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $args ) {
+	// Initialize a new controls section specifically for MyCred Visibility logic
 	$element->start_controls_section(
-		'dd_visibility_section',
+		'dd_mycred_visibility_section',
 		[
-			'label' => esc_html__( 'Widget Visibility', 'dd-elementor-disable' ),
+			'label' => esc_html__( 'MyCred Visibility', 'dd-elementor-mycred' ),
 			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
 		]
 	);
 
-	// Register the Switcher control to toggle widget rendering states
+	// Register the Select control to define the MyCred balance condition for rendering
 	$element->add_control(
-		'dd_disable_widget',
+		'dd_mycred_condition',
 		[
-			'label'        => esc_html__( 'Disable Widget', 'dd-elementor-disable' ),
-			'type'         => \Elementor\Controls_Manager::SWITCHER,
-			'label_on'     => esc_html__( 'Yes', 'dd-elementor-disable' ),
-			'label_off'    => esc_html__( 'No', 'dd-elementor-disable' ),
-			'return_value' => 'yes',
-			'default'      => '',
-			'description'  => esc_html__( 'When enabled, this widget will be completely excluded from the frontend DOM.', 'dd-elementor-disable' ),
+			'label'   => esc_html__( 'Display Widget When Points Are:', 'dd-elementor-mycred' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'always',
+			'options' => [
+				'always'            => esc_html__( 'Always (Ignore Points)', 'dd-elementor-mycred' ),
+				'less_than_zero'    => esc_html__( 'Less Than 0', 'dd-elementor-mycred' ),
+				'greater_than_zero' => esc_html__( 'More Than 0', 'dd-elementor-mycred' ),
+			],
+			'description' => esc_html__( 'Determine if this widget should render based on the current user\'s MyCred balance. Non-logged-in users evaluate as having 0 points.', 'dd-elementor-mycred' ),
 		]
 	);
 
 	$element->end_controls_section();
 }
-add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_disable_widget_control', 10, 2 );
+add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
 
 /**
- * Intercepts the render pipeline and prevents the widget from being output
- * on the frontend if the 'dd_disable_widget' setting evaluates to 'yes'.
- * * @param bool                    $should_render Boolean indicating if the widget is scheduled to render.
+ * Intercepts the render pipeline and evaluates the widget's visibility against the current user's MyCred balance.
+ * Prevents the widget from being output on the frontend if the 'dd_mycred_condition' is not met.
+ *
+ * @param bool                    $should_render Boolean indicating if the widget is scheduled to render.
  * @param \Elementor\Element_Base $widget        The active widget instance payload.
  * @return bool Modified boolean dictating if the widget outputs HTML to the buffer.
  */
-function dd_prevent_widget_render( $should_render, \Elementor\Element_Base $widget ) {
+function dd_evaluate_mycred_widget_render( $should_render, \Elementor\Element_Base $widget ) {
 	// Abort early if inside the Elementor Editor. 
-	// Returning false here would break the editor UI, preventing users from re-enabling the widget.
+	// Returning false here would break the editor UI, preventing users from modifying the condition.
 	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 		return $should_render;
 	}
@@ -229,11 +232,29 @@ function dd_prevent_widget_render( $should_render, \Elementor\Element_Base $widg
 	// Retrieve the specific display settings for this localized widget instance
 	$settings = $widget->get_settings_for_display();
 
-	// Mutate the render state to false if the control is toggled on
-	if ( isset( $settings['dd_disable_widget'] ) && 'yes' === $settings['dd_disable_widget'] ) {
-		return false;
+	// Bail early if the condition is set to 'always' or is undefined
+	if ( empty( $settings['dd_mycred_condition'] ) || 'always' === $settings['dd_mycred_condition'] ) {
+		return $should_render;
+	}
+
+	// Check if MyCred is active; if not, default to standard rendering behavior to prevent fatal errors
+	if ( ! function_exists( 'mycred_get_users_balance' ) ) {
+		return $should_render;
+	}
+
+	// Fetch the current user's MyCred balance. Defaults to 0 for unauthenticated traffic.
+	$user_id = get_current_user_id();
+	$balance = $user_id ? mycred_get_users_balance( $user_id ) : 0;
+
+	// Evaluate the selected condition against the user's fetched balance
+	if ( 'less_than_zero' === $settings['dd_mycred_condition'] && $balance >= 0 ) {
+		return false; 
+	}
+
+	if ( 'greater_than_zero' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
+		return false; 
 	}
 
 	return $should_render;
 }
-add_filter( 'elementor/frontend/widget/should_render', 'dd_prevent_widget_render', 10, 2 );
+add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_widget_render', 10, 2 );
