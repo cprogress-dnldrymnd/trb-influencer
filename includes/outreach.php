@@ -180,7 +180,7 @@ class DD_Outreach_Manager
                 background-color: var(--e-global-color-accent) !important;
                 border: 1px solid var(--e-global-color-accent);
                 color: #fff !important;
-              
+
             }
 
             .close-outreach a {
@@ -194,7 +194,7 @@ class DD_Outreach_Manager
                 border: none !important;
                 background-color: transparent !important;
                 color: var(--e-global-color-ee06e41) !important;
-                  padding-left: 0 !important;
+                padding-left: 0 !important;
                 padding-right: 0 !important;
             }
 
@@ -685,10 +685,11 @@ class DD_Outreach_Manager
                                 if ($pointsTarget.length) {
                                     if (response.data.updated_points !== undefined) {
                                         $pointsTarget.text(response.data.updated_points);
-                                        if(response.data.updated_points == 0 || response.data.updated_points == '0') {
+                                        if (response.data.updated_points == 0 || response.data.updated_points == '0') {
                                             jQuery('.submit-new').remove();
                                             jQuery('#outreach_form').remove();
-                                        }
+                                            jQuery('#No-Credit-Notice').removeClass('hide-element');
+                                        }outreach-form-wrapper
                                     } else {
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
                                         var currentVal = parseInt(currentPointsStr, 10);
