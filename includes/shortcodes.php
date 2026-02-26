@@ -441,7 +441,7 @@ function shortcode_influencer_recentposts_reels()
 
     // Safely merge the validated arrays
     $merge = array_merge($valid_posts, $valid_reels);
-    
+
     // Count the total items
     $count = count($merge);
 
@@ -1802,12 +1802,12 @@ function shortcode_influencer_hashtags()
     $html .= '<div class="influencer-hashtags-title">';
     $html .= $count . ' NUMBER OF HASHTAGS';
     $html .= '</div>';
-    
+
     // Pass the guaranteed array to the rendering function
     $html .= render_hashtag_cloud($hashtags);
-    
+
     $html .= '</div>';
-    
+
     return $html;
 }
 
@@ -1920,7 +1920,7 @@ function shortcode_saved_search_url()
     global $search_results_page_id;
     $search_query = get_field('search_query', get_the_ID());
 
-    return get_the_permalink($search_results_page_id) . $search_query;
+    return get_the_permalink($search_results_page_id) . $search_query . '&search_active=true';
 }
 add_shortcode('saved_search_url', 'shortcode_saved_search_url');
 
