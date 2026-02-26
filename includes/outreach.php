@@ -1155,6 +1155,9 @@ class DD_Outreach_Manager
             var firstItem = $('.dd-outreach-item').first();
             if (firstItem.length) {
                 firstItem.trigger('click');
+            } else {
+                // Display notice on placeholder if no items are found on initial load
+                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
             }
 
 
@@ -1205,7 +1208,8 @@ class DD_Outreach_Manager
                             if (newFirstItem.length) {
                                 newFirstItem.trigger('click');
                             } else {
-                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No project selected.</span>');
+                                // Display notice on placeholder if no filter results are found
+                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found matching your criteria.</span>');
                             }
                         }
                     }
