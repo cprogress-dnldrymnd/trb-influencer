@@ -1246,9 +1246,10 @@ input:checked + .slider:before {
             padding: 0;
             padding-top: 20px;
             a {
+                text-align: center;
                 &[href*="action=reset_pass"] {
                     &:before {
-                        content: "Having trouble logging in?";
+                        content: "Having trouble logging in? ";
                         color: #000;
                     }
                 }
