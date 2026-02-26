@@ -380,26 +380,3 @@ function dd_pmpro_keep_errors_on_custom_page( $pages ) {
     return $pages;
 }
 add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
-
-/**
- * Optimizes the form submission to ensure the 'action' attribute of the form 
- * points strictly to the current URL, avoiding external redirects.
- */
-function dd_pmpro_customize_form_action() {
-    if ( is_page( 'sign-up' ) ) {
-        ?>
-        <script type="text/javascript">
-            document.addEventListener('DOMContentLoaded', function() {
-                const signupForms = document.querySelectorAll('.pmpro_form, #pmpro_form');
-                if (signupForms.length > 0) {
-                    signupForms.forEach(function(form) {
-                        // Ensure the form posts back to the current window location
-                        form.setAttribute('action', window.location.href);
-                    });
-                }
-            });
-        </script>
-        <?php
-    }
-}
-add_action( 'wp_footer', 'dd_pmpro_customize_form_action' );
