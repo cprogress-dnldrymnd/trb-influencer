@@ -525,7 +525,6 @@ function shortcode_influencer_search_filter_main()
 
     $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
 
-    echo $number_of_searches;
 ?>
     <?php if ($number_of_searches >= 3 && $is_free_trial) {  ?>
         <div class="trial-search-limit-notice">
