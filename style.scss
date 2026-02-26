@@ -1245,8 +1245,9 @@ input:checked + .slider:before {
             background-color: transparent;
             padding: 0;
             padding-top: 20px;
+            text-align: center;
+
             a {
-                text-align: center;
                 &[href*="action=reset_pass"] {
                     &:before {
                         content: "Having trouble logging in? ";
