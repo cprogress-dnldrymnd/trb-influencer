@@ -174,3 +174,66 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
         $query->set('post__in', [0]);
     }
 });
+
+/**
+ * Injects the custom "Disable Widget" control into the Advanced tab of all Elementor widgets.
+ * * Hooked into 'elementor/element/common/_section_style/after_section_end' to register 
+ * a new controls section immediately following the standard layout controls.
+ *
+ * @param \Elementor\Element_Base $element The current element instance being evaluated.
+ * @param array                   $args    Additional arguments passed by the hook.
+ * @return void
+ */
+function dd_add_disable_widget_control( \Elementor\Element_Base $element, $args ) {
+	// Initialize a new controls section specifically for Visibility logic
+	$element->start_controls_section(
+		'dd_visibility_section',
+		[
+			'label' => esc_html__( 'Widget Visibility', 'dd-elementor-disable' ),
+			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
+		]
+	);
+
+	// Register the Switcher control to toggle widget rendering states
+	$element->add_control(
+		'dd_disable_widget',
+		[
+			'label'        => esc_html__( 'Disable Widget', 'dd-elementor-disable' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'     => esc_html__( 'Yes', 'dd-elementor-disable' ),
+			'label_off'    => esc_html__( 'No', 'dd-elementor-disable' ),
+			'return_value' => 'yes',
+			'default'      => '',
+			'description'  => esc_html__( 'When enabled, this widget will be completely excluded from the frontend DOM.', 'dd-elementor-disable' ),
+		]
+	);
+
+	$element->end_controls_section();
+}
+add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_disable_widget_control', 10, 2 );
+
+/**
+ * Intercepts the render pipeline and prevents the widget from being output
+ * on the frontend if the 'dd_disable_widget' setting evaluates to 'yes'.
+ * * @param bool                    $should_render Boolean indicating if the widget is scheduled to render.
+ * @param \Elementor\Element_Base $widget        The active widget instance payload.
+ * @return bool Modified boolean dictating if the widget outputs HTML to the buffer.
+ */
+function dd_prevent_widget_render( $should_render, \Elementor\Element_Base $widget ) {
+	// Abort early if inside the Elementor Editor. 
+	// Returning false here would break the editor UI, preventing users from re-enabling the widget.
+	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+		return $should_render;
+	}
+
+	// Retrieve the specific display settings for this localized widget instance
+	$settings = $widget->get_settings_for_display();
+
+	// Mutate the render state to false if the control is toggled on
+	if ( isset( $settings['dd_disable_widget'] ) && 'yes' === $settings['dd_disable_widget'] ) {
+		return false;
+	}
+
+	return $should_render;
+}
+add_filter( 'elementor/frontend/widget/should_render', 'dd_prevent_widget_render', 10, 2 );
