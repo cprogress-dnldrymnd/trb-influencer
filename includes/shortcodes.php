@@ -527,7 +527,7 @@ function shortcode_influencer_search_filter_main()
 
     echo $number_of_searches;
 ?>
-    <?php if ($number_of_searches >= 300 && $is_free_trial) {  ?>
+    <?php if ($number_of_searches >= 3 && $is_free_trial) {  ?>
         <div class="trial-search-limit-notice">
             <p>You have reached the maximum of 3 searches for free trial users. Please upgrade to a paid plan to continue using the influencer search.</p>
         </div>
