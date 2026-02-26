@@ -340,7 +340,6 @@ class DD_Outreach_Manager
 
             /* --- Notes Component Styles --- */
             .dd-outreach-view-container {
-                background: #f4f4f4;
                 width: 100%;
                 box-sizing: border-box;
             }
