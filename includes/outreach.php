@@ -348,6 +348,7 @@ class DD_Outreach_Manager
             .dd-view-placeholder {
                 text-align: center;
                 color: #888;
+                margin-top: 10%;
                 display: block;
             }
 
