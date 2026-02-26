@@ -24,7 +24,7 @@ define('HELLO_ELEMENTOR_CHILD_VERSION', '2.0.0');
  */
 function hello_elementor_child_scripts_styles()
 {
-
+    global $search_results_page_id, $search_page_id, $dashboard_page_id;
 
     wp_enqueue_style('influencer-style', get_stylesheet_directory_uri() . '/style.css');
 
@@ -33,6 +33,7 @@ function hello_elementor_child_scripts_styles()
     wp_enqueue_script('influencer-js', get_stylesheet_directory_uri() . '/assets/js/main.js', ['jquery']);
     wp_localize_script('influencer-js', 'ajax_vars', [
         'ajax_url' => admin_url('admin-ajax.php'),
+        'search_results_page_id' => $search_results_page_id,
         'save_search_nonce'    => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce'    => wp_create_nonce('save_influencer_nonce')
     ]);
@@ -60,7 +61,7 @@ include 'includes/theme-settings.php';
 function influencers_meta()
 {
     ob_start();
-    ?>
+?>
     <pre>
     <?php var_dump(get_post_meta(get_the_ID())); ?>
 </pre>
@@ -79,6 +80,6 @@ add_shortcode('influencers_meta', 'influencers_meta');
  * Author URI: https://digitallydisruptive.co.uk/
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
