@@ -176,9 +176,8 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 });
 
 /**
- * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor widgets.
- * Hooked into 'elementor/element/common/_section_style/after_section_end' to register 
- * a new controls section immediately following the standard layout controls.
+ * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor elements.
+ * Hooks into the advanced sections of widgets (common), containers, sections, and columns.
  *
  * @param \Elementor\Element_Base $element The current element instance being evaluated.
  * @param array                   $args    Additional arguments passed by the hook.
@@ -198,63 +197,77 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 	$element->add_control(
 		'dd_mycred_condition',
 		[
-			'label'   => esc_html__( 'Display Widget When Points Are:', 'dd-elementor-mycred' ),
+			'label'   => esc_html__( 'Display Element When User:', 'dd-elementor-mycred' ),
 			'type'    => \Elementor\Controls_Manager::SELECT,
 			'default' => 'always',
 			'options' => [
-				'always'            => esc_html__( 'Always (Ignore Points)', 'dd-elementor-mycred' ),
-				'less_than_zero'    => esc_html__( 'Less Than 0', 'dd-elementor-mycred' ),
-				'greater_than_zero' => esc_html__( 'More Than 0', 'dd-elementor-mycred' ),
+				'always'     => esc_html__( 'Always (Ignore Points)', 'dd-elementor-mycred' ),
+				'has_points' => esc_html__( 'Has Points (> 0)', 'dd-elementor-mycred' ),
+				'no_points'  => esc_html__( 'Has No Points (0)', 'dd-elementor-mycred' ),
 			],
-			'description' => esc_html__( 'Determine if this widget should render based on the current user\'s MyCred balance. Non-logged-in users evaluate as having 0 points.', 'dd-elementor-mycred' ),
+			'description' => esc_html__( 'Determine if this element should render based on whether the current user has a positive MyCred balance.', 'dd-elementor-mycred' ),
 		]
 	);
 
 	$element->end_controls_section();
 }
+// Attach to Widgets
 add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+// Attach to Containers
+add_action( 'elementor/element/container/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+// Attach to Legacy Sections
+add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+// Attach to Legacy Columns
+add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
 
 /**
- * Intercepts the render pipeline and evaluates the widget's visibility against the current user's MyCred balance.
- * Prevents the widget from being output on the frontend if the 'dd_mycred_condition' is not met.
+ * Intercepts the render pipeline and evaluates the element's visibility against the user's MyCred balance.
+ * Prevents widgets, containers, sections, or columns from rendering on the frontend if the condition is not met.
  *
- * @param bool                    $should_render Boolean indicating if the widget is scheduled to render.
- * @param \Elementor\Element_Base $widget        The active widget instance payload.
- * @return bool Modified boolean dictating if the widget outputs HTML to the buffer.
+ * @param bool                    $should_render Boolean indicating if the element is scheduled to render.
+ * @param \Elementor\Element_Base $element       The active element instance payload.
+ * @return bool Modified boolean dictating if the element outputs HTML to the buffer.
  */
-function dd_evaluate_mycred_widget_render( $should_render, \Elementor\Element_Base $widget ) {
-	// Abort early if inside the Elementor Editor. 
-	// Returning false here would break the editor UI, preventing users from modifying the condition.
+function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_Base $element ) {
+	// Abort early if inside the Elementor Editor to preserve UI interactivity.
 	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 		return $should_render;
 	}
 
-	// Retrieve the specific display settings for this localized widget instance
-	$settings = $widget->get_settings_for_display();
+	// Retrieve the specific display settings for this localized element instance
+	$settings = $element->get_settings_for_display();
 
 	// Bail early if the condition is set to 'always' or is undefined
 	if ( empty( $settings['dd_mycred_condition'] ) || 'always' === $settings['dd_mycred_condition'] ) {
 		return $should_render;
 	}
 
-	// Check if MyCred is active; if not, default to standard rendering behavior to prevent fatal errors
+	// Check if MyCred is active; if not, default to standard rendering behavior
 	if ( ! function_exists( 'mycred_get_users_balance' ) ) {
 		return $should_render;
 	}
 
-	// Fetch the current user's MyCred balance. Defaults to 0 for unauthenticated traffic.
+	// Fetch the current user's MyCred balance. Unauthenticated traffic defaults to 0.
 	$user_id = get_current_user_id();
 	$balance = $user_id ? mycred_get_users_balance( $user_id ) : 0;
 
 	// Evaluate the selected condition against the user's fetched balance
-	if ( 'less_than_zero' === $settings['dd_mycred_condition'] && $balance >= 0 ) {
+	if ( 'has_points' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
 		return false; 
 	}
 
-	if ( 'greater_than_zero' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
+	if ( 'no_points' === $settings['dd_mycred_condition'] && $balance > 0 ) {
 		return false; 
 	}
 
 	return $should_render;
 }
-add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_widget_render', 10, 2 );
+// Filter rendering for Widgets
+add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
+// Filter rendering for Containers
+add_filter( 'elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
+// Filter rendering for Legacy Sections
+add_filter( 'elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
+// Filter rendering for Legacy Columns
+add_filter( 'elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
