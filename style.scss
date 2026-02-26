@@ -1244,6 +1244,11 @@ input:checked + .slider:before {
             background-color: transparent;
             padding: 0;
             padding-top: 20px;
+            a {
+                &:before {
+                    content: "Having trouble logging in?";
+                }
+            }
         }
     }
 }
