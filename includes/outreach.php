@@ -691,6 +691,8 @@ class DD_Outreach_Manager
                                             jQuery('#No-Credit-Notice').removeClass('hide-element');
                                         }
                                         console.log('xxxx2');
+                                        console.log(response.data.updated_points);
+                                        
                                     } else {
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
                                         var currentVal = parseInt(currentPointsStr, 10);
