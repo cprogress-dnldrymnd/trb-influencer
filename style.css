@@ -980,6 +980,9 @@ input:checked + .slider:before {
   border: none;
   box-shadow: none; }
 
+.pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
+  color: var(--e-global-color-primary); }
+
 /*end of login pages*/
 
 /*# sourceMappingURL=style.css.map */
