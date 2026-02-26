@@ -215,13 +215,10 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 
 // Attach to Widgets
 add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
 // Attach to Flexbox Containers (Using section_layout as the injection point)
 add_action( 'elementor/element/container/section_layout/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
 // Attach to Legacy Sections
 add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-
 // Attach to Legacy Columns
 add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
 
@@ -248,16 +245,16 @@ function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_B
 		return $should_render;
 	}
 
-	// Check if MyCred is active; if not, default to standard rendering behavior
-	if ( ! function_exists( 'mycred_get_users_balance' ) ) {
-		return $should_render;
+	// Fetch the current user's ID
+	$user_id = get_current_user_id();
+	
+	// Default balance to 0. If a user is logged in, fetch their specific point meta key and cast to float.
+	$balance = 0;
+	if ( $user_id ) {
+		$balance = (float) get_user_meta( $user_id, 'mycred_default', true );
 	}
 
-	// Fetch the current user's MyCred balance. Unauthenticated traffic defaults to 0.
-	$user_id = get_current_user_id();
-	$balance = $user_id ? mycred_get_users_balance( $user_id ) : 0;
-
-	// Evaluate the selected condition against the user's fetched balance
+	// Evaluate the selected condition against the user's fetched raw meta balance
 	if ( 'has_points' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
 		return false; 
 	}
