@@ -910,6 +910,32 @@ function custom_avatar_dropdown_shortcode($atts)
 
     // 3. Get User Info
     $avatar = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
+
+
+    // Output the featured image if it exists
+    if ($avatar) {
+        $avatar_html = "<img src='{$avatar}' alt='User Avatar' class='cad-avatar'>";
+    } else {
+        // Fallback: Generate initials from the post title
+
+        $current_user = wp_get_current_user();
+        // Get the first name
+        $first_name = $current_user->user_firstname;
+
+        // Get the last name
+        $last_name = $current_user->user_lastname;
+
+        // Build the HTML for the initials avatar
+        // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
+        $avatar_html  = '<div class="influencer-avatar-fallback">';
+        $avatar_html .= esc_html($first_name . $last_name);
+        $avatar_html .= '</div>';
+    }
+
+
+
+
+
     $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
 
     // 4. Build the Page Links
@@ -931,7 +957,9 @@ function custom_avatar_dropdown_shortcode($atts)
     $output = "
     <div class='cad-wrapper' onclick='this.classList.toggle(\"active\")'>
         <div class='cad-trigger'>
-            <div class='cad-avatar-wrapper'><img src='{$avatar}' alt='User Avatar' class='cad-avatar'></div>
+            <div class='cad-avatar-wrapper'>
+                {$avatar_html}
+            </div>
             <span class='cad-arrow'>
                 <svg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 1L5 5L9 1' stroke='#333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>
             </span>
