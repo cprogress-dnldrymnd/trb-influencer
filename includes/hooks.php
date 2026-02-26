@@ -12,11 +12,12 @@
  */
 function dd_set_global_pmpro_variable()
 {
-    global $current_membership_level, $is_free_trial, $number_of_searches, $influencer_discovery_page_id, $search_page_id;
+    global $current_membership_level, $is_free_trial, $number_of_searches, $search_results_page_id, $search_page_id, $dashboard_page_id;
 
     $number_of_searches = number_of_searches();
-    $influencer_discovery_page_id = 1949;
+    $search_results_page_id = 1949;
     $search_page_id = 2149;
+    $dashboard_page_id = 1565;
     // Verify the function exists to prevent fatal errors if PMPro is inactive
     if (function_exists('get_pmpro_membership_level_shortcode')) {
         $current_membership_level = get_pmpro_membership_level_shortcode();
@@ -153,43 +154,44 @@ add_action('template_redirect', 'dd_restrict_dashboard_template_access');
  * query matches the discovery page, and ensures the 'search_active' URL parameter 
  * is not set to 'true' before safely redirecting to the search page permalink.
  *
- * @global int $influencer_discovery_page_id The ID of the page triggering the redirect.
+ * @global int $search_results_page_id The ID of the page triggering the redirect.
  * @global int $search_page_id               The ID of the target destination page.
  * @return void
  */
-function dd_execute_conditional_page_redirect() {
+function dd_execute_conditional_page_redirect()
+{
     // Access the defined global variables in the current scope.
-    global $influencer_discovery_page_id, $search_page_id;
+    global $search_results_page_id, $search_page_id;
 
     // Terminate early if the global variables are undefined or evaluate to empty.
-    if ( empty( $influencer_discovery_page_id ) || empty( $search_page_id ) ) {
+    if (empty($search_results_page_id) || empty($search_page_id)) {
         return;
     }
 
     // Evaluate if the currently requested page matches the target ID.
-    if ( is_page( $influencer_discovery_page_id ) ) {
-        
+    if (is_page($search_results_page_id)) {
+
         // Bypass the redirect if the 'search_active' query parameter is explicitly set to 'true'.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $is_search_active = isset( $_GET['search_active'] ) && sanitize_text_field( wp_unslash( $_GET['search_active'] ) ) === 'true';
-        
-        if ( $is_search_active ) {
+        $is_search_active = isset($_GET['search_active']) && sanitize_text_field(wp_unslash($_GET['search_active'])) === 'true';
+
+        if ($is_search_active) {
             return; // Halt execution and allow the current page to load.
         }
 
         // Retrieve the fully qualified URL for the destination page.
-        $destination_url = get_permalink( $search_page_id );
+        $destination_url = get_permalink($search_page_id);
 
         // Proceed only if a valid permalink was successfully returned.
-        if ( $destination_url ) {
-            
+        if ($destination_url) {
+
             // Execute the redirect. A 301 (permanent) status is used here for SEO, 
             // but can be changed to 302 (temporary) if the routing is dynamic/temporary.
-            wp_safe_redirect( $destination_url, 301 );
-            
+            wp_safe_redirect($destination_url, 301);
+
             // Always invoke exit after a redirect header to halt further script execution.
-            exit; 
+            exit;
         }
     }
 }
-add_action( 'template_redirect', 'dd_execute_conditional_page_redirect' );
+add_action('template_redirect', 'dd_execute_conditional_page_redirect');

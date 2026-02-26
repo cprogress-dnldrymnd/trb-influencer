@@ -778,15 +778,14 @@ add_shortcode('influencer_niches', 'shortcode_influencer_niches');
 function breadcrumbs()
 {
     ob_start();
-    $dashboard = 1565;
-    $search = 2149;
-    $search_result = 1949;
+
+    global $search_results_page_id, $search_page_id;
     $dashboard_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="15.768" height="15.758" viewBox="0 0 15.768 15.758"><path id="dashboard" d="M23.064,13.707,16.518,8.167a1.267,1.267,0,0,0-1.641,0L8.33,13.707a1.458,1.458,0,0,0-.517,1.115v7.342a1.461,1.461,0,0,0,1.46,1.46h2.336a1.461,1.461,0,0,0,1.46-1.46V19.536a2.628,2.628,0,1,1,5.256,0v2.628a1.461,1.461,0,0,0,1.46,1.46h2.336a1.461,1.461,0,0,0,1.46-1.46V14.821a1.457,1.457,0,0,0-.517-1.115Z" transform="translate(-7.813 -7.866)" fill="currentColor"/></svg>';
     $search_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="45.416" height="45.401" viewBox="0 0 45.416 45.401"><path id="search" d="M39.3,20a19.295,19.295,0,1,0,11.35,34.9l9.609,9.609a3.028,3.028,0,1,0,4.283-4.283l-9.609-9.609A19.279,19.279,0,0,0,39.3,20Zm0,32.536A13.241,13.241,0,1,1,52.538,39.295,13.241,13.241,0,0,1,39.3,52.536Z" transform="translate(-20.01 -20)" fill="currentColor"/></svg>';
 
-    if (get_the_ID() == $dashboard) {
+    if (get_the_ID() == $dashboard_page_id) {
         $type = 'dashboard';
-    } else if (get_the_ID() == $search || get_the_ID() == $search_result || (is_single() && get_post_type() == 'influencer')) {
+    } else if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) {
         $type = 'search';
     } else {
         $type = 'other';
@@ -1881,10 +1880,10 @@ add_shortcode('influencer_follower_growth', 'shortcode_influencer_follower_growt
 
 function shortcode_saved_search_url()
 {
-    global $influencer_discovery_page_id;
+    global $search_results_page_id;
     $search_query = get_field('search_query', get_the_ID());
 
-    return get_the_permalink($influencer_discovery_page_id) . $search_query;
+    return get_the_permalink($search_results_page_id) . $search_query;
 }
 add_shortcode('saved_search_url', 'shortcode_saved_search_url');
 
