@@ -1254,6 +1254,9 @@ input:checked + .slider:before {
                         color: #000;
                     }
                 }
+                &:hover {
+                    text-decoration: none;
+                }
             }
         }
     }
