@@ -1214,7 +1214,7 @@ input:checked + .slider:before {
 @media (max-width: 1199px) {
     #listing-grid-growth {
         flex-direction: column;
-        gap: 7px;;
+        gap: 7px;
         > div {
             flex-direction: row-reverse;
             align-items: center;
@@ -1224,3 +1224,15 @@ input:checked + .slider:before {
         }
     }
 }
+
+/*login pages*/
+.pmpro_section:has(#loginform) .pmpro_card_content:not(.widget .pmpro_section:has(#loginform) .pmpro_card_content) {
+    padding: 0;
+}
+.pmpro_card.pmpro_login_wrap {
+    background-color: transparent;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+/*end of login pages*/
