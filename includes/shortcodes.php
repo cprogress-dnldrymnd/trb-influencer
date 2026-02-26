@@ -1778,19 +1778,36 @@ function dd_influencer_avatar_shortcode($atts)
 }
 add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
 
+/**
+ * Shortcode to display an influencer's hashtags and their total count.
+ * Retrieves the 'hashtags' meta value, strictly validates it as an array to 
+ * prevent TypeErrors in count() and downstream functions, and renders the HTML.
+ *
+ * @return string The generated HTML containing the hashtag count and cloud.
+ */
 function shortcode_influencer_hashtags()
 {
+    // Retrieve post meta value
+    $raw_hashtags = get_post_meta(get_the_ID(), 'hashtags', true);
 
-    $hashtags = get_post_meta(get_the_ID(), 'hashtags', true);
+    // Strictly ensure the value is an array.
+    // If get_post_meta returns an empty string or bool, fallback to an empty array.
+    $hashtags = is_array($raw_hashtags) ? $raw_hashtags : [];
+
+    // Safely count the array items (satisfies PHP 8+ Countable interface requirement)
     $count = count($hashtags);
 
-
+    // Build the HTML output
     $html = '<div class="influencer-hashtags">';
     $html .= '<div class="influencer-hashtags-title">';
     $html .= $count . ' NUMBER OF HASHTAGS';
     $html .= '</div>';
+    
+    // Pass the guaranteed array to the rendering function
     $html .= render_hashtag_cloud($hashtags);
+    
     $html .= '</div>';
+    
     return $html;
 }
 
