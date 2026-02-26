@@ -982,6 +982,9 @@ input:checked + .slider:before {
   .pmpro_card.pmpro_login_wrap > .pmpro_card_content {
     padding: 0;
     margin-bottom: 30px; }
+  .pmpro_card.pmpro_login_wrap > .pmpro_card_actions {
+    background-color: transparent;
+    padding: 0; }
 
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
   color: var(--e-global-color-primary); }
