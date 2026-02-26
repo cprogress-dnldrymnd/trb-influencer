@@ -177,7 +177,6 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 /**
  * Universally injects the custom "MyCred Visibility" controls into the Advanced tab.
  * Hooked globally to 'elementor/element/after_section_end'.
- * Type hinting is intentionally omitted to support Elementor Pro Global Widgets.
  *
  * @param mixed  $element    The current element or document instance being evaluated.
  * @param string $section_id The ID of the section that just finished rendering.
@@ -185,8 +184,6 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
  * @return void
  */
 function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
-	// Type safety check: Ensure the object can actually accept controls.
-	// Global Widgets are Documents, not standard Elements, but both extend Controls_Stack.
 	if ( ! ( $element instanceof \Elementor\Controls_Stack ) ) {
 		return;
 	}
@@ -196,7 +193,6 @@ function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
 		return;
 	}
 
-	// Initialize the visibility control block
 	$element->start_controls_section(
 		'dd_mycred_visibility_section',
 		[
@@ -205,7 +201,6 @@ function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
 		]
 	);
 
-	// Register the logic selector
 	$element->add_control(
 		'dd_mycred_condition',
 		[
@@ -223,33 +218,33 @@ function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
 
 	$element->end_controls_section();
 }
-// One global hook covers all element architectures and Global Widgets
 add_action( 'elementor/element/after_section_end', 'dd_add_mycred_visibility_control', 10, 3 );
 
 
 /**
  * Intercepts the render pipeline and evaluates the element's visibility against the user's MyCred balance.
- * Type hinting removed to prevent fatal errors during Global Widget render cycles.
  *
  * @param bool  $should_render Boolean indicating if the element is scheduled to render.
  * @param mixed $element       The active element or document instance payload.
  * @return bool Modified boolean dictating if the element outputs HTML to the buffer.
  */
 function dd_evaluate_mycred_element_render( $should_render, $element ) {
-	// Abort early if inside the Elementor Editor to preserve UI interactivity
+	// 🚨 IMPORTANT: Always return true in the Elementor Editor. 
 	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 		return $should_render;
 	}
 
-	// Ensure the object has the required method before attempting to pull settings
-	if ( ! method_exists( $element, 'get_settings_for_display' ) ) {
+	// Ensure the object has the required raw data extraction method
+	if ( ! method_exists( $element, 'get_data' ) ) {
 		return $should_render;
 	}
 
-	// Retrieve the specific display settings for this localized element
-	$settings = $element->get_settings_for_display();
+	// BYPASS: Get raw database JSON data instead of frontend processed settings
+	// This prevents Popups from stripping the custom control data during render
+	$raw_data = $element->get_data();
+	$settings = isset( $raw_data['settings'] ) ? $raw_data['settings'] : [];
 
-	// Bail early if the condition is set to 'always' or is undefined
+	// Bail early if the condition is not set or set to 'always'
 	if ( empty( $settings['dd_mycred_condition'] ) || 'always' === $settings['dd_mycred_condition'] ) {
 		return $should_render;
 	}
@@ -257,17 +252,14 @@ function dd_evaluate_mycred_element_render( $should_render, $element ) {
 	$balance = 0;
 	$user_id = get_current_user_id();
 	
-	// Fetch balance: Prefers official MyCred API, falls back to direct meta query 'mycred_default'
 	if ( $user_id ) {
-		if ( function_exists( 'mycred_get_users_balance' ) ) {
-			$balance = mycred_get_users_balance( $user_id );
-		} else {
-			$balance = get_user_meta( $user_id, 'mycred_default', true );
-		}
+		// Strictly query the requested meta key
+		$raw_meta = get_user_meta( $user_id, 'mycred_default', true );
+		
+		// Strip all non-numeric characters to prevent string evaluation failures
+		$clean_meta = preg_replace( '/[^0-9.-]/', '', (string) $raw_meta );
+		$balance    = (float) $clean_meta;
 	}
-
-	// Strictly cast to float to prevent string comparison failures
-	$balance = (float) $balance;
 
 	// Evaluate conditions
 	if ( 'has_points' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
@@ -281,8 +273,8 @@ function dd_evaluate_mycred_element_render( $should_render, $element ) {
 	return $should_render;
 }
 
-// Bind the evaluation logic to all structural element rendering pipelines
-add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-add_filter( 'elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-add_filter( 'elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
-add_filter( 'elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 10, 2 );
+// Priority 9999: Ensure this has the absolute final say in the render pipeline
+add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
+add_filter( 'elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
+add_filter( 'elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
+add_filter( 'elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
