@@ -104,10 +104,7 @@ function action_wp_head()
         echo '#starts-a-search { display: none !important; }';
     }
 
-    if (!$current_balance || $current_balance <= 0) {
-        echo "#outreach-form-wrapper{ display: none !important}";
-        echo "#No-Credit-Notice{ display: flex !important}";
-    }
+   
 
 
     echo '</style>';
