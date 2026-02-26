@@ -1234,6 +1234,7 @@ input:checked + .slider:before {
     border-radius: 0;
     border: none;
     box-shadow: none;
+    margin: 0;
     > .pmpro_card_content {
         padding: 0 !important;
         margin-bottom: 30px;
@@ -1241,6 +1242,7 @@ input:checked + .slider:before {
     > .pmpro_card_actions {
         background-color: transparent;
         padding: 0;
+        padding-top: 20px;
     }
 }
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
