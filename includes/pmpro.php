@@ -358,3 +358,48 @@ function dd_append_membership_level_body_class( $classes ) {
 }
 add_filter( 'body_class', 'dd_append_membership_level_body_class' );
 
+/**
+ * Dynamically sets the PMPro checkout page ID to the current page if the sign-up shortcode is present.
+ * This prevents PMPro from redirecting to the default checkout page when errors occur.
+ *
+ * @param array $pages Array of PMPro page IDs.
+ * @return array Modified array of PMPro page IDs.
+ */
+function dd_pmpro_keep_errors_on_custom_page( $pages ) {
+    // Check if we are on the frontend and on the specific sign-up page
+    // Replace 'sign-up' with your actual page slug if it differs
+    if ( ! is_admin() && is_page( 'sign-up' ) ) {
+        $current_page_id = get_the_ID();
+        
+        // Override the checkout page ID globally for this request
+        if ( ! empty( $current_page_id ) ) {
+            $pages['checkout'] = $current_page_id;
+        }
+    }
+
+    return $pages;
+}
+add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
+
+/**
+ * Optimizes the form submission to ensure the 'action' attribute of the form 
+ * points strictly to the current URL, avoiding external redirects.
+ */
+function dd_pmpro_customize_form_action() {
+    if ( is_page( 'sign-up' ) ) {
+        ?>
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const signupForms = document.querySelectorAll('.pmpro_form, #pmpro_form');
+                if (signupForms.length > 0) {
+                    signupForms.forEach(function(form) {
+                        // Ensure the form posts back to the current window location
+                        form.setAttribute('action', window.location.href);
+                    });
+                }
+            });
+        </script>
+        <?php
+    }
+}
+add_action( 'wp_footer', 'dd_pmpro_customize_form_action' );
