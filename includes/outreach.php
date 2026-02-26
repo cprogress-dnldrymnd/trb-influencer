@@ -688,7 +688,7 @@ class DD_Outreach_Manager
                                         if(response.data.updated_points == 0 || response.data.updated_points == '0') {
                                             jQuery('.submit-new').remove();
                                             jQuery('#outreach_form').remove();
-                                            
+                                            jQuery('#outreach-form-trigger').remove();
                                         }
                                     } else {
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
