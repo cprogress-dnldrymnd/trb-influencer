@@ -174,3 +174,90 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
         $query->set('post__in', [0]);
     }
 });
+
+
+/**
+ * Registers the myCRED visibility control within the Elementor editor.
+ *
+ * This function injects a new control section into the 'Advanced' tab of all 
+ * Elementor widgets, sections, and columns. It provides a number input field 
+ * where editors can specify the minimum myCRED points required to view the element.
+ *
+ * @param \Elementor\Element_Base $element The current Elementor element instance being registered.
+ * @param array                   $args    Additional arguments passed by the hook (unused).
+ * * @return void
+ */
+function dd_register_mycred_visibility_controls( $element, $args ) {
+    // Initiate a new custom section in the Advanced Tab
+    $element->start_controls_section(
+        'dd_mycred_visibility_section',
+        [
+            'label' => __( 'myCRED Visibility', 'dd-elementor-mycred' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
+        ]
+    );
+
+    // Add a number control for specifying the minimum required points
+    $element->add_control(
+        'dd_mycred_min_points',
+        [
+            'label'       => __( 'Minimum Points Required', 'dd-elementor-mycred' ),
+            'type'        => \Elementor\Controls_Manager::NUMBER,
+            'min'         => 0,
+            'step'        => 1,
+            'description' => __( 'Leave blank to disable. The element will only render if the current user has at least this many points.', 'dd-elementor-mycred' ),
+        ]
+    );
+
+    $element->end_controls_section();
+}
+// Attach the control function to widgets, sections, and columns
+add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
+add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
+add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
+
+/**
+ * Evaluates the myCRED visibility condition before rendering an Elementor element.
+ *
+ * This function intercepts Elementor's frontend rendering pipeline. It retrieves the 
+ * custom 'dd_mycred_min_points' setting for the current element. If a threshold is set, 
+ * it verifies the current user's logged-in status, checks for the presence of the myCRED 
+ * plugin, and queries the user's balance. If the balance falls below the threshold, 
+ * rendering is aborted.
+ *
+ * @param bool                    $should_render Whether the element is currently set to render.
+ * @param \Elementor\Element_Base $element       The current Elementor element instance.
+ * * @return bool True to render the element, false to hide it.
+ */
+function dd_evaluate_mycred_condition( $should_render, $element ) {
+    // If the element is already marked not to render by another process, respect that decision.
+    if ( ! $should_render ) {
+        return $should_render;
+    }
+
+    // Retrieve the display settings for the current element
+    $settings = $element->get_settings_for_display();
+
+    // Check if a minimum point threshold has been configured
+    if ( ! empty( $settings['dd_mycred_min_points'] ) ) {
+        $min_points = (int) $settings['dd_mycred_min_points'];
+        $user_id    = get_current_user_id();
+
+        // If the user is a guest, or the myCRED API is unavailable, deny rendering
+        if ( ! $user_id || ! function_exists( 'mycred_get_users_balance' ) ) {
+            return false; 
+        }
+
+        // Fetch the user's current myCRED balance
+        $current_balance = mycred_get_users_balance( $user_id );
+
+        // If the balance is insufficient, hide the element
+        if ( $current_balance < $min_points ) {
+            return false;
+        }
+    }
+
+    // Return the default render state if conditions are met or not applied
+    return $should_render;
+}
+add_filter( 'elementor/frontend/should_render', 'dd_evaluate_mycred_condition', 10, 2 );
