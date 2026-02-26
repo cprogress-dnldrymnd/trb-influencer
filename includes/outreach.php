@@ -685,6 +685,9 @@ class DD_Outreach_Manager
                                 if ($pointsTarget.length) {
                                     if (response.data.updated_points !== undefined) {
                                         $pointsTarget.text(response.data.updated_points);
+                                        if(response.data.updated_points == 0 || response.data.updated_points == '0') {
+                                            jQuery('.submit-new').remove();
+                                        }
                                     } else {
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
                                         var currentVal = parseInt(currentPointsStr, 10);
