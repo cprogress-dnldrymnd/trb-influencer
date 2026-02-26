@@ -224,8 +224,9 @@ add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_r
  * Evaluates the myCRED visibility condition before rendering an Elementor element.
  *
  * This function intercepts Elementor's frontend rendering pipeline. It checks the 
- * selected visibility rule and queries the 'mycred_default' user meta directly 
- * to determine the user's point balance, avoiding API loading sequence issues.
+ * selected visibility rule and queries the 'mycred_default' user meta directly.
+ * It strictly handles empty meta values for users with no point history and 
+ * bypasses the logic entirely when inside the Elementor Editor to prevent design lockouts.
  *
  * @param bool                    $should_render Whether the element is currently set to render.
  * @param \Elementor\Element_Base $element       The current Elementor element instance.
@@ -237,6 +238,12 @@ function dd_evaluate_mycred_condition( $should_render, $element ) {
         return $should_render;
     }
 
+    // Bypass visibility logic if the user is currently in the Elementor Editor or Preview mode.
+    // This ensures elements remain visible and selectable while you are building the page.
+    if ( \Elementor\Plugin::$instance->editor->is_edit_mode() || \Elementor\Plugin::$instance->preview->is_preview_mode() ) {
+        return $should_render;
+    }
+
     // Retrieve the display settings for the current element
     $settings = $element->get_settings_for_display();
     $rule     = isset( $settings['dd_mycred_visibility_rule'] ) ? $settings['dd_mycred_visibility_rule'] : '';
@@ -244,15 +251,17 @@ function dd_evaluate_mycred_condition( $should_render, $element ) {
     // If a specific visibility rule is applied
     if ( ! empty( $rule ) ) {
         $user_id = get_current_user_id();
+        $balance = 0; // Default balance to 0 for guests or users with no point history
 
-        // Deny rendering if the user is a guest (no myCRED balance exists)
-        if ( ! $user_id ) {
-            return false; 
+        // If the user is logged in, attempt to fetch their balance
+        if ( $user_id ) {
+            $raw_meta = get_user_meta( $user_id, 'mycred_default', true );
+            
+            // Strictly verify the meta value is numeric before assigning it
+            if ( is_numeric( $raw_meta ) ) {
+                $balance = (float) $raw_meta;
+            }
         }
-
-        // Fetch the user's current myCRED balance directly from user meta
-        // Casting to float ensures empty values (never earned points) safely become 0
-        $balance = (float) get_user_meta( $user_id, 'mycred_default', true );
 
         // Evaluate the "Show only when 0 points" condition
         if ( 'zero' === $rule && $balance > 0 ) {
@@ -268,4 +277,3 @@ function dd_evaluate_mycred_condition( $should_render, $element ) {
     // Return the default render state if conditions are met or not applied
     return $should_render;
 }
-add_filter( 'elementor/frontend/should_render', 'dd_evaluate_mycred_condition', 10, 2 );
