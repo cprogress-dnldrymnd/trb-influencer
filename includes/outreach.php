@@ -689,7 +689,7 @@ class DD_Outreach_Manager
                                             jQuery('.submit-new').remove();
                                             jQuery('#outreach_form').remove();
                                             jQuery('#No-Credit-Notice').removeClass('hide-element');
-                                        }outreach-form-wrapper
+                                        }
                                     } else {
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
                                         var currentVal = parseInt(currentPointsStr, 10);
