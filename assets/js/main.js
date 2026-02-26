@@ -6,6 +6,9 @@
             fetch_influencers(false);
         }
 
+        console.log(ajax_vars.search_results_page_id);
+        console.log(ajax_vars.page_id);
+
         influencer_select_filters();
         influencer_search_trigger();
         saved_search_trigger();
