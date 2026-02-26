@@ -80,6 +80,7 @@ function action_wp_head()
         echo "#pmpro_level_group-1 {display: none !important} ";
     }
 
+    $current_balance = get_current_user_remaining_mycred_balance();
 
     $recently_viewed = get_recent_influencer_ids_array(5);
     $current_user_id = get_current_user_id();
@@ -101,6 +102,11 @@ function action_wp_head()
         echo '#dashboard-activity { display: none !important; }';
     } else {
         echo '#starts-a-search { display: none !important; }';
+    }
+
+    if (!$current_balance || $current_balance <= 0) {
+        echo "#outreach_form{ display: none !important}";
+        echo "#No-Credit-Notice{ display: flex !important}";
     }
 
 
