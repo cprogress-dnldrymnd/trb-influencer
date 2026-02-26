@@ -177,103 +177,91 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 
 
 /**
- * Registers the myCRED visibility control within the Elementor editor.
+ * Registers the custom myCRED Balance Dynamic Tag.
  *
- * This function injects a new control section into the 'Advanced' tab of all 
- * Elementor widgets, sections, and columns. It provides a dropdown selection 
- * to easily toggle visibility based on a 0 point or 1+ point threshold.
+ * By registering a dynamic tag, we hook directly into Elementor Pro's native
+ * ecosystem. This allows the user's meta value to be used seamlessly within 
+ * Pro Elements' built-in "Display Conditions" engine without conflicting 
+ * with the standard render pipeline.
  *
- * @param \Elementor\Element_Base $element The current Elementor element instance being registered.
- * @param array                   $args    Additional arguments passed by the hook (unused).
+ * @param \Elementor\Core\DynamicTags\Manager $dynamic_tags The Elementor Dynamic Tags manager instance.
  * @return void
  */
-function dd_register_mycred_visibility_controls( $element, $args ) {
-    // Initiate a new custom section in the Advanced Tab
-    $element->start_controls_section(
-        'dd_mycred_visibility_section',
-        [
-            'label' => __( 'myCRED Visibility', 'dd-elementor-mycred' ),
-            'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
-        ]
-    );
+function dd_register_mycred_dynamic_tag( $dynamic_tags ) {
+    
+    /**
+     * Class DD_MyCred_Balance_Tag
+     * * Defines the structure, category assignment, and rendering logic for the myCRED balance tag.
+     */
+    class DD_MyCred_Balance_Tag extends \Elementor\Core\DynamicTags\Tag {
 
-    // Add a select control for predefined visibility rules
-    $element->add_control(
-        'dd_mycred_visibility_rule',
-        [
-            'label'   => __( 'Visibility Rule', 'dd-elementor-mycred' ),
-            'type'    => \Elementor\Controls_Manager::SELECT,
-            'default' => '',
-            'options' => [
-                ''           => __( 'None (Always Show)', 'dd-elementor-mycred' ),
-                'zero'       => __( 'Show only when 0 points', 'dd-elementor-mycred' ),
-                'has_points' => __( 'Show when 1 or more points', 'dd-elementor-mycred' ),
-            ],
-            'description' => __( 'Select when this element should be visible to logged-in users based on their myCRED balance.', 'dd-elementor-mycred' ),
-        ]
-    );
+        /**
+         * Retrieves the tag's internal system name.
+         *
+         * @return string The unique tag name.
+         */
+        public function get_name() {
+            return 'dd-mycred-balance';
+        }
 
-    $element->end_controls_section();
-}
-// Attach the control function to widgets, sections, and columns
-add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
-add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
-add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_register_mycred_visibility_controls', 10, 2 );
+        /**
+         * Retrieves the tag's visible title within the Elementor editor dropdowns.
+         *
+         * @return string The human-readable tag title.
+         */
+        public function get_title() {
+            return __( 'myCRED Balance', 'dd-elementor-mycred' );
+        }
 
-/**
- * Evaluates the myCRED visibility condition before rendering an Elementor element.
- *
- * This function intercepts Elementor's frontend rendering pipeline. It checks the 
- * selected visibility rule and queries the 'mycred_default' user meta directly.
- * It strictly handles empty meta values for users with no point history and 
- * bypasses the logic entirely when inside the Elementor Editor to prevent design lockouts.
- *
- * @param bool                    $should_render Whether the element is currently set to render.
- * @param \Elementor\Element_Base $element       The current Elementor element instance.
- * @return bool True to render the element, false to hide it.
- */
-function dd_evaluate_mycred_condition( $should_render, $element ) {
-    // If the element is already marked not to render by another process, respect that decision.
-    if ( ! $should_render ) {
-        return $should_render;
-    }
+        /**
+         * Assigns the tag to a specific group in the dynamic tags interface.
+         *
+         * @return string The designated group name.
+         */
+        public function get_group() {
+            return 'user';
+        }
 
-    // Bypass visibility logic if the user is currently in the Elementor Editor or Preview mode.
-    // This ensures elements remain visible and selectable while you are building the page.
-    if ( \Elementor\Plugin::$instance->editor->is_edit_mode() || \Elementor\Plugin::$instance->preview->is_preview_mode() ) {
-        return $should_render;
-    }
+        /**
+         * Defines the data categories where this tag is permitted to be executed.
+         * * Supporting NUMBER_CATEGORY is strictly required to allow Elementor Pro 
+         * to use this tag in mathematical comparisons (e.g., Greater Than, Less Than).
+         *
+         * @return array Array of permitted category constants.
+         */
+        public function get_categories() {
+            return [ 
+                \Elementor\Modules\DynamicTags\Module::NUMBER_CATEGORY, 
+                \Elementor\Modules\DynamicTags\Module::TEXT_CATEGORY 
+            ];
+        }
 
-    // Retrieve the display settings for the current element
-    $settings = $element->get_settings_for_display();
-    $rule     = isset( $settings['dd_mycred_visibility_rule'] ) ? $settings['dd_mycred_visibility_rule'] : '';
+        /**
+         * Executes the logic to retrieve and output the strict myCRED balance integer.
+         *
+         * @return void
+         */
+        public function render() {
+            $user_id = get_current_user_id();
 
-    // If a specific visibility rule is applied
-    if ( ! empty( $rule ) ) {
-        $user_id = get_current_user_id();
-        $balance = 0; // Default balance to 0 for guests or users with no point history
+            // If the user is a guest, terminate early and output a strict 0.
+            if ( ! $user_id ) {
+                echo '0';
+                return;
+            }
 
-        // If the user is logged in, attempt to fetch their balance
-        if ( $user_id ) {
+            // Fetch raw user meta bypassing the myCRED API to prevent loading sequence failures.
             $raw_meta = get_user_meta( $user_id, 'mycred_default', true );
             
-            // Strictly verify the meta value is numeric before assigning it
-            if ( is_numeric( $raw_meta ) ) {
-                $balance = (float) $raw_meta;
-            }
-        }
+            // Validate and cast the meta value to ensure strict numeric formatting.
+            $balance = is_numeric( $raw_meta ) ? (float) $raw_meta : 0;
 
-        // Evaluate the "Show only when 0 points" condition
-        if ( 'zero' === $rule && $balance > 0 ) {
-            return false; // Hide because they have more than 0 points
-        }
-
-        // Evaluate the "Show when 1 or more points" condition
-        if ( 'has_points' === $rule && $balance < 1 ) {
-            return false; // Hide because they have less than 1 point
+            echo $balance;
         }
     }
 
-    // Return the default render state if conditions are met or not applied
-    return $should_render;
+    // Instantiate and register the custom tag into Elementor's dynamic tag manager.
+    $dynamic_tags->register( new DD_MyCred_Balance_Tag() );
 }
+// Hook into Elementor's dynamic tag registration sequence.
+add_action( 'elementor/dynamic_tags/register', 'dd_register_mycred_dynamic_tag' );
