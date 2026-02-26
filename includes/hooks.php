@@ -77,6 +77,7 @@ function action_wp_head()
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
         echo ".filtered-search{ display: flex !important }";
+        echo "#pmpro_level_group-1 {display: none !important} ";
     }
 
     $current_balance = get_current_user_remaining_mycred_balance();
