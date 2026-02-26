@@ -988,7 +988,8 @@ input:checked + .slider:before {
     padding: 0;
     padding-top: 20px; }
     .pmpro-login.pmpro-login .pmpro_card > .pmpro_card_actions a[href*="action=reset_pass"]:before {
-      content: "Having trouble logging in?"; }
+      content: "Having trouble logging in?";
+      color: #000; }
 
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
   color: var(--e-global-color-primary); }
