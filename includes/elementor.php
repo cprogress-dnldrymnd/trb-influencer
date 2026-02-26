@@ -175,6 +175,7 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
     }
 });
 
+
 /**
  * Universally injects the custom "MyCred Visibility" controls into the Advanced tab.
  * By hooking into the global 'after_section_end' and specifically targeting 'section_effects',
