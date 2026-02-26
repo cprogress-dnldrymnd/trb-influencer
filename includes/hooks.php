@@ -105,7 +105,7 @@ function action_wp_head()
     }
 
     if (!$current_balance || $current_balance <= 0) {
-        echo "#outreach_form{ display: none !important}";
+        echo "#outreach-form-wrapper{ display: none !important}";
         echo "#No-Credit-Notice{ display: flex !important}";
     }
 
