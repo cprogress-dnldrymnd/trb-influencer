@@ -176,18 +176,22 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 });
 /**
  * Universally injects the custom "MyCred Visibility" controls into the Advanced tab.
- * By hooking into the global 'after_section_end' and specifically targeting 'section_effects',
- * we safely inject the controls across Widgets, Containers, Sections, and Columns
- * without disrupting Elementor's flexbox CSS generation logic.
+ * Hooked globally to 'elementor/element/after_section_end'.
+ * Type hinting is intentionally omitted to support Elementor Pro Global Widgets.
  *
- * @param \Elementor\Element_Base $element    The current element instance being evaluated.
- * @param string                  $section_id The ID of the section that just finished rendering.
- * @param array                   $args       Additional arguments passed by the hook.
+ * @param mixed  $element    The current element or document instance being evaluated.
+ * @param string $section_id The ID of the section that just finished rendering.
+ * @param array  $args       Additional arguments passed by the hook.
  * @return void
  */
-function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $section_id, $args ) {
+function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
+	// Type safety check: Ensure the object can actually accept controls.
+	// Global Widgets are Documents, not standard Elements, but both extend Controls_Stack.
+	if ( ! ( $element instanceof \Elementor\Controls_Stack ) ) {
+		return;
+	}
+
 	// 'section_effects' (Motion Effects) natively exists in the Advanced Tab for all structural elements.
-	// We only fire our injection immediately after this section to guarantee placement safety.
 	if ( 'section_effects' !== $section_id ) {
 		return;
 	}
@@ -219,21 +223,26 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $se
 
 	$element->end_controls_section();
 }
-// One global hook covers all element architectures
+// One global hook covers all element architectures and Global Widgets
 add_action( 'elementor/element/after_section_end', 'dd_add_mycred_visibility_control', 10, 3 );
 
 
 /**
  * Intercepts the render pipeline and evaluates the element's visibility against the user's MyCred balance.
- * Prevents elements from rendering on the frontend if the condition is not met.
+ * Type hinting removed to prevent fatal errors during Global Widget render cycles.
  *
- * @param bool                    $should_render Boolean indicating if the element is scheduled to render.
- * @param \Elementor\Element_Base $element       The active element instance payload.
+ * @param bool  $should_render Boolean indicating if the element is scheduled to render.
+ * @param mixed $element       The active element or document instance payload.
  * @return bool Modified boolean dictating if the element outputs HTML to the buffer.
  */
-function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_Base $element ) {
+function dd_evaluate_mycred_element_render( $should_render, $element ) {
 	// Abort early if inside the Elementor Editor to preserve UI interactivity
 	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+		return $should_render;
+	}
+
+	// Ensure the object has the required method before attempting to pull settings
+	if ( ! method_exists( $element, 'get_settings_for_display' ) ) {
 		return $should_render;
 	}
 
