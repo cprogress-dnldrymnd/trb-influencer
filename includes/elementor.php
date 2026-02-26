@@ -177,8 +177,7 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
 
 /**
  * Injects the custom "MyCred Visibility" controls into the Advanced tab of all Elementor elements.
- * Hooks into the advanced sections of widgets (common), legacy sections, and legacy columns.
- * For Flexbox Containers, binds to 'section_layout' but maps visually to TAB_ADVANCED.
+ * Hooks strictly into the advanced sections to prevent Elementor CSS compiler conflicts.
  *
  * @param \Elementor\Element_Base $element The current element instance being evaluated.
  * @param array                   $args    Additional arguments passed by the hook.
@@ -190,7 +189,7 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 		'dd_mycred_visibility_section',
 		[
 			'label' => esc_html__( 'MyCred Visibility', 'dd-elementor-mycred' ),
-			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED, // Forces rendering in the Advanced tab regardless of hook binding
+			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
 		]
 	);
 
@@ -213,12 +212,15 @@ function dd_add_mycred_visibility_control( \Elementor\Element_Base $element, $ar
 	$element->end_controls_section();
 }
 
-// Attach to Widgets
+// Attach to Widgets (Base Elements)
 add_action( 'elementor/element/common/_section_style/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
-// Attach to Flexbox Containers (Using section_layout as the injection point)
-add_action( 'elementor/element/container/section_layout/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
+// Attach to Flexbox Containers (Using native section_advanced to preserve CSS compilation)
+add_action( 'elementor/element/container/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
 // Attach to Legacy Sections
 add_action( 'elementor/element/section/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
+
 // Attach to Legacy Columns
 add_action( 'elementor/element/column/section_advanced/after_section_end', 'dd_add_mycred_visibility_control', 10, 2 );
 
@@ -263,7 +265,7 @@ function dd_evaluate_mycred_element_render( $should_render, \Elementor\Element_B
 		return false; 
 	}
 
-	return $should_render;
+	return $should_render; // Proceed with standard rendering pipeline, keeping Container CSS intact
 }
 
 // Filter rendering for Widgets
