@@ -927,7 +927,7 @@ function custom_avatar_dropdown_shortcode($atts)
 
         // Build the HTML for the initials avatar
         // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
-        $avatar_html  = '<div class="influencer-avatar-fallback">';
+        $avatar_html  = '<div class="avatar-fallback">';
         $avatar_html .= esc_html($first_name . $last_name);
         $avatar_html .= '</div>';
     }
