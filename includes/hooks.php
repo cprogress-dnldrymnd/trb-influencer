@@ -147,9 +147,10 @@ add_action('template_redirect', 'dd_restrict_dashboard_template_access');
 
 /**
  * Redirects the influencer discovery page to the search page.
- * * Hooks into 'template_redirect' to process the redirect before headers are sent.
+ * Hooks into 'template_redirect' to process the redirect before headers are sent.
  * It validates the existence of the required global variables, checks if the current
- * query matches the discovery page, and safely redirects to the search page permalink.
+ * query matches the discovery page, and ensures the 'search_active' URL parameter 
+ * is not set to 'true' before safely redirecting to the search page permalink.
  *
  * @global int $influencer_discovery_page_id The ID of the page triggering the redirect.
  * @global int $search_page_id               The ID of the target destination page.
@@ -167,6 +168,14 @@ function dd_execute_conditional_page_redirect() {
     // Evaluate if the currently requested page matches the target ID.
     if ( is_page( $influencer_discovery_page_id ) ) {
         
+        // Bypass the redirect if the 'search_active' query parameter is explicitly set to 'true'.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $is_search_active = isset( $_GET['search_active'] ) && sanitize_text_field( wp_unslash( $_GET['search_active'] ) ) === 'true';
+        
+        if ( $is_search_active ) {
+            return; // Halt execution and allow the current page to load.
+        }
+
         // Retrieve the fully qualified URL for the destination page.
         $destination_url = get_permalink( $search_page_id );
 
