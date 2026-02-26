@@ -115,35 +115,34 @@ add_action('elementor/query/saved_lists', function ($query) {
 
 
 /**
- * Elementor Custom Query Filter: saved_search
- * Filters the query to show posts defined in 'saved-search' CPT meta.
+ * Modifies an Elementor post query to filter posts by the current logged-in user's ID.
+ * * This function hooks into Elementor's custom query API. When the query ID 
+ * 'current_user_posts' is specified in the Elementor widget, this function intercepts 
+ * the WP_Query object and assigns the current user's ID to the 'author' parameter.
+ * If no user is logged in, it forces a '0' author ID to ensure no posts are returned.
+ *
+ * @param \WP_Query $query The WordPress query instance being modified by Elementor.
+ * @return void
  */
-add_action('elementor/query/saved_search', function ($query) {
+function digitally_disruptive_filter_by_current_user($query)
+{
 
-    // 1. Security: If not logged in, show nothing.
-    if (! is_user_logged_in()) {
-        $query->set('post__in', [0]);
-        return;
-    }
+    // Check if a user is currently logged into the site
+    if (is_user_logged_in()) {
+        // Retrieve the current user's ID
+        $current_user_id = get_current_user_id();
 
-
-    $influencer_ids = get_saved_search();
-
-    // 3. Apply the IDs to the Elementor Query
-    if (! empty($influencer_ids)) {
-        // Ensure they are integers
-
-        $query->set('post__in', $influencer_ids);
-
-        // Optional: If you want to keep the order they were saved in:
-        // $query->set( 'orderby', 'post__in' );
+        // Modify the query to only fetch posts authored by this user ID
+        $query->set('author', $current_user_id);
     } else {
-        // No saved items found, force empty result
-        $query->set('post__in', [0]);
+        // If the user is a guest, force the query to return no results
+        // by setting the author ID to 0 (an invalid user ID in WordPress).
+        $query->set('author', 0);
     }
-});
+}
 
-
+// Hook the function to the specific Elementor query ID 'current_user_posts'
+add_action('elementor/query/current_user_posts', 'digitally_disruptive_filter_by_current_user');
 
 
 
