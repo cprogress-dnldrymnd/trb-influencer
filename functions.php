@@ -26,6 +26,8 @@ function hello_elementor_child_scripts_styles()
 {
     global $search_results_page_id, $search_page_id, $dashboard_page_id;
 
+    $page_id = get_the_ID();
+
     wp_enqueue_style('influencer-style', get_stylesheet_directory_uri() . '/style.css');
 
 
@@ -33,7 +35,7 @@ function hello_elementor_child_scripts_styles()
     wp_enqueue_script('influencer-js', get_stylesheet_directory_uri() . '/assets/js/main.js', ['jquery']);
     wp_localize_script('influencer-js', 'ajax_vars', [
         'ajax_url' => admin_url('admin-ajax.php'),
-        'page_id' => get_the_ID(),
+        'page_id' => $page_id,
         'search_results_page_id' => $search_results_page_id,
         'save_search_nonce'    => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce'    => wp_create_nonce('save_influencer_nonce')
