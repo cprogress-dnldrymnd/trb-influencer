@@ -1236,6 +1236,7 @@ input:checked + .slider:before {
         border: none;
         box-shadow: none;
         margin: 0;
+        
         > .pmpro_card_content {
             padding: 0 !important;
             margin-bottom: 30px;
@@ -1244,7 +1245,7 @@ input:checked + .slider:before {
             background-color: transparent;
             padding: 0;
             padding-top: 20px;
-            a {
+            a[href*="action=reset_pass"] {
                 &:before {
                     content: "Having trouble logging in?";
                 }
