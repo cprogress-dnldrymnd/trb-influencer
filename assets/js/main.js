@@ -1,14 +1,9 @@
 (function ($) {
     jQuery(document).ready(function () {
-
-        nicheToggle();
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
         }
-
-        console.log(ajax_vars.search_results_page_id);
-        console.log(ajax_vars.page_id);
-
+        nicheToggle();
         influencer_select_filters();
         influencer_search_trigger();
         saved_search_trigger();

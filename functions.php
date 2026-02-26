@@ -24,7 +24,7 @@ define('HELLO_ELEMENTOR_CHILD_VERSION', '2.0.0');
  */
 function hello_elementor_child_scripts_styles()
 {
-    global $search_results_page_id, $search_page_id, $dashboard_page_id;
+    global $search_results_page_id;
 
     $page_id = get_the_ID();
 
