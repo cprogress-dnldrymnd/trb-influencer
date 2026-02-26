@@ -1229,22 +1229,25 @@ input:checked + .slider:before {
 .pmpro_section:has(#loginform) .pmpro_card_content:not(.widget .pmpro_section:has(#loginform) .pmpro_card_content) {
     padding: 0;
 }
-.pmpro_card.pmpro_login_wrap {
-    background-color: transparent;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    margin: 0;
-    > .pmpro_card_content {
-        padding: 0 !important;
-        margin-bottom: 30px;
-    }
-    > .pmpro_card_actions {
+.pmpro-login.pmpro-login {
+    .pmpro_card {
         background-color: transparent;
-        padding: 0;
-        padding-top: 20px;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        margin: 0;
+        > .pmpro_card_content {
+            padding: 0 !important;
+            margin-bottom: 30px;
+        }
+        > .pmpro_card_actions {
+            background-color: transparent;
+            padding: 0;
+            padding-top: 20px;
+        }
     }
 }
+
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
     color: var(--e-global-color-primary);
 }

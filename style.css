@@ -974,16 +974,16 @@ input:checked + .slider:before {
 .pmpro_section:has(#loginform) .pmpro_card_content:not(.widget .pmpro_section:has(#loginform) .pmpro_card_content) {
   padding: 0; }
 
-.pmpro_card.pmpro_login_wrap {
+.pmpro-login.pmpro-login .pmpro_card {
   background-color: transparent;
   border-radius: 0;
   border: none;
   box-shadow: none;
   margin: 0; }
-  .pmpro_card.pmpro_login_wrap > .pmpro_card_content {
+  .pmpro-login.pmpro-login .pmpro_card > .pmpro_card_content {
     padding: 0 !important;
     margin-bottom: 30px; }
-  .pmpro_card.pmpro_login_wrap > .pmpro_card_actions {
+  .pmpro-login.pmpro-login .pmpro_card > .pmpro_card_actions {
     background-color: transparent;
     padding: 0;
     padding-top: 20px; }
