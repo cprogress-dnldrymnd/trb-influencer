@@ -1,5 +1,6 @@
 (function ($) {
     jQuery(document).ready(function () {
+        
         nicheToggle();
         fetch_influencers(false);
         influencer_select_filters();
