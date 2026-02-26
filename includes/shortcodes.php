@@ -516,7 +516,7 @@ function shortcode_influencer_search_filter_main()
     $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
 
     if ($is_free_trial) {
-        $filtered_search_class = 'active is-free-trial';
+        $filtered_search_class = 'active';
         $fullbrieft_search_class = '';
     } else {
         $filtered_search_class = '';
