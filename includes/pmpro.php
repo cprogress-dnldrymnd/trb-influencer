@@ -287,7 +287,7 @@ function dd_pmpro_custom_lost_password_text( $translated_text, $text, $domain ) 
         if ( 'Forgot Password?' === $text || 'Lost Password?' === $text || 'Lost your password?' === $text ) {
             
             // Define the new custom text here.
-            $translated_text = '<span>Reset password</span>';
+            $translated_text = esc_html__( 'Reset password', 'paid-memberships-pro' ); 
         }
     }
 
