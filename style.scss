@@ -1281,7 +1281,7 @@ input:checked + .slider:before {
 
 .pmpro_level-current {
     .pmpro_btn {
-        background-color: var(--e-global-color-secondary);
+        background-color: var(--e-global-color-secondary) !important;
     }
 }
 

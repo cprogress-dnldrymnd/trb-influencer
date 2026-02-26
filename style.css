@@ -1010,7 +1010,7 @@ input:checked + .slider:before {
   display: none; }
 
 .pmpro_level-current .pmpro_btn {
-  background-color: var(--e-global-color-secondary); }
+  background-color: var(--e-global-color-secondary) !important; }
 
 .notice-wrap.notice-wrap.notice-wrap {
   opacity: 1; }
