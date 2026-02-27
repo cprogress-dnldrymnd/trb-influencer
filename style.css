@@ -1230,14 +1230,16 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   border: 1px solid #ef6c00;
   color: #ef6c00; }
 
-.default--page h2 {
+.default--page.default--page.default--page * {
+  font-family: Inter; }
+.default--page.default--page.default--page h2 {
   font-size: 40px;
   line-height: 1.2; }
   @media (max-width: 1024px) {
-    .default--page h2 {
+    .default--page.default--page.default--page h2 {
       font-size: 36px; } }
   @media (max-width: 767px) {
-    .default--page h2 {
+    .default--page.default--page.default--page h2 {
       font-size: 32px; } }
 
 /*# sourceMappingURL=style.css.map */
