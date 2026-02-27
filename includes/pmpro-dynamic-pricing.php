@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format, with native backend description management.
- * Version: 1.0.3
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects and pairs levels from Group 2 (Monthly) and Group 3 (Annual).
+ * Version: 1.0.4
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * * Handles the registration of the admin settings interface, data retrieval, and rendering of the dynamic pricing table shortcode.
+ * * Handles the registration of the admin settings interface, dynamic level pairing, data retrieval, and rendering of the pricing table shortcode.
  */
 class DD_PMPro_Frontend_Pricing {
 
@@ -35,6 +35,72 @@ class DD_PMPro_Frontend_Pricing {
 	 */
 	public function register_pricing_shortcode() {
 		add_shortcode( 'dd_pricing_table', [ $this, 'render_pricing_table' ] );
+	}
+
+	/**
+	 * Retrieves and pairs PMPro levels dynamically.
+	 * * Identifies active levels with identical names and assigns them as Monthly/Annual variants
+	 * based on their Group ID (2 for Monthly, 3 for Annual) or falls back to price comparison.
+	 * * @return array Array of dynamically paired level data.
+	 */
+	private function get_dynamic_plan_pairs() {
+		if ( ! function_exists( 'pmpro_getAllLevels' ) ) {
+			return [];
+		}
+
+		$all_levels = pmpro_getAllLevels( true, true );
+		$grouped_by_name = [];
+
+		// Group active, signup-enabled levels by their explicit name
+		foreach ( $all_levels as $level ) {
+			if ( ! $level->allow_signups ) {
+				continue;
+			}
+			$grouped_by_name[ trim( $level->name ) ][] = $level;
+		}
+
+		$pairs = [];
+
+		foreach ( $grouped_by_name as $name => $levels ) {
+			// We only process levels that have both a Monthly and Annual variant (2 or more)
+			if ( count( $levels ) >= 2 ) {
+				$monthly_id = 0;
+				$annual_id  = 0;
+
+				foreach ( $levels as $l ) {
+					// Extract Group ID if available
+					$group_id = isset( $l->group_id ) ? (int) $l->group_id : 0;
+					
+					if ( $group_id === 2 ) {
+						$monthly_id = $l->id;
+					} elseif ( $group_id === 3 ) {
+						$annual_id = $l->id;
+					}
+				}
+
+				// Fallback mechanism: If PMPro group IDs are not natively attached to the object,
+				// sort by price. The cheaper option becomes Monthly, the more expensive becomes Annual.
+				if ( ! $monthly_id || ! $annual_id ) {
+					usort( $levels, function( $a, $b ) {
+						return (float) $a->initial_payment <=> (float) $b->initial_payment;
+					});
+					$monthly_id = $levels[0]->id;
+					$annual_id  = $levels[1]->id;
+				}
+
+				// Register the pair only if both IDs successfully resolved
+				if ( $monthly_id && $annual_id ) {
+					$pairs[] = [
+						'name'       => $name,
+						'monthly_id' => $monthly_id,
+						'annual_id'  => $annual_id,
+						'option_key' => 'dd_desc_' . sanitize_key( $name ),
+					];
+				}
+			}
+		}
+
+		return $pairs;
 	}
 
 	/**
@@ -59,50 +125,42 @@ class DD_PMPro_Frontend_Pricing {
 	}
 
 	/**
-	 * Registers the settings, sections, and fields for the WordPress Settings API.
-	 * * Secures the data in the wp_options table and maps the frontend inputs to the backend processing.
+	 * Registers the settings, sections, and fields dynamically for the WordPress Settings API.
+	 * * Secures the data in the wp_options table and iterates over discovered plan pairs 
+	 * to generate the appropriate backend input fields.
 	 * * @return void
 	 */
 	public function register_plugin_settings() {
-		// Register the option group
-		register_setting( 'dd_pricing_settings_group', 'dd_essential_desc' );
-		register_setting( 'dd_pricing_settings_group', 'dd_growth_desc' );
+		$pairs = $this->get_dynamic_plan_pairs();
 
-		// Add a section for the fields
+		// Register an option dynamically for each discovered plan pair
+		foreach ( $pairs as $pair ) {
+			register_setting( 'dd_pricing_settings_group', $pair['option_key'] );
+		}
+
+		// Add the main section for the fields
 		add_settings_section(
 			'dd_pricing_main_section',
-			'Plan Descriptions',
+			'Dynamic Plan Descriptions',
 			[ $this, 'render_section_intro' ],
 			'dd-pricing-settings'
 		);
 
-		// Add Essential Description Field
-		add_settings_field(
-			'dd_essential_desc_field',
-			'Essential Plan Description',
-			[ $this, 'render_textarea_field' ],
-			'dd-pricing-settings',
-			'dd_pricing_main_section',
-			[
-				'label_for' => 'dd_essential_desc',
-				'name'      => 'dd_essential_desc',
-				'default'   => 'Discover creators across 2000+ industries & niches.',
-			]
-		);
-
-		// Add Growth Description Field
-		add_settings_field(
-			'dd_growth_desc_field',
-			'Growth Plan Description',
-			[ $this, 'render_textarea_field' ],
-			'dd-pricing-settings',
-			'dd_pricing_main_section',
-			[
-				'label_for' => 'dd_growth_desc',
-				'name'      => 'dd_growth_desc',
-				'default'   => 'Analyze creators & manage your creator partnerships.',
-			]
-		);
+		// Add a textarea field dynamically for each discovered plan pair
+		foreach ( $pairs as $pair ) {
+			add_settings_field(
+				$pair['option_key'] . '_field',
+				esc_html( $pair['name'] ) . ' Plan Description',
+				[ $this, 'render_textarea_field' ],
+				'dd-pricing-settings',
+				'dd_pricing_main_section',
+				[
+					'label_for' => $pair['option_key'],
+					'name'      => $pair['option_key'],
+					'default'   => 'Discover features included in the ' . esc_html( $pair['name'] ) . ' plan.',
+				]
+			);
+		}
 	}
 
 	/**
@@ -110,7 +168,7 @@ class DD_PMPro_Frontend_Pricing {
 	 * * @return void
 	 */
 	public function render_section_intro() {
-		echo '<p>Update the descriptions displayed on the frontend pricing table shortcode.</p>';
+		echo '<p>Update the descriptions displayed on the frontend pricing table shortcode. Fields are automatically generated based on matching Monthly/Annual level names.</p>';
 	}
 
 	/**
@@ -144,7 +202,7 @@ class DD_PMPro_Frontend_Pricing {
 				<?php
 				// Output security fields for the registered setting group
 				settings_fields( 'dd_pricing_settings_group' );
-				// Output setting sections and their fields
+				// Output setting sections and their dynamically generated fields
 				do_settings_sections( 'dd-pricing-settings' );
 				// Output save settings button
 				submit_button( 'Save Descriptions' );
@@ -271,8 +329,8 @@ class DD_PMPro_Frontend_Pricing {
 
 	/**
 	 * Renders the shortcode output including styling, HTML structure, and foolproof JS logic.
-	 * * Constructs the full grid layout, pulling dynamic descriptions from the options table, 
-	 * and processing the predefined level mappings (Essential: 8/10, Growth: 9/12).
+	 * * Constructs the full grid layout by looping through automatically paired levels and
+	 * retrieving their dynamic descriptions from the options table.
 	 * * @param array $atts Shortcode attributes (optional overrides).
 	 * @return string     The complete HTML, CSS, and JS to output to the frontend.
 	 */
@@ -281,10 +339,6 @@ class DD_PMPro_Frontend_Pricing {
 		if ( ! defined( 'PMPRO_VERSION' ) ) {
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
-
-		// Retrieve dynamic descriptions from the backend settings
-		$essential_desc = get_option( 'dd_essential_desc', 'Discover creators across 2000+ industries & niches.' );
-		$growth_desc    = get_option( 'dd_growth_desc', 'Analyze creators & manage your creator partnerships.' );
 
 		ob_start();
 		?>
@@ -317,8 +371,24 @@ class DD_PMPro_Frontend_Pricing {
 
 		<div class="dd-pricing-container">
 			<?php
-			echo $this->build_pricing_card( 'Essential', $essential_desc, 8, 10 );
-			echo $this->build_pricing_card( 'Growth', $growth_desc, 9, 12 );
+			$pairs = $this->get_dynamic_plan_pairs();
+
+			if ( empty( $pairs ) ) {
+				echo '<p>No matching Monthly and Annual plan pairs detected.</p>';
+			} else {
+				foreach ( $pairs as $pair ) {
+					// Dynamically retrieve the description from the options table
+					$default_desc = 'Discover features included in the ' . esc_html( $pair['name'] ) . ' plan.';
+					$description  = get_option( $pair['option_key'], $default_desc );
+
+					echo $this->build_pricing_card( 
+						$pair['name'], 
+						$description, 
+						$pair['monthly_id'], 
+						$pair['annual_id'] 
+					);
+				}
+			}
 			?>
 		</div>
 
