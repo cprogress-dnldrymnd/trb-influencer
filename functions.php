@@ -57,7 +57,7 @@ include 'includes/elementor.php';
 include 'includes/feeds.php';
 //include 'includes/shortcodes.php';
 //include 'includes/ajax.php';
-include 'includes/theme-settings.php';
+//include 'includes/theme-settings.php';
 
 
 
