@@ -355,7 +355,6 @@ add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
 
 
 
-<?php
 /**
  * Plugin Name: PMPro Custom Pricing Table Integrator
  * Description: Registers a settings interface with tabbed partitions and repeater fields to manage custom pricing plans (e.g., 'Scale') alongside standard PMPro levels.
