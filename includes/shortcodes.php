@@ -788,6 +788,8 @@ function shortcode_influencer_niches()
                 // Escaped for security, converted to lowercase to match previous hardcoded styling
                 echo '<span class="chip style-2 bg-2">' . esc_html(strtolower($term->name)) . '</span>';
             }
+        } else {
+            echo '<style>#influencer-niches{diplay: none}</style>';
         }
         ?>
     </div>
