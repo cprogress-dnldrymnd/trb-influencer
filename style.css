@@ -1074,4 +1074,14 @@ input:checked + .slider:before {
         background-position: center;
         background-repeat: no-repeat; }
 
+.mycred-sell-this-wrapper.mycred-sell-this-wrapper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1; }
+  .mycred-sell-this-wrapper.mycred-sell-this-wrapper + div {
+    filter: blur(6px) !important; }
+
 /*# sourceMappingURL=style.css.map */

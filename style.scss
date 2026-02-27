@@ -1361,3 +1361,15 @@ input:checked + .slider:before {
         }
     }
 }
+
+.mycred-sell-this-wrapper.mycred-sell-this-wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    & + div {
+        filter: blur(6px) !important;
+    }
+}
