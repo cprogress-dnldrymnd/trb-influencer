@@ -1583,4 +1583,15 @@ body:not(.page-id-4144) {
             font-size: 18px;
         }
     }
+
+    h4 {
+        font-size: 22px;
+        line-height: 1.2;
+        @media (max-width: 1024px) {
+            font-size: 18px;
+        }
+        @media (max-width: 767px) {
+            font-size: 16px;
+        }
+    }
 }
