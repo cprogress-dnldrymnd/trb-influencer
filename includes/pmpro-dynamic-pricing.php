@@ -342,7 +342,6 @@ class DD_PMPro_Frontend_Pricing
 
 			.dd-card-active {
 				border: 2px solid var(--e-global-color-secondary);
-				background: #eae6e1;
 			}
 
 			.dd-badge {
