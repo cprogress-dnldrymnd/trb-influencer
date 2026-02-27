@@ -1,4 +1,7 @@
 <?php
+if (!defined('ABSPATH')) {
+    exit;
+}
 /**
  * Retrieve all Elementor Global Colors (System + Custom).
  *
@@ -28,10 +31,10 @@ function get_elementor_global_colors()
     if (! empty($kit_settings['system_colors'])) {
         foreach ($kit_settings['system_colors'] as $key => $color_data) {
             $all_colors[] = [
-                'type'  => 'system',
-                'id'    => $color_data['_id'], // e.g., 'primary'
-                'title' => isset($color_data['title']) ? $color_data['title'] : ucfirst($color_data['_id']),
-                'color' => $color_data['color'], // The Hex code
+                'type'    => 'system',
+                'id'      => $color_data['_id'], // e.g., 'primary'
+                'title'   => isset($color_data['title']) ? $color_data['title'] : ucfirst($color_data['_id']),
+                'color'   => $color_data['color'] ?? '', // The Hex code (using null coalescing to prevent undefined key warnings)
                 'css_var' => "--e-global-color-{$color_data['_id']}" // The CSS variable Elementor generates
             ];
         }
@@ -41,10 +44,10 @@ function get_elementor_global_colors()
     if (! empty($kit_settings['custom_colors'])) {
         foreach ($kit_settings['custom_colors'] as $color_data) {
             $all_colors[] = [
-                'type'  => 'custom',
-                'id'    => $color_data['_id'], // Random hash ID
-                'title' => $color_data['title'],
-                'color' => $color_data['color'],
+                'type'    => 'custom',
+                'id'      => $color_data['_id'], // Random hash ID
+                'title'   => isset($color_data['title']) ? $color_data['title'] : '',
+                'color'   => $color_data['color'] ?? '', // (using null coalescing to prevent undefined key warnings)
                 'css_var' => "--e-global-color-{$color_data['_id']}"
             ];
         }
@@ -52,7 +55,6 @@ function get_elementor_global_colors()
 
     return $all_colors;
 }
-
 
 
 add_filter('acf/load_field/name=header_text_colour', 'acf_elementor_global_colours');
