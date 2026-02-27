@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: PMPro AJAX Signup Form
  * Plugin URI:  https://digitallydisruptive.co.uk/
@@ -9,11 +10,11 @@
  * License:     GPL-2.0+
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
+if (! class_exists('DD_PMPro_Ajax_Signup')) {
 
     /**
      * Core plugin class for handling PMPro AJAX Signup integrations.
@@ -22,7 +23,8 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
      * the Paid Memberships Pro signup form with AJAX validation via inline
      * JavaScript and custom profile fields, utilizing an object-oriented architecture.
      */
-    class DD_PMPro_Ajax_Signup {
+    class DD_PMPro_Ajax_Signup
+    {
 
         /**
          * Plugin version identifier.
@@ -40,9 +42,10 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
          *
          * @return void
          */
-        public function __construct() {
-            add_action( 'wp_footer', array( $this, 'inject_inline_script' ) );
-            add_action( 'init', array( $this, 'add_avatar_field' ) );
+        public function __construct()
+        {
+            add_action('wp_footer', array($this, 'inject_inline_script'));
+            add_action('init', array($this, 'add_avatar_field'));
         }
 
         /**
@@ -55,110 +58,116 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
          *
          * @return void
          */
-        public function inject_inline_script() {
+        public function inject_inline_script()
+        {
             // Verify PMPro is active before injecting script payloads.
-            if ( ! function_exists( 'pmpro_url' ) && !is_page(4144) ) {
+            if (! function_exists('pmpro_url')) {
                 return;
             }
-            ?>
-            <script type="text/javascript">
-            /**
-             * PMPro AJAX Signup Form Handler
-             * Intercepts the checkout submission, processses the POST request silently,
-             * and dynamically injects validation errors back into the shortcode UI 
-             * without allowing the browser to redirect to the main checkout page.
-             */
-            document.addEventListener('DOMContentLoaded', function() {
-                
-                const form = document.getElementById('pmpro_form');
-                if (!form) return;
+            if (is_page(4144)) {
+?>
+                <script type="text/javascript">
+                    /**
+                     * PMPro AJAX Signup Form Handler
+                     * Intercepts the checkout submission, processses the POST request silently,
+                     * and dynamically injects validation errors back into the shortcode UI 
+                     * without allowing the browser to redirect to the main checkout page.
+                     */
+                    document.addEventListener('DOMContentLoaded', function() {
 
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
+                        const form = document.getElementById('pmpro_form');
+                        if (!form) return;
 
-                    const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
-                    if (!submitBtn) {
-                        form.submit();
-                        return;
-                    }
+                        form.addEventListener('submit', async function(e) {
+                            e.preventDefault();
 
-                    const originalText = submitBtn.value || submitBtn.textContent || 'Processing...';
-                    
-                    if (submitBtn.tagName.toLowerCase() === 'input') {
-                        submitBtn.value = 'Processing...';
-                    } else {
-                        submitBtn.textContent = 'Processing...';
-                    }
-                    submitBtn.disabled = true;
-
-                    const formData = new FormData(form);
-                    
-                    if (!formData.has('submit-checkout')) {
-                        formData.append('submit-checkout', '1');
-                    }
-
-                    // Target the form's native action URL (typically /membership-checkout/)
-                    const fetchUrl = form.action || window.location.href;
-
-                    try {
-                        // Execute POST request. redirect: 'follow' ensures the Fetch API 
-                        // transparently resolves the 302 redirect returning the final HTML.
-                        const response = await fetch(fetchUrl, {
-                            method: 'POST',
-                            body: formData,
-                            redirect: 'follow' 
-                        });
-
-                        // Parse the virtual DOM from the final resolved URL
-                        const html = await response.text();
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-
-                        const pmproMessage = doc.querySelector('#pmpro_message, .pmpro_error');
-                        const existingMessage = document.querySelector('#pmpro_message, .pmpro_error');
-
-                        // Evaluate if the resulting page contains a validation error
-                        if (pmproMessage && pmproMessage.classList.contains('pmpro_error')) {
-                            
-                            // Inject the error message dynamically into the current /sign-up/ page
-                            if (existingMessage) {
-                                existingMessage.replaceWith(pmproMessage);
-                            } else {
-                                form.parentNode.insertBefore(pmproMessage, form);
+                            const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
+                            if (!submitBtn) {
+                                form.submit();
+                                return;
                             }
-                            
-                            // Restore button state
+
+                            const originalText = submitBtn.value || submitBtn.textContent || 'Processing...';
+
                             if (submitBtn.tagName.toLowerCase() === 'input') {
-                                submitBtn.value = originalText;
+                                submitBtn.value = 'Processing...';
                             } else {
-                                submitBtn.textContent = originalText;
+                                submitBtn.textContent = 'Processing...';
                             }
-                            submitBtn.disabled = false;
+                            submitBtn.disabled = true;
 
-                            pmproMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            const formData = new FormData(form);
 
-                        } else {
-                            // No errors detected. Safely process the success redirect.
-                            if (response.redirected) {
-                                window.location.href = response.url;
-                            } else if (doc.querySelector('.pmpro_confirmation_wrap')) {
-                                const signupWrap = document.querySelector('.pmpro_signup_wrap') || form.parentNode;
-                                signupWrap.replaceWith(doc.querySelector('.pmpro_confirmation_wrap'));
-                            } else {
-                                // Failsafe fallback
-                                window.location.href = fetchUrl;
+                            if (!formData.has('submit-checkout')) {
+                                formData.append('submit-checkout', '1');
                             }
-                        }
 
-                    } catch (error) {
-                        console.error('PMPro AJAX Validation Error:', error);
-                        form.removeEventListener('submit', arguments.callee);
-                        form.submit(); 
-                    }
-                });
-            });
-            </script>
-            <?php
+                            // Target the form's native action URL (typically /membership-checkout/)
+                            const fetchUrl = form.action || window.location.href;
+
+                            try {
+                                // Execute POST request. redirect: 'follow' ensures the Fetch API 
+                                // transparently resolves the 302 redirect returning the final HTML.
+                                const response = await fetch(fetchUrl, {
+                                    method: 'POST',
+                                    body: formData,
+                                    redirect: 'follow'
+                                });
+
+                                // Parse the virtual DOM from the final resolved URL
+                                const html = await response.text();
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(html, 'text/html');
+
+                                const pmproMessage = doc.querySelector('#pmpro_message, .pmpro_error');
+                                const existingMessage = document.querySelector('#pmpro_message, .pmpro_error');
+
+                                // Evaluate if the resulting page contains a validation error
+                                if (pmproMessage && pmproMessage.classList.contains('pmpro_error')) {
+
+                                    // Inject the error message dynamically into the current /sign-up/ page
+                                    if (existingMessage) {
+                                        existingMessage.replaceWith(pmproMessage);
+                                    } else {
+                                        form.parentNode.insertBefore(pmproMessage, form);
+                                    }
+
+                                    // Restore button state
+                                    if (submitBtn.tagName.toLowerCase() === 'input') {
+                                        submitBtn.value = originalText;
+                                    } else {
+                                        submitBtn.textContent = originalText;
+                                    }
+                                    submitBtn.disabled = false;
+
+                                    pmproMessage.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'center'
+                                    });
+
+                                } else {
+                                    // No errors detected. Safely process the success redirect.
+                                    if (response.redirected) {
+                                        window.location.href = response.url;
+                                    } else if (doc.querySelector('.pmpro_confirmation_wrap')) {
+                                        const signupWrap = document.querySelector('.pmpro_signup_wrap') || form.parentNode;
+                                        signupWrap.replaceWith(doc.querySelector('.pmpro_confirmation_wrap'));
+                                    } else {
+                                        // Failsafe fallback
+                                        window.location.href = fetchUrl;
+                                    }
+                                }
+
+                            } catch (error) {
+                                console.error('PMPro AJAX Validation Error:', error);
+                                form.removeEventListener('submit', arguments.callee);
+                                form.submit();
+                            }
+                        });
+                    });
+                </script>
+<?php
+            }
         }
 
         /**
@@ -169,8 +178,9 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
          *
          * @return void
          */
-        public function add_avatar_field() {
-            if ( ! function_exists( 'pmpro_add_user_field' ) && !is_page(4144) ) {
+        public function add_avatar_field()
+        {
+            if (! function_exists('pmpro_add_user_field')) {
                 return;
             }
 
@@ -186,7 +196,7 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
                 )
             );
 
-            pmpro_add_user_field( 'profile', $field );
+            pmpro_add_user_field('profile', $field);
         }
     }
 
