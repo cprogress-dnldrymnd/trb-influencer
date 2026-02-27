@@ -907,6 +907,12 @@ input:checked + .slider:before {
  * The core tooltip styling. Uses absolute positioning to float above the trigger.
  * Utilizes max-content to prevent awkward text wrapping, capped by a max-width.
  */
+.influencer-match-score-wrap.influencer-match-score-wrap {
+  color: var(--e-global-color-secondary);
+  font-weight: bold;
+  font-size: 15px;
+  font-family: Inter; }
+
 .influencer-match-score-tooltip {
   position: absolute;
   bottom: calc(100% + 10px);
