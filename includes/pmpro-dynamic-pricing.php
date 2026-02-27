@@ -427,7 +427,8 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			input:checked+.dd-slider {
-				background-color: var(--e-global-color-accent);;
+				background-color: var(--e-global-color-accent);
+				;
 			}
 
 			input:checked+.dd-slider:before {
@@ -452,20 +453,34 @@ class DD_PMPro_Frontend_Pricing
 				font-weight: var(--e-global-typography-accent-font-weight);
 				letter-spacing: var(--e-global-typography-accent-letter-spacing);
 				padding: 23px 30px;
-				color: var(--e-global-color-2ba2932);;
+				color: var(--e-global-color-2ba2932);
+				;
 				text-align: center;
 				border-radius: 5px;
 				transition: 400ms;
 			}
 
 			.dd-btn:hover {
-				background: var(--e-global-color-secondary);;
+				background: var(--e-global-color-secondary);
+				;
 			}
 
 			.dd-btn-disabled {
 				background: #ffbbae;
 				pointer-events: none;
 				cursor: not-allowed;
+			}
+
+			@media(max-width: 1024px) {
+				.dd-pricing-container {
+					grid-template-columns: repeat(2, 1fr);
+				}
+			}
+
+			@media(max-width: 767px) {
+				.dd-pricing-container {
+					grid-template-columns: repeat(1, 1fr);
+				}
 			}
 		</style>
 
