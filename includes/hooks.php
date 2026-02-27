@@ -109,6 +109,7 @@ function action_wp_head()
 
     echo '</style>';
 ?>
+<!--
     <div class="notice-wrap">
         <div class="notice-item-wrapper">
             <div class="notice-item succes" >
@@ -117,7 +118,7 @@ function action_wp_head()
                 <div class="mycred-points">20 points</div>
             </div>
         </div>
-    </div>
+    </div>-->
 <?php
 }
 
