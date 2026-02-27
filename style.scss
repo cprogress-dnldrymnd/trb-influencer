@@ -1309,6 +1309,7 @@ input:checked + .slider:before {
             align-items: center;
             font-weight: bold;
             font-family: "Inter";
+            gap: 10px;
 
             &:before {
                 content: "";
