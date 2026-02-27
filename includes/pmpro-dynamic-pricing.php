@@ -335,7 +335,7 @@ class DD_PMPro_Frontend_Pricing
 			.dd-card {
 				background: var(--e-global-color-2ba2932);
 				border-radius: 12px;
-				padding: 2rem;
+				padding: 55px 40px 40px;
 				width: 300px;
 				position: relative;
 				display: flex;
@@ -364,6 +364,7 @@ class DD_PMPro_Frontend_Pricing
 				font-size: 2rem;
 				margin: 0 0 1rem 0;
 				color: var(--e-global-color-secondary);
+				
 
 			}
 
