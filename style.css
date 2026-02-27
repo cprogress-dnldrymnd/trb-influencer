@@ -60,8 +60,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 
 .influencer-loop-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  /* 3 Columns */
+  grid-template-columns: repeat(auto-fill, 456px);
   gap: 20px; }
   .influencer-loop-grid > div > div {
     height: 100%; }
