@@ -1019,11 +1019,16 @@ class DD_Follower_Growth_Chart
                 .dd-range-card {
                     padding: 20px;
                 }
-            }
 
-            .dd-time-btn.dd-time-btn.dd-time-btn {
-                padding: 8px;
-                font-size: 10px;
+                .dd-time-btn.dd-time-btn.dd-time-btn {
+                    padding: 8px;
+                    font-size: 10px;
+
+                }
+
+                .dd-time-filters.dd-time-filters.dd-time-filters {
+                    width: 100%;
+                }
 
             }
         </style>
