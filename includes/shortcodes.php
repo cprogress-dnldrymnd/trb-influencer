@@ -1,5 +1,7 @@
 <?php
-
+if (!defined('ABSPATH')) {
+    exit;
+}
 /**
  * Shortcode to display Flag and Country Code (Supports 2 or 3 letter codes)
  * Usage: [country_with_flag]

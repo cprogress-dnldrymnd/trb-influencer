@@ -1,4 +1,7 @@
 <?php
+if (!defined('ABSPATH')) {
+    exit;
+}
 /**
  * Brief Parser: Extracts structured filters from natural-language campaign briefs.
  * Rule-based keyword extraction — no AI. Maps brief phrases to internal filter values.
@@ -7,9 +10,6 @@
  * @package HelloElementorChild
  */
 
-if (!defined('ABSPATH')) {
-    exit;
-}
 
 /**
  * Get keyword mappings for brief parsing.

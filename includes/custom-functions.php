@@ -1,4 +1,7 @@
 <?php
+if (!defined('ABSPATH')) {
+    exit;
+}
 function my_custom_variable_setup()
 {
     // Parse brief and merge into $_GET when on search results page with search-brief
