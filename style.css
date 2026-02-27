@@ -1015,13 +1015,11 @@ input:checked + .slider:before {
 .notice-wrap.notice-wrap.notice-wrap {
   opacity: 1; }
   .notice-wrap.notice-wrap.notice-wrap h1 {
-    font-size: 40px;
+    font-size: 16px;
+    font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 15px;
-    background-color: var(--e-global-color-5c6006e);
-    color: #fff;
     font-family: "Inter"; }
   .notice-wrap.notice-wrap.notice-wrap .notice-item {
     line-height: auto;
