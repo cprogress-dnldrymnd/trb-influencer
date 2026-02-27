@@ -228,7 +228,7 @@ function dd_restrict_inspect_on_influencer_pages() {
     
     // Verify the current route is a single 'influencer' custom post type page.
     // Ensure the string matches your exact Custom Post Type slug.
-    if ( ! is_singular( 'influencer' ) && current_user_can('administrator') ) {
+    if ( ! is_singular( 'influencer' ) && !current_user_can('administrator') ) {
         return;
     }
     ?>
