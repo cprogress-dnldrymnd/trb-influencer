@@ -1303,6 +1303,7 @@ input:checked + .slider:before {
         display: flex;
         padding: 0;
         overflow: hidden;
+        border: 1px solid;
         p {
             font-size: 14px;
             padding: 10px;
@@ -1313,12 +1314,13 @@ input:checked + .slider:before {
             padding: 10px;
             border-right: 1px solid #37ee6d;
             height: auto;
-                  display: flex;
+            display: flex;
             align-items: center;
-                justify-content: center;
+            justify-content: center;
         }
         &.succes {
-            background-color: var(--e-global-color-71dc021);
+            background-color: #d1fae5;
+            border-color: var(--e-global-color-71dc021);
         }
     }
 }

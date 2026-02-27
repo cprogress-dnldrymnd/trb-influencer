@@ -1028,7 +1028,8 @@ input:checked + .slider:before {
     color: #000;
     display: flex;
     padding: 0;
-    overflow: hidden; }
+    overflow: hidden;
+    border: 1px solid; }
     .notice-wrap.notice-wrap.notice-wrap .notice-item p {
       font-size: 14px;
       padding: 10px;
@@ -1042,6 +1043,7 @@ input:checked + .slider:before {
       align-items: center;
       justify-content: center; }
     .notice-wrap.notice-wrap.notice-wrap .notice-item.succes {
-      background-color: var(--e-global-color-71dc021); }
+      background-color: #d1fae5;
+      border-color: var(--e-global-color-71dc021); }
 
 /*# sourceMappingURL=style.css.map */
