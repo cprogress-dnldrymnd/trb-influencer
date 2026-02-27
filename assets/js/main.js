@@ -29,7 +29,7 @@
     function fix_styling_issue() {
         setTimeout(function () {
             jQuery('body').addClass('show-body');
-        }, 2000);
+        }, 1000);
     }
 
 
