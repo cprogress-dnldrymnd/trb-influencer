@@ -108,13 +108,8 @@ function action_wp_head()
 
 
     echo '</style>';
-?>
- 
-<?php
-    $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p><div/>');
 
-    // Execute the trigger function.
-    dd_trigger_mycred_notice(get_current_user_id(), $message);
+
 }
 
 add_action('wp_head', 'action_wp_head');
