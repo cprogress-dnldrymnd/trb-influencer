@@ -471,7 +471,7 @@ class DD_PMPro_Frontend_Pricing
 				cursor: not-allowed;
 			}
 
-			@media(max-width: 1024px) {
+			@media(max-width: 1300px) {
 				.dd-pricing-container {
 					grid-template-columns: repeat(2, 1fr);
 				}
