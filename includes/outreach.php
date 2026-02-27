@@ -639,10 +639,10 @@ class DD_Outreach_Manager
             </div>
             <div class="dd-overview-body">
                 <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type:</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project length:</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project Dates:</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
-                    <span class="tag"><strong>Budget:</strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
+                    <span class="tag"><strong>Project type : </strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
+                    <span class="tag"><strong>Project length : </strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
+                    <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
+                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
                 </div>
 
                 <h3 class="dd-subject-title"><?php echo esc_html($data['subject'] ?? 'No Subject'); ?></h3>
