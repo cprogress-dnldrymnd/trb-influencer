@@ -1098,10 +1098,10 @@ class DD_Outreach_Manager
             </div>
             <div class="dd-overview-body">
                 <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type:</strong> <?php echo esc_html($project_type); ?></span>
-                    <span class="tag"><strong>Project length:</strong> <?php echo esc_html($project_length); ?></span>
-                    <span class="tag"><strong>Project Dates:</strong> <?php echo esc_html($project_dates); ?></span>
-                    <span class="tag"><strong>Budget:</strong> <?php echo esc_html($budget); ?></span>
+                    <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
+                    <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
+                    <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
+                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
                 </div>
                 <div class="dd-message-sent-date">
                     <span>Sent at <?php echo esc_html($sent_date); ?></span>
