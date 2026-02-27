@@ -2,6 +2,41 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+/**
+ * Load theme dependencies with zero structural overhead.
+ *
+ * This function completely unrolls the inclusion process, eliminating array 
+ * allocation in memory and the CPU cycles required for iteration. It resolves
+ * the directory path exactly once and utilizes direct string concatenation 
+ * with the `require` statement for the absolute fastest execution time.
+ *
+ * @return void
+ */
+function dd_load_theme_dependencies() {
+    // Resolve and cache the directory path once.
+    // NOTE: Change to get_stylesheet_directory() if this is a child theme.
+    $dir = get_template_directory();
+
+    // Direct, unrolled require statements. 
+    // This is the fastest execution path in PHP for procedural files.
+    require $dir . '/includes/hooks.php';
+    require $dir . '/includes/custom-functions.php';
+    require $dir . '/includes/brief-parser.php';
+    require $dir . '/includes/mycred.php';
+    require $dir . '/includes/pmpro.php';
+    require $dir . '/includes/pmpro-dynamic-pricing.php';
+    require $dir . '/includes/acf.php';
+    require $dir . '/includes/sign-up.php';
+    require $dir . '/includes/elementor.php';
+    require $dir . '/includes/outreach.php';
+    require $dir . '/includes/charts.php';
+    require $dir . '/includes/feeds.php';
+    require $dir . '/includes/shortcodes.php';
+    require $dir . '/includes/ajax.php';
+}
+
+
 function my_custom_variable_setup()
 {
     // Parse brief and merge into $_GET when on search results page with search-brief
