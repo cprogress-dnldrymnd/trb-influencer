@@ -1519,7 +1519,6 @@ body:not(.page-id-4144) {
     display: none !important;
 }
 
-
 .influencer-platform-score--steady-growth {
     .chip {
         background-color: #e0f7fa;
@@ -1543,15 +1542,20 @@ body:not(.page-id-4144) {
     }
 }
 
-
 .pmpro-level-growth {
-    .pmpro-current-level pmpro-current-level-growth {
-        border: 4px solid var(--e-global-color-secondary);;
+    .pmpro-current-level-growth {
+        border: 4px solid var(--e-global-color-secondary);
+    }
+    .current--plan-tag {
+        display: flex !important;
     }
 }
 
 .pmpro-level-essential {
-    .pmpro-current-level pmpro-current-level-growth {
-        border: 4px solid var(--e-global-color-secondary);;
+    .pmpro-current-level-essential {
+        border: 4px solid var(--e-global-color-secondary);
+    }
+    .current--plan-tag {
+        display: flex !important;
     }
 }
