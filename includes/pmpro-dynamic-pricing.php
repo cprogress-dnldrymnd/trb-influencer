@@ -455,6 +455,7 @@ class DD_PMPro_Frontend_Pricing
 				color: var(--e-global-color-2ba2932);;
 				text-align: center;
 				border-radius: 5px;
+				transition: 400ms;
 			}
 
 			.dd-btn:hover {
