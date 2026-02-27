@@ -1152,16 +1152,16 @@ body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
 *::-webkit-scrollbar-thumb:active {
   background-color: #3b1527; }
 
-span#pmpro_submit_span {
+body:not(.page-id-4144) span#pmpro_submit_span {
   position: relative;
   width: 180px;
   text-align: center; }
-  span#pmpro_submit_span #pmpro_btn-submit {
+  body:not(.page-id-4144) span#pmpro_submit_span #pmpro_btn-submit {
     opacity: 0;
     z-index: 2;
     position: relative;
     width: 100%; }
-  span#pmpro_submit_span:before {
+  body:not(.page-id-4144) span#pmpro_submit_span:before {
     content: "Upgrade plan";
     position: absolute;
     left: 0;
@@ -1173,7 +1173,7 @@ span#pmpro_submit_span {
     border: none !important;
     border-radius: 5px 5px 5px 5px;
     padding: 23px 30px 23px 30px; }
-  span#pmpro_submit_span:hover:before {
+  body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
     background-color: var(--e-global-color-secondary); }
 
 /*# sourceMappingURL=style.css.map */
