@@ -204,13 +204,21 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * LOGIC: Award Registration Points
+     * * Awards points to a user upon registering for a specific Paid Memberships Pro level.
+     * Looks up the level ID, retrieves the corresponding level name, and logs the 
+     * transaction in myCRED.
+     *
+     * @param int    $user_id The ID of the user registering.
+     * @param object $morder  The membership order object from PMPro.
      */
     public function award_registration_points($user_id, $morder)
     {
         if (! function_exists('mycred_add')) return;
 
-        // 1. Get Level ID
+        // 1. Get Level ID and initialize Level Name
         $level_id = 0;
+        $level_name = '';
+
         if (! empty($morder) && isset($morder->membership_id)) {
             $level_id = intval($morder->membership_id);
         }
@@ -218,10 +226,26 @@ class DD_PMPro_Rewards_Manager
         // Fallback if order object is missing
         if (! $level_id && function_exists('pmpro_getMembershipLevelForUser')) {
             $level_obj = pmpro_getMembershipLevelForUser($user_id);
-            if ($level_obj) $level_id = intval($level_obj->id);
+            if ($level_obj) {
+                $level_id = intval($level_obj->id);
+                $level_name = $level_obj->name; // Capture name from fallback object
+            }
         }
 
         if (! $level_id) return;
+
+        // 2. Fetch Level Name if not already captured from the fallback
+        if (empty($level_name) && function_exists('pmpro_getLevel')) {
+            $level = pmpro_getLevel($level_id);
+            if ($level) {
+                $level_name = $level->name;
+            }
+        }
+
+        // Final fallback if name is somehow still empty
+        if (empty($level_name)) {
+            $level_name = 'Membership Level ' . $level_id;
+        }
 
         $config = $this->get_rewards_config();
 
@@ -231,14 +255,14 @@ class DD_PMPro_Rewards_Manager
                 $reg_points = intval($row['reg_points']);
 
                 if ($reg_points > 0) {
-                    // DEBUG LOG
-                    error_log("PMPro Rewards: Awarding {$reg_points} ({$this->point_type}) to User ID {$user_id} for Level {$level_id}");
+                    // DEBUG LOG - Updated to display level name
+                    error_log("PMPro Rewards: Awarding {$reg_points} ({$this->point_type}) to User ID {$user_id} for joining {$level_name}");
 
                     mycred_add(
                         'pmpro_registration',
                         $user_id,
                         $reg_points,
-                        sprintf('Bonus for joining Membership Level %d', $level_id),
+                        sprintf('Points gained by joining %s Membership', $level_name), // Updated text per requirements
                         $level_id,          // Reference ID
                         '',                 // Data
                         $this->point_type   // Explicit: 'mycred_default'
