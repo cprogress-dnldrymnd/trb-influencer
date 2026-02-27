@@ -111,7 +111,7 @@ function action_wp_head()
 ?>
  
 <?php
-    $message = sprintf('Welcome back, %s! Your custom notification has been triggered.', esc_html($user->display_name));
+    $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p><div/>');
 
     // Execute the trigger function.
     dd_trigger_mycred_notice(get_current_user_id(), $message);
