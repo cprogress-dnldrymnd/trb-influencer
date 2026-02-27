@@ -11,7 +11,7 @@
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
- 
+
 
         $(window).on('resize', function () {
             dashboardLogoHeightVar();
@@ -26,7 +26,7 @@
     });
 
 
-  
+
     /**
  * Calculates the outer height of the #members-area-header element 
  * and sets it as a custom CSS property (--members-area-header-height) on the body tag.
@@ -64,7 +64,7 @@
 
 
     function share_profile() {
-        console.log('x');
+
         const shareButton = document.querySelector('.share-profile a');
 
         if (!shareButton) {
@@ -94,6 +94,12 @@
             } catch (error) {
                 console.error('Clipboard write failed:', error);
             }
+        });
+
+        $('.share-profile-trigger').click(function (e) {
+            jQuery('#social-sharing').toggleClass('hide-element');
+            e.preventDefault();
+
         });
     }
 
