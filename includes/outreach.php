@@ -994,7 +994,7 @@ class DD_Outreach_Manager
                 $query->the_post();
                 $post_id = get_the_ID();
                 $influencer_id = get_post_meta($post_id, 'influencer_id', true);
-                $influencer_handle = get_post_meta($influencer_id, 'instagramId', true);
+                $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
 
 
