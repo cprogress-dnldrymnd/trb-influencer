@@ -949,6 +949,23 @@ input:checked + .slider:before {
   pointer-events: none;
   transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, bottom 0.2s ease-in-out; }
 
+.influencer-match-score-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; }
+  .influencer-match-score-checklist .checklist {
+    display: flex;
+    align-items: center;
+    gap: 10px; }
+    .influencer-match-score-checklist .checklist:before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 20px;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23fff" class="bi bi-check-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>');
+      background-size: contain;
+      background-repeat: no-repeat; }
+
 /*
  * .influencer-match-score-tooltip::after
  * Generates the directional arrow (caret) pointing down to the trigger element.
