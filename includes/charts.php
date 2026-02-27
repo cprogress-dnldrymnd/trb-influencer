@@ -334,7 +334,7 @@ class DD_Follower_Growth_Chart
                 if (payloadMonthly.labels.length === 0) {
                     document.getElementById('ddMonthlyChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No follower data available for this creator.</p>';
                     document.getElementById('ddSummaryBadge').innerText = 'No Data';
-                    jQuery('.dd-chart-footer').hide();
+                    document.querySelectorAll('.dd-chart-footer').forEach(el => el.style.display = 'none');
                     document.getElementById('ddMonthlyLastUpdated').innerText = 'Last updated: N/A';
                     return;
                 }
