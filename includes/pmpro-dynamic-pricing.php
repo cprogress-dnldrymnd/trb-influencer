@@ -325,11 +325,9 @@ class DD_PMPro_Frontend_Pricing
 	?>
 		<style>
 			.dd-pricing-container {
-				display: flex;
+				display: grid;
 				gap: 2rem;
-				justify-content: center;
-				flex-wrap: wrap;
-				align-items: stretch;
+				grid-template-columns: repeat(3, 1fr);
 			}
 
 			.dd-card {
@@ -364,7 +362,7 @@ class DD_PMPro_Frontend_Pricing
 				font-size: 2rem;
 				margin: 0 0 1rem 0;
 				color: var(--e-global-color-secondary);
-				
+
 
 			}
 
