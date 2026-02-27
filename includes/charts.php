@@ -256,7 +256,7 @@ class DD_Follower_Growth_Chart
             $like_range_data  = $this->prepare_like_range_data($raw_data);
 
             $total_gain = !empty($monthly_data['gains']) ? array_sum($monthly_data['gains']) : 0;
-            $monthly_data['summary_action'] = $total_gain < 0 ? 'Loss' : 'Gained';
+            $monthly_data['summary_action'] = $total_gain < 0 ? 'Lost' : 'Gained';
             $monthly_data['summary_gain'] = number_format(abs($total_gain));
 
             $unified_payload = [

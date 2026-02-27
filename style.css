@@ -322,7 +322,7 @@ input:checked + .slider:before {
   font-size: 13px;
   font-weight: 500;
   line-height: 1; }
-  .chip.Loss {
+  .chip.Lost {
     background-color: #ffe0e0;
     border-color: red;
     color: red; }
