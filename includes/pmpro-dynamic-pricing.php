@@ -360,6 +360,8 @@ class DD_PMPro_Frontend_Pricing
 				border-radius: 20px;
 				font-size: 22px;
 				font-weight: bold;
+				max-width: 300px;
+				width: 100%;
 			}
 
 			.dd-plan-name {
