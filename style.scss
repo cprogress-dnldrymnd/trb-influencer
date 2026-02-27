@@ -1287,14 +1287,8 @@ input:checked + .slider:before {
 
 .notice-wrap.notice-wrap.notice-wrap {
     opacity: 1;
-    h1 {
-        font-size: 16px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: "Inter";
-    }
+     font-family: "Inter";
+  
     .notice-item {
         line-height: auto;
         color: #000;
