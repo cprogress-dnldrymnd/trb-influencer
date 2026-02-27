@@ -1395,3 +1395,12 @@ input:checked + .slider:before {
         }
     }
 }
+
+#dashboard--activity {
+    @media (max-width: 1400px) {
+        flex-direction: column;
+        > div {
+           --awidth: 100%;
+        }
+    }
+}
