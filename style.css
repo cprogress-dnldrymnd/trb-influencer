@@ -1216,6 +1216,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 
 .pmpro-level-growth .pmpro-current-level-growth {
   border: 4px solid var(--e-global-color-secondary); }
+  .pmpro-level-growth .pmpro-current-level-growth.pmpro-level-12.annually {
+    pointer-events: none;
+    opacity: 0.7; }
 .pmpro-level-growth .current--plan-tag {
   display: flex !important; }
 
