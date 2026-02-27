@@ -501,6 +501,9 @@ input:checked + .slider:before {
 
     &.pmpro_form_field-checkbox {
         .pmpro_form_label {
+            font-size: 18px;
+        }
+        .pmpro_form_label {
             margin-top: 10px;
             display: block;
             line-height: 1;
