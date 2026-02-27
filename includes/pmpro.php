@@ -380,35 +380,3 @@ function dd_pmpro_keep_errors_on_custom_page( $pages ) {
     return $pages;
 }
 add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
-
-
-
-/**
- * * Modifies Paid Memberships Pro checkout button text via the gettext filter.
- * This function intercepts translated strings in WordPress and specifically
- * targets the 'paid-memberships-pro' text domain to replace the default
- * checkout button strings seamlessly without altering DOM output.
- *
- * @param string $translated_text The translated text.
- * @param string $text            The original text before translation.
- * @param string $domain          The text domain.
- * @return string                 The modified translated text.
- */
-function ddr_pmpro_custom_checkout_text( $translated_text, $text, $domain ) {
-	// Strictly target the PMPro text domain to optimize performance and prevent cross-plugin side effects.
-	if ( 'paid-memberships-pro' !== $domain ) {
-		return $translated_text;
-	}
-
-	// Intercept and replace specific checkout button strings.
-	switch ( $text ) {
-		case 'Submit and Check Out':
-		case 'Checkout and Continue':
-			// Update the string below to your preferred button text.
-			$translated_text = __( 'Complete Secure Checkout', 'paid-memberships-pro' );
-			break;
-	}
-
-	return $translated_text;
-}
-add_filter( 'gettext', 'ddr_pmpro_custom_checkout_text', 20, 3 );
