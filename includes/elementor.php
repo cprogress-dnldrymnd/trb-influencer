@@ -280,30 +280,3 @@ add_filter('elementor/frontend/widget/should_render', 'dd_evaluate_mycred_elemen
 add_filter('elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
 add_filter('elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
 add_filter('elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
-
-
-/**
- * Enqueues the Elementor template CSS programmatically by ID.
- * * This function initializes the Elementor Post CSS file object and triggers
- * the enqueue method. If the CSS file does not exist, Elementor will compile 
- * it on the fly before enqueuing.
- *
- * @author Digitally Disruptive - Donald Raymundo
- * @author_uri https://digitallydisruptive.co.uk/
- *
- * @param int $template_id The post ID of the Elementor template.
- * @return void
- */
-function dd_enqueue_elementor_template_css(int $template_id): void
-{
-    // Verify Elementor is active and the required class exists to prevent fatal errors.
-    if (! class_exists('\Elementor\Core\Files\CSS\Post')) {
-        return;
-    }
-
-    // Initialize the Elementor Post CSS file object for the target template.
-    $css_file = new \Elementor\Core\Files\CSS\Post($template_id);
-
-    // Enqueue the stylesheet directly into the WordPress queue.
-    $css_file->enqueue();
-}
