@@ -1028,6 +1028,9 @@ input:checked + .slider:before {
     .influencer-avatar-fallback {
         width: var(--size, 188px);
         height: var(--size, 188px);
+        @media (max-width: 767px) {
+            --size: 70px;
+        }
     }
     .influencer-avatar-fallback {
         font-size: 40px;
@@ -1400,7 +1403,7 @@ input:checked + .slider:before {
     @media (max-width: 1300px) {
         flex-direction: column;
         > div {
-           --width: 100%;
+            --width: 100%;
         }
     }
 }

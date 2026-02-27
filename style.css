@@ -818,6 +818,10 @@ input:checked + .slider:before {
 .large-avatar .influencer-avatar-fallback {
   width: var(--size, 188px);
   height: var(--size, 188px); }
+  @media (max-width: 767px) {
+    .large-avatar .avatar-holder.avatar-holder img,
+    .large-avatar .influencer-avatar-fallback {
+      --size: 70px; } }
 .large-avatar .influencer-avatar-fallback {
   font-size: 40px; }
 
