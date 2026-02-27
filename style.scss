@@ -1166,7 +1166,6 @@ input:checked + .slider:before {
     color: #f8fafc;
     font-size: 12px;
     font-weight: 400;
-    text-align: center;
     border-radius: 6px;
     box-shadow:
         0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -1193,7 +1192,7 @@ input:checked + .slider:before {
         align-items: center;
         gap: 10px;
         &:before {
-            content: '';
+            content: "";
             display: block;
             width: 20px;
             height: 20px;
