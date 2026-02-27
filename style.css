@@ -1014,7 +1014,11 @@ input:checked + .slider:before {
 
 .notice-wrap.notice-wrap.notice-wrap {
   opacity: 1;
-  font-family: "Inter"; }
+  font-family: "Inter";
+  position: fixed;
+  right: 40px;
+  top: 40px;
+  z-index: 999999; }
   .notice-wrap.notice-wrap.notice-wrap .notice-item {
     line-height: auto;
     color: #000;
@@ -1023,7 +1027,8 @@ input:checked + .slider:before {
     overflow: hidden;
     border: 1px solid;
     align-items: center;
-    gap: 10px; }
+    gap: 10px;
+    border-radius: 5px; }
     .notice-wrap.notice-wrap.notice-wrap .notice-item p {
       font-size: 14px;
       margin: 0; }

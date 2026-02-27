@@ -1288,7 +1288,10 @@ input:checked + .slider:before {
 .notice-wrap.notice-wrap.notice-wrap {
     opacity: 1;
     font-family: "Inter";
-
+    position: fixed;
+    right: 40px;
+    top: 40px;
+    z-index: 999999;
     .notice-item {
         line-height: auto;
         color: #000;
@@ -1298,6 +1301,7 @@ input:checked + .slider:before {
         border: 1px solid;
         align-items: center;
         gap: 10px;
+        border-radius: 5px;
         p {
             font-size: 14px;
             margin: 0;
