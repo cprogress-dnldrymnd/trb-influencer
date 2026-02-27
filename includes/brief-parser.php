@@ -1,7 +1,4 @@
 <?php
-if (!defined('ABSPATH')) {
-    exit;
-}
 /**
  * Brief Parser: Extracts structured filters from natural-language campaign briefs.
  * Rule-based keyword extraction — no AI. Maps brief phrases to internal filter values.
@@ -10,6 +7,9 @@ if (!defined('ABSPATH')) {
  * @package HelloElementorChild
  */
 
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * Get keyword mappings for brief parsing.
@@ -216,6 +216,56 @@ function _brief_normalize_slugs($val)
 }
 
 /**
+ * Match brief text directly against taxonomy terms (slug and name).
+ * Used to pick up terms not in the keyword dictionary (e.g. CreatorDB niches/topics/tags).
+ * Returns slugs for terms whose slug or name appears as a whole word in the brief.
+ *
+ * @param string $text    Brief text.
+ * @param string $taxonomy Taxonomy name (niche, topic, content_tag).
+ * @return array Matched slugs.
+ */
+function match_brief_to_taxonomy_terms($text, $taxonomy)
+{
+    if (empty($text) || !is_string($text)) {
+        return [];
+    }
+
+    $terms = get_terms([
+        'taxonomy'   => $taxonomy,
+        'hide_empty' => false,
+        'fields'     => 'all',
+    ]);
+
+    if (is_wp_error($terms) || empty($terms)) {
+        return [];
+    }
+
+    $text_lower = strtolower(trim($text));
+    $found = [];
+
+    foreach ($terms as $term) {
+        $slug_lower = strtolower($term->slug);
+        $name_lower = strtolower($term->name);
+        // Slug "country-music" -> match "country music" or "country-music"
+        $slug_as_words = str_replace('-', ' ', $slug_lower);
+        // Match whole words: slug, name, or slug-with-spaces
+        $patterns = [
+            '/\b' . preg_quote($slug_lower, '/') . '\b/',
+            '/\b' . preg_quote($name_lower, '/') . '\b/',
+            '/\b' . preg_quote($slug_as_words, '/') . '\b/',
+        ];
+        foreach ($patterns as $pat) {
+            if (preg_match($pat, $text_lower)) {
+                $found[$term->slug] = true;
+                break;
+            }
+        }
+    }
+
+    return array_keys($found);
+}
+
+/**
  * Resolve extracted niche keywords to actual taxonomy slugs.
  * Exact match only. Wellbeing/wellness synonyms both resolve.
  */
@@ -391,14 +441,16 @@ function parse_search_brief($text)
         }
     }
 
-    // Niches (with wellbeing/wellness synonym — keywords can map to multiple slugs)
+    // Niches: 1) keyword dictionary (priority / platform-built-for), 2) taxonomy terms
     $niche_keywords = [];
     foreach ($mappings['niche'] as $phrase => $slug_or_slugs) {
         if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
             $niche_keywords = array_merge($niche_keywords, _brief_normalize_slugs($slug_or_slugs));
         }
     }
-    $result['niche'] = resolve_brief_niches(array_unique($niche_keywords));
+    $niche_from_dict = resolve_brief_niches(array_unique($niche_keywords));
+    $niche_from_tax  = match_brief_to_taxonomy_terms($text, 'niche');
+    $result['niche'] = array_values(array_unique(array_merge($niche_from_dict, $niche_from_tax)));
 
     // Countries
     $country_found = [];
@@ -421,14 +473,16 @@ function parse_search_brief($text)
     }
     $result['country'] = array_keys($country_found);
 
-    // Platforms
+    // Platforms: 1) keyword dictionary (ig, yt, etc.), 2) taxonomy terms
     $platform_keywords = [];
     foreach ($mappings['platform'] as $phrase => $slug) {
         if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
             $platform_keywords[] = $slug;
         }
     }
-    $result['platform'] = resolve_brief_platforms(array_unique($platform_keywords));
+    $platform_from_dict = resolve_brief_platforms(array_unique($platform_keywords));
+    $platform_from_tax  = match_brief_to_taxonomy_terms($text, 'platform');
+    $result['platform'] = array_values(array_unique(array_merge($platform_from_dict, $platform_from_tax)));
 
     // Filters
     foreach ($mappings['filter'] as $phrase => $filter_key) {
@@ -438,13 +492,17 @@ function parse_search_brief($text)
     }
     $result['filter'] = array_unique($result['filter']);
 
-    // Topics & Content Tags — use niche keywords as hints (brief phrases often overlap)
-    // For now, resolve the same extracted niche-related terms against topic/content_tag
+    // Topics: 1) dictionary niche keywords (platform-built-for), 2) taxonomy terms
     $topic_keywords = array_unique($niche_keywords);
-    $result['topic'] = resolve_brief_topics($topic_keywords);
+    $topic_from_dict = resolve_brief_topics($topic_keywords);
+    $topic_from_tax  = match_brief_to_taxonomy_terms($text, 'topic');
+    $result['topic'] = array_values(array_unique(array_merge($topic_from_dict, $topic_from_tax)));
 
+    // Content Tags: 1) dictionary niche keywords, 2) taxonomy terms
     $content_tag_keywords = array_unique($niche_keywords);
-    $result['content_tag'] = resolve_brief_content_tags($content_tag_keywords);
+    $ct_from_dict = resolve_brief_content_tags($content_tag_keywords);
+    $ct_from_tax  = match_brief_to_taxonomy_terms($text, 'content_tag');
+    $result['content_tag'] = array_values(array_unique(array_merge($ct_from_dict, $ct_from_tax)));
 
     return $result;
 }
