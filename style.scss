@@ -1369,7 +1369,11 @@ input:checked + .slider:before {
     right: 0;
     bottom: 0;
     z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
     & + div {
-        filter: blur(6px) !important;
+        filter: blur(5px) !important;
     }
 }
