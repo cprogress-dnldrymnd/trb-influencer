@@ -47,8 +47,8 @@ include 'includes/hooks.php';
 include 'includes/custom-functions.php';
 include 'includes/brief-parser.php';
 include 'includes/mycred.php';
-include 'includes/pmpro.php';
-include 'includes/pmpro-dynamic-pricing.php';
+//include 'includes/pmpro.php';
+//include 'includes/pmpro-dynamic-pricing.php';
 include 'includes/acf.php';
 include 'includes/sign-up.php';
 include 'includes/elementor.php';
@@ -57,7 +57,6 @@ include 'includes/charts.php';
 include 'includes/feeds.php';
 include 'includes/shortcodes.php';
 include 'includes/ajax.php';
-//include 'includes/openai.php';
 include 'includes/theme-settings.php';
 
 
