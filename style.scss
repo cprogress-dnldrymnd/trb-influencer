@@ -1545,6 +1545,11 @@ body:not(.page-id-4144) {
 .pmpro-level-growth {
     .pmpro-current-level-growth {
         border: 4px solid var(--e-global-color-secondary);
+        &.pmpro-level-12 {
+            &.annually {
+
+            }
+        }
     }
     .current--plan-tag {
         display: flex !important;
@@ -1557,5 +1562,7 @@ body:not(.page-id-4144) {
     }
     .current--plan-tag {
         display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
 }
