@@ -4,7 +4,7 @@
  * Plugin Name: PMPro AJAX Signup Form
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Converts the PMPro Signup form into an AJAX-driven form via inline JS, strictly preventing redirects to the main checkout page on validation errors. Includes custom avatar and required acceptance fields.
- * Version:     1.0.2
+ * Version:     1.0.3
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * License:     GPL-2.0+
@@ -31,7 +31,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          *
          * @var string
          */
-        private $version = '1.0.2';
+        private $version = '1.0.3';
 
         /**
          * Initializes the class and registers WordPress hooks.
@@ -205,6 +205,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          *
          * Fetches the native WordPress Privacy Policy URL and the specific 
          * Terms of Use page URL (via ID) to generate an HTML string for the checkbox option.
+         * Uses the 'text' parameter for single-checkbox inline rendering.
          * Enforces strict frontend and backend validation by setting the field to required.
          *
          * @return void
@@ -232,11 +233,9 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 'checkbox',
                 array(
                     'label'    => 'Agreements',
-                    'options'  => array(
-                        'yes' => $label_html
-                    ),
-                    'required' => true,  // Enforces validation on checkout
-                    'profile'  => false, // Keeps this out of the user profile edit screen
+                    'text'     => $label_html, // Use 'text' instead of 'options' array for a single boolean checkbox
+                    'required' => true,        // Enforces validation on checkout
+                    'profile'  => false,       // Keeps this out of the user profile edit screen
                 )
             );
 
