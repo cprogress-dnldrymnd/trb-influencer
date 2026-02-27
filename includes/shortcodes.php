@@ -334,7 +334,7 @@ function influencer_get_matched_criteria_labels($post_id, $criteria)
         }
         $matched = count(array_intersect($content_terms, $influencer_slugs)) > 0;
         if ($matched) {
-            $phrases[] = 'Frequently posts about topics related to your brief';
+            $phrases[] = '<span class="checklist">Frequently posts about topics related to your brief</span>';
         }
     }
 
@@ -343,7 +343,7 @@ function influencer_get_matched_criteria_labels($post_id, $criteria)
         $incountry = strtoupper(trim((string) get_post_meta($post_id, 'country', true)));
         $req       = array_map('strtoupper', array_map('trim', (array) $criteria['country']));
         if ($incountry && in_array($incountry, $req, true)) {
-            $phrases[] = 'Audience demographics align well with your target';
+            $phrases[] = '<span class="checklist">Audience demographics align well with your target</span>';
         }
     }
 
@@ -352,7 +352,7 @@ function influencer_get_matched_criteria_labels($post_id, $criteria)
         $platforms = wp_get_post_terms($post_id, 'platform');
         foreach ($platforms as $t) {
             if (in_array($t->slug, (array) $criteria['platform'], true)) {
-                $phrases[] = 'Content style fits your campaign goals';
+                $phrases[] = '<span class="checklist">Content style fits your campaign goals</span>';
                 break;
             }
         }
@@ -372,7 +372,7 @@ function influencer_get_matched_criteria_labels($post_id, $criteria)
             $in_range = $f >= (int) $range;
         }
         if ($in_range) {
-            $phrases[] = 'Reach aligns with your campaign scope';
+            $phrases[] = '<span class="checklist">Reach aligns with your campaign scope</span>';
         }
     }
 
@@ -381,14 +381,14 @@ function influencer_get_matched_criteria_labels($post_id, $criteria)
     if ($prioritise) {
         $er = (float) get_post_meta($post_id, 'engagerate', true);
         if ($er > 0) {
-            $phrases[] = 'Engagement levels suit this campaign type';
+            $phrases[] = '<span class="checklist">Engagement levels suit this campaign type</span>';
         }
     }
 
     // Verified
     $verified_only = !empty($criteria['filter']) && in_array('Include only verified influencers', (array) $criteria['filter'], true);
     if ($verified_only && get_post_meta($post_id, 'isverified', true)) {
-        $phrases[] = 'Verified creator';
+        $phrases[] = '<span class="checklist">Verified creator</span>';
     }
 
     return array_unique($phrases);
