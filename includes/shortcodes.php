@@ -757,7 +757,7 @@ function shortcode_influencer_topics()
                 echo '<span class="chip style-2">' . esc_html(strtoupper($term->name)) . '</span>';
             }
         } else {
-            echo '<style>#influencer-topic{diplay: none}</style>';
+            echo '<style>#influencer-topic{display: none}</style>';
         }
         ?>
     </div>
@@ -789,7 +789,7 @@ function shortcode_influencer_niches()
                 echo '<span class="chip style-2 bg-2">' . esc_html(strtolower($term->name)) . '</span>';
             }
         } else {
-            echo '<style>#influencer-niches{diplay: none}</style>';
+            echo '<style>#influencer-niches{display: none}</style>';
         }
         ?>
     </div>
