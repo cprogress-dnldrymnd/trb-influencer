@@ -79,13 +79,14 @@ add_shortcode('influencers_meta', 'influencers_meta');
 
 
 /**
- * Plugin Name: Restrict Dashboard Access
- * Description: Redirects non-logged-in users to the homepage if they attempt to access the Dashboard page template.
- * Version: 1.0.1
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
+ * Remove the default WordPress shutdown buffer flush action.
+ *
+ * This snippet unhooks 'wp_ob_end_flush_all' from the 'shutdown' action.
+ * It is primarily used to suppress "Failed to send buffer" errors in 
+ * specific server configurations or when custom output buffering is required.
+ *
+ * @return void
  */
-
-if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly.
-}
+add_action('init', function () {
+    remove_action('shutdown', 'wp_ob_end_flush_all', 1);
+});
