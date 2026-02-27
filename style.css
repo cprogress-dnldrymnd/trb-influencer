@@ -1188,4 +1188,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   border-radius: 50%;
   border: 2px solid var(--e-global-color-secondary); }
 
+.pmpro {
+  --pmpro--color--error-text: var(--e-global-color-secondary); }
+
 /*# sourceMappingURL=style.css.map */
