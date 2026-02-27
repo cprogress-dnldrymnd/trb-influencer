@@ -19,7 +19,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: clamp(2px, 0.2vw, 8px);
     .niche-term {
         background: var(--e-global-color-c9360c1);
         border-radius: 54px;
