@@ -498,6 +498,16 @@ input:checked + .slider:before {
         outline: none;
         padding: var(--pmpro--base--spacing--small);
     }
+
+    .pmpro_form_field-checkbox {
+        .pmpro_form_label {
+            display: block;
+            line-height: 1;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--e-global-color-primary);
+        }
+    }
 }
 
 .pmpro.pmpro {
@@ -1563,7 +1573,7 @@ body:not(.page-id-4144) {
     * {
         font-family: Inter;
     }
-    
+
     h1,
     h2,
     h3,
