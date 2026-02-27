@@ -109,6 +109,15 @@ function action_wp_head()
 
     echo '</style>';
 ?>
+    <div class="notice-wrap">
+        <div class="notice-item-wrapper">
+            <div class="notice-item succes" style="">
+                <div class="notice-item-close">×</div>
+                <p>Purchase of <a href="https://influencer.theprogressteam.com/influencer/kayla_itsines/">KAYLA ITSINES</a></p>
+                <h1>-1</h1>
+            </div>
+        </div>
+    </div>
 <?php
 }
 
