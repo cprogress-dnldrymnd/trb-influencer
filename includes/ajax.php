@@ -401,7 +401,7 @@ function handle_save_search_ajax()
 /**
  * 2. Handle the AJAX Request
  * * Processes the save/unsave action for an influencer, updates the 'saved-influencer' 
- * custom post type, and queues a myCred notification for the frontend.
+ * custom post type, and passes the notification HTML back to the client via JSON.
  * * @return void Sends a JSON response.
  */
 function handle_save_influencer_ajax()
@@ -422,7 +422,7 @@ function handle_save_influencer_ajax()
         wp_send_json_error(array('message' => 'No Influencer ID provided.'));
     }
 
-    // Establish current user ID for both save and unsave operations
+    // Establish current user ID
     $current_user_id = get_current_user_id();
 
     if ($type == 'save') {
@@ -447,22 +447,30 @@ function handle_save_influencer_ajax()
             // Update Meta Data
             update_post_meta($post_id, 'influencer_id', $influencer_id);
 
-            // Trigger myCred Notification for 'Save'
+            // Construct the notification HTML
             $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p></div>');
-            dd_trigger_mycred_notice( $current_user_id, $message );
 
-            wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
+            // Return the HTML directly in the success payload
+            wp_send_json_success(array(
+                'message'     => 'Saved successfully!',
+                'id'          => $post_id,
+                'notice_html' => $message
+            ));
         }
     } else {
         $saved_id = is_influencer_saved($influencer_id);
         if ($saved_id) {
             wp_delete_post($saved_id, true);
 
-            // Trigger myCred Notification for 'Unsave'
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been removed from your Saved Lists</p></div>');
-            dd_trigger_mycred_notice( $current_user_id, $message );
+            // Construct the notification HTML
+            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
 
-            wp_send_json_success(array('message' => 'Unsaved successfully!', 'id' => $saved_id));
+            // Return the HTML directly in the success payload
+            wp_send_json_success(array(
+                'message'     => 'Unsaved successfully!',
+                'id'          => $saved_id,
+                'notice_html' => $message
+            ));
         }
     }
 }

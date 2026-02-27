@@ -374,6 +374,30 @@
         }
     }
 
+    /**
+  * Renders a dynamic notification popup mimicking myCred's native transient notices.
+  *
+  * @param {string} htmlContent The HTML payload returned from the AJAX response.
+  * @return {void}
+  */
+    function display_dynamic_mycred_notice(htmlContent) {
+        // Construct the wrapper element. Adjust inline styles as needed to match your theme.
+        var $notice = $('<div class="mycred-custom-ajax-notice" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; background: #fff; border: 1px solid #ccc; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; border-left: 4px solid #0073aa;">' + htmlContent + '</div>');
+
+        // Append to DOM
+        $('body').append($notice);
+
+        // Animate in
+        $notice.fadeIn(300);
+
+        // Auto-remove after 4 seconds to keep the DOM clean
+        setTimeout(function () {
+            $notice.fadeOut(300, function () {
+                $(this).remove();
+            });
+        }, 4000);
+    }
+
     function saved_influencer_trigger() {
         // Listen for click on .save-influencer-trigger
         $(document).on('click', '.save-influencer-trigger', function (e) {
@@ -384,8 +408,11 @@
             // Get the ID from the attribute
             var influencerId = $button.attr('influencer-id');
             var $buttonText = $(this).find('.elementor-button-text');
-            // (Optional) Visual feedback: Change button text or disable it
 
+            // Scope variables properly
+            var type, buttonupdated, buttonupdating;
+
+            // (Optional) Visual feedback: Change button text or disable it
             if ($button.hasClass('delete-save')) {
                 type = 'delete';
                 buttonupdated = 'SAVED';
@@ -409,7 +436,12 @@
                 },
                 success: function (response) {
                     if (response.success) {
-                        alert('Success: ' + response.data.message);
+
+                        // Render the dynamic HTML notice passed from PHP, replacing the native alert()
+                        if (response.data.notice_html) {
+                            display_dynamic_mycred_notice(response.data.notice_html);
+                        }
+
                         $buttonText.text(buttonupdated);
 
                         if (type == 'delete') {
@@ -432,7 +464,6 @@
             });
         });
     }
-
     function saved_search_trigger() {
         /**
          * Helper Function: Get Checked Values
