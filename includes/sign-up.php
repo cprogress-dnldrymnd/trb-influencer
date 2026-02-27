@@ -4,7 +4,7 @@
  * Plugin Name: PMPro AJAX Signup Form
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Converts the PMPro Signup form into an AJAX-driven form via inline JS, strictly preventing redirects to the main checkout page on validation errors. Includes custom avatar and required acceptance fields.
- * Version:     1.0.3
+ * Version:     1.0.4
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * License:     GPL-2.0+
@@ -31,14 +31,14 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          *
          * @var string
          */
-        private $version = '1.0.3';
+        private $version = '1.0.4';
 
         /**
          * Initializes the class and registers WordPress hooks.
          *
          * The constructor binds the required actions to their respective
-         * WordPress lifecycle hooks to inject inline scripts into the footer
-         * and register PMPro user fields upon instantiation.
+         * WordPress lifecycle hooks to inject inline scripts into the footer,
+         * register PMPro user fields, and enforce strict server-side validation upon instantiation.
          *
          * @return void
          */
@@ -47,6 +47,9 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
             add_action('init', array($this, 'add_acceptance_field'));
+            
+            // Hook early into checkout validation to prevent ghost user creation.
+            add_filter('pmpro_registration_checks', array($this, 'validate_acceptance_field'));
         }
 
         /**
@@ -206,7 +209,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          * Fetches the native WordPress Privacy Policy URL and the specific 
          * Terms of Use page URL (via ID) to generate an HTML string for the checkbox option.
          * Uses the 'text' parameter for single-checkbox inline rendering.
-         * Enforces strict frontend and backend validation by setting the field to required.
+         * Enforces strict frontend validation by setting the field to required.
          *
          * @return void
          */
@@ -232,15 +235,42 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 'terms_acceptance',
                 'checkbox',
                 array(
-                    'label'    => 'Acceptance',
+                    'label'    => 'Agreements',
                     'text'     => $label_html, // Use 'text' instead of 'options' array for a single boolean checkbox
-                    'required' => true,        // Enforces validation on checkout
+                    'required' => true,        // Enforces validation on checkout rendering
                     'profile'  => false,       // Keeps this out of the user profile edit screen
                 )
             );
 
             // Attach to the 'profile' field group on checkout so it renders naturally in the form
             pmpro_add_user_field('profile', $field);
+        }
+
+        /**
+         * Validates the acceptance field during the PMPro pre-registration checks.
+         *
+         * This method acts as a strict server-side gatekeeper. PMPro occasionally processes
+         * user creation before fully resolving custom field validation errors. Hooking into
+         * 'pmpro_registration_checks' ensures the checkout process is entirely halted—preventing
+         * ghost user creation and subsequent nonce failures—if the terms are not explicitly accepted.
+         *
+         * @param bool $continue_registration Current boolean state of registration checks.
+         * @return bool Returns false if validation fails, halting checkout; otherwise returns the original boolean state.
+         */
+        public function validate_acceptance_field($continue_registration)
+        {
+            // Bypass if previous checks have already halted registration.
+            if (! $continue_registration) {
+                return $continue_registration;
+            }
+
+            // Verify the specific field payload in the POST request lifecycle.
+            if (empty($_REQUEST['terms_acceptance'])) {
+                pmpro_setMessage('You must agree to the Privacy Policy and Terms of Use to continue.', 'pmpro_error');
+                return false;
+            }
+
+            return $continue_registration;
         }
     }
 
