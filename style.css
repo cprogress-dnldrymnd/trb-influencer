@@ -1199,22 +1199,17 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 #pmpro_level_group-1 {
   display: none !important; }
 
-.influencer-platform-score--growth-opportunity .chip {
-  background-color: #c7e7ff;
-  border: 1px solid #3b88c3;
-  color: #3b88c3; }
-
-.influencer-platform-score--high-growth .chip {
-  background-color: #e8f5e9;
-  border: 1px solid #2e7d32;
-  color: #2e7d32; }
-
 .influencer-platform-score--steady-growth .chip {
   background-color: #e0f7fa;
   border: 1px solid #00838f;
   color: #00838f; }
 
 .influencer-platform-score--moderate-growth .chip {
+  background-color: #c7e7ff;
+  border: 1px solid #3b88c3;
+  color: #3b88c3; }
+
+.influencer-platform-score--growth-opportunity .chip {
   background-color: #fff3e0;
   border: 1px solid #ef6c00;
   color: #ef6c00; }
