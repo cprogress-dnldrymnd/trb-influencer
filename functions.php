@@ -49,6 +49,7 @@ include 'includes/brief-parser.php';
 include 'includes/mycred.php';
 include 'includes/pmpro.php';
 include 'includes/acf.php';
+include 'includes/sign-up.php';
 include 'includes/elementor.php';
 include 'includes/outreach.php';
 include 'includes/charts.php';
