@@ -1029,6 +1029,8 @@ input:checked + .slider:before {
     .notice-wrap.notice-wrap.notice-wrap .notice-item p {
       font-size: 14px;
       margin: 0; }
+    .notice-wrap.notice-wrap.notice-wrap .notice-item a {
+      color: var(--e-global-color-primary); }
     .notice-wrap.notice-wrap.notice-wrap .notice-item h1 {
       font-size: 14px;
       display: flex;
