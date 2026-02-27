@@ -1558,3 +1558,15 @@ body:not(.page-id-4144) {
         color: #ef6c00;
     }
 }
+
+.default--page {
+    h2 {
+        font-size: 40px;
+        @media (max-width: 1024px) {
+            font-size: 36px;
+        }
+        @media (max-width: 767px) {
+            font-size: 32px;
+        }
+    }
+}
