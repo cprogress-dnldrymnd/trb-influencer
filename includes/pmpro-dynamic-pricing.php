@@ -328,13 +328,13 @@ class DD_PMPro_Frontend_Pricing
 				display: grid;
 				gap: 2rem;
 				grid-template-columns: repeat(3, 1fr);
+				font-family: Inter;
 			}
 
 			.dd-card {
 				background: var(--e-global-color-2ba2932);
-				border-radius: 12px;
+				border-radius: 20px;
 				padding: 55px 40px 40px;
-				width: 300px;
 				position: relative;
 				display: flex;
 				flex-direction: column;
@@ -367,8 +367,6 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-plan-desc {
-				font-size: 0.95rem;
-				color: #555;
 				margin-bottom: 1.5rem;
 				flex-grow: 1;
 				white-space: pre-wrap;
