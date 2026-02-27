@@ -394,8 +394,8 @@ class DD_PMPro_Frontend_Pricing
 			.dd-switch {
 				position: relative;
 				display: inline-block;
-				width: 40px;
-				height: 20px;
+				width: 60px;
+				height: 34px;
 			}
 
 			.dd-switch input {
@@ -418,10 +418,10 @@ class DD_PMPro_Frontend_Pricing
 			.dd-slider:before {
 				position: absolute;
 				content: "";
-				height: 16px;
-				width: 16px;
-				left: 2px;
-				bottom: 2px;
+				height: 26px;
+				width: 26px;
+				left: 4px;
+				bottom: 4px;
 				background-color: white;
 				transition: .4s;
 			}
