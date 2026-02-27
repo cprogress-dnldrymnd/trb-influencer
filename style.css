@@ -1113,7 +1113,7 @@ input:checked + .slider:before {
     #dashboard--activity > div {
       --width: 100%; } }
 
-body:not(.pmpro-level-free-trial) #upgrade--plan {
+body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
   display: none !important; }
 
 /*# sourceMappingURL=style.css.map */
