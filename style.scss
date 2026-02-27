@@ -1151,10 +1151,10 @@ input:checked + .slider:before {
     max-width: 250px;
     padding: 8px 12px;
 
-    background-color: #1e293b;
+    background-color: var(--e-global-color-primary);
     color: #f8fafc;
-    font-size: 0.875rem;
-    font-weight: 500;
+       font-size: 12px;
+    font-weight: 400;
     text-align: center;
     border-radius: 6px;
     box-shadow:
