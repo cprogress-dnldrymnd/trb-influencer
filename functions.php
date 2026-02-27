@@ -45,7 +45,7 @@ add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
 
 // Resolve and cache the directory path once.
 // NOTE: Change to get_stylesheet_directory() if this is a child theme.
-$dir = get_template_directory();
+$dir = get_stylesheet_directory();
 
 // Direct, unrolled require statements. 
 // This is the fastest execution path in PHP for procedural files.
