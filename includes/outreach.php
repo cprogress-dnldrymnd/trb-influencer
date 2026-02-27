@@ -299,7 +299,17 @@ class DD_Outreach_Manager
                 border-top: 1px solid transparent;
                 cursor: pointer;
                 transition: background 0.2s;
-                gap: 15px;
+            }
+
+            .dd-outreach-item .avatar-holder {
+                flex: 0 0 68px;
+                width: 68px;
+            }
+
+            .dd-outreach-item .dd-item-content {
+                flex: 0 0 calc(100% - 68px);
+                width: calc(100% - 68px);
+                padding-left: 10px;;
             }
 
             .dd-outreach-item:hover,
