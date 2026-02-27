@@ -108,6 +108,17 @@ function action_wp_head()
 
 
     echo '</style>';
+    ?>
+<div class="notice-wrap">
+    <div class="notice-item-wrapper">
+        <div class="notice-item succes" style="">
+            <div class="notice-item-close">×</div>
+            <p>Bonus for joining Membership Level 8</p>
+            <h1>20</h1>
+        </div>
+    </div>
+</div>
+    <?php
 }
 
 add_action('wp_head', 'action_wp_head');
