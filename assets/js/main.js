@@ -381,6 +381,8 @@
   * @return {void}
   */
     function display_dynamic_mycred_notice(htmlContent) {
+        // Construct the wrapper element. Adjust inline styles as needed to match your theme.
+        var $notice = $('<div class="notice-wrap"> <div class="notice-item-wrapper"> <div class="notice-item succes" >' + htmlContent + '</div></div></div>');
 
         // Append to DOM
         $('body').append($htmlContent);
