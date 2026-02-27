@@ -499,7 +499,7 @@ input:checked + .slider:before {
         padding: var(--pmpro--base--spacing--small);
     }
 
-    .pmpro_form_field-checkbox {
+    &.pmpro_form_field-checkbox {
         .pmpro_form_label {
             margin-top: 10px;
             display: block;

@@ -387,7 +387,7 @@ input:checked + .slider:before {
   min-height: auto;
   outline: none;
   padding: var(--pmpro--base--spacing--small); }
-.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field .pmpro_form_field-checkbox .pmpro_form_label {
+.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field-checkbox .pmpro_form_label {
   margin-top: 10px;
   display: block;
   line-height: 1;
