@@ -354,3 +354,34 @@ function dd_pmpro_keep_errors_on_custom_page( $pages ) {
     return $pages;
 }
 add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
+
+
+/**
+ * Overrides the default logout redirect destination with the PMPro login page URL.
+ * Includes a validation check to ensure PMPro is active before attempting to retrieve its routing.
+ *
+ * @param string  $redirect_to           The default redirect destination URL.
+ * @param string  $requested_redirect_to The requested redirect destination URL passed as a parameter.
+ * @param WP_User $user                  The WP_User object for the user that is logging out.
+ * @return string                        The customized PMPro login URL or the fallback default URL.
+ */
+function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, $user ) {
+    
+    // Validate PMPro core functionality exists to prevent fatal errors if the plugin is deactivated
+    if ( function_exists( 'pmpro_url' ) ) {
+        
+        // Retrieve the designated PMPro login page URL via the core API
+        $pmpro_login_url = pmpro_url( 'login' );
+        
+        // Ensure a valid URL was returned before applying the redirect override
+        if ( ! empty( $pmpro_login_url ) ) {
+            return $pmpro_login_url;
+        }
+    }
+
+    // Fall back to default WordPress routing if PMPro is unavailable or the URL is empty
+    return $redirect_to;
+}
+
+// Hook into the logout_redirect filter with a standard priority of 10, accepting 3 arguments
+add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
