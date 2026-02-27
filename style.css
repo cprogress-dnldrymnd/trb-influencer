@@ -1129,11 +1129,11 @@ body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
 } */
 /* Chrome, Edge and Safari */
 *::-webkit-scrollbar {
-  height: 10px;
-  width: 10px; }
+  height: 7px;
+  width: 7px; }
 
 *::-webkit-scrollbar-track {
-  border-radius: 5px;
+  border-radius: 0px;
   background-color: #034146; }
 
 *::-webkit-scrollbar-track:hover {
@@ -1143,13 +1143,13 @@ body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
   background-color: #034146; }
 
 *::-webkit-scrollbar-thumb {
-  border-radius: 5px;
-  background-color: #FFFFFF; }
+  border-radius: 0px;
+  background-color: #ffffff; }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #FFFFFF; }
+  background-color: #ffffff; }
 
 *::-webkit-scrollbar-thumb:active {
-  background-color: #FFFFFF; }
+  background-color: #ffffff; }
 
 /*# sourceMappingURL=style.css.map */
