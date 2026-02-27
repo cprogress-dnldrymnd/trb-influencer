@@ -17,8 +17,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 body {
     opacity: 0;
     transition: 400ms;
+    visibility: hidden;
     &.show-body {
         opacity: 1;
+        visibility: visible;
     }
 }
 
@@ -1508,8 +1510,5 @@ body:not(.page-id-4144) {
 
 .pmpro {
     --pmpro--color--error-text: var(--e-global-color-secondary);
-    --pmpro--color--accent: var(--e-global-color-accent)
-}
-.pmpro_btn-delete {
-   
+    --pmpro--color--accent: var(--e-global-color-accent);
 }

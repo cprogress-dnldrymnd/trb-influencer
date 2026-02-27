@@ -14,9 +14,11 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 /* Add your custom styles here */
 body {
   opacity: 0;
-  transition: 400ms; }
+  transition: 400ms;
+  visibility: hidden; }
   body.show-body {
-    opacity: 1; }
+    opacity: 1;
+    visibility: visible; }
 
 /* Basic styling to make them look like tags - Customize as needed */
 .influencer-niche-container {
@@ -1190,6 +1192,6 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 
 .pmpro {
   --pmpro--color--error-text: var(--e-global-color-secondary);
-  --pmpro--color--accent: var(--e-global-color-accent) ; }
+  --pmpro--color--accent: var(--e-global-color-accent); }
 
 /*# sourceMappingURL=style.css.map */
