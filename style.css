@@ -75,6 +75,9 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
   @media (max-width: 767px) {
     .influencer-loop-grid {
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+  @media (max-width: 480px) {
+    .influencer-loop-grid {
+      grid-template-columns: repeat(auto-fit, minmax(100%, 1fr)); } }
 
 /* =========================================
    1. Variables & Configuration

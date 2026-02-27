@@ -85,8 +85,11 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
 
-      @media (max-width: 767px) {
+    @media (max-width: 767px) {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    @media (max-width: 480px) {
+        grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
     }
 }
 
