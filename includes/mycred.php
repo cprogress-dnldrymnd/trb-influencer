@@ -1,5 +1,7 @@
 <?php
-
+if (! defined('ABSPATH')) {
+    exit; // Exit if accessed directly to prevent direct file execution.
+}
 /**
  * Triggers a custom myCred notification popup for a specific user.
  *

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: CreatorDB Instagram Feed
  * Plugin URI: https://digitallydisruptive.co.uk/

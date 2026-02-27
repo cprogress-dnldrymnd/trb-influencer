@@ -1,5 +1,7 @@
 <?php
-
+if (! defined('ABSPATH')) {
+    exit; // Exit if accessed directly to prevent direct file execution.
+}
 /**
  * Set Global Membership Level Variable
  *

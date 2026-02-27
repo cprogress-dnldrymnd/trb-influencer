@@ -1,5 +1,7 @@
 <?php
-
+if (! defined('ABSPATH')) {
+    exit; // Exit if accessed directly to prevent direct file execution.
+}
 /**
  * Shortcode to display current user's PMPro membership level name.
  * Usage: [current_membership_level]

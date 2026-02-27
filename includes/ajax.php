@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/

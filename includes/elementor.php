@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Disable Elementor Pro / Pro Elements Header & Footer on Dashboard Template
  */
