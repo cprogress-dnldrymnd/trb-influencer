@@ -16,7 +16,7 @@ function dd_set_global_pmpro_variable()
 {
     global $current_membership_level, $is_free_trial, $number_of_searches, $search_results_page_id, $search_page_id, $dashboard_page_id;
 
-    $number_of_searches = do_shortcode('[number_of_searches]');
+    $number_of_searches = number_of_searches();
     $search_results_page_id = 1949;
     $search_page_id = 2149;
     $dashboard_page_id = 1565;
