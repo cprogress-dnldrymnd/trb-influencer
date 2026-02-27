@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format.
- * Version: 1.0.2
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format, with native backend description management.
+ * Version: 1.0.3
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -14,16 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * * Handles the registration, data retrieval, and rendering of the dynamic pricing table shortcode.
+ * * Handles the registration of the admin settings interface, data retrieval, and rendering of the dynamic pricing table shortcode.
  */
 class DD_PMPro_Frontend_Pricing {
 
 	/**
 	 * Constructor.
-	 * * Initializes the shortcode registration hook during the WordPress 'init' action.
+	 * * Initializes the shortcode registration and admin menu hooks during the WordPress lifecycle.
 	 */
 	public function __construct() {
 		add_action( 'init', [ $this, 'register_pricing_shortcode' ] );
+		add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
+		add_action( 'admin_init', [ $this, 'register_plugin_settings' ] );
 	}
 
 	/**
@@ -33,6 +35,123 @@ class DD_PMPro_Frontend_Pricing {
 	 */
 	public function register_pricing_shortcode() {
 		add_shortcode( 'dd_pricing_table', [ $this, 'render_pricing_table' ] );
+	}
+
+	/**
+	 * Registers the backend submenu page under the PMPro Dashboard.
+	 * * Hooks into the admin_menu action to inject a native WordPress settings page.
+	 * * @return void
+	 */
+	public function register_admin_menu() {
+		// Enforce PMPro dependency for the menu placement
+		if ( ! defined( 'PMPRO_VERSION' ) ) {
+			return;
+		}
+
+		add_submenu_page(
+			'pmpro-dashboard',                      // Parent slug (PMPro Dashboard)
+			'Pricing Table Settings',               // Page title
+			'Pricing Settings',                     // Menu title
+			'manage_options',                       // Capability required
+			'dd-pricing-settings',                  // Menu slug
+			[ $this, 'render_settings_page' ]       // Callback function to render the page
+		);
+	}
+
+	/**
+	 * Registers the settings, sections, and fields for the WordPress Settings API.
+	 * * Secures the data in the wp_options table and maps the frontend inputs to the backend processing.
+	 * * @return void
+	 */
+	public function register_plugin_settings() {
+		// Register the option group
+		register_setting( 'dd_pricing_settings_group', 'dd_essential_desc' );
+		register_setting( 'dd_pricing_settings_group', 'dd_growth_desc' );
+
+		// Add a section for the fields
+		add_settings_section(
+			'dd_pricing_main_section',
+			'Plan Descriptions',
+			[ $this, 'render_section_intro' ],
+			'dd-pricing-settings'
+		);
+
+		// Add Essential Description Field
+		add_settings_field(
+			'dd_essential_desc_field',
+			'Essential Plan Description',
+			[ $this, 'render_textarea_field' ],
+			'dd-pricing-settings',
+			'dd_pricing_main_section',
+			[
+				'label_for' => 'dd_essential_desc',
+				'name'      => 'dd_essential_desc',
+				'default'   => 'Discover creators across 2000+ industries & niches.',
+			]
+		);
+
+		// Add Growth Description Field
+		add_settings_field(
+			'dd_growth_desc_field',
+			'Growth Plan Description',
+			[ $this, 'render_textarea_field' ],
+			'dd-pricing-settings',
+			'dd_pricing_main_section',
+			[
+				'label_for' => 'dd_growth_desc',
+				'name'      => 'dd_growth_desc',
+				'default'   => 'Analyze creators & manage your creator partnerships.',
+			]
+		);
+	}
+
+	/**
+	 * Renders the introductory text for the settings section.
+	 * * @return void
+	 */
+	public function render_section_intro() {
+		echo '<p>Update the descriptions displayed on the frontend pricing table shortcode.</p>';
+	}
+
+	/**
+	 * Renders a dynamic textarea field for the Settings API.
+	 * * @param array $args Contains 'name' and 'default' keys passed from add_settings_field.
+	 * * @return void
+	 */
+	public function render_textarea_field( $args ) {
+		$option_value = get_option( $args['name'], $args['default'] );
+		?>
+		<textarea id="<?php echo esc_attr( $args['name'] ); ?>" 
+				  name="<?php echo esc_attr( $args['name'] ); ?>" 
+				  rows="4" 
+				  class="regular-text"><?php echo esc_textarea( $option_value ); ?></textarea>
+		<?php
+	}
+
+	/**
+	 * Renders the HTML wrapper for the backend settings page.
+	 * * Uses native WordPress form handling to process the registered settings.
+	 * * @return void
+	 */
+	public function render_settings_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<form action="options.php" method="post">
+				<?php
+				// Output security fields for the registered setting group
+				settings_fields( 'dd_pricing_settings_group' );
+				// Output setting sections and their fields
+				do_settings_sections( 'dd-pricing-settings' );
+				// Output save settings button
+				submit_button( 'Save Descriptions' );
+				?>
+			</form>
+		</div>
+		<?php
 	}
 
 	/**
@@ -152,8 +271,8 @@ class DD_PMPro_Frontend_Pricing {
 
 	/**
 	 * Renders the shortcode output including styling, HTML structure, and foolproof JS logic.
-	 * * Constructs the full grid layout, processing the predefined level mappings 
-	 * based on your provided database structure (Essential: 8/10, Growth: 9/12).
+	 * * Constructs the full grid layout, pulling dynamic descriptions from the options table, 
+	 * and processing the predefined level mappings (Essential: 8/10, Growth: 9/12).
 	 * * @param array $atts Shortcode attributes (optional overrides).
 	 * @return string     The complete HTML, CSS, and JS to output to the frontend.
 	 */
@@ -163,6 +282,10 @@ class DD_PMPro_Frontend_Pricing {
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
 
+		// Retrieve dynamic descriptions from the backend settings
+		$essential_desc = get_option( 'dd_essential_desc', 'Discover creators across 2000+ industries & niches.' );
+		$growth_desc    = get_option( 'dd_growth_desc', 'Analyze creators & manage your creator partnerships.' );
+
 		ob_start();
 		?>
 		<style>
@@ -171,7 +294,7 @@ class DD_PMPro_Frontend_Pricing {
 			.dd-card-active { border: 2px solid #3c2a2a; background: #eae6e1; }
 			.dd-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #ffe270; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: #333; }
 			.dd-plan-name { font-size: 2rem; margin: 0 0 1rem 0; color: #5a3c3c; font-family: serif; }
-			.dd-plan-desc { font-size: 0.95rem; color: #555; margin-bottom: 1.5rem; flex-grow: 1; }
+			.dd-plan-desc { font-size: 0.95rem; color: #555; margin-bottom: 1.5rem; flex-grow: 1; white-space: pre-wrap; }
 			.dd-price-wrapper { font-size: 2.2rem; font-weight: bold; color: #4a3434; margin-bottom: 1rem; }
 			
 			/* Toggle Switch CSS */
@@ -194,8 +317,8 @@ class DD_PMPro_Frontend_Pricing {
 
 		<div class="dd-pricing-container">
 			<?php
-			echo $this->build_pricing_card( 'Essential', 'Discover creators across 2000+ industries & niches.', 8, 10 );
-			echo $this->build_pricing_card( 'Growth', 'Analyze creators & manage your creator partnerships.', 9, 12 );
+			echo $this->build_pricing_card( 'Essential', $essential_desc, 8, 10 );
+			echo $this->build_pricing_card( 'Growth', $growth_desc, 9, 12 );
 			?>
 		</div>
 
