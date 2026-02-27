@@ -111,6 +111,10 @@ function action_wp_head()
 ?>
  
 <?php
+    $message = sprintf('Welcome back, %s! Your custom notification has been triggered.', esc_html($user->display_name));
+
+    // Execute the trigger function.
+    dd_trigger_mycred_notice(get_current_user_id(), $message);
 }
 
 add_action('wp_head', 'action_wp_head');
