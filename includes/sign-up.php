@@ -170,7 +170,7 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
          * @return void
          */
         public function add_avatar_field() {
-            if ( ! function_exists( 'pmpro_add_user_field' ) ) {
+            if ( ! function_exists( 'pmpro_add_user_field' ) && !is_page(4144) ) {
                 return;
             }
 
