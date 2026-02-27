@@ -296,23 +296,12 @@ function dd_append_membership_level_body_class( $classes ) {
         if ( ! empty( $level ) && isset( $level->name ) ) {
             // Converts the string (e.g., "Gold Tier") to a slug (e.g., "pmpro-level-gold-tier")
             $membership_slugs[] = 'pmpro-level-' . sanitize_title( $level->name );
+            $membership_slugs[] = 'pmpro-level-' . sanitize_title( $level->id );
         }
     }
+ 
 
-    // 2. WooCommerce Memberships Integration
-    if ( function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
-        $user_memberships = wc_memberships_get_user_active_memberships( $user_id );
-        if ( ! empty( $user_memberships ) ) {
-            foreach ( $user_memberships as $user_membership ) {
-                $plan = $user_membership->get_plan();
-                if ( $plan ) {
-                    $membership_slugs[] = 'wc-membership-' . sanitize_title( $plan->get_name() );
-                }
-            }
-        }
-    }
-
-    // 3. Fallback: Standard WordPress User Role
+    // 2. Fallback: Standard WordPress User Role
     // If no membership plugin data is found, utilize the assigned WP roles
     if ( empty( $membership_slugs ) ) {
         $user = get_userdata( $user_id );
