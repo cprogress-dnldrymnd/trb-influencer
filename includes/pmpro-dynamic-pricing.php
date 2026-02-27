@@ -458,8 +458,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-btn:hover {
-				background: #fa7b63;
-				color: white;
+				background: var(--e-global-color-secondary);;
 			}
 
 			.dd-btn-disabled {
