@@ -378,9 +378,9 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-price-wrapper {
-				font-size: 2.2rem;
+				font-size: 37px;
 				font-weight: bold;
-				color: #4a3434;
+				color: var(--e-global-color-secondary);
 				margin-bottom: 1rem;
 			}
 
