@@ -2199,3 +2199,21 @@ function shortcode_intagram_id_fixed($atts)
     }
 }
 add_shortcode('instagram_id', 'shortcode_intagram_id_fixed');
+
+
+/**
+ * Returns the current calendar year.
+ *
+ * This function utilizes the PHP date() function to retrieve the 
+ * current 4-digit year. It is hooked into the WordPress shortcode 
+ * API to allow usage within post content, widgets, or templates.
+ *
+ * @return string The current 4-digit year.
+ */
+function dd_current_year_shortcode() {
+    // Return the current year in 'Y' format (e.g., 2026)
+    return date('Y');
+}
+
+// Register the shortcode with WordPress
+add_shortcode('current_year', 'dd_current_year_shortcode');
