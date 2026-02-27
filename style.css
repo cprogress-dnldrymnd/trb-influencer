@@ -1177,6 +1177,30 @@ body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
 *::-webkit-scrollbar-thumb:active {
   background-color: #3b1527; }
 
+body:not(.page-id-4144) span#pmpro_submit_span {
+  position: relative;
+  width: 180px;
+  text-align: center; }
+  body:not(.page-id-4144) span#pmpro_submit_span #pmpro_btn-submit {
+    opacity: 0;
+    z-index: 2;
+    position: relative;
+    width: 100%; }
+  body:not(.page-id-4144) span#pmpro_submit_span:before {
+    content: "Upgrade plan";
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--e-global-color-primary);
+    color: var(--e-global-color-2ba2932);
+    border: none !important;
+    border-radius: 5px 5px 5px 5px;
+    padding: 23px 30px 23px 30px; }
+  body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
+    background-color: var(--e-global-color-secondary); }
+
 .pmpro_form_field-file-preview.pmpro_form_field-file-preview img {
   width: 100px;
   height: 100px;
