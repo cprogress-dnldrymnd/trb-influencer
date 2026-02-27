@@ -448,18 +448,10 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-btn {
-				background: #ff8c75;
-				color: white;
-				text-align: center;
-				padding: 12px;
-				border-radius: 6px;
-				text-decoration: none;
-				font-weight: bold;
-				text-transform: uppercase;
-				transition: background 0.3s;
-				cursor: pointer;
-				display: block;
-				margin-top: auto;
+				background-color: var(--e-global-color-accent);
+				font-size: var(--e-global-typography-accent-font-size);
+				font-weight: var(--e-global-typography-accent-font-weight);
+				letter-spacing: var(--e-global-typography-accent-letter-spacing);
 			}
 
 			.dd-btn:hover {
