@@ -80,7 +80,7 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
 
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
-
+                    console.log('mama mo');
                     const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
                     if (!submitBtn) {
                         form.submit(); // Fallback if structural anomalies exist
