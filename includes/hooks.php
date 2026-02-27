@@ -324,3 +324,33 @@ function dd_disable_admin_bar_for_subscribers( $show_admin_bar ) {
 
 // Add the filter to the 'show_admin_bar' hook with default priority.
 add_filter( 'show_admin_bar', 'dd_disable_admin_bar_for_subscribers' );
+
+/**
+ * Filters the login redirect URL.
+ *
+ * This function intercepts the default WordPress login redirect process
+ * and redirects the user to the permalink associated with page ID 1565.
+ *
+ * @param string  $redirect_to           The redirect destination URL.
+ * @param string  $requested_redirect_to The requested redirect URL.
+ * @param WP_User $user                  The WP_User object of the authenticated user.
+ * @return string The filtered redirect URL.
+ */
+function dd_custom_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
+	// Define the target page ID for redirection.
+	$target_page_id = 1565;
+
+	// Retrieve the permalink for the target page.
+	$target_url = get_permalink( $target_page_id );
+
+	// Ensure the page exists before attempting the redirect.
+	if ( $target_url && ! is_wp_error( $target_url ) ) {
+		return $target_url;
+	}
+
+	// If the target page ID is invalid, fallback to the default redirect behavior.
+	return $redirect_to;
+}
+
+// Hook into the login_redirect filter with priority 10 to ensure it executes correctly.
+add_filter( 'login_redirect', 'dd_custom_login_redirect', 10, 3 );
