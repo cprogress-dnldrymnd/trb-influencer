@@ -188,8 +188,8 @@ class DD_Outreach_Manager
             }
 
             .view-outreach a:hover {
-                background-color: var( --e-global-color-secondary ) !important;
-                border: 1px solid var( --e-global-color-secondary );
+                background-color: var(--e-global-color-secondary) !important;
+                border: 1px solid var(--e-global-color-secondary);
             }
 
             .close-outreach a {
@@ -199,7 +199,7 @@ class DD_Outreach_Manager
                 color: var(--e-global-color-ee06e41) !important;
             }
 
-            
+
             .close-outreach a:hover {
                 background-color: var(--e-global-color-ee06e41) !important;
                 color: var(--e-global-color-2ba2932) !important;
@@ -621,7 +621,7 @@ class DD_Outreach_Manager
                 </div>
                 <div class="dd-profile-info">
                     <strong><?php echo get_the_title($data['influencer_id']); ?></strong><br>
-                    <small>@<?php echo get_post_meta($data['influencer_id'], 'instagramId', true); ?></small>
+                    <small>@<?php echo do_shortcode('[instagram_id id="' . $data['influencer_id'] . '"]') ?></small>
                 </div>
                 <a href="<?= get_the_permalink() ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
             </div>

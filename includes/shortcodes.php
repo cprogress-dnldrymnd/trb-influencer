@@ -1925,9 +1925,14 @@ function shortcode_saved_search_url()
 add_shortcode('saved_search_url', 'shortcode_saved_search_url');
 
 
-function shortcode_intagram_id_fixed()
+function shortcode_intagram_id_fixed($atts)
 {
-    $instagramid = get_post_meta(get_the_ID(), 'instagramid', true);
+
+    $atts = shortcode_atts(array(
+        'id'  => get_the_ID(),
+    ), $atts, 'instagram_id');
+
+    $instagramid = get_post_meta($atts['id'], 'instagramid', true);
     if ($instagramid) {
         return $instagramid;
     } else {
