@@ -183,42 +183,43 @@ add_action('elementor/query/unlocked_influencers', function ($query) {
  * @param array  $args       Additional arguments passed by the hook.
  * @return void
  */
-function dd_add_mycred_visibility_control( $element, $section_id, $args ) {
-	if ( ! ( $element instanceof \Elementor\Controls_Stack ) ) {
-		return;
-	}
+function dd_add_mycred_visibility_control($element, $section_id, $args)
+{
+    if (! ($element instanceof \Elementor\Controls_Stack)) {
+        return;
+    }
 
-	// 'section_effects' (Motion Effects) natively exists in the Advanced Tab for all structural elements.
-	if ( 'section_effects' !== $section_id ) {
-		return;
-	}
+    // 'section_effects' (Motion Effects) natively exists in the Advanced Tab for all structural elements.
+    if ('section_effects' !== $section_id) {
+        return;
+    }
 
-	$element->start_controls_section(
-		'dd_mycred_visibility_section',
-		[
-			'label' => esc_html__( 'MyCred Visibility', 'dd-elementor-mycred' ),
-			'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
-		]
-	);
+    $element->start_controls_section(
+        'dd_mycred_visibility_section',
+        [
+            'label' => esc_html__('MyCred Visibility', 'dd-elementor-mycred'),
+            'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
+        ]
+    );
 
-	$element->add_control(
-		'dd_mycred_condition',
-		[
-			'label'   => esc_html__( 'Display Element When User:', 'dd-elementor-mycred' ),
-			'type'    => \Elementor\Controls_Manager::SELECT,
-			'default' => 'always',
-			'options' => [
-				'always'     => esc_html__( 'Always (Ignore Points)', 'dd-elementor-mycred' ),
-				'has_points' => esc_html__( 'Has Points (> 0)', 'dd-elementor-mycred' ),
-				'no_points'  => esc_html__( 'Has No Points (0)', 'dd-elementor-mycred' ),
-			],
-			'description' => esc_html__( 'Determine if this element should render based on whether the current user has a positive MyCred balance.', 'dd-elementor-mycred' ),
-		]
-	);
+    $element->add_control(
+        'dd_mycred_condition',
+        [
+            'label'   => esc_html__('Display Element When User:', 'dd-elementor-mycred'),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => 'always',
+            'options' => [
+                'always'     => esc_html__('Always (Ignore Points)', 'dd-elementor-mycred'),
+                'has_points' => esc_html__('Has Points (> 0)', 'dd-elementor-mycred'),
+                'no_points'  => esc_html__('Has No Points (0)', 'dd-elementor-mycred'),
+            ],
+            'description' => esc_html__('Determine if this element should render based on whether the current user has a positive MyCred balance.', 'dd-elementor-mycred'),
+        ]
+    );
 
-	$element->end_controls_section();
+    $element->end_controls_section();
 }
-add_action( 'elementor/element/after_section_end', 'dd_add_mycred_visibility_control', 10, 3 );
+add_action('elementor/element/after_section_end', 'dd_add_mycred_visibility_control', 10, 3);
 
 
 /**
@@ -228,53 +229,81 @@ add_action( 'elementor/element/after_section_end', 'dd_add_mycred_visibility_con
  * @param mixed $element       The active element or document instance payload.
  * @return bool Modified boolean dictating if the element outputs HTML to the buffer.
  */
-function dd_evaluate_mycred_element_render( $should_render, $element ) {
-	// 🚨 IMPORTANT: Always return true in the Elementor Editor. 
-	if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
-		return $should_render;
-	}
+function dd_evaluate_mycred_element_render($should_render, $element)
+{
+    // 🚨 IMPORTANT: Always return true in the Elementor Editor. 
+    if (\Elementor\Plugin::$instance->editor->is_edit_mode()) {
+        return $should_render;
+    }
 
-	// Ensure the object has the required raw data extraction method
-	if ( ! method_exists( $element, 'get_data' ) ) {
-		return $should_render;
-	}
+    // Ensure the object has the required raw data extraction method
+    if (! method_exists($element, 'get_data')) {
+        return $should_render;
+    }
 
-	// BYPASS: Get raw database JSON data instead of frontend processed settings
-	// This prevents Popups from stripping the custom control data during render
-	$raw_data = $element->get_data();
-	$settings = isset( $raw_data['settings'] ) ? $raw_data['settings'] : [];
+    // BYPASS: Get raw database JSON data instead of frontend processed settings
+    // This prevents Popups from stripping the custom control data during render
+    $raw_data = $element->get_data();
+    $settings = isset($raw_data['settings']) ? $raw_data['settings'] : [];
 
-	// Bail early if the condition is not set or set to 'always'
-	if ( empty( $settings['dd_mycred_condition'] ) || 'always' === $settings['dd_mycred_condition'] ) {
-		return $should_render;
-	}
+    // Bail early if the condition is not set or set to 'always'
+    if (empty($settings['dd_mycred_condition']) || 'always' === $settings['dd_mycred_condition']) {
+        return $should_render;
+    }
 
-	$balance = 0;
-	$user_id = get_current_user_id();
-	
-	if ( $user_id ) {
-		// Strictly query the requested meta key
-		$raw_meta = get_user_meta( $user_id, 'mycred_default', true );
-		
-		// Strip all non-numeric characters to prevent string evaluation failures
-		$clean_meta = preg_replace( '/[^0-9.-]/', '', (string) $raw_meta );
-		$balance    = (float) $clean_meta;
-	}
+    $balance = 0;
+    $user_id = get_current_user_id();
 
-	// Evaluate conditions
-	if ( 'has_points' === $settings['dd_mycred_condition'] && $balance <= 0 ) {
-		return false; 
-	}
+    if ($user_id) {
+        // Strictly query the requested meta key
+        $raw_meta = get_user_meta($user_id, 'mycred_default', true);
 
-	if ( 'no_points' === $settings['dd_mycred_condition'] && $balance > 0 ) {
-		return false; 
-	}
+        // Strip all non-numeric characters to prevent string evaluation failures
+        $clean_meta = preg_replace('/[^0-9.-]/', '', (string) $raw_meta);
+        $balance    = (float) $clean_meta;
+    }
 
-	return $should_render;
+    // Evaluate conditions
+    if ('has_points' === $settings['dd_mycred_condition'] && $balance <= 0) {
+        return false;
+    }
+
+    if ('no_points' === $settings['dd_mycred_condition'] && $balance > 0) {
+        return false;
+    }
+
+    return $should_render;
 }
 
 // Priority 9999: Ensure this has the absolute final say in the render pipeline
-add_filter( 'elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
-add_filter( 'elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
-add_filter( 'elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
-add_filter( 'elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 9999, 2 );
+add_filter('elementor/frontend/widget/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
+add_filter('elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
+add_filter('elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
+add_filter('elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
+
+
+/**
+ * Enqueues the Elementor template CSS programmatically by ID.
+ * * This function initializes the Elementor Post CSS file object and triggers
+ * the enqueue method. If the CSS file does not exist, Elementor will compile 
+ * it on the fly before enqueuing.
+ *
+ * @author Digitally Disruptive - Donald Raymundo
+ * @author_uri https://digitallydisruptive.co.uk/
+ *
+ * @param int $template_id The post ID of the Elementor template.
+ * @return void
+ */
+function dd_enqueue_elementor_template_css(int $template_id): void
+{
+    // Verify Elementor is active and the required class exists to prevent fatal errors.
+    if (! class_exists('\Elementor\Core\Files\CSS\Post')) {
+        return;
+    }
+
+    // Initialize the Elementor Post CSS file object for the target template.
+    $css_file = new \Elementor\Core\Files\CSS\Post($template_id);
+
+    // Enqueue the stylesheet directly into the WordPress queue.
+    $css_file->enqueue();
+}

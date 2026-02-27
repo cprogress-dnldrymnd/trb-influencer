@@ -31,6 +31,9 @@ function hello_elementor_child_scripts_styles()
     wp_enqueue_style('influencer-style', get_stylesheet_directory_uri() . '/style.css');
 
 
+    dd_enqueue_elementor_template_css(1571);
+
+
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
     wp_enqueue_script('influencer-js', get_stylesheet_directory_uri() . '/assets/js/main.js', ['jquery']);
     wp_localize_script('influencer-js', 'ajax_vars', [
