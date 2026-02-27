@@ -1104,10 +1104,10 @@ input:checked + .slider:before {
     .mycred-sell-this-wrapper.mycred-sell-this-wrapper + div * {
       pointer-events: none; }
 
-@media (max-width: 1400px) {
+@media (max-width: 1300px) {
   #dashboard--activity {
     flex-direction: column; }
     #dashboard--activity > div {
-      --awidth: 100%; } }
+      --width: 100%; } }
 
 /*# sourceMappingURL=style.css.map */

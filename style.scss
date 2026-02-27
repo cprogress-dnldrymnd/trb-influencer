@@ -1397,10 +1397,10 @@ input:checked + .slider:before {
 }
 
 #dashboard--activity {
-    @media (max-width: 1400px) {
+    @media (max-width: 1300px) {
         flex-direction: column;
         > div {
-           --awidth: 100%;
+           --width: 100%;
         }
     }
 }
