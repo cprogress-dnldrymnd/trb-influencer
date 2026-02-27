@@ -825,24 +825,24 @@ function breadcrumbs()
                 <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
             <?php } ?>
 
-            <?php if (get_the_ID() == $search || get_the_ID() == $search_result || (is_single() && get_post_type() == 'influencer')) { ?>
+            <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) { ?>
                 <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
-                <?php if (get_the_ID() == $search) { ?>
+                <?php if (get_the_ID() == $search_page_id) { ?>
                     <li><span>Search</span></li>
                 <?php } ?>
 
-                <?php if (get_the_ID() == $search_result || is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= get_the_permalink($search) ?>">Search</a></li>
+                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') { ?>
+                    <li><a href="<?= get_the_permalink($search_page_id) ?>">Search</a></li>
                 <?php } ?>
 
                 <?php if (is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= get_the_permalink($search_result) ?>">Search Results</a></li>
+                    <li><a href="<?= get_the_permalink($search_results_page_id) ?>">Search Results</a></li>
                     <li><span>Creator Profile</span></li>
 
                 <?php } ?>
 
 
-                <?php if (get_the_ID() == $search_result) { ?>
+                <?php if (get_the_ID() == $search_results_page_id) { ?>
                     <li><span>Search Results</span></li>
                 <?php } ?>
 
