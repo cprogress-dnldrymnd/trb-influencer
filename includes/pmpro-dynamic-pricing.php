@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -63,7 +63,7 @@ class DD_PMPro_Frontend_Pricing {
 	 * Generates the HTML string for a single pricing card.
 	 * * Constructs the DOM structure for a plan, injecting dynamic data attributes
 	 * required by the vanilla JavaScript toggle logic. Evaluates current user membership
-	 * to independently alter button states based on the active toggle view.
+	 * by strictly checking exact level IDs to avoid PMPro group-level false positives.
 	 * * @param string $name         The display name of the plan (e.g., 'Essential').
 	 * @param string $description  The feature description text.
 	 * @param int    $monthly_id   The PMPro Level ID for the monthly variant.
@@ -78,10 +78,26 @@ class DD_PMPro_Frontend_Pricing {
 			return '';
 		}
 
-		// Independently verify ownership of specific tiers
-		$is_current_monthly = function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( $monthly_id );
-		$is_current_annual  = function_exists( 'pmpro_hasMembershipLevel' ) && pmpro_hasMembershipLevel( $annual_id );
-		$has_any_plan       = $is_current_monthly || $is_current_annual;
+		// Strictly evaluate ownership by exact ID to prevent PMPro group filters from returning false positives.
+		$current_user_id    = get_current_user_id();
+		$is_current_monthly = false;
+		$is_current_annual  = false;
+
+		if ( function_exists( 'pmpro_getMembershipLevelsForUser' ) && $current_user_id ) {
+			$user_levels = pmpro_getMembershipLevelsForUser( $current_user_id );
+			if ( ! empty( $user_levels ) ) {
+				foreach ( $user_levels as $l ) {
+					if ( $l->id == $monthly_id ) {
+						$is_current_monthly = true;
+					}
+					if ( $l->id == $annual_id ) {
+						$is_current_annual = true;
+					}
+				}
+			}
+		}
+
+		$has_any_plan = $is_current_monthly || $is_current_annual;
 		
 		$card_class = $has_any_plan ? 'dd-card dd-card-active' : 'dd-card';
 		$badge_html = $has_any_plan ? '<div class="dd-badge">CURRENT PLAN</div>' : '';
@@ -95,7 +111,9 @@ class DD_PMPro_Frontend_Pricing {
 		$owns_current_view = $show_annual_default ? $is_current_annual : $is_current_monthly;
 		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : 'JOIN NOW';
 		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
-		$current_url       = $owns_current_view ? '#' : ( $show_annual_default ? $annual_data['url'] : $monthly_data['url'] );
+		
+		// Use empty string instead of '#' for disabled links to ensure no anchor jumping
+		$current_url       = $owns_current_view ? '' : ( $show_annual_default ? $annual_data['url'] : $monthly_data['url'] );
 
 		ob_start();
 		?>
@@ -124,7 +142,7 @@ class DD_PMPro_Frontend_Pricing {
 				<span class="dd-toggle-label">Yearly</span>
 			</div>
 			
-			<a href="<?php echo esc_url( $current_url ); ?>" class="<?php echo esc_attr( $btn_class ); ?>">
+			<a <?php echo $current_url ? 'href="' . esc_url( $current_url ) . '"' : ''; ?> class="<?php echo esc_attr( $btn_class ); ?>">
 				<?php echo esc_html( $btn_text ); ?>
 			</a>
 		</div>
@@ -133,7 +151,7 @@ class DD_PMPro_Frontend_Pricing {
 	}
 
 	/**
-	 * Renders the shortcode output including styling, HTML structure, and JS logic.
+	 * Renders the shortcode output including styling, HTML structure, and foolproof JS logic.
 	 * * Constructs the full grid layout, processing the predefined level mappings 
 	 * based on your provided database structure (Essential: 8/10, Growth: 9/12).
 	 * * @param array $atts Shortcode attributes (optional overrides).
@@ -169,69 +187,69 @@ class DD_PMPro_Frontend_Pricing {
 			.dd-toggle-label { font-size: 0.9rem; color: #666; }
 			
 			/* Button CSS */
-			.dd-btn { background: #ff8c75; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: background 0.3s; }
+			.dd-btn { background: #ff8c75; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: background 0.3s; cursor: pointer; }
 			.dd-btn:hover { background: #fa7b63; color: white; }
-			.dd-btn-disabled { background: #ffbbae; pointer-events: none; }
+			.dd-btn-disabled { background: #ffbbae; pointer-events: none; cursor: not-allowed; }
 		</style>
 
 		<div class="dd-pricing-container">
 			<?php
-			// Render 'Essential' Card (Monthly ID 8, Annual ID 10)
-			echo $this->build_pricing_card( 
-				'Essential', 
-				'Discover creators across 2000+ industries & niches.', 
-				8, 
-				10 
-			);
-
-			// Render 'Growth' Card (Monthly ID 9, Annual ID 12)
-			echo $this->build_pricing_card( 
-				'Growth', 
-				'Analyze creators & manage your creator partnerships.', 
-				9, 
-				12 
-			);
+			echo $this->build_pricing_card( 'Essential', 'Discover creators across 2000+ industries & niches.', 8, 10 );
+			echo $this->build_pricing_card( 'Growth', 'Analyze creators & manage your creator partnerships.', 9, 12 );
 			?>
 		</div>
 
 		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				const toggles = document.querySelectorAll('.dd-plan-toggle');
-				
-				toggles.forEach(toggle => {
-					toggle.addEventListener('change', function() {
-						const card = this.closest('.dd-card');
-						const isYearly = this.checked;
-						const priceEl = card.querySelector('.dd-price-amount');
-						const btnEl = card.querySelector('.dd-checkout-btn');
-						
-						// Parse discrete ownership states
-						const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
-						const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
+			(function() {
+				// Encapsulated initialization to ensure execution regardless of builder loading order
+				function initDDPricingToggles() {
+					const toggles = document.querySelectorAll('.dd-plan-toggle');
+					
+					toggles.forEach(toggle => {
+						// Prevent duplicate event bindings if initialized multiple times
+						if(toggle.dataset.ddBound === 'true') return;
+						toggle.dataset.ddBound = 'true';
 
-						// Update Price Text
-						priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
+						toggle.addEventListener('change', function() {
+							const card = this.closest('.dd-card');
+							const isYearly = this.checked;
+							const priceEl = card.querySelector('.dd-price-amount');
+							const btnEl = card.querySelector('.dd-checkout-btn');
+							
+							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
+							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 
-						// Determine discrete button state
-						const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
+							// 1. Update Price
+							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
 
-						if (userOwnsSelectedView) {
-							btnEl.textContent = 'CURRENT PLAN';
-							btnEl.classList.add('dd-btn-disabled');
-							btnEl.href = '#';
-						} else {
-							btnEl.textContent = 'JOIN NOW';
-							btnEl.classList.remove('dd-btn-disabled');
-							btnEl.href = isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly');
-						}
+							// 2. Evaluate Exact Target Tier Ownership
+							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
+
+							// 3. Update Button State 
+							if (userOwnsSelectedView) {
+								btnEl.textContent = 'CURRENT PLAN';
+								btnEl.classList.add('dd-btn-disabled');
+								btnEl.removeAttribute('href');
+							} else {
+								btnEl.textContent = 'JOIN NOW';
+								btnEl.classList.remove('dd-btn-disabled');
+								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
+							}
+						});
 					});
-				});
-			});
+				}
+
+				// Check if the DOM is already parsed (catches late shortcode execution via builders)
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', initDDPricingToggles);
+				} else {
+					initDDPricingToggles();
+				}
+			})();
 		</script>
 		<?php
 		return ob_get_clean();
 	}
 }
 
-// Instantiate the class to boot the shortcode handler.
 new DD_PMPro_Frontend_Pricing();
