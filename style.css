@@ -763,7 +763,8 @@ input:checked + .slider:before {
   border: none !important; }
 
 #pmpro_levels .pmpro_btn {
-  text-transform: uppercase; }
+  text-transform: uppercase;
+  font-size: 14px; }
 #pmpro_levels .pmpro_section_content {
   --pmpro--base--spacing--large: 20px;
   display: flex;
