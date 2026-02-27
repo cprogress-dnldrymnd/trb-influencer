@@ -343,7 +343,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-card-active {
-				border: 2px solid #3c2a2a;
+				border: 2px solid var(--e-global-color-secondary);
 				background: #eae6e1;
 			}
 
@@ -363,7 +363,7 @@ class DD_PMPro_Frontend_Pricing
 			.dd-plan-name {
 				font-size: 2rem;
 				margin: 0 0 1rem 0;
-				color: var(--e-global-color-secondary);;
+				color: var(--e-global-color-secondary);
 
 			}
 
