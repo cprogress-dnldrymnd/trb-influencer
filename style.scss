@@ -1546,7 +1546,7 @@ body:not(.page-id-4144) {
     .pmpro-current-level-growth {
         border: 4px solid var(--e-global-color-secondary);
         &.pmpro-level-12 {
-            &.annually {
+            .annually {
                 pointer-events: none;
                 opacity: 0.7;
                 .elementor-button-text {
