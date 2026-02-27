@@ -1199,4 +1199,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 #pmpro_level_group-1 {
   display: none !important; }
 
+.influencer-platform-score--moderate-growth .chip {
+  background-color: #c7e7ff;
+  border: 1px solid #3b88c3;
+  color: #3b88c3; }
+
 /*# sourceMappingURL=style.css.map */
