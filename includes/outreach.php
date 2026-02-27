@@ -1195,6 +1195,7 @@ class DD_Outreach_Manager
             } else {
                 // Display notice on placeholder if no items are found on initial load
                 $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
+                $('#no-outreach-found').removeClass('hide-element');
             }
 
 
