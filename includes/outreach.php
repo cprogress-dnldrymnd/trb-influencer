@@ -185,8 +185,6 @@ class DD_Outreach_Manager
                 background-color: var(--e-global-color-accent) !important;
                 border: 1px solid var(--e-global-color-accent);
                 color: var(--e-global-color-2ba2932) !important;
-                ;
-
             }
 
             .view-outreach a:hover {
@@ -199,6 +197,12 @@ class DD_Outreach_Manager
                 border-color: var(--e-global-color-ee06e41) !important;
                 background-color: transparent !important;
                 color: var(--e-global-color-ee06e41) !important;
+            }
+
+            
+            .close-outreach a:hover {
+                background-color: var(--e-global-color-ee06e41) !important;
+                color: var(--e-global-color-2ba2932) !important;
             }
 
             .submit-new a {
