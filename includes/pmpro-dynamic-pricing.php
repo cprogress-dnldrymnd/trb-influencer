@@ -338,10 +338,16 @@ class DD_PMPro_Frontend_Pricing
 				position: relative;
 				display: flex;
 				flex-direction: column;
+				border: 2px solid var(--e-global-color-2ba2932);
+
+			}
+
+			.dd-card:hover {
+				border-color: var(--e-global-color-primary);
 			}
 
 			.dd-card-active {
-				border: 2px solid var(--e-global-color-secondary);
+				border-color: var(--e-global-color-secondary);
 			}
 
 			.dd-badge {
