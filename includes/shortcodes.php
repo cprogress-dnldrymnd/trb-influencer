@@ -696,7 +696,7 @@ function shortcode_influencer_search_summary()
                 </a>
             </div>
         <?php endif; ?>
-     
+      
         <?php if (! empty($parts) && empty($brief)) : ?>
             <div class="search-summary-item search-summary-filters">
                 <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
@@ -1920,6 +1920,253 @@ function shortcode_influencer_follower_growth($atts)
     );
 }
 add_shortcode('influencer_follower_growth', 'shortcode_influencer_follower_growth');
+
+/**
+ * Calculate Platform Score for an influencer (0-100).
+ * Uses: followers, engagement rate, growth rate (30-day), avg posts per day.
+ * Meta: followers, engagerate, followersgrowth, creatordb_history.
+ *
+ * @param int|null $post_id Influencer post ID (default: current post).
+ * @return array{score: int, label: string, breakdown: array, engagement_rate: float, growth_rate: float|null, posts_per_month: float}|null
+ */
+function calculate_influencer_platform_score($post_id = null)
+{
+    $post_id = $post_id ?: get_the_ID();
+    if (!$post_id || get_post_type($post_id) !== 'influencer') {
+        return null;
+    }
+
+    $followers = (int) get_post_meta($post_id, 'followers', true);
+    if ($followers <= 0) {
+        return null;
+    }
+
+    // 1. Engagement rate: use meta or derive from history
+    $engagement_rate = (float) get_post_meta($post_id, 'engagerate', true);
+    if ($engagement_rate <= 0) {
+        $history = get_post_meta($post_id, 'creatordb_history', true);
+        if (is_array($history) && !empty($history)) {
+            $latest = end($history);
+            $avglikes   = (float) ($latest['avglikes'] ?? 0);
+            $avgcomments = (float) ($latest['avgcomments'] ?? 0);
+            if ($followers > 0) {
+                $engagement_rate = (($avglikes + $avgcomments) / $followers) * 100;
+            }
+        }
+    }
+
+    // 2. Growth rate: use followersgrowth meta (assume percentage) or derive from history
+    $growth_rate = null;
+    $growth_meta = get_post_meta($post_id, 'followersgrowth', true);
+    if ($growth_meta !== '' && $growth_meta !== null && is_numeric($growth_meta)) {
+        $growth_rate = (float) $growth_meta;
+    } else {
+        $history = get_post_meta($post_id, 'creatordb_history', true);
+        if (is_array($history) && count($history) >= 2) {
+            $rows = array_values($history);
+            usort($rows, function ($a, $b) {
+                return ((int) ($a['timestamp_ms'] ?? 0)) <=> ((int) ($b['timestamp_ms'] ?? 0));
+            });
+            $current  = (int) ($rows[count($rows) - 1]['followers'] ?? 0);
+            $previous = null;
+            $now_ms   = (int) ($rows[count($rows) - 1]['timestamp_ms'] ?? 0);
+            $thirty_days_ms = 30 * 24 * 60 * 60 * 1000;
+            for ($i = count($rows) - 2; $i >= 0; $i--) {
+                $ts = (int) ($rows[$i]['timestamp_ms'] ?? 0);
+                if ($now_ms - $ts >= $thirty_days_ms) {
+                    $previous = (int) ($rows[$i]['followers'] ?? 0);
+                    break;
+                }
+            }
+            if ($previous !== null && $previous > 0) {
+                $growth_rate = (($current - $previous) / $previous) * 100;
+            }
+        }
+    }
+
+    // 3. Avg posts per day: derive from creatordb_history
+    $avg_posts_per_day = 0.0;
+    $history = get_post_meta($post_id, 'creatordb_history', true);
+    if (is_array($history) && count($history) >= 2) {
+        $rows = array_values($history);
+        usort($rows, function ($a, $b) {
+            return ((int) ($a['timestamp_ms'] ?? 0)) <=> ((int) ($b['timestamp_ms'] ?? 0));
+        });
+        $first_ts = (int) ($rows[0]['timestamp_ms'] ?? 0);
+        $last_ts  = (int) ($rows[count($rows) - 1]['timestamp_ms'] ?? 0);
+        $days = ($last_ts - $first_ts) / (24 * 60 * 60 * 1000);
+        if ($days > 0) {
+            $first_posts = (int) ($rows[0]['posts'] ?? 0);
+            $last_posts  = (int) ($rows[count($rows) - 1]['posts'] ?? 0);
+            $total_posts = max(0, $last_posts - $first_posts);
+            $avg_posts_per_day = $total_posts / $days;
+        }
+    }
+
+    $posts_per_month = $avg_posts_per_day * 30;
+
+    // --- Engagement score (40%)
+    $engagement_score = 25;
+    if ($followers < 50000) {
+        if ($engagement_rate >= 4) {
+            $engagement_score = 75;
+        } elseif ($engagement_rate >= 2) {
+            $engagement_score = 50;
+        }
+    } elseif ($followers < 250000) {
+        if ($engagement_rate >= 3) {
+            $engagement_score = 75;
+        } elseif ($engagement_rate >= 1.5) {
+            $engagement_score = 50;
+        }
+    } elseif ($followers < 1000000) {
+        if ($engagement_rate >= 2.5) {
+            $engagement_score = 75;
+        } elseif ($engagement_rate >= 1) {
+            $engagement_score = 50;
+        }
+    } else {
+        if ($engagement_rate >= 2) {
+            $engagement_score = 75;
+        } elseif ($engagement_rate >= 0.5) {
+            $engagement_score = 50;
+        }
+    }
+    $engagement_component = $engagement_score * 0.40;
+
+    // --- Growth score (30%)
+    $growth_score = 50;
+    if ($growth_rate !== null) {
+        if ($growth_rate < -2) {
+            $growth_score = 0;
+        } elseif ($growth_rate < 0) {
+            $growth_score = 40;
+        } elseif ($growth_rate < 2) {
+            $growth_score = 60;
+        } elseif ($growth_rate < 5) {
+            $growth_score = 80;
+        } else {
+            $growth_score = 100;
+        }
+    }
+    $growth_component = $growth_score * 0.30;
+
+    // --- Consistency score (15%)
+    if ($posts_per_month >= 6) {
+        $consistency_score = 75;
+    } elseif ($posts_per_month >= 3) {
+        $consistency_score = 50;
+    } else {
+        $consistency_score = 25;
+    }
+    $consistency_component = $consistency_score * 0.15;
+
+    // --- Audience score (15%)
+    if ($followers >= 1000000) {
+        $audience_score = 100;
+    } elseif ($followers >= 250000) {
+        $audience_score = 85;
+    } elseif ($followers >= 50000) {
+        $audience_score = 70;
+    } elseif ($followers >= 10000) {
+        $audience_score = 50;
+    } else {
+        $audience_score = 30;
+    }
+    $audience_component = $audience_score * 0.15;
+
+    $final_score = round($engagement_component + $growth_component + $consistency_component + $audience_component);
+
+    // Label ranges per spec: 0-30, 31-50, 51-70, 71-100
+    $label = 'Growth Opportunity';
+    if ($final_score >= 71) {
+        $label = 'High Growth';
+    } elseif ($final_score >= 51) {
+        $label = 'Steady Growth';
+    } elseif ($final_score >= 31) {
+        $label = 'Moderate Growth';
+    } elseif ($final_score >= 0) {
+        $label = 'Growth Opportunity';
+    }
+
+    return [
+        'score'           => min(100, max(0, $final_score)),
+        'label'           => $label,
+        'breakdown'       => [
+            'engagement'  => round($engagement_component, 2),
+            'growth'      => round($growth_component, 2),
+            'consistency' => round($consistency_component, 2),
+            'audience'    => round($audience_component, 2),
+        ],
+        'engagement_rate'  => $engagement_rate,
+        'growth_rate'      => $growth_rate,
+        'posts_per_month'  => round($posts_per_month, 2),
+    ];
+}
+
+/**
+ * Shortcode: [influencer_platform_score]
+ * Displays dynamic Platform score (e.g. 62/100) with styled label tag.
+ * Optional attr: show_breakdown="1" for tooltip. show_label="Platform score:" for prefix.
+ */
+function shortcode_influencer_platform_score($atts)
+{
+    $atts = shortcode_atts([
+        'show_breakdown' => '0',
+        'show_label'     => '1',
+        'prefix'         => 'Platform score:',
+    ], $atts ?? []);
+    $post_id = get_the_ID();
+    if (get_query_var('current_influencer_id')) {
+        $post_id = (int) get_query_var('current_influencer_id');
+    }
+
+    $data = calculate_influencer_platform_score($post_id);
+    if (!$data) {
+        return '<span class="influencer-platform-score influencer-platform-score--empty">—</span>';
+    }
+
+    $score = (int) $data['score'];
+    $label = $data['label'];
+    $tooltip = '';
+    if (!empty($atts['show_breakdown'])) {
+        $b = $data['breakdown'];
+        $tooltip = sprintf(
+            "Engagement: %.1f | Growth: %.1f | Consistency: %.1f | Audience: %.1f",
+            $b['engagement'],
+            $b['growth'],
+            $b['consistency'],
+            $b['audience']
+        );
+    }
+
+    // Tier for styling: growth-opportunity, moderate-growth, steady-growth, high-growth
+    $tier = 'growth-opportunity';
+    if ($score >= 71) {
+        $tier = 'high-growth';
+    } elseif ($score >= 51) {
+        $tier = 'steady-growth';
+    } elseif ($score >= 31) {
+        $tier = 'moderate-growth';
+    }
+
+    $html = '<span class="influencer-platform-score influencer-platform-score--' . esc_attr($tier) . '">';
+    if (!empty($atts['show_label']) && !empty($atts['prefix'])) {
+        $html .= '<span class="influencer-platform-score-prefix">' . esc_html($atts['prefix']) . ' </span>';
+    }
+    $html .= '<span class="influencer-platform-score-value">' . $score . '</span>';
+    $html .= '<span class="influencer-platform-score-total">/100</span>';
+    $icon = '<span class="influencer-platform-score-icon" aria-hidden="true">↗</span>';
+    $html .= ' <span class="influencer-platform-score-tag">' . $icon . esc_html($label) . '</span>';
+    if ($tooltip) {
+        $html .= ' <span class="influencer-platform-score-info" title="' . esc_attr($tooltip) . '" aria-label="Score breakdown">ℹ</span>';
+    }
+    $html .= '</span>';
+
+    return $html;
+}
+add_shortcode('influencer_platform_score', 'shortcode_influencer_platform_score');
+
 
 function shortcode_saved_search_url()
 {
