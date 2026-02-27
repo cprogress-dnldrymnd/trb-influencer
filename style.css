@@ -1241,5 +1241,14 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   @media (max-width: 767px) {
     .default--page.default--page.default--page h2 {
       font-size: 24px; } }
+.default--page.default--page.default--page h3 {
+  font-size: 26px;
+  line-height: 1.2; }
+  @media (max-width: 1024px) {
+    .default--page.default--page.default--page h3 {
+      font-size: 22px; } }
+  @media (max-width: 767px) {
+    .default--page.default--page.default--page h3 {
+      font-size: 18px; } }
 
 /*# sourceMappingURL=style.css.map */
