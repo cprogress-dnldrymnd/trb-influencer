@@ -352,3 +352,169 @@ function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, 
 
 // Hook into the logout_redirect filter with a standard priority of 10, accepting 3 arguments
 add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
+
+
+
+<?php
+/**
+ * Plugin Name: PMPro Custom Pricing Table Integrator
+ * Description: Registers a settings interface with tabbed partitions and repeater fields to manage custom pricing plans (e.g., 'Scale') alongside standard PMPro levels.
+ * Version: 1.0.0
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ * Text Domain: dd-pmpro-pricing
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+/**
+ * Class DD_Pricing_Table_Manager
+ * * Handles the registration of the ACF options page and the corresponding field groups
+ * required to manage dynamic pricing tables with standard and custom plans.
+ */
+class DD_Pricing_Table_Manager {
+
+	/**
+	 * Constructor.
+	 * * Initializes the class and hooks into ACF actions to setup the options page
+	 * and custom fields early in the lifecycle.
+	 */
+	public function __construct() {
+		add_action( 'acf/init', [ $this, 'register_options_page' ] );
+		add_action( 'acf/init', [ $this, 'register_field_groups' ] );
+	}
+
+	/**
+	 * Registers the ACF Options Page for Pricing Table configurations.
+	 * * Creates a dedicated top-level menu item for managing both the PMPro mapped
+	 * levels and any statically defined custom plans.
+	 * * @return void
+	 */
+	public function register_options_page() {
+		if ( function_exists( 'acf_add_options_page' ) ) {
+			acf_add_options_page( [
+				'page_title'      => 'Pricing Table Settings',
+				'menu_title'      => 'Pricing Settings',
+				'menu_slug'       => 'dd-pricing-settings',
+				'capability'      => 'manage_options',
+				'icon_url'        => 'dashicons-tag',
+				'redirect'        => false,
+				'update_button'   => 'Save Pricing Data',
+			] );
+		}
+	}
+
+	/**
+	 * Registers the ACF Field Groups for the Pricing Table.
+	 * * Implements a tabbed interface separating 'Standard PMPro Plans' from 'Custom Plans'.
+	 * Incorporates a repeater field for custom plans, ensuring duplication, reordering,
+	 * collapsing, and deletion capabilities are natively supported.
+	 * * @return void
+	 */
+	public function register_field_groups() {
+		if ( function_exists( 'acf_add_local_field_group' ) ) {
+
+			acf_add_local_field_group( [
+				'key'                   => 'group_dd_pricing_table',
+				'title'                 => 'Pricing Table Configuration',
+				'fields'                => [
+					// Tab 1: Standard PMPro Plans
+					[
+						'key'               => 'field_dd_tab_standard',
+						'label'             => 'Standard PMPro Plans',
+						'name'              => '',
+						'type'              => 'tab',
+						'placement'         => 'top',
+					],
+					[
+						'key'               => 'field_dd_monthly_group_id',
+						'label'             => 'Monthly PMPro Group ID',
+						'name'              => 'dd_monthly_group_id',
+						'type'              => 'number',
+						'instructions'      => 'Map the PMPro Group ID for Monthly plans (e.g., 2 from your setup).',
+						'required'          => 0,
+					],
+					[
+						'key'               => 'field_dd_annual_group_id',
+						'label'             => 'Annual PMPro Group ID',
+						'name'              => 'dd_annual_group_id',
+						'type'              => 'number',
+						'instructions'      => 'Map the PMPro Group ID for Annual plans (e.g., 3 from your setup).',
+						'required'          => 0,
+					],
+
+					// Tab 2: Custom Plans (Scale)
+					[
+						'key'               => 'field_dd_tab_custom',
+						'label'             => 'Custom Plans (e.g., Scale)',
+						'name'              => '',
+						'type'              => 'tab',
+						'placement'         => 'top',
+					],
+					[
+						'key'               => 'field_dd_custom_plans',
+						'label'             => 'Custom Plan Columns',
+						'name'              => 'dd_custom_plans',
+						'type'              => 'repeater',
+						'instructions'      => 'Add custom plans that do not map directly to PMPro levels. Drag to reorder. Use the right-side icons to duplicate or delete.',
+						'layout'            => 'block',
+						'collapsed'         => 'field_dd_custom_heading', // Enables component collapsing based on the heading text.
+						'button_label'      => 'Add Custom Plan',
+						'sub_fields'        => [
+							[
+								'key'           => 'field_dd_custom_heading',
+								'label'         => 'Plan Heading',
+								'name'          => 'heading',
+								'type'          => 'text',
+								'required'      => 1,
+							],
+							[
+								'key'           => 'field_dd_custom_description',
+								'label'         => 'Plan Description',
+								'name'          => 'description',
+								'type'          => 'textarea',
+								'rows'          => 3,
+								'required'      => 1,
+							],
+							[
+								'key'           => 'field_dd_custom_btn_text',
+								'label'         => 'Button Text',
+								'name'          => 'button_text',
+								'type'          => 'text',
+								'default_value' => 'ENQUIRE NOW',
+								'required'      => 1,
+							],
+							[
+								'key'           => 'field_dd_custom_btn_url',
+								'label'         => 'Button URL',
+								'name'          => 'button_url',
+								'type'          => 'url',
+								'required'      => 1,
+							],
+						],
+					],
+				],
+				'location'              => [
+					[
+						[
+							'param'    => 'options_page',
+							'operator' => '==',
+							'value'    => 'dd-pricing-settings',
+						],
+					],
+				],
+				'menu_order'            => 0,
+				'position'              => 'normal',
+				'style'                 => 'seamless',
+				'label_placement'       => 'top',
+				'instruction_placement' => 'label',
+				'active'                => true,
+			] );
+		}
+	}
+}
+
+// Instantiate the manager class to boot the plugin routines.
+new DD_Pricing_Table_Manager();
