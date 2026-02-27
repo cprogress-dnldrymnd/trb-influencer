@@ -414,7 +414,7 @@ function shortcode_influencer_match_score()
 
     $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">✨ ' . (int) $score . '% Match Score</span>';
     if ($tooltip) {
-        $html .= '<span class="influencer-match-score-tooltip">' . esc_html($tooltip) . '</span>';
+        $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
     }
     $html .= '</div>';
     return $html;
