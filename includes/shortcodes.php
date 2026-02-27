@@ -1802,13 +1802,12 @@ function shortcode_influencer_hashtags()
     // If get_post_meta returns an empty string or bool, fallback to an empty array.
     $hashtags = is_array($raw_hashtags) ? $raw_hashtags : [];
 
-    // Safely count the array items (satisfies PHP 8+ Countable interface requirement)
-    $count = count($hashtags);
+
 
     // Build the HTML output
     $html = '<div class="influencer-hashtags">';
     $html .= '<div class="influencer-hashtags-title">';
-    $html .= $count . ' NUMBER OF HASHTAGS';
+    $html .= 'HASHTAGS';
     $html .= '</div>';
 
     // Pass the guaranteed array to the rendering function
