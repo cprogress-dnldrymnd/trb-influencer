@@ -77,6 +77,7 @@ class DD_Outreach_Manager
                 margin-top: 15px;
                 border-radius: 10px;
                 border: 2px solid #034146;
+                background-color: #fff;
             }
 
             .mt-0 {
@@ -517,6 +518,7 @@ class DD_Outreach_Manager
                 padding: 20px;
                 border: 1px dashed #ccc;
                 border-radius: 8px;
+                background-color: #fff;
             }
 
             .dd-note-btn.dd-note-btn.dd-note-btn {
