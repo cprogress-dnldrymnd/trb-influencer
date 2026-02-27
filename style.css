@@ -762,6 +762,8 @@ input:checked + .slider:before {
   color: var(--e-global-color-2ba2932);
   border: none !important; }
 
+#pmpro_levels .pmpro_btn {
+  text-transform: uppercase; }
 #pmpro_levels .pmpro_section_content {
   --pmpro--base--spacing--large: 20px;
   display: flex;
