@@ -13,28 +13,6 @@ if (!defined('ABSPATH')) {
  *
  * @return void
  */
-function dd_load_theme_dependencies() {
-    // Resolve and cache the directory path once.
-    // NOTE: Change to get_stylesheet_directory() if this is a child theme.
-    $dir = get_template_directory();
-
-    // Direct, unrolled require statements. 
-    // This is the fastest execution path in PHP for procedural files.
-    require $dir . '/includes/hooks.php';
-    require $dir . '/includes/custom-functions.php';
-    require $dir . '/includes/brief-parser.php';
-    require $dir . '/includes/mycred.php';
-    require $dir . '/includes/pmpro.php';
-    require $dir . '/includes/pmpro-dynamic-pricing.php';
-    require $dir . '/includes/acf.php';
-    require $dir . '/includes/sign-up.php';
-    require $dir . '/includes/elementor.php';
-    require $dir . '/includes/outreach.php';
-    require $dir . '/includes/charts.php';
-    require $dir . '/includes/feeds.php';
-    require $dir . '/includes/shortcodes.php';
-    require $dir . '/includes/ajax.php';
-}
 
 
 function my_custom_variable_setup()
