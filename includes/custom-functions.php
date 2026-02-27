@@ -703,7 +703,9 @@ function get_unique_influencer_languages()
     // 2. Loop through results and format
     foreach ($results as $lang_code) {
 
-        $clean_code = trim($lang_code);
+        // The null coalescing operator (?? '') intercepts null values,
+        // preventing PHP 8.1+ deprecation errors during the trim() operation.
+        $clean_code = trim($lang_code ?? '');
 
         // Skip completely empty values
         if (empty($clean_code)) {

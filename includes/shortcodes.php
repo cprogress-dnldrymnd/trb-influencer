@@ -698,29 +698,20 @@ function shortcode_influencer_search_summary()
                 </a>
             </div>
         <?php endif; ?>
-
+      
         <?php if (! empty($parts) && empty($brief)) : ?>
             <div class="search-summary-item search-summary-filters">
-                <?php
-                // Ensure $parts contains only valid strings to prevent type coercion issues during implode().
-                // array_filter with 'is_string' guarantees no nulls or arrays slip through.
-                $clean_parts = array_filter($parts, 'is_string');
-                ?>
-                <strong>Filters:</strong> <?= esc_html(implode(' • ', $clean_parts)) ?>
+                <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
             </div>
         <?php endif; ?>
-
-        <?php if (! empty($prioritise_engagement) || ! empty($verified_only)) : ?>
+        <?php if ($prioritise_engagement || $verified_only) : ?>
             <div class="search-summary-item search-summary-notes">
-
-                <?php if (! empty($prioritise_engagement)) : ?>
-                    <span>Prioritising engagement over reach</span><?= ! empty($verified_only) ? ' • ' : '' ?>
+                <?php if ($prioritise_engagement) : ?>
+                    <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
                 <?php endif; ?>
-
-                <?php if (! empty($verified_only)) : ?>
+                <?php if ($verified_only) : ?>
                     <span>Include only verified influencers</span>
                 <?php endif; ?>
-
             </div>
         <?php endif; ?>
     </div>
@@ -2168,7 +2159,7 @@ function shortcode_influencer_platform_score($atts)
     $html .= '<span class="influencer-platform-score-value">' . $score . '</span>';
     $html .= '<span class="influencer-platform-score-total">/100</span>';
     $icon = '<span class="influencer-platform-score-icon" aria-hidden="true">↗</span>';
-    $html .= ' <span class="influencer-platform-score-tag chip">' . $icon . ' ' . esc_html($label) . '</span>';
+    $html .= ' <span class="influencer-platform-score-tag chip">' . $icon .' '. esc_html($label) . '</span>';
     if ($tooltip) {
         $html .= ' <span class="influencer-platform-score-info" title="' . esc_attr($tooltip) . '" aria-label="Score breakdown">ℹ</span>';
     }
@@ -2221,8 +2212,7 @@ add_shortcode('instagram_id', 'shortcode_intagram_id_fixed');
  *
  * @return string The current 4-digit year.
  */
-function dd_current_year_shortcode()
-{
+function dd_current_year_shortcode() {
     // Return the current year in 'Y' format (e.g., 2026)
     return date('Y');
 }
