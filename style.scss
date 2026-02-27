@@ -1496,3 +1496,12 @@ body:not(.page-id-4144) {
         }
     }
 }
+
+.pmpro_form_field-file-preview.pmpro_form_field-file-preview {
+    img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 2px solid var(--e-global-color-secondary);
+    }
+}

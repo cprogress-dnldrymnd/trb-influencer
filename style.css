@@ -1182,4 +1182,10 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
     background-color: var(--e-global-color-secondary); }
 
+.pmpro_form_field-file-preview.pmpro_form_field-file-preview img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid var(--e-global-color-secondary); }
+
 /*# sourceMappingURL=style.css.map */
