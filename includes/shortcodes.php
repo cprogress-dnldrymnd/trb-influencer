@@ -695,7 +695,7 @@ function shortcode_influencer_search_summary()
                 </a>
             </div>
         <?php endif; ?>
-        <?php if (! empty($parts)) : ?>
+        <?php if (! empty($parts) && empty($brief)) : ?>
             <div class="search-summary-item search-summary-filters">
                 <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
             </div>

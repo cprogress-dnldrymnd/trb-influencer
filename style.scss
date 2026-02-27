@@ -911,6 +911,9 @@ input:checked + .slider:before {
                 height: 20px;
             }
         }
+        & + .search-summary-filters {
+            display: none;
+        }
     }
 }
 
@@ -1288,7 +1291,7 @@ input:checked + .slider:before {
 .notice-wrap.notice-wrap.notice-wrap {
     opacity: 1;
     font-family: "Inter";
-  
+
     .notice-item {
         line-height: auto;
         color: #000;

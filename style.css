@@ -722,6 +722,8 @@ input:checked + .slider:before {
       .influencer-search-summary.influencer-search-summary .search-summary-item .edit-summary-brieft svg {
         width: 20px;
         height: 20px; }
+    .influencer-search-summary.influencer-search-summary .search-summary-item + .search-summary-filters {
+      display: none; }
 
 .pmpro_card.pmpro_content_message {
   margin-top: 50px;
