@@ -1300,6 +1300,13 @@ input:checked + .slider:before {
         gap: 10px;
         border-radius: 5px;
         flex-wrap: wrap;
+        .my-cred-notice-text {
+            h4 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 500;
+            }
+        }
         p {
             font-size: 14px;
             margin: 0;
