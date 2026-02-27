@@ -300,3 +300,27 @@ function fix_body_style()
 }
 
 add_action('wp_footer', 'fix_body_style');
+
+/**
+ * Filter the show_admin_bar status based on user capabilities.
+ *
+ * This function checks if the current logged-in user possesses the 'subscriber' 
+ * capability. If true, it forces the admin bar to return false, effectively 
+ * disabling it for that user role.
+ *
+ * @param bool $show_admin_bar Default status of the admin bar.
+ * @return bool Modified status of the admin bar.
+ */
+function dd_disable_admin_bar_for_subscribers( $show_admin_bar ) {
+    
+    // Check if the current user is a subscriber.
+    if ( current_user_can( 'subscriber' ) && !current_user_can( 'administrator' ) ) {
+        return false;
+    }
+
+    // Return the original status if the user is not a subscriber.
+    return $show_admin_bar;
+}
+
+// Add the filter to the 'show_admin_bar' hook with default priority.
+add_filter( 'show_admin_bar', 'dd_disable_admin_bar_for_subscribers' );
