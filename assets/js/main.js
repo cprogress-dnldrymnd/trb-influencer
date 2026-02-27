@@ -385,7 +385,7 @@
         var $notice = $('<div class="notice-wrap"> <div class="notice-item-wrapper"> <div class="notice-item succes" >' + htmlContent + '</div></div></div>');
 
         // Append to DOM
-        $('body').append(htmlContent);
+        $('body').append($notice);
 
         // Animate in
         $notice.fadeIn(300);
