@@ -431,7 +431,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			input:checked+.dd-slider:before {
-				transform: translateX(20px);
+				transform: translateX(26px);
 			}
 
 			.dd-slider.round {
