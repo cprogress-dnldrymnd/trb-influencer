@@ -1563,9 +1563,21 @@ body:not(.page-id-4144) {
     * {
         font-family: Inter;
     }
+    
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+        strong,
+        b {
+            font-weight: 600;
+        }
+    }
     h2 {
         font-size: 30px;
         line-height: 1.2;
+
         @media (max-width: 1024px) {
             font-size: 28px;
         }

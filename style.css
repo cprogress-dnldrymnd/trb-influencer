@@ -1232,6 +1232,17 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 
 .default--page.default--page.default--page * {
   font-family: Inter; }
+.default--page.default--page.default--page h1 strong,
+.default--page.default--page.default--page h1 b,
+.default--page.default--page.default--page h2 strong,
+.default--page.default--page.default--page h2 b,
+.default--page.default--page.default--page h3 strong,
+.default--page.default--page.default--page h3 b,
+.default--page.default--page.default--page h4 strong,
+.default--page.default--page.default--page h4 b,
+.default--page.default--page.default--page h5 strong,
+.default--page.default--page.default--page h5 b {
+  font-weight: 600; }
 .default--page.default--page.default--page h2 {
   font-size: 30px;
   line-height: 1.2; }
