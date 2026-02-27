@@ -1189,6 +1189,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   border: 2px solid var(--e-global-color-secondary); }
 
 .pmpro {
-  --pmpro--color--error-text: var(--e-global-color-secondary); }
+  --pmpro--color--error-text: var(--e-global-color-secondary);
+  --pmpro--color--accent: var(--e-global-color-accent) ; }
 
 /*# sourceMappingURL=style.css.map */
