@@ -57,14 +57,14 @@ if ( ! class_exists( 'DD_PMPro_Ajax_Signup' ) ) {
          */
         public function inject_inline_script() {
             // Verify PMPro is active before injecting script payloads.
-            if ( ! function_exists( 'pmpro_url' ) ) {
+            if ( ! function_exists( 'pmpro_url' ) && !is_page(4144) ) {
                 return;
             }
             ?>
             <script type="text/javascript">
             /**
              * PMPro AJAX Signup Form Handler
-             * Intercepts the checkout submission, processes the POST request silently,
+             * Intercepts the checkout submission, processses the POST request silently,
              * and dynamically injects validation errors back into the shortcode UI 
              * without allowing the browser to redirect to the main checkout page.
              */

@@ -45,12 +45,12 @@ add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
 
 include 'includes/hooks.php';
 include 'includes/custom-functions.php';
-include 'includes/brief-parser.php';
+/include 'includes/brief-parser.php';
 include 'includes/mycred.php';
 include 'includes/pmpro.php';
 include 'includes/pmpro-dynamic-pricing.php';
 include 'includes/acf.php';
-//include 'includes/sign-up.php';
+include 'includes/sign-up.php';
 include 'includes/elementor.php';
 include 'includes/outreach.php';
 include 'includes/charts.php';
