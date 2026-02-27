@@ -756,6 +756,8 @@ function shortcode_influencer_topics()
                 // Escaped for security, converted to uppercase to match previous hardcoded styling
                 echo '<span class="chip style-2">' . esc_html(strtoupper($term->name)) . '</span>';
             }
+        } else {
+            echo '<style>#influencer-topic{diplay: none}</style>';
         }
         ?>
     </div>
