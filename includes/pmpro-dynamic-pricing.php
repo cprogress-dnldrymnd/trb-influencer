@@ -363,7 +363,7 @@ class DD_PMPro_Frontend_Pricing
 			.dd-plan-name {
 				font-size: 2rem;
 				margin: 0 0 1rem 0;
-				color: #5a3c3c;
+				color: var(--e-global-color-secondary);;
 
 			}
 
