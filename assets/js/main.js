@@ -11,6 +11,7 @@
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
+        fix_styling_issue();
 
         $(window).on('resize', function () {
             dashboardLogoHeightVar();
@@ -23,6 +24,13 @@
             updateMembersHeaderHeightVar();
         });*/
     });
+
+
+    function fix_styling_issue() {
+        setTimeout(function () {
+            jQuery('body').addClass('show-body');
+        }, 2000);
+    }
 
 
     /**
