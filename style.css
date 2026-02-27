@@ -1214,4 +1214,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   border: 1px solid #ef6c00;
   color: #ef6c00; }
 
+.pmpro-level-growth .pmpro-current-level {
+  border: 4px solid var(--e-global-color-secondary); }
+
 /*# sourceMappingURL=style.css.map */
