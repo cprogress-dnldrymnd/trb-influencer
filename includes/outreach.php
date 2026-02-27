@@ -675,13 +675,14 @@ class DD_Outreach_Manager
                     </span>
                 </a>
             </div>
+            <!--
             <div class="button-box submit-new">
                 <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text"> Send another message</span>
                     </span>
                 </a>
-            </div>
+            </div>-->
         </div>
     <?php
         $custom_html = ob_get_clean();
