@@ -1224,7 +1224,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     .pmpro-level-growth.pmpro-level-12 .pmpro-current-level-growth .annually .elementor-button-text:before {
       content: "CURRENT PLAN";
       font-size: 16px; }
-.pmpro-level-growth .current--plan-tag {
+.pmpro-level-growth.pmpro-level-12 .pmpro-current-level-growth .current--plan-tag {
   display: flex !important; }
 
 .pmpro-level-essential .pmpro-current-level-essential {

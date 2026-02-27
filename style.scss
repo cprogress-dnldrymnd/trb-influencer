@@ -1559,10 +1559,10 @@ body:not(.page-id-4144) {
                     }
                 }
             }
+            .current--plan-tag {
+                display: flex !important;
+            }
         }
-    }
-    .current--plan-tag {
-        display: flex !important;
     }
 }
 
