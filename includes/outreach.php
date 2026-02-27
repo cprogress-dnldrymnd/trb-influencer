@@ -148,6 +148,10 @@ class DD_Outreach_Manager
                 border-bottom: 1px solid #E7E7E7;
             }
 
+            .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
+                gap: 4px;
+            }
+
             .dd-subject-title {
                 color: #034146;
                 font-size: 18px !important;
@@ -310,7 +314,8 @@ class DD_Outreach_Manager
             .dd-outreach-item .dd-item-content {
                 flex: 0 0 calc(100% - 68px);
                 width: calc(100% - 68px);
-                padding-left: 10px;;
+                padding-left: 10px;
+                ;
             }
 
             .dd-outreach-item:hover,
@@ -639,9 +644,9 @@ class DD_Outreach_Manager
             </div>
             <div class="dd-overview-body">
                 <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type : </strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project length : </strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
+                    <span class="tag"><strong>Project type :</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
+                    <span class="tag"><strong>Project length :</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
+                    <span class="tag"><strong>Project Dates :</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
                     <span class="tag"><strong>Budget : </strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
                 </div>
 
