@@ -108,8 +108,17 @@ function action_wp_head()
 
 
     echo '</style>';
-
-
+?>
+    <div class="notice-wrap">
+        <div class="notice-item-wrapper">
+            <div class="notice-item succes" >
+                <div class="notice-item-close">×</div>
+                <p>Points gained by joining Essential Membership</p>
+                <div class="mycred-points">20 points</div>
+            </div>
+        </div>
+    </div>
+<?php
 }
 
 add_action('wp_head', 'action_wp_head');

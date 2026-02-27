@@ -424,7 +424,7 @@ function handle_save_influencer_ajax()
 
     // Establish current user ID
     $current_user_id = get_current_user_id();
-
+    $message = '<div class="notice-wrap"> <div class="notice-item-wrapper"> <div class="notice-item succes" >';
     if ($type == 'save') {
         // Format: Jan 4, 2026 @ 8:57 pm
         // Note: current_time gets the time based on your WP timezone settings
@@ -448,7 +448,9 @@ function handle_save_influencer_ajax()
             update_post_meta($post_id, 'influencer_id', $influencer_id);
 
             // Construct the notification HTML
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p></div>');
+            $message .= sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p></div>');
+            $message .= '</div></div></div>';
+
 
             // Return the HTML directly in the success payload
             wp_send_json_success(array(
@@ -463,7 +465,9 @@ function handle_save_influencer_ajax()
             wp_delete_post($saved_id, true);
 
             // Construct the notification HTML
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
+            $message .= sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
+
+            $message .= '</div></div></div>';
 
             // Return the HTML directly in the success payload
             wp_send_json_success(array(
