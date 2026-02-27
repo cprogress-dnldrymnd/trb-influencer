@@ -72,7 +72,7 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 
 .influencer-loop-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 456px);
+    grid-template-columns: repeat(3, 1fr); /* 3 Columns */
     gap: 20px;
     > div > div {
         height: 100%;
