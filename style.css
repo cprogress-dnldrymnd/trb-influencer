@@ -821,7 +821,7 @@ input:checked + .slider:before {
   @media (max-width: 767px) {
     .large-avatar .avatar-holder.avatar-holder img,
     .large-avatar .influencer-avatar-fallback {
-      --size: 70px; } }
+      --size: 100px; } }
 .large-avatar .influencer-avatar-fallback {
   font-size: 40px; }
 

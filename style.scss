@@ -1029,7 +1029,7 @@ input:checked + .slider:before {
         width: var(--size, 188px);
         height: var(--size, 188px);
         @media (max-width: 767px) {
-            --size: 70px;
+            --size: 100px;
         }
     }
     .influencer-avatar-fallback {
