@@ -3,7 +3,7 @@
 /**
  * Plugin Name: PMPro AJAX Signup Form
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Converts the PMPro Signup form into an AJAX-driven form via inline JS, strictly preventing redirects to the main checkout page on validation errors.
+ * Description: Converts the PMPro Signup form into an AJAX-driven form via inline JS, strictly preventing redirects to the main checkout page on validation errors. Includes custom avatar and required acceptance fields.
  * Version:     1.0.2
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
@@ -46,6 +46,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
+            add_action('init', array($this, 'add_acceptance_field'));
         }
 
         /**
@@ -196,6 +197,50 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 )
             );
 
+            pmpro_add_user_field('profile', $field);
+        }
+
+        /**
+         * Adds a required acceptance checkbox field to the PMPro signup form.
+         *
+         * Fetches the native WordPress Privacy Policy URL and the specific 
+         * Terms of Use page URL (via ID) to generate an HTML string for the checkbox option.
+         * Enforces strict frontend and backend validation by setting the field to required.
+         *
+         * @return void
+         */
+        public function add_acceptance_field()
+        {
+            if (! function_exists('pmpro_add_user_field')) {
+                return;
+            }
+
+            // Retrieve the dynamic URLs for the policy pages
+            $privacy_url = get_privacy_policy_url();
+            $terms_url   = get_permalink(10501);
+
+            // Construct the HTML label containing the required target="_blank" links
+            $label_html = sprintf(
+                'I have read and agree to the <a href="%s" target="_blank">Privacy Policy</a> and <a href="%s" target="_blank">Terms of Use</a>.',
+                esc_url($privacy_url),
+                esc_url($terms_url)
+            );
+
+            // Instantiate the PMPro Checkbox Field
+            $field = new PMPro_Field(
+                'terms_acceptance',
+                'checkbox',
+                array(
+                    'label'    => 'Agreements',
+                    'options'  => array(
+                        'yes' => $label_html
+                    ),
+                    'required' => true,  // Enforces validation on checkout
+                    'profile'  => false, // Keeps this out of the user profile edit screen
+                )
+            );
+
+            // Attach to the 'profile' field group on checkout so it renders naturally in the form
             pmpro_add_user_field('profile', $field);
         }
     }
