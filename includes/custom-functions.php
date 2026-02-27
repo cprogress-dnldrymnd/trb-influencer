@@ -1216,10 +1216,11 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 
 
 /**
- * Generates a randomized HTML hashtag cloud based on a provided array.
- * This function shuffles the input array, limits the output to a specified
- * maximum (default 10), and applies randomized inline CSS for colors.
- * Font size is fixed at 25px and a flex layout is utilized to prevent overlap.
+ * Generates a structural HTML hashtag cloud based on a provided array.
+ * This function shuffles the input array, enforces a strict 25px font size, 
+ * and utilizes a flexbox-centric layout. Bounded translations are calculated 
+ * to provide a randomized visual stagger without exceeding line-height bounds, 
+ * thereby eliminating collision geometry.
  *
  * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
  * @param int   $limit    Maximum number of hashtags to display.
@@ -1227,7 +1228,7 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
  */
 function render_hashtag_cloud(array $hashtags, int $limit = 10)
 {
-    // 1. Validate and prepare the data
+    // 1. Validate and prepare the data buffer
     ob_start();
 
     if (empty($hashtags)) {
@@ -1246,10 +1247,8 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
         '#8F8F8F',
         '#3B1527',
         '#E4A800',
-        '#F77D67D6',
         '#612b00',
-        '#034146B8',
-        '#000',
+        '#000000',
     ];
 
     // Shuffle the palette to ensure random assignment without immediate repetition
@@ -1257,10 +1256,11 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     $palette_count = count($palette);
     $color_index = 0;
 
-    // 3. Render the container using inline flexbox to guarantee clean wrapping without collision
-    echo '<div class="hashtag-cloud-container" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-top: 10px;">';
+    // 3. Render the container using Flexbox for native wrapping and center gravity.
+    // The align-items: center and ample line-height prevent physical DOM overlapping.
+    echo '<div class="hashtag-cloud-container" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px; line-height: 2;">';
 
-    // 4. Iterate and render each tag with standardized properties
+    // 4. Iterate and render each tag with standardized typography and isolated transforms
     foreach ($display_tags as $tag) {
         
         // Select color sequentially from the shuffled palette. 
@@ -1268,10 +1268,15 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
         $color = $palette[$color_index % $palette_count]; 
         $color_index++;
 
-        // Construct inline styles: set fixed font size, assign color, and reset margins
+        // Calculate bounded vertical offset. 
+        // Capping at +/- 8px inside a line-height of 2 ensures zero Y-axis overlap.
+        $offset_y = mt_rand(-8, 8); 
+
+        // Construct inline styles enforcing strict 25px typography and isolated transform context.
         $style = sprintf(
-            'font-size: 25px; color: %1$s; margin: 0; line-height: 1.2;',
-            $color
+            'font-size: 25px; color: %1$s; font-weight: bold; display: inline-block; transform: translateY(%2$spx); white-space: nowrap;',
+            $color,
+            $offset_y
         );
 
         // Output the individual hashtag span
