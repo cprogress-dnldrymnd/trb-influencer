@@ -1217,10 +1217,9 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 
 /**
  * Generates a randomized HTML hashtag cloud based on a provided array.
- * * This function shuffles the input array, limits the output to a specified
- * maximum (default 10), and applies randomized inline CSS for font size 
- * and vertical translation. Colors are pulled from a shuffled palette to 
- * prevent repetition unless the tag count exceeds the palette size.
+ * This function shuffles the input array, limits the output to a specified
+ * maximum (default 10), and applies randomized inline CSS for colors.
+ * Font size is fixed at 25px and a flex layout is utilized to prevent overlap.
  *
  * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
  * @param int   $limit    Maximum number of hashtags to display.
@@ -1258,29 +1257,21 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
     $palette_count = count($palette);
     $color_index = 0;
 
-    // 3. Render the container
-    echo '<div class="hashtag-cloud-container">';
+    // 3. Render the container using inline flexbox to guarantee clean wrapping without collision
+    echo '<div class="hashtag-cloud-container" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding-top: 10px;">';
 
-    // 4. Iterate and render each tag with randomized properties
+    // 4. Iterate and render each tag with standardized properties
     foreach ($display_tags as $tag) {
-        // Randomize visual properties
-        $font_size = mt_rand(120, 200) / 100;  
         
         // Select color sequentially from the shuffled palette. 
         // Modulo operator ensures it loops safely if tag count > palette count.
-        $color     = $palette[$color_index % $palette_count]; 
+        $color = $palette[$color_index % $palette_count]; 
         $color_index++;
 
-        $offset_y  = mt_rand(-15, 15); // Shift up or down by up to 15px for the staggered effect
-        $margin_x  = mt_rand(2, 8); // Slight horizontal spacing variance
-
-        // Construct inline styles
+        // Construct inline styles: set fixed font size, assign color, and reset margins
         $style = sprintf(
-            'font-size: %1$srem; color: %2$s; transform: translateY(%3$spx); margin: 0 %4$spx;',
-            $font_size,
-            $color,
-            $offset_y,
-            $margin_x
+            'font-size: 25px; color: %1$s; margin: 0; line-height: 1.2;',
+            $color
         );
 
         // Output the individual hashtag span
