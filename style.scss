@@ -1549,6 +1549,13 @@ body:not(.page-id-4144) {
             &.annually {
                 pointer-events: none;
                 opacity: 0.7;
+                .elementor-button-text {
+                    font-size: 0;
+                    &:before {
+                        content: 'CURRENT PLAN';
+                        font-size: 16px;
+                    }
+                }
             }
         }
     }
