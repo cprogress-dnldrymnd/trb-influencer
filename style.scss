@@ -1407,3 +1407,9 @@ input:checked + .slider:before {
         }
     }
 }
+
+body:not(.pmpro-level-free-trial) {
+    #upgrade--plan {
+        display: none !important;
+    }
+}
