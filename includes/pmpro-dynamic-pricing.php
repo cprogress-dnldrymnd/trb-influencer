@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects and pairs levels from Group 2 (Monthly) and Group 3 (Annual).
- * Version: 1.0.4
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects and pairs levels, and supports a custom CTA card at the end.
+ * Version: 1.0.5
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -78,8 +78,7 @@ class DD_PMPro_Frontend_Pricing {
 					}
 				}
 
-				// Fallback mechanism: If PMPro group IDs are not natively attached to the object,
-				// sort by price. The cheaper option becomes Monthly, the more expensive becomes Annual.
+				// Fallback mechanism
 				if ( ! $monthly_id || ! $annual_id ) {
 					usort( $levels, function( $a, $b ) {
 						return (float) $a->initial_payment <=> (float) $b->initial_payment;
@@ -88,7 +87,6 @@ class DD_PMPro_Frontend_Pricing {
 					$annual_id  = $levels[1]->id;
 				}
 
-				// Register the pair only if both IDs successfully resolved
 				if ( $monthly_id && $annual_id ) {
 					$pairs[] = [
 						'name'       => $name,
@@ -105,48 +103,44 @@ class DD_PMPro_Frontend_Pricing {
 
 	/**
 	 * Registers the backend submenu page under the PMPro Dashboard.
-	 * * Hooks into the admin_menu action to inject a native WordPress settings page.
 	 * * @return void
 	 */
 	public function register_admin_menu() {
-		// Enforce PMPro dependency for the menu placement
 		if ( ! defined( 'PMPRO_VERSION' ) ) {
 			return;
 		}
 
 		add_submenu_page(
-			'pmpro-dashboard',                      // Parent slug (PMPro Dashboard)
-			'Pricing Table Settings',               // Page title
-			'Pricing Settings',                     // Menu title
-			'manage_options',                       // Capability required
-			'dd-pricing-settings',                  // Menu slug
-			[ $this, 'render_settings_page' ]       // Callback function to render the page
+			'pmpro-dashboard',
+			'Pricing Table Settings',
+			'Pricing Settings',
+			'manage_options',
+			'dd-pricing-settings',
+			[ $this, 'render_settings_page' ]
 		);
 	}
 
 	/**
 	 * Registers the settings, sections, and fields dynamically for the WordPress Settings API.
-	 * * Secures the data in the wp_options table and iterates over discovered plan pairs 
-	 * to generate the appropriate backend input fields.
+	 * * Secures the data in the wp_options table for dynamic plans and the custom CTA card.
 	 * * @return void
 	 */
 	public function register_plugin_settings() {
 		$pairs = $this->get_dynamic_plan_pairs();
 
-		// Register an option dynamically for each discovered plan pair
+		// Register dynamically generated options for PMPro plans
 		foreach ( $pairs as $pair ) {
 			register_setting( 'dd_pricing_settings_group', $pair['option_key'] );
 		}
 
-		// Add the main section for the fields
+		// Section 1: Dynamic Plan Descriptions
 		add_settings_section(
 			'dd_pricing_main_section',
 			'Dynamic Plan Descriptions',
-			[ $this, 'render_section_intro' ],
+			function() { echo '<p>Update the descriptions displayed on the frontend pricing table shortcode.</p>'; },
 			'dd-pricing-settings'
 		);
 
-		// Add a textarea field dynamically for each discovered plan pair
 		foreach ( $pairs as $pair ) {
 			add_settings_field(
 				$pair['option_key'] . '_field',
@@ -161,51 +155,60 @@ class DD_PMPro_Frontend_Pricing {
 				]
 			);
 		}
+
+		// Register static options for Custom CTA Card
+		$cta_options = [ 'dd_cta_enable', 'dd_cta_heading', 'dd_cta_desc', 'dd_cta_btn_text', 'dd_cta_btn_link' ];
+		foreach ( $cta_options as $opt ) {
+			register_setting( 'dd_pricing_settings_group', $opt );
+		}
+
+		// Section 2: Custom CTA Card
+		add_settings_section(
+			'dd_pricing_cta_section',
+			'Custom CTA Card (e.g., Scale)',
+			function() { echo '<p>Configure the static card that appears at the end of the pricing table.</p>'; },
+			'dd-pricing-settings'
+		);
+
+		add_settings_field( 'dd_cta_enable', 'Enable CTA Card', [ $this, 'render_checkbox_field' ], 'dd-pricing-settings', 'dd_pricing_cta_section', [ 'name' => 'dd_cta_enable' ] );
+		add_settings_field( 'dd_cta_heading', 'Heading', [ $this, 'render_text_field' ], 'dd-pricing-settings', 'dd_pricing_cta_section', [ 'name' => 'dd_cta_heading', 'default' => 'Scale' ] );
+		add_settings_field( 'dd_cta_desc', 'Description', [ $this, 'render_textarea_field' ], 'dd-pricing-settings', 'dd_pricing_cta_section', [ 'name' => 'dd_cta_desc', 'default' => 'Manage multiple campaigns enjoy limit-free usage.' ] );
+		add_settings_field( 'dd_cta_btn_text', 'Button Text', [ $this, 'render_text_field' ], 'dd-pricing-settings', 'dd_pricing_cta_section', [ 'name' => 'dd_cta_btn_text', 'default' => 'ENQUIRE NOW' ] );
+		add_settings_field( 'dd_cta_btn_link', 'Button Link', [ $this, 'render_text_field' ], 'dd-pricing-settings', 'dd_pricing_cta_section', [ 'name' => 'dd_cta_btn_link', 'default' => '/contact' ] );
 	}
 
 	/**
-	 * Renders the introductory text for the settings section.
-	 * * @return void
-	 */
-	public function render_section_intro() {
-		echo '<p>Update the descriptions displayed on the frontend pricing table shortcode. Fields are automatically generated based on matching Monthly/Annual level names.</p>';
-	}
-
-	/**
-	 * Renders a dynamic textarea field for the Settings API.
-	 * * @param array $args Contains 'name' and 'default' keys passed from add_settings_field.
-	 * * @return void
+	 * Field Renderers
 	 */
 	public function render_textarea_field( $args ) {
-		$option_value = get_option( $args['name'], $args['default'] );
-		?>
-		<textarea id="<?php echo esc_attr( $args['name'] ); ?>" 
-				  name="<?php echo esc_attr( $args['name'] ); ?>" 
-				  rows="4" 
-				  class="regular-text"><?php echo esc_textarea( $option_value ); ?></textarea>
-		<?php
+		$option_value = get_option( $args['name'], $args['default'] ?? '' );
+		echo '<textarea id="' . esc_attr( $args['name'] ) . '" name="' . esc_attr( $args['name'] ) . '" rows="4" class="regular-text">' . esc_textarea( $option_value ) . '</textarea>';
+	}
+
+	public function render_text_field( $args ) {
+		$option_value = get_option( $args['name'], $args['default'] ?? '' );
+		echo '<input type="text" id="' . esc_attr( $args['name'] ) . '" name="' . esc_attr( $args['name'] ) . '" value="' . esc_attr( $option_value ) . '" class="regular-text" />';
+	}
+
+	public function render_checkbox_field( $args ) {
+		$option_value = get_option( $args['name'] );
+		echo '<input type="checkbox" id="' . esc_attr( $args['name'] ) . '" name="' . esc_attr( $args['name'] ) . '" value="1" ' . checked( 1, $option_value, false ) . ' />';
 	}
 
 	/**
 	 * Renders the HTML wrapper for the backend settings page.
-	 * * Uses native WordPress form handling to process the registered settings.
 	 * * @return void
 	 */
 	public function render_settings_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
+		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<form action="options.php" method="post">
 				<?php
-				// Output security fields for the registered setting group
 				settings_fields( 'dd_pricing_settings_group' );
-				// Output setting sections and their dynamically generated fields
 				do_settings_sections( 'dd-pricing-settings' );
-				// Output save settings button
-				submit_button( 'Save Descriptions' );
+				submit_button( 'Save Pricing Table Settings' );
 				?>
 			</form>
 		</div>
@@ -213,50 +216,22 @@ class DD_PMPro_Frontend_Pricing {
 	}
 
 	/**
-	 * Retrieves formatted pricing data for a specific PMPro level.
-	 * * Queries the PMPro database for level details and formats the price using
-	 * PMPro's native currency formatting function.
-	 * * @param int $level_id The ID of the PMPro level.
-	 * @return array|false Array of level data (price, url) or false if not found.
+	 * Data retrieval and standard card rendering logic
 	 */
 	private function get_level_data( $level_id ) {
-		if ( ! function_exists( 'pmpro_getLevel' ) ) {
-			return false;
-		}
-
+		if ( ! function_exists( 'pmpro_getLevel' ) ) { return false; }
 		$level = pmpro_getLevel( $level_id );
-		if ( empty( $level ) ) {
-			return false;
-		}
-
-		return [
-			'id'    => $level->id,
-			'price' => pmpro_formatPrice( $level->initial_payment ),
-			'url'   => pmpro_url( 'checkout', '?level=' . $level->id ),
-		];
+		if ( empty( $level ) ) { return false; }
+		return [ 'id' => $level->id, 'price' => pmpro_formatPrice( $level->initial_payment ), 'url' => pmpro_url( 'checkout', '?level=' . $level->id ) ];
 	}
 
-	/**
-	 * Generates the HTML string for a single pricing card.
-	 * * Constructs the DOM structure for a plan, injecting dynamic data attributes
-	 * required by the vanilla JavaScript toggle logic. Evaluates current user membership
-	 * by strictly checking exact level IDs to avoid PMPro group-level false positives.
-	 * * @param string $name         The display name of the plan (e.g., 'Essential').
-	 * @param string $description  The feature description text.
-	 * @param int    $monthly_id   The PMPro Level ID for the monthly variant.
-	 * @param int    $annual_id    The PMPro Level ID for the annual variant.
-	 * @return string              The constructed HTML block for the card.
-	 */
 	private function build_pricing_card( $name, $description, $monthly_id, $annual_id ) {
 		$monthly_data = $this->get_level_data( $monthly_id );
 		$annual_data  = $this->get_level_data( $annual_id );
 
-		if ( ! $monthly_data || ! $annual_data ) {
-			return '';
-		}
+		if ( ! $monthly_data || ! $annual_data ) { return ''; }
 
-		// Strictly evaluate ownership by exact ID to prevent PMPro group filters from returning false positives.
-		$current_user_id    = get_current_user_id();
+		$current_user_id = get_current_user_id();
 		$is_current_monthly = false;
 		$is_current_annual  = false;
 
@@ -264,32 +239,22 @@ class DD_PMPro_Frontend_Pricing {
 			$user_levels = pmpro_getMembershipLevelsForUser( $current_user_id );
 			if ( ! empty( $user_levels ) ) {
 				foreach ( $user_levels as $l ) {
-					if ( $l->id == $monthly_id ) {
-						$is_current_monthly = true;
-					}
-					if ( $l->id == $annual_id ) {
-						$is_current_annual = true;
-					}
+					if ( $l->id == $monthly_id ) { $is_current_monthly = true; }
+					if ( $l->id == $annual_id ) { $is_current_annual = true; }
 				}
 			}
 		}
 
 		$has_any_plan = $is_current_monthly || $is_current_annual;
-		
 		$card_class = $has_any_plan ? 'dd-card dd-card-active' : 'dd-card';
 		$badge_html = $has_any_plan ? '<div class="dd-badge">CURRENT PLAN</div>' : '';
 		
-		// Set initial toggle state based on active tier (defaults to monthly if none)
 		$show_annual_default = $is_current_annual;
 		$toggle_checked      = $show_annual_default ? 'checked' : '';
-
-		// Initialize default view variables
 		$current_price     = $show_annual_default ? $annual_data['price'] : $monthly_data['price'];
 		$owns_current_view = $show_annual_default ? $is_current_annual : $is_current_monthly;
 		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : 'JOIN NOW';
 		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
-		
-		// Use empty string instead of '#' for disabled links to ensure no anchor jumping
 		$current_url       = $owns_current_view ? '' : ( $show_annual_default ? $annual_data['url'] : $monthly_data['url'] );
 
 		ob_start();
@@ -301,16 +266,10 @@ class DD_PMPro_Frontend_Pricing {
 			 data-price-annual="<?php echo esc_attr( $annual_data['price'] ); ?>"
 			 data-url-annual="<?php echo esc_url( $annual_data['url'] ); ?>"
 			 data-owns-annual="<?php echo $is_current_annual ? 'true' : 'false'; ?>">
-			
 			<?php echo wp_kses_post( $badge_html ); ?>
-			
 			<h3 class="dd-plan-name"><?php echo esc_html( $name ); ?></h3>
 			<p class="dd-plan-desc"><?php echo esc_html( $description ); ?></p>
-			
-			<div class="dd-price-wrapper">
-				<span class="dd-price-amount"><?php echo wp_kses_post( $current_price ); ?></span>
-			</div>
-			
+			<div class="dd-price-wrapper"><span class="dd-price-amount"><?php echo wp_kses_post( $current_price ); ?></span></div>
 			<div class="dd-toggle-wrapper">
 				<label class="dd-switch">
 					<input type="checkbox" class="dd-plan-toggle" <?php echo esc_attr( $toggle_checked ); ?>>
@@ -318,24 +277,16 @@ class DD_PMPro_Frontend_Pricing {
 				</label>
 				<span class="dd-toggle-label">Yearly</span>
 			</div>
-			
-			<a <?php echo $current_url ? 'href="' . esc_url( $current_url ) . '"' : ''; ?> class="<?php echo esc_attr( $btn_class ); ?>">
-				<?php echo esc_html( $btn_text ); ?>
-			</a>
+			<a <?php echo $current_url ? 'href="' . esc_url( $current_url ) . '"' : ''; ?> class="<?php echo esc_attr( $btn_class ); ?>"><?php echo esc_html( $btn_text ); ?></a>
 		</div>
 		<?php
 		return ob_get_clean();
 	}
 
 	/**
-	 * Renders the shortcode output including styling, HTML structure, and foolproof JS logic.
-	 * * Constructs the full grid layout by looping through automatically paired levels and
-	 * retrieving their dynamic descriptions from the options table.
-	 * * @param array $atts Shortcode attributes (optional overrides).
-	 * @return string     The complete HTML, CSS, and JS to output to the frontend.
+	 * Renders the shortcode output
 	 */
 	public function render_pricing_table( $atts ) {
-		// Enforce PMPro dependency
 		if ( ! defined( 'PMPRO_VERSION' ) ) {
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
@@ -343,15 +294,13 @@ class DD_PMPro_Frontend_Pricing {
 		ob_start();
 		?>
 		<style>
-			.dd-pricing-container { display: flex; gap: 2rem; justify-content: center; font-family: sans-serif; flex-wrap: wrap; }
+			.dd-pricing-container { display: flex; gap: 2rem; justify-content: center; font-family: sans-serif; flex-wrap: wrap; align-items: stretch; }
 			.dd-card { background: #f5f3f0; border-radius: 12px; padding: 2rem; width: 300px; position: relative; display: flex; flex-direction: column; }
 			.dd-card-active { border: 2px solid #3c2a2a; background: #eae6e1; }
 			.dd-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #ffe270; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: #333; }
 			.dd-plan-name { font-size: 2rem; margin: 0 0 1rem 0; color: #5a3c3c; font-family: serif; }
 			.dd-plan-desc { font-size: 0.95rem; color: #555; margin-bottom: 1.5rem; flex-grow: 1; white-space: pre-wrap; }
 			.dd-price-wrapper { font-size: 2.2rem; font-weight: bold; color: #4a3434; margin-bottom: 1rem; }
-			
-			/* Toggle Switch CSS */
 			.dd-toggle-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
 			.dd-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
 			.dd-switch input { opacity: 0; width: 0; height: 0; }
@@ -362,9 +311,7 @@ class DD_PMPro_Frontend_Pricing {
 			.dd-slider.round { border-radius: 34px; }
 			.dd-slider.round:before { border-radius: 50%; }
 			.dd-toggle-label { font-size: 0.9rem; color: #666; }
-			
-			/* Button CSS */
-			.dd-btn { background: #ff8c75; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: background 0.3s; cursor: pointer; }
+			.dd-btn { background: #ff8c75; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: background 0.3s; cursor: pointer; display: block; margin-top: auto; }
 			.dd-btn:hover { background: #fa7b63; color: white; }
 			.dd-btn-disabled { background: #ffbbae; pointer-events: none; cursor: not-allowed; }
 		</style>
@@ -377,48 +324,47 @@ class DD_PMPro_Frontend_Pricing {
 				echo '<p>No matching Monthly and Annual plan pairs detected.</p>';
 			} else {
 				foreach ( $pairs as $pair ) {
-					// Dynamically retrieve the description from the options table
 					$default_desc = 'Discover features included in the ' . esc_html( $pair['name'] ) . ' plan.';
 					$description  = get_option( $pair['option_key'], $default_desc );
-
-					echo $this->build_pricing_card( 
-						$pair['name'], 
-						$description, 
-						$pair['monthly_id'], 
-						$pair['annual_id'] 
-					);
+					echo $this->build_pricing_card( $pair['name'], $description, $pair['monthly_id'], $pair['annual_id'] );
 				}
+			}
+
+			// Render Custom CTA Card if enabled
+			if ( get_option( 'dd_cta_enable' ) ) {
+				$cta_heading = get_option( 'dd_cta_heading', 'Scale' );
+				$cta_desc    = get_option( 'dd_cta_desc', 'Manage multiple campaigns enjoy limit-free usage.' );
+				$cta_btn     = get_option( 'dd_cta_btn_text', 'ENQUIRE NOW' );
+				$cta_link    = get_option( 'dd_cta_btn_link', '/contact' );
+				?>
+				<div class="dd-card">
+					<h3 class="dd-plan-name"><?php echo esc_html( $cta_heading ); ?></h3>
+					<p class="dd-plan-desc"><?php echo esc_html( $cta_desc ); ?></p>
+					<a href="<?php echo esc_url( $cta_link ); ?>" class="dd-btn"><?php echo esc_html( $cta_btn ); ?></a>
+				</div>
+				<?php
 			}
 			?>
 		</div>
 
 		<script>
 			(function() {
-				// Encapsulated initialization to ensure execution regardless of builder loading order
 				function initDDPricingToggles() {
 					const toggles = document.querySelectorAll('.dd-plan-toggle');
-					
 					toggles.forEach(toggle => {
-						// Prevent duplicate event bindings if initialized multiple times
 						if(toggle.dataset.ddBound === 'true') return;
 						toggle.dataset.ddBound = 'true';
-
 						toggle.addEventListener('change', function() {
 							const card = this.closest('.dd-card');
 							const isYearly = this.checked;
 							const priceEl = card.querySelector('.dd-price-amount');
 							const btnEl = card.querySelector('.dd-checkout-btn');
-							
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 
-							// 1. Update Price
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
-
-							// 2. Evaluate Exact Target Tier Ownership
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
 
-							// 3. Update Button State 
 							if (userOwnsSelectedView) {
 								btnEl.textContent = 'CURRENT PLAN';
 								btnEl.classList.add('dd-btn-disabled');
@@ -431,8 +377,6 @@ class DD_PMPro_Frontend_Pricing {
 						});
 					});
 				}
-
-				// Check if the DOM is already parsed (catches late shortcode execution via builders)
 				if (document.readyState === 'loading') {
 					document.addEventListener('DOMContentLoaded', initDDPricingToggles);
 				} else {
