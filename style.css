@@ -1024,7 +1024,8 @@ input:checked + .slider:before {
     border: 1px solid;
     align-items: center;
     gap: 10px;
-    border-radius: 5px; }
+    border-radius: 5px;
+    flex-wrap: wrap; }
     .notice-wrap.notice-wrap.notice-wrap .notice-item p {
       font-size: 14px;
       margin: 0; }

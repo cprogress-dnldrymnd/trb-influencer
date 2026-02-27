@@ -1299,6 +1299,7 @@ input:checked + .slider:before {
         align-items: center;
         gap: 10px;
         border-radius: 5px;
+        flex-wrap: wrap;
         p {
             font-size: 14px;
             margin: 0;
