@@ -355,18 +355,6 @@ add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
 
 
 
-/**
- * Plugin Name: PMPro Custom Pricing Table Integrator
- * Description: Registers a settings interface with tabbed partitions and repeater fields to manage custom pricing plans (e.g., 'Scale') alongside standard PMPro levels.
- * Version: 1.0.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- * Text Domain: dd-pmpro-pricing
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
-}
 
 /**
  * Class DD_Pricing_Table_Manager
