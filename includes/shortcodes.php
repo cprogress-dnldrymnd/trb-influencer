@@ -2157,7 +2157,7 @@ function shortcode_influencer_platform_score($atts)
     $html .= '<span class="influencer-platform-score-value">' . $score . '</span>';
     $html .= '<span class="influencer-platform-score-total">/100</span>';
     $icon = '<span class="influencer-platform-score-icon" aria-hidden="true">↗</span>';
-    $html .= ' <span class="influencer-platform-score-tag">' . $icon . esc_html($label) . '</span>';
+    $html .= ' <span class="influencer-platform-score-tag chip">' . $icon .' '. esc_html($label) . '</span>';
     if ($tooltip) {
         $html .= ' <span class="influencer-platform-score-info" title="' . esc_attr($tooltip) . '" aria-label="Score breakdown">ℹ</span>';
     }
