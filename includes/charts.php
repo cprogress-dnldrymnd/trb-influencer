@@ -295,6 +295,8 @@ class DD_Follower_Growth_Chart
                 color: #888;
                 font-family: Inter, sans-serif !important;
                 padding: 0 10px;
+                flex-wrap: wrap;
+                gap: 20px;
             }
 
             #ddMonthlyChart * {
