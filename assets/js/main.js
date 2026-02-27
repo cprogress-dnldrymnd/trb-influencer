@@ -381,11 +381,9 @@
   * @return {void}
   */
     function display_dynamic_mycred_notice(htmlContent) {
-        // Construct the wrapper element. Adjust inline styles as needed to match your theme.
-        var $notice = $('<div class="mycred-custom-ajax-notice" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; background: #fff; border: 1px solid #ccc; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 4px; border-left: 4px solid #0073aa;">' + htmlContent + '</div>');
 
         // Append to DOM
-        $('body').append($notice);
+        $('body').append($htmlContent);
 
         // Animate in
         $notice.fadeIn(300);
