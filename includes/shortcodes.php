@@ -584,8 +584,8 @@ function shortcode_influencer_search_filter_main()
                 <div class="influencer-search-item">
                     <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
                         <span class="elementor-button-content-wrapper">
-                            <span class="elementor-button-text full-brief-search active">GENERATE MATCHES</span>
-                            <span class="elementor-button-text filtered-search">SEARCH</span>
+                            <span class="elementor-button-text influencer-search-item-wrapper full-brief-search active">GENERATE MATCHES</span>
+                            <span class="elementor-button-text influencer-search-item-wrapper filtered-search">SEARCH</span>
                         </span>
                     </button>
                 </div>
