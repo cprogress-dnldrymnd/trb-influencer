@@ -1419,3 +1419,45 @@ body:not(.pmpro-level-free-trial) {
         display: none !important;
     }
 }
+
+
+{
+    /* Firefox (uncomment to work in Firefox) */
+/* * {
+  scrollbar-width: thin;
+  scrollbar-color: #FFFFFF #034146;
+} */
+
+/* Chrome, Edge and Safari */
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  border-radius: 5px;
+  background-color: #034146;
+}
+
+*::-webkit-scrollbar-track:hover {
+  background-color: #034146;
+}
+
+*::-webkit-scrollbar-track:active {
+  background-color: #034146;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background-color: #FFFFFF;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #FFFFFF;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: #FFFFFF;
+}
+
+}
