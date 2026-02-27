@@ -1014,11 +1014,7 @@ input:checked + .slider:before {
 
 .notice-wrap.notice-wrap.notice-wrap {
   opacity: 1;
-  font-family: "Inter";
-  position: fixed;
-  right: 40px;
-  top: 40px;
-  z-index: 999999; }
+  font-family: "Inter"; }
   .notice-wrap.notice-wrap.notice-wrap .notice-item {
     line-height: auto;
     color: #000;
