@@ -136,6 +136,11 @@ class DD_Outreach_Manager
                 border-radius: 5px;
             }
 
+            .dd-btn-outline:hover {
+                background-color: var(--e-global-color-accent);
+                color: var( --e-global-color-2ba2932 );
+            }
+
             .dd-message-overview-container .tags-container.tags-container.tags-container {
                 padding: 15px 20px;
                 margin: 0;
@@ -179,7 +184,7 @@ class DD_Outreach_Manager
             .view-outreach a {
                 background-color: var(--e-global-color-accent) !important;
                 border: 1px solid var(--e-global-color-accent);
-                color: #fff !important;
+                color: var( --e-global-color-2ba2932 ) !important;;
 
             }
 
@@ -371,7 +376,7 @@ class DD_Outreach_Manager
             .dd-note-card {
                 flex: 1;
                 min-width: 280px;
-                background: #fff;
+                background: var( --e-global-color-2ba2932 );
                 border: 2px solid #FFE17B;
                 border-radius: 8px;
                 padding: 20px;
