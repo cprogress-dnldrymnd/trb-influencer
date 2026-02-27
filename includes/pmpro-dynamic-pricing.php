@@ -427,7 +427,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			input:checked+.dd-slider {
-				background-color: #ff8c75;
+				background-color: var(--e-global-color-accent);;
 			}
 
 			input:checked+.dd-slider:before {
@@ -444,7 +444,6 @@ class DD_PMPro_Frontend_Pricing
 
 			.dd-toggle-label {
 				font-size: 0.9rem;
-				color: #666;
 			}
 
 			.dd-btn {
@@ -452,6 +451,10 @@ class DD_PMPro_Frontend_Pricing
 				font-size: var(--e-global-typography-accent-font-size);
 				font-weight: var(--e-global-typography-accent-font-weight);
 				letter-spacing: var(--e-global-typography-accent-letter-spacing);
+				padding: 23px 30px;
+				color: var(--e-global-color-2ba2932);;
+				text-align: center;
+				border-radius: 5px;
 			}
 
 			.dd-btn:hover {
