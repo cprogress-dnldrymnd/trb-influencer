@@ -1143,13 +1143,13 @@ body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
 
 *::-webkit-scrollbar-track {
   border-radius: 0px;
-  background-color: #ffffff; }
+  background-color: #012528; }
 
 *::-webkit-scrollbar-track:hover {
-  background-color: #ffffff; }
+  background-color: #012528; }
 
 *::-webkit-scrollbar-track:active {
-  background-color: #ffffff; }
+  background-color: #012528; }
 
 *::-webkit-scrollbar-thumb {
   border-radius: 0px;
