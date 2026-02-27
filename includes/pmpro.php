@@ -354,3 +354,27 @@ function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, 
 
 // Hook into the logout_redirect filter with a standard priority of 10, accepting 3 arguments
 add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
+
+
+/**
+ * Intercepts the Paid Memberships Pro Stripe Checkout Session creation.
+ * Logs the payload and session URL to the standard WordPress debug.log 
+ * to verify if the Checkout Session ID is valid before redirecting.
+ *
+ * @param \Stripe\Checkout\Session $session The Stripe checkout session object.
+ */
+function trb_debug_pmpro_stripe_session( $session ) {
+    // Only execute if WP_DEBUG is enabled to prevent stray logs in production environments
+    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        
+        // Log the full session ID and URL for payload analysis
+        error_log( 'PMPro Stripe Session Debug: ID - ' . $session->id );
+        error_log( 'PMPro Stripe Session Debug: URL - ' . $session->url );
+        
+        // If the session object lacks an ID, log a critical error indicating a backend API failure
+        if ( empty( $session->id ) ) {
+            error_log( 'PMPro Stripe Critical: Session ID failed to generate. Verify API keys, currency limits, and cURL compatibility.' );
+        }
+    }
+}
+add_action( 'pmpro_stripe_create_checkout_session', 'trb_debug_pmpro_stripe_session', 10, 1 );
