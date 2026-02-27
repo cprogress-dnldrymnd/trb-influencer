@@ -11,7 +11,7 @@
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
-        fix_styling_issue();
+ 
 
         $(window).on('resize', function () {
             dashboardLogoHeightVar();
@@ -26,13 +26,7 @@
     });
 
 
-    function fix_styling_issue() {
-        setTimeout(function () {
-            jQuery('body').addClass('show-body');
-        }, 1000);
-    }
-
-
+  
     /**
  * Calculates the outer height of the #members-area-header element 
  * and sets it as a custom CSS property (--members-area-header-height) on the body tag.

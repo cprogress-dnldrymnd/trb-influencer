@@ -109,7 +109,7 @@ function action_wp_head()
 
     echo '</style>';
 ?>
-<!--
+    <!--
     <div class="notice-wrap">
         <div class="notice-item-wrapper">
             <div class="notice-item succes" >
@@ -224,20 +224,22 @@ add_action('template_redirect', 'dd_execute_conditional_page_redirect');
  *
  * @return void
  */
-function dd_restrict_inspect_on_influencer_pages() {
-    
+function dd_restrict_inspect_on_influencer_pages()
+{
+
     // Verify the current route is a single 'influencer' custom post type page.
     // Ensure the string matches your exact Custom Post Type slug.
-    if ( ! is_singular( 'influencer' ) || current_user_can('administrator') ) {
+    if (! is_singular('influencer') || current_user_can('administrator')) {
         return;
     }
-    ?>
+?>
+
     <script type="text/javascript">
         /**
          * Initializes the DOM event listeners for restricting user interface interactions.
          */
         document.addEventListener('DOMContentLoaded', function() {
-            
+
             /**
              * Intercepts and disables the right-click context menu globally on the document.
              * * @param {Event} e The DOM contextmenu event.
@@ -252,34 +254,49 @@ function dd_restrict_inspect_on_influencer_pages() {
              * * @param {Event} e The DOM keydown event.
              */
             document.addEventListener('keydown', function(e) {
-                
+
                 // Prevent F12 (Standard DevTools toggle)
-                if ( e.keyCode === 123 ) {
+                if (e.keyCode === 123) {
                     e.preventDefault();
                 }
-                
+
                 // Prevent Ctrl+Shift+I (Windows/Linux) or Cmd+Opt+I (Mac) - Open DevTools
-                if ( ( e.ctrlKey || e.metaKey ) && e.shiftKey && e.keyCode === 73 ) {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.keyCode === 73) {
                     e.preventDefault();
                 }
-                
+
                 // Prevent Ctrl+Shift+J (Windows/Linux) or Cmd+Opt+J (Mac) - Open Console
-                if ( ( e.ctrlKey || e.metaKey ) && e.shiftKey && e.keyCode === 74 ) {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.keyCode === 74) {
                     e.preventDefault();
                 }
-                
+
                 // Prevent Ctrl+Shift+C (Windows/Linux) or Cmd+Opt+C (Mac) - Inspect Element
-                if ( ( e.ctrlKey || e.metaKey ) && e.shiftKey && e.keyCode === 67 ) {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.keyCode === 67) {
                     e.preventDefault();
                 }
-                
+
                 // Prevent Ctrl+U (Windows/Linux) or Cmd+U (Mac) - View Page Source
-                if ( ( e.ctrlKey || e.metaKey ) && e.keyCode === 85 ) {
+                if ((e.ctrlKey || e.metaKey) && e.keyCode === 85) {
                     e.preventDefault();
                 }
             });
         });
     </script>
-    <?php
+
+<?php
 }
-add_action( 'wp_footer', 'dd_restrict_inspect_on_influencer_pages' );
+add_action('wp_footer', 'dd_restrict_inspect_on_influencer_pages');
+
+
+function fix_body_style()
+{
+?>
+    <script>
+        setTimeout(function() {
+            jQuery('body').addClass('show-body');
+        }, 1000);
+    </script>
+<?php
+}
+
+add_action('wp_footer', 'fix_body_style');
