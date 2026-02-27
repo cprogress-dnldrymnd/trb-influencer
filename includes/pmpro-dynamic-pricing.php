@@ -351,9 +351,9 @@ class DD_PMPro_Frontend_Pricing
 				left: 50%;
 				transform: translateX(-50%);
 				background: #ffe270;
-				padding: 5px 15px;
+				padding: 22px;
 				border-radius: 20px;
-				font-size: 0.8rem;
+				font-size: 22px;
 				font-weight: bold;
 				color: #333;
 			}
