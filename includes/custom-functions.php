@@ -641,8 +641,9 @@ function get_unique_influencer_countries()
     // 2. Loop through results and format
     foreach ($results as $original_val) {
 
-        // Ensure we match the lowercase keys in your mapping function
-        $alpha3 = strtolower(trim($original_val));
+        // Ensure we match the lowercase keys in your mapping function.
+        // The null coalescing operator (?? '') prevents PHP 8.1+ deprecation errors when $original_val is null.
+        $alpha3 = strtolower(trim($original_val ?? ''));
 
         // Convert 3-letter to 2-letter using your helper function
         if (function_exists('iso_alpha3_to_alpha2')) {
@@ -1265,10 +1266,10 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
 
     // 4. Iterate and render each tag with standardized properties
     foreach ($display_tags as $tag) {
-        
+
         // Select color sequentially from the shuffled palette. 
         // Modulo operator ensures it loops safely if tag count > palette count.
-        $color = $palette[$color_index % $palette_count]; 
+        $color = $palette[$color_index % $palette_count];
         $color_index++;
 
         // Construct inline styles: set fixed font size, assign color, and reset margins
