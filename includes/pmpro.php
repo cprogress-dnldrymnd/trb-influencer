@@ -381,21 +381,9 @@ function dd_pmpro_keep_errors_on_custom_page( $pages ) {
 }
 add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
 
-<?php
-/**
- * Plugin Name: PMPro Custom Checkout Button Modification
- * Description: Modifies the text and/or structure of the PMPro checkout submit button.
- * Version: 1.0.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
-}
 
 /**
- * METHOD 1: String Translation Override
  * * Modifies Paid Memberships Pro checkout button text via the gettext filter.
  * This function intercepts translated strings in WordPress and specifically
  * targets the 'paid-memberships-pro' text domain to replace the default
