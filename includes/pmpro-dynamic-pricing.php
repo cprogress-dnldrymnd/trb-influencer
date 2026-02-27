@@ -382,7 +382,6 @@ class DD_PMPro_Frontend_Pricing
 				font-weight: bold;
 				color: var(--e-global-color-secondary);
 				margin-bottom: 1rem;
-				font-family: 'Playfair Display', serif;
 			}
 
 			.dd-toggle-wrapper {
