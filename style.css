@@ -1233,13 +1233,13 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 .default--page.default--page.default--page * {
   font-family: Inter; }
 .default--page.default--page.default--page h2 {
-  font-size: 40px;
+  font-size: 30px;
   line-height: 1.2; }
   @media (max-width: 1024px) {
     .default--page.default--page.default--page h2 {
-      font-size: 36px; } }
+      font-size: 28px; } }
   @media (max-width: 767px) {
     .default--page.default--page.default--page h2 {
-      font-size: 32px; } }
+      font-size: 24px; } }
 
 /*# sourceMappingURL=style.css.map */
