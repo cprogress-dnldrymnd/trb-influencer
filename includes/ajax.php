@@ -440,8 +440,6 @@ function handle_save_influencer_ajax()
         } else {
             // Update Meta Data
             update_post_meta($post_id, 'influencer_id', $influencer_id);
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p><div/>');
-            dd_trigger_mycred_notice(get_current_user_id(), $message);
             wp_send_json_success(array('message' => 'Saved successfully!', 'id' => $post_id));
         }
     } else {
