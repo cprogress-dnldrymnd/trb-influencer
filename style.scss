@@ -1301,9 +1301,10 @@ input:checked + .slider:before {
         line-height: auto;
         color: #000;
         display: flex;
-        padding: 0;
+        padding: 18px;
         overflow: hidden;
         border: 1px solid;
+        align-items: center;
         p {
             font-size: 14px;
             padding: 10px;
