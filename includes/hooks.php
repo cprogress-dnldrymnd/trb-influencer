@@ -111,7 +111,7 @@ function action_wp_head()
 ?>
     <div class="notice-wrap">
         <div class="notice-item-wrapper">
-            <div class="notice-item succes" style="opacity: 0.71997;">
+            <div class="notice-item succes" >
                 <div class="notice-item-close">×</div>
                 <p>Points gained by joining Essential Membership</p>
                 <div class="mycred-points">20 points</div>
