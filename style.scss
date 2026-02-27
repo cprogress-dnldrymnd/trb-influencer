@@ -1541,39 +1541,3 @@ body:not(.page-id-4144) {
         color: #ef6c00;
     }
 }
-
-.pmpro-level-growth {
-    .pmpro-current-level-growth {
-        border: 4px solid var(--e-global-color-secondary);
-    }
-    &.pmpro-level-12 {
-        .pmpro-current-level-growth {
-            .annually {
-                pointer-events: none;
-                opacity: 0.7;
-                .elementor-button-text {
-                    font-size: 0;
-                    &:before {
-                        content: "CURRENT PLAN";
-                        font-size: 16px;
-                    }
-                }
-            }
-            .current--plan-tag {
-                display: flex !important;
-                justify-content: center;
-            }
-        }
-    }
-}
-
-.pmpro-level-essential {
-    .pmpro-current-level-essential {
-        border: 4px solid var(--e-global-color-secondary);
-    }
-    .current--plan-tag {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-    }
-}
