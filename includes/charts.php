@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
@@ -26,13 +27,13 @@ class DD_Follower_Growth_Chart
     public function __construct()
     {
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
-        
+
         // Monthly Growth Bar Chart Shortcode
         add_shortcode('follower_growth_chart', [$this, 'render_monthly_shortcode']);
-        
+
         // Total Followers Timeline Line Chart Shortcode
         add_shortcode('follower_timeline_chart', [$this, 'render_timeline_shortcode']);
-        
+
         // Follower Growth Rate Area Chart Shortcode
         add_shortcode('follower_growth_rate_chart', [$this, 'render_growth_rate_shortcode']);
 
@@ -59,7 +60,7 @@ class DD_Follower_Growth_Chart
 
         foreach ($raw_data as $entry) {
             $ts_ms = isset($entry['timestamp_ms']) ? (int)$entry['timestamp_ms'] : strtotime($entry['date']) * 1000;
-            $series_data[] = [ $ts_ms, (int)$entry['followers'] ];
+            $series_data[] = [$ts_ms, (int)$entry['followers']];
         }
 
         return [
@@ -95,8 +96,8 @@ class DD_Follower_Growth_Chart
                 $growth_rate = 0;
             }
 
-            $series_data[] = [ $ts_ms, round($growth_rate, 3) ];
-            
+            $series_data[] = [$ts_ms, round($growth_rate, 3)];
+
             $previous_followers = $current_followers;
         }
 
@@ -128,7 +129,7 @@ class DD_Follower_Growth_Chart
             $time = strtotime("-$i months", $latest_month_start);
             $key = date('Y-m', $time);
             $months[$key] = [
-                'label' => date('M Y', $time), 
+                'label' => date('M Y', $time),
                 'total' => 0,
                 'gain'  => 0
             ];
@@ -177,8 +178,8 @@ class DD_Follower_Growth_Chart
         }
 
         $chart_payload = [
-            'labels'       => [], 
-            'totals'       => [], 
+            'labels'       => [],
+            'totals'       => [],
             'gains'        => [],
             'last_updated' => date('M d, Y', $latest_ts)
         ];
@@ -248,7 +249,7 @@ class DD_Follower_Growth_Chart
             wp_enqueue_script('dd-chart-init', plugin_dir_url(__FILE__) . 'assets/js/dummy.js', ['apexcharts'], '1.0.0', true);
 
             $raw_data = $this->get_raw_follower_data($post->ID);
-            
+
             $monthly_data     = $this->prepare_monthly_chart_data($raw_data);
             $timeline_data    = $this->prepare_timeline_chart_data($raw_data);
             $growth_rate_data = $this->prepare_growth_rate_chart_data($raw_data);
@@ -286,6 +287,7 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 box-sizing: border-box;
             }
+
             .dd-chart-footer {
                 display: flex;
                 justify-content: space-between;
@@ -302,15 +304,17 @@ class DD_Follower_Growth_Chart
             #ddMonthlyChart * {
                 font-family: Inter, sans-serif !important;
             }
+
             #ddMonthlyChart .apexcharts-datalabels rect {
-                fill: #F0FFF4 !important; 
-                stroke: #034146 !important; 
+                fill: #F0FFF4 !important;
+                stroke: #034146 !important;
                 stroke-width: 1.5px !important;
-                rx: 5px !important; 
+                rx: 5px !important;
                 ry: 5px !important;
             }
+
             #ddMonthlyChart .apexcharts-datalabels text {
-                fill: #034146 !important; 
+                fill: #034146 !important;
                 font-weight: 600 !important;
             }
         </style>
@@ -359,30 +363,34 @@ class DD_Follower_Growth_Chart
                 const monthlyOptions = {
                     series: [{
                         name: 'Follower Gain',
-                        data: payloadMonthly.gains 
+                        data: payloadMonthly.gains
                     }],
                     chart: {
                         type: 'bar',
                         height: 350,
-                        toolbar: { show: false }
+                        toolbar: {
+                            show: false
+                        }
                     },
                     colors: ['#FF8A7A'],
                     plotOptions: {
                         bar: {
                             columnWidth: '22%',
                             borderRadius: 4,
-                            dataLabels: { position: 'top' }
+                            dataLabels: {
+                                position: 'top'
+                            }
                         }
                     },
                     dataLabels: {
                         enabled: true,
-                        formatter: function (val) {
-                            return formatToK(val); 
+                        formatter: function(val) {
+                            return formatToK(val);
                         },
-                        offsetY: -25, 
+                        offsetY: -25,
                         style: {
                             fontSize: '11px',
-                            colors: ['#034146'] 
+                            colors: ['#034146']
                         },
                         background: {
                             enabled: true,
@@ -391,34 +399,54 @@ class DD_Follower_Growth_Chart
                             borderRadius: 12,
                             borderWidth: 1.5,
                             borderColor: '#034146',
-                            opacity: 1, 
-                            dropShadow: { enabled: false }
+                            opacity: 1,
+                            dropShadow: {
+                                enabled: false
+                            }
                         }
                     },
                     xaxis: {
                         categories: payloadMonthly.labels,
-                        axisBorder: { show: false },
-                        axisTicks: { show: false },
+                        axisBorder: {
+                            show: false
+                        },
+                        axisTicks: {
+                            show: false
+                        },
                         labels: {
-                            style: { colors: '#555', fontSize: '12px' }
+                            style: {
+                                colors: '#555',
+                                fontSize: '12px'
+                            }
                         }
                     },
                     yaxis: {
                         labels: {
                             formatter: formatToK,
-                            style: { colors: '#555', fontSize: '11px' }
+                            style: {
+                                colors: '#555',
+                                fontSize: '11px'
+                            }
                         }
                     },
                     grid: {
                         borderColor: '#E0E0E0',
-                        xaxis: { lines: { show: false } },
-                        yaxis: { lines: { show: true } }
+                        xaxis: {
+                            lines: {
+                                show: false
+                            }
+                        },
+                        yaxis: {
+                            lines: {
+                                show: true
+                            }
+                        }
                     },
                     tooltip: {
                         enabled: true,
                         theme: 'light',
                         y: {
-                            formatter: function (val) {
+                            formatter: function(val) {
                                 const prefix = val >= 0 ? '+' : '';
                                 return prefix + val.toLocaleString() + " followers";
                             }
@@ -430,7 +458,7 @@ class DD_Follower_Growth_Chart
                 monthlyChart.render();
             });
         </script>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -440,7 +468,7 @@ class DD_Follower_Growth_Chart
     public function render_timeline_shortcode(): string
     {
         ob_start();
-?>
+    ?>
         <style>
             .dd-chart-card {
                 background-color: #FFFFFF;
@@ -451,6 +479,7 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 box-sizing: border-box;
             }
+
             .dd-timeline-footer {
                 display: flex;
                 justify-content: flex-end;
@@ -461,9 +490,11 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 padding: 0 10px;
             }
+
             #ddTimelineChart * {
                 font-family: Inter, sans-serif !important;
             }
+
             #ddTimelineChart .apexcharts-tooltip-marker {
                 background-color: #FF7347 !important;
             }
@@ -510,38 +541,71 @@ class DD_Follower_Growth_Chart
                     chart: {
                         type: 'line',
                         height: 350,
-                        toolbar: { show: false },
-                        zoom: { enabled: false }
+                        toolbar: {
+                            show: false
+                        },
+                        zoom: {
+                            enabled: false
+                        }
                     },
                     colors: ['#FF7347'],
-                    stroke: { curve: 'straight', width: 2 },
-                    dataLabels: { enabled: false },
+                    stroke: {
+                        curve: 'straight',
+                        width: 2
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
                     xaxis: {
                         type: 'datetime',
                         labels: {
                             format: 'MM-dd',
-                            style: { colors: '#888', fontSize: '12px' }
+                            style: {
+                                colors: '#888',
+                                fontSize: '12px'
+                            }
                         },
-                        axisBorder: { show: true, color: '#E0E0E0' },
-                        axisTicks: { show: true, color: '#E0E0E0' },
-                        tooltip: { enabled: false }
+                        axisBorder: {
+                            show: true,
+                            color: '#E0E0E0'
+                        },
+                        axisTicks: {
+                            show: true,
+                            color: '#E0E0E0'
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
                     },
                     yaxis: {
                         labels: {
                             formatter: formatToK,
-                            style: { colors: '#888', fontSize: '11px' }
+                            style: {
+                                colors: '#888',
+                                fontSize: '11px'
+                            }
                         }
                     },
                     grid: {
                         borderColor: '#E0E0E0',
-                        xaxis: { lines: { show: true } },
-                        yaxis: { lines: { show: true } }
+                        xaxis: {
+                            lines: {
+                                show: true
+                            }
+                        },
+                        yaxis: {
+                            lines: {
+                                show: true
+                            }
+                        }
                     },
                     tooltip: {
                         theme: 'dark',
-                        x: { format: 'yyyy-MM-dd' },
+                        x: {
+                            format: 'yyyy-MM-dd'
+                        },
                         y: {
-                            formatter: function (val) {
+                            formatter: function(val) {
                                 return val.toLocaleString();
                             }
                         }
@@ -552,7 +616,7 @@ class DD_Follower_Growth_Chart
                 timelineChart.render();
             });
         </script>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -562,7 +626,7 @@ class DD_Follower_Growth_Chart
     public function render_growth_rate_shortcode(): string
     {
         ob_start();
-?>
+    ?>
         <style>
             .dd-growth-rate-card {
                 border: 1px solid #E0E0E0;
@@ -572,6 +636,7 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 box-sizing: border-box;
             }
+
             .dd-growth-rate-header {
                 display: flex;
                 justify-content: flex-end;
@@ -586,6 +651,7 @@ class DD_Follower_Growth_Chart
                 border-radius: 6px;
                 overflow: hidden;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn {
                 background: transparent;
                 border: none;
@@ -599,16 +665,19 @@ class DD_Follower_Growth_Chart
                 letter-spacing: 0.6px;
                 border-radius: 0;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
                 border-right: none;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn:hover {
                 background: #f77d67;
-                color: #fff; 
+                color: #fff;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
                 background: #f77d67;
-                color: #fff; 
+                color: #fff;
             }
 
             .dd-growth-rate-footer {
@@ -621,16 +690,18 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 padding: 0 10px;
             }
+
             #ddGrowthRateChart * {
                 font-family: Inter, sans-serif !important;
             }
+
             #ddGrowthRateChart .apexcharts-tooltip-marker {
-                background-color: #00BFFF !important; 
+                background-color: #00BFFF !important;
             }
         </style>
 
         <div class="dd-growth-rate-card">
-            
+
             <div class="dd-growth-rate-header">
                 <div class="dd-time-filters">
                     <button class="dd-time-btn active" data-days="30">Last 30 days</button>
@@ -640,7 +711,7 @@ class DD_Follower_Growth_Chart
             </div>
 
             <div id="ddGrowthRateChart"></div>
-            
+
             <div class="dd-growth-rate-footer">
                 <div id="ddGrowthRateLastUpdated">Last updated: Loading...</div>
             </div>
@@ -651,7 +722,7 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
 
                 const payloadGrowthRate = ddChartPayload.growth_rate;
-                const payloadMonthly = ddChartPayload.monthly; 
+                const payloadMonthly = ddChartPayload.monthly;
 
                 if (payloadGrowthRate.series_data.length === 0) {
                     document.getElementById('ddGrowthRateChart').innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No growth rate data available.</p>';
@@ -664,44 +735,57 @@ class DD_Follower_Growth_Chart
                 const growthRateOptions = {
                     series: [{
                         name: 'Growth Rate',
-                        data: payloadGrowthRate.series_data 
+                        data: payloadGrowthRate.series_data
                     }],
                     chart: {
-                        type: 'area', 
+                        type: 'area',
                         height: 350,
-                        toolbar: { show: false },
-                        zoom: { enabled: false },
-                        background: 'transparent' 
+                        toolbar: {
+                            show: false
+                        },
+                        zoom: {
+                            enabled: false
+                        },
+                        background: 'transparent'
                     },
-                    colors: ['#00BFFF'], 
+                    colors: ['#00BFFF'],
                     fill: {
                         type: 'solid',
-                        opacity: 0.15 
+                        opacity: 0.15
                     },
-                    stroke: { 
-                        curve: 'smooth',  
-                        width: 2 
+                    stroke: {
+                        curve: 'smooth',
+                        width: 2
                     },
-                    dataLabels: { enabled: false },
+                    dataLabels: {
+                        enabled: false
+                    },
                     annotations: {
-                        yaxis: [
-                            {
-                                y: 0,
-                                borderColor: '#FF4560', 
-                                borderWidth: 1.5,
-                                strokeDashArray: 0
-                            }
-                        ]
+                        yaxis: [{
+                            y: 0,
+                            borderColor: '#FF4560',
+                            borderWidth: 1.5,
+                            strokeDashArray: 0
+                        }]
                     },
                     xaxis: {
                         type: 'datetime',
                         labels: {
                             format: 'MM-dd',
-                            style: { colors: '#888', fontSize: '12px' }
+                            style: {
+                                colors: '#888',
+                                fontSize: '12px'
+                            }
                         },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false },
-                        tooltip: { enabled: false }
+                        axisBorder: {
+                            show: false
+                        },
+                        axisTicks: {
+                            show: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
                     },
                     yaxis: {
                         title: {
@@ -714,23 +798,36 @@ class DD_Follower_Growth_Chart
                             }
                         },
                         labels: {
-                            formatter: function (val) {
-                                return val.toFixed(1); 
+                            formatter: function(val) {
+                                return val.toFixed(1);
                             },
-                            style: { colors: '#888', fontSize: '11px' }
+                            style: {
+                                colors: '#888',
+                                fontSize: '11px'
+                            }
                         }
                     },
                     grid: {
                         borderColor: '#E0E0E0',
-                        xaxis: { lines: { show: false } },
-                        yaxis: { lines: { show: true } }
+                        xaxis: {
+                            lines: {
+                                show: false
+                            }
+                        },
+                        yaxis: {
+                            lines: {
+                                show: true
+                            }
+                        }
                     },
                     tooltip: {
                         theme: 'dark',
-                        x: { format: 'yyyy-MM-dd' },
+                        x: {
+                            format: 'yyyy-MM-dd'
+                        },
                         y: {
-                            formatter: function (val) {
-                                return val + "%"; 
+                            formatter: function(val) {
+                                return val + "%";
                             }
                         }
                     }
@@ -741,7 +838,7 @@ class DD_Follower_Growth_Chart
 
                 // --- TAB FILTER LOGIC ---
                 const timeButtons = document.querySelectorAll('.dd-growth-rate-header .dd-time-btn');
-                
+
                 timeButtons.forEach(btn => {
                     btn.addEventListener('click', function() {
                         timeButtons.forEach(b => b.classList.remove('active'));
@@ -749,12 +846,12 @@ class DD_Follower_Growth_Chart
 
                         const daysToFilter = parseInt(this.getAttribute('data-days'));
                         const allData = payloadGrowthRate.series_data;
-                        
+
                         if (allData.length > 0) {
                             const latestTs = allData[allData.length - 1][0];
                             const cutoffTs = latestTs - (daysToFilter * 24 * 60 * 60 * 1000);
                             const filteredData = allData.filter(point => point[0] >= cutoffTs);
-                            
+
                             growthRateChart.updateSeries([{
                                 data: filteredData
                             }]);
@@ -765,7 +862,7 @@ class DD_Follower_Growth_Chart
                 document.querySelector('.dd-growth-rate-header .dd-time-btn[data-days="30"]').click();
             });
         </script>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -775,7 +872,7 @@ class DD_Follower_Growth_Chart
     public function render_like_range_shortcode(): string
     {
         ob_start();
-?>
+    ?>
         <style>
             .dd-range-card {
                 border: 1px solid #E0E0E0;
@@ -785,12 +882,14 @@ class DD_Follower_Growth_Chart
                 font-family: Inter, sans-serif !important;
                 box-sizing: border-box;
             }
+
             .dd-range-header {
                 display: flex;
                 justify-content: flex-end;
                 align-items: center;
                 margin-bottom: 30px;
             }
+
             /* Inherits the exact tab styling requested */
             .dd-time-filters.dd-time-filters.dd-time-filters {
                 display: inline-flex;
@@ -799,6 +898,7 @@ class DD_Follower_Growth_Chart
                 border-radius: 6px;
                 overflow: hidden;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn {
                 background: transparent;
                 border: none;
@@ -813,16 +913,19 @@ class DD_Follower_Growth_Chart
                 border-radius: 0;
                 color: #888;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
                 border-right: none;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn:hover {
                 background: #f77d67;
-                color: #fff; 
+                color: #fff;
             }
+
             .dd-time-btn.dd-time-btn.dd-time-btn.active {
                 background: #f77d67;
-                color: #fff; 
+                color: #fff;
             }
 
             /* Stats Display */
@@ -833,15 +936,18 @@ class DD_Follower_Growth_Chart
                 margin-bottom: 12px;
                 font-family: Inter, sans-serif;
             }
+
             .dd-stat-block {
                 display: flex;
                 align-items: center;
                 gap: 6px;
             }
+
             .dd-stat-value {
                 font-size: 21px;
                 font-weight: 600;
             }
+
             .dd-stat-label {
                 font-size: 13px;
             }
@@ -854,17 +960,18 @@ class DD_Follower_Growth_Chart
                 position: relative;
                 width: 100%;
             }
+
             .dd-gradient-marker {
                 position: absolute;
-                height: 16px; 
+                height: 16px;
                 width: 2px;
                 background-color: #000;
                 top: -2px;
-                transition: left 0.4s ease; 
-                cursor: pointer; 
+                transition: left 0.4s ease;
+                cursor: pointer;
                 z-index: 10;
             }
-            
+
             /* CSS Tooltip Implementation */
             .dd-gradient-marker::after {
                 content: attr(data-value);
@@ -883,6 +990,7 @@ class DD_Follower_Growth_Chart
                 pointer-events: none;
                 transition: all 0.2s ease;
             }
+
             .dd-gradient-marker::before {
                 content: '';
                 position: absolute;
@@ -895,14 +1003,28 @@ class DD_Follower_Growth_Chart
                 pointer-events: none;
                 transition: all 0.2s ease;
             }
+
             /* Hover Reveal */
             .dd-gradient-marker:hover::after {
                 opacity: 1;
-                transform: translateX(-50%) translateY(-8px); 
+                transform: translateX(-50%) translateY(-8px);
             }
+
             .dd-gradient-marker:hover::before {
                 opacity: 1;
                 transform: translateX(-50%) translateY(-4px);
+            }
+
+            @media(max-width: 575px) {
+                .dd-range-card {
+                    padding: 20px;
+                }
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn {
+                padding: 8px;
+                font-size: 10px;
+
             }
         </style>
 
@@ -935,7 +1057,7 @@ class DD_Follower_Growth_Chart
                     <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
                 </div>
             </div>
-            
+
             <div id="ddLikeRangeEmpty" style="display: none; text-align: center; padding: 40px 20px; color: #888; font-size: 14px;">
                 No like range data available.
             </div>
@@ -949,7 +1071,7 @@ class DD_Follower_Growth_Chart
                 const container = document.getElementById('ddLikeRangeWrapper');
                 const contentDiv = container.querySelector('#ddLikeRangeContent');
                 const emptyDiv = container.querySelector('#ddLikeRangeEmpty');
-                
+
                 if (!payloadLikeRange || payloadLikeRange.series_data.length === 0) {
                     contentDiv.style.display = 'none';
                     emptyDiv.style.display = 'block';
@@ -972,7 +1094,7 @@ class DD_Follower_Growth_Chart
                 const updateRangeUI = (days) => {
                     const latestTs = rawLikeData[rawLikeData.length - 1].ts;
                     const cutoffTs = latestTs - (days * 24 * 60 * 60 * 1000);
-                    
+
                     const filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
 
                     // Check if there are no items
@@ -1006,7 +1128,7 @@ class DD_Follower_Growth_Chart
 
                     // Calculate marker position securely
                     const markerPercent = ((avg - min) / (max - min)) * 100;
-                    
+
                     const markerEl = container.querySelector('.range-marker');
                     markerEl.style.left = `${markerPercent}%`;
                     markerEl.setAttribute('data-value', formattedAvg);
