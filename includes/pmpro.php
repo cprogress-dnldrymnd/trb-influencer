@@ -380,3 +380,21 @@ function dd_pmpro_keep_errors_on_custom_page( $pages ) {
     return $pages;
 }
 add_filter( 'pmpro_pages', 'dd_pmpro_keep_errors_on_custom_page', 20 );
+
+/**
+ * Overrides the default Paid Memberships Pro checkout submit button text.
+ *
+ * This filter intercepts the button text before it is rendered, allowing 
+ * for customization based on specific business requirements.
+ *
+ * @param string $text The original default submit button text.
+ * @return string The new submit button text.
+ */
+add_filter('pmpro_checkout_submit_button_text', 'custom_pmpro_submit_button_text');
+
+function custom_pmpro_submit_button_text($text) {
+    // Define the new label for the checkout button
+    $new_text = 'Complete Purchase';
+
+    return $new_text;
+}
