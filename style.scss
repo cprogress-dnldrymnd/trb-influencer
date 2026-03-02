@@ -1621,3 +1621,10 @@ body:not(.page-id-4144) {
         }
     }
 }
+
+.image-ratio-16-9 {
+    img {
+        aspect-ratio: 16/9;
+        object-fit: cover;
+    }
+}
