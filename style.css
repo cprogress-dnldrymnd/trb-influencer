@@ -1284,9 +1284,8 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   aspect-ratio: 16/9;
   object-fit: cover; }
 
-.image-animation.image-animation.image-animation img {
-  transition: 400ms; }
-  .image-animation.image-animation.image-animation img:hover {
-    transform: scale(1.1); }
+.image-animation.image-animation.image-animation:hover img {
+  transition: 400ms;
+  transform: scale(1.1); }
 
 /*# sourceMappingURL=style.css.map */
