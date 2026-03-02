@@ -1628,3 +1628,12 @@ body:not(.page-id-4144) {
         object-fit: cover;
     }
 }
+
+.image-animation {
+    img {
+        transition: 400ms;
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+}
