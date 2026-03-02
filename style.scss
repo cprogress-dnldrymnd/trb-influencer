@@ -1630,8 +1630,9 @@ body:not(.page-id-4144) {
 }
 
 .image-animation.image-animation.image-animation {
-    transition: 400ms;
-
+    img {
+        transition: 400ms;
+    }
     &:hover {
         img {
             transform: scale(1.1);
