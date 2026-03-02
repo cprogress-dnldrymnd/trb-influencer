@@ -59,7 +59,7 @@ function action_wp_head()
     }
     echo '<style id="custom--css">';
 
-    if (is_single()) {
+    if (is_single() && get_post_type() == 'post') {
         echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
     } else {
         $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
