@@ -51,7 +51,7 @@ add_action('init', 'dd_set_global_pmpro_variable');
 function action_wp_head()
 {
     global $is_free_trial;
-    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
+    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-2ba2932';
     $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
