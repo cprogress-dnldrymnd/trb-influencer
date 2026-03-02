@@ -51,8 +51,8 @@ add_action('init', 'dd_set_global_pmpro_variable');
 function action_wp_head()
 {
     global $is_free_trial;
-    $header_text_colour = get_field('header_text_colour');
-    $header_accent_colour = get_field('header_accent_colour');
+    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
+    $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
     } else {
@@ -312,10 +312,11 @@ add_action('wp_footer', 'fix_body_style');
  * @param bool $show_admin_bar Default status of the admin bar.
  * @return bool Modified status of the admin bar.
  */
-function dd_disable_admin_bar_for_subscribers( $show_admin_bar ) {
-    
+function dd_disable_admin_bar_for_subscribers($show_admin_bar)
+{
+
     // Check if the current user is a subscriber.
-    if ( current_user_can( 'subscriber' ) && !current_user_can( 'administrator' ) ) {
+    if (current_user_can('subscriber') && !current_user_can('administrator')) {
         return false;
     }
 
@@ -324,7 +325,7 @@ function dd_disable_admin_bar_for_subscribers( $show_admin_bar ) {
 }
 
 // Add the filter to the 'show_admin_bar' hook with default priority.
-add_filter( 'show_admin_bar', 'dd_disable_admin_bar_for_subscribers' );
+add_filter('show_admin_bar', 'dd_disable_admin_bar_for_subscribers');
 
 /**
  * Filters the login redirect URL.
@@ -337,21 +338,22 @@ add_filter( 'show_admin_bar', 'dd_disable_admin_bar_for_subscribers' );
  * @param WP_User $user                  The WP_User object of the authenticated user.
  * @return string The filtered redirect URL.
  */
-function dd_custom_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
-	// Define the target page ID for redirection.
-	$target_page_id = 1565;
+function dd_custom_login_redirect($redirect_to, $requested_redirect_to, $user)
+{
+    // Define the target page ID for redirection.
+    $target_page_id = 1565;
 
-	// Retrieve the permalink for the target page.
-	$target_url = get_permalink( $target_page_id );
+    // Retrieve the permalink for the target page.
+    $target_url = get_permalink($target_page_id);
 
-	// Ensure the page exists before attempting the redirect.
-	if ( $target_url && ! is_wp_error( $target_url ) ) {
-		return $target_url;
-	}
+    // Ensure the page exists before attempting the redirect.
+    if ($target_url && ! is_wp_error($target_url)) {
+        return $target_url;
+    }
 
-	// If the target page ID is invalid, fallback to the default redirect behavior.
-	return $redirect_to;
+    // If the target page ID is invalid, fallback to the default redirect behavior.
+    return $redirect_to;
 }
 
 // Hook into the login_redirect filter with priority 10 to ensure it executes correctly.
-add_filter( 'login_redirect', 'dd_custom_login_redirect', 10, 3 );
+add_filter('login_redirect', 'dd_custom_login_redirect', 10, 3);
