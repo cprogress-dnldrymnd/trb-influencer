@@ -62,8 +62,8 @@ function action_wp_head()
     if (is_single() && get_post_type() == 'post') {
         echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
     } else {
-        $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
-        $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
+        $header_text_colour = get_field('header_text_colour') ;
+        $header_accent_colour = get_field('header_accent_colour') ;
         if ($header_text_colour || $header_accent_colour) {
             if ($header_accent_colour) {
                 echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
