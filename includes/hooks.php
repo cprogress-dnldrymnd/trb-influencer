@@ -51,26 +51,29 @@ add_action('init', 'dd_set_global_pmpro_variable');
 function action_wp_head()
 {
     global $is_free_trial;
-    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
-    $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
+
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
     } else {
         $search_type = 'filtered';
     }
     echo '<style id="custom--css">';
-    if ($header_text_colour || $header_accent_colour) {
-        if ($header_accent_colour) {
-            echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
+
+    if (is_single()) {
+        echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
+    } else {
+        $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
+        $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
+        if ($header_text_colour || $header_accent_colour) {
+            if ($header_accent_colour) {
+                echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
+            }
+            if ($header_text_colour) {
+                echo ".header.header.header.header.header .header--text-color * { color: var($header_text_colour) }";
+                echo ".header.header.header.header.header .logo-box svg { color: var($header_text_colour) }";
+                echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
+            }
         }
-        if ($header_text_colour) {
-            echo ".header.header.header.header.header .header--text-color * { color: var($header_text_colour) }";
-            echo ".header.header.header.header.header .logo-box svg { color: var($header_text_colour) }";
-            echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
-        }
-    }
-    if(is_single()) {
-            echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
     }
     if ($search_type == 'fullbrief') {
         echo "#filter-col{ display: none; }";
