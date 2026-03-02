@@ -51,7 +51,7 @@ add_action('init', 'dd_set_global_pmpro_variable');
 function action_wp_head()
 {
     global $is_free_trial;
-    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-2ba2932';
+    $header_text_colour = get_field('header_text_colour') ? get_field('header_text_colour') : '--e-global-color-secondary';
     $header_accent_colour = get_field('header_accent_colour') ? get_field('header_accent_colour') : '--e-global-color-secondary';
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
@@ -69,11 +69,14 @@ function action_wp_head()
             echo ".header.header.header.header.header .logo-box svg { fill: var($header_text_colour) }";
         }
     }
+    if(is_single()) {
+            echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
+    }
     if ($search_type == 'fullbrief') {
         echo "#filter-col{ display: none; }";
         echo "#results-col{ --width: 100% !important; }";
     } else {
-        echo "#match-score{  display: none;  !important;  }";
+        echo "#match-score{  display: none !important;  }";
     }
     if ($is_free_trial) {
         echo ".hide-on-free-trial{ display: none; }";
