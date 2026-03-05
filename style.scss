@@ -1643,10 +1643,15 @@ body:not(.page-id-4144) {
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
+    .filter-widget .dropdown-container .dropdown-button,
     .influencer-search-main .influencer-search-item-field textarea {
         font-size: clamp(12px, 0.833vw, 16px);
-        padding: clamp(12px, 0.833vw, 16px);;
     }
+
+    .influencer-search-main .influencer-search-item-field textarea {
+        padding: clamp(12px, 0.833vw, 16px);
+    }
+
     .influencer-search-main .filter-widget {
         padding-top: calc(16px, 1.406vw, 27px);
     }
