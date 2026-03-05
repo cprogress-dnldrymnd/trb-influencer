@@ -1300,7 +1300,10 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     padding-top: calc(16px, 1.406vw, 27px); }
 
   .filter-widget .dropdown-container .dropdown-button .custom-group-error {
-    font-size: clamp(8px, 0.625vw, 12px); } }
+    font-size: clamp(8px, 0.625vw, 12px); }
+
+  .filter-widget .dropdown-container .dropdown-button .arrow-holder {
+    padding: clamp(10px, 0.781vw, 15px); } }
 /*end responsive*/
 
 /*# sourceMappingURL=style.css.map */
