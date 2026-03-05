@@ -1300,13 +1300,16 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     padding: clamp(12px, 0.833vw, 16px); }
 
   .influencer-search-main .filter-widget {
-    padding-top: calc(16px, 1.406vw, 27px); }
+    padding-top: clamp(16px, 1.406vw, 27px); }
 
   .filter-widget .dropdown-container .dropdown-button .custom-group-error {
     font-size: clamp(8px, 0.625vw, 12px); }
 
   .filter-widget .dropdown-container .dropdown-button .arrow-holder {
-    padding: clamp(10px, 0.781vw, 15px); } }
+    padding: clamp(10px, 0.781vw, 15px); }
+
+  .influencer-search-filter-holder {
+    gap: clamp(10px, 1.042vw, 20px); } }
 /*end responsive*/
 
 /*# sourceMappingURL=style.css.map */
