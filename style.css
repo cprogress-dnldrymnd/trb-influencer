@@ -1289,4 +1289,11 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 .image-animation.image-animation.image-animation:hover img {
   transform: scale(1.1); }
 
+/*responsive*/
+@media (min-width: 1025px) {
+  .checkbox-row .checkbox-lists .checkbox-list-item,
+  .influencer-search-main .influencer-search-item-field textarea {
+    font-size: clamp(12px, 0.833vw, 16px); } }
+/*end responsive*/
+
 /*# sourceMappingURL=style.css.map */
