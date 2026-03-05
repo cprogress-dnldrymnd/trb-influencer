@@ -530,7 +530,7 @@ input:checked + .slider:before {
 
 .breadcrumbs {
     --breadcrumbs-gap: 10px;
-    --icon-size: 16px;
+    --icon-size: clamp(12px, 0.833vw, 16px);
     background-color: #edf7f6;
     padding: 14px;
     border-radius: 5px;
