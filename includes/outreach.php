@@ -725,9 +725,7 @@ class DD_Outreach_Manager
         $avatar_url  = 'https://via.placeholder.com/60x60'; // Fallback
 
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            $avatar_url = $avatar_meta['fullurl'];
-        } elseif (!empty($avatar_meta) && is_string($avatar_meta) && filter_var($avatar_meta, FILTER_VALIDATE_URL)) {
-            $avatar_url = $avatar_meta; // Fallback string handling
+            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
         }
 
         // Resolve Influencer Context
@@ -859,9 +857,11 @@ class DD_Outreach_Manager
 
                                         <table role="presentation" style="border:none;border-spacing:0;">
                                             <tr>
-                                                <td width="70" valign="top">
-                                                    <img src="<?php echo esc_url($avatar_url); ?>" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
-                                                </td>
+                                                <?php if ($avatar_url) { ?>
+                                                    <td width="70" valign="top">
+                                                        <img src="<?php echo esc_url($avatar_url); ?>" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
+                                                    </td>
+                                                <?php } ?>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
                                                     <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
                                                     <?php echo $job_title; ?> at <?php echo $brand_name; ?><br>
