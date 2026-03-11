@@ -692,7 +692,7 @@ class DD_Outreach_Manager
 
     /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Maps specific sender details (brand, role, location) directly from user meta context.
+     * Maps specific sender details (brand, role, location, PMPro avatar) directly from user meta context.
      *
      * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
      * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
@@ -718,14 +718,24 @@ class DD_Outreach_Manager
 
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_code    = !empty($meta_country) ? $meta_country : '';
-        $country_display = $this->get_country_display($country_code);   
+        $country_display = $this->get_country_display($country_code);
+
+        // Extract PMPro User Avatar
+        $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
+        $avatar_url  = 'https://via.placeholder.com/60x60'; // Fallback
+
+        if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
+            $avatar_url = $avatar_meta['fullurl'];
+        } elseif (!empty($avatar_meta) && is_string($avatar_meta) && filter_var($avatar_meta, FILTER_VALIDATE_URL)) {
+            $avatar_url = $avatar_meta; // Fallback string handling
+        }
 
         // Resolve Influencer Context
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
 
         // Map influencer recipient address.
-        # $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+        #$influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
         $influencer_email = 'donald@cprogress.co.uk';
 
         // Fallback: Bind to the post author's user account email if meta mapping fails
@@ -850,7 +860,7 @@ class DD_Outreach_Manager
                                         <table role="presentation" style="border:none;border-spacing:0;">
                                             <tr>
                                                 <td width="70" valign="top">
-                                                    <img src="https://via.placeholder.com/60x60" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC;">
+                                                    <img src="<?php echo esc_url($avatar_url); ?>" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
                                                 </td>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
                                                     <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
@@ -1955,7 +1965,8 @@ class DD_Outreach_Manager
 new DD_Outreach_Manager();
 
 
-function user_meta() {
+function user_meta()
+{
     ob_start();
     echo '<pre>';
     var_dump(get_user_meta(get_current_user_id()));
