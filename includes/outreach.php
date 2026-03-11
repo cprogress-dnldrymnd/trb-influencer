@@ -718,7 +718,7 @@ class DD_Outreach_Manager
 
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_code    = !empty($meta_country) ? $meta_country : '';
-        $country_display = $this->get_country_display($country_code);
+        $country_display = $this->get_country_display($country_code);   
 
         // Resolve Influencer Context
         $influencer_id   = absint($data['influencer_id']);
@@ -1953,3 +1953,13 @@ class DD_Outreach_Manager
 }
 
 new DD_Outreach_Manager();
+
+
+function user_meta() {
+    ob_start();
+    echo '<pre>';
+    var_dump(get_user_meta(get_current_user_id()));
+    echo '</pre>';
+    return ob_get_clean();
+}
+add_shortcode('user_meta', 'user_meta');
