@@ -722,10 +722,9 @@ class DD_Outreach_Manager
 
         // Extract PMPro User Avatar
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-        $avatar_url  = 'https://via.placeholder.com/60x60'; // Fallback
 
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
+            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
         }
 
         // Resolve Influencer Context
@@ -830,14 +829,14 @@ class DD_Outreach_Manager
                     <tr>
                         <td align="center" style="padding:0;">
 
-                            <table role="presentation" class="w-100" style="width:100%;max-width:393px;border:none;border-spacing:0;text-align:left;background-color:#EBEBEB; margin: 0 auto;">
+                            <table role="presentation" class="w-100" style="width:100%;max-width:393px;border:none;border-spacing:0;text-align:left;background-color:#EBEBEB; margin: 0 auto; background-color: #FFFFFF">
 
                                 <tr>
                                     <td style="background-color:#3B1527; padding: 20px 30px;">
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
                                                 <td width="40" valign="middle">
-                                                    <img src="https://via.placeholder.com/30x30/FF8A65/FFFFFF?text=!" alt="Alert" width="30" style="display:block; width:30px; height:auto; border-radius:4px;">
+                                                    <img src="<?= get_stylesheet_directory_uri().'/assets/images/influencer-email.png' ?>" alt="Alert" width="30"d style="display:block; width:30px; height:auto; border-radius:4px;">
                                                 </td>
                                                 <td valign="middle" style="color:#FFFFFF; font-size:18px; font-weight:bold; line-height:24px;">
                                                     A partnership opportunity with <?php echo $brand_name; ?>
