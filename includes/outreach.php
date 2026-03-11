@@ -692,7 +692,8 @@ class DD_Outreach_Manager
 
     /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
+     *
+     * @param array $data            The sanitized submitted form data (contains message, project scopes, job title, etc.).
      * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
      * @return bool                  True on successful dispatch; false otherwise.
      */
@@ -706,16 +707,20 @@ class DD_Outreach_Manager
 
         $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
         $sender_email = $sender->user_email;
-        // Allows brands to override their display name via a user meta key.
-        $brand_name   = get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name;
+
+        // Capture specific form fields or fallback to default/user meta
+        $job_title       = !empty($data['job_title']) ? esc_html($data['job_title']) : 'Representative';
+        $brand_name      = !empty($data['brand_name']) ? esc_html($data['brand_name']) : (get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name);
+        $country_code    = !empty($data['country_code']) ? $data['country_code'] : '';
+        $country_display = $this->get_country_display($country_code);
 
         // Resolve Influencer Context
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
 
-        // Map influencer recipient address. Adjust 'influencer_email' if utilizing a different meta schema.
-        // $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
-        $influencer_email = 'donald@cprogress.co.uk';
+        // Map influencer recipient address.
+        $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+
         // Fallback: Bind to the post author's user account email if meta mapping fails
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
@@ -842,7 +847,10 @@ class DD_Outreach_Manager
                                                 </td>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
                                                     <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
-                                                    Representative at <?php echo esc_html($brand_name); ?><br>
+                                                    <?php echo $job_title; ?> at <?php echo $brand_name; ?><br>
+                                                    <?php if ($country_display) : ?>
+                                                        <span style="font-size: 14px;"><?php echo esc_html($country_display); ?></span>
+                                                    <?php endif; ?>
                                                 </td>
                                             </tr>
                                         </table>
