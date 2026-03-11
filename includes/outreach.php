@@ -925,7 +925,7 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 0 30px 20px 30px;">
                                         <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
-                                        <div style="font-size:15px; line-height:24px; color:#0000; letter-spacing: 0.9px;">
+                                        <div style="font-size:15px; line-height:24px; color:#000; letter-spacing: 0.9px;">
                                             <p style="margin:0 0 15px 0;">Hi <?php echo esc_html($influencer_name); ?>,</p>
 
                                             <?php echo wp_kses_post(wpautop($data['message'])); ?>
