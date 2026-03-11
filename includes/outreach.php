@@ -848,8 +848,8 @@ class DD_Outreach_Manager
 
                                 <tr>
                                     <td style="padding: 30px 30px 20px 30px;">
-                                        <h2 style="margin:0 0 25px 0; font-size:20px; font-weight:bold; line-height:28px;">
-                                            <?php echo $brand_name; ?> reached out to you via The Ribbon Box Influencer Collective.
+                                        <h2 style="margin:0 0 25px 0; font-size:18px; font-weight:bold; line-height:28px;">
+                                            <?php echo $brand_name; ?> <span style="font-weight: 400">reached out to you via</span> The Ribbon Box Influencer Collective.
                                         </h2>
 
                                         <p style="margin:0 0 15px 0; font-size:16px; font-weight:bold;">Message received from</p>
@@ -877,9 +877,9 @@ class DD_Outreach_Manager
                                     <td style="padding: 0 30px;">
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
-                                                <td style="border-bottom: 1px solid #E1E1E1; padding-bottom: 15px; padding-top: 15px; border-top: 1px solid #E1E1E1;"> 
-                                                   <i> <span style="font-style:italic; color:#8F8F8F; font-size:14px;">Sent via</span>
-                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a></i>
+                                                <td style="border-bottom: 1px solid #E1E1E1; padding-bottom: 15px; padding-top: 15px; border-top: 1px solid #E1E1E1;">
+                                                    <i> <span style="font-style:italic; color:#8F8F8F; font-size:14px;">Sent via</span>
+                                                        <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a></i>
                                                 </td>
                                             </tr>
                                         </table>
@@ -888,8 +888,8 @@ class DD_Outreach_Manager
 
                                 <tr>
                                     <td style="padding: 25px 30px 10px 30px;">
-                                        <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold;">Opportunity overview</h3>
-                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px;">A brief summary of the opportunity shared by <?php echo $brand_name; ?></p>
+                                        <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; letter-spacing: 0.9px;">Opportunity overview</h3>
+                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px; letter-spacing: 0.75px">A brief summary of the opportunity shared by <?php echo $brand_name; ?></p>
 
                                         <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
                                             <tr>
@@ -925,7 +925,7 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 0 30px 20px 30px;">
                                         <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
-                                        <div style="font-size:15px; line-height:24px; color:#333333;">
+                                        <div style="font-size:15px; line-height:24px; color:#0000; letter-spacing: 0.9px;">
                                             <p style="margin:0 0 15px 0;">Hi <?php echo esc_html($influencer_name); ?>,</p>
 
                                             <?php echo wp_kses_post(wpautop($data['message'])); ?>
