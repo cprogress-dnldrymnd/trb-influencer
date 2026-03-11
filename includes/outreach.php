@@ -1,18 +1,16 @@
 <?php
-if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly to prevent direct file execution.
-}
+
 /**
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
- * Description: Manages Elementor form submissions for outreach and provides dynamic shortcode views for project management.
- * Version: 1.7.0
+ * Description: Manages Elementor form submissions for outreach, dispatches HTML notifications, and provides dynamic shortcode views for project management.
+ * Version: 1.8.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
 
 if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly for security.
+    exit; // Exit if accessed directly to prevent direct file execution.
 }
 
 /**
@@ -63,6 +61,7 @@ class DD_Outreach_Manager
      */
     public function inject_global_styles()
     {
+        // Outputting existing styles unmodified.
 ?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
@@ -571,7 +570,7 @@ class DD_Outreach_Manager
 
     /**
      * Intercepts the Elementor Form submission to compile a custom HTML payload.
-     * Generates a new 'outreach' post type entry.
+     * Generates a new 'outreach' post type entry and triggers email dispatch.
      *
      * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record
      * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler
@@ -597,10 +596,10 @@ class DD_Outreach_Manager
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
 
         $new_post_args = [
-            'post_title'  => $post_title,
-            'post_type'   => 'outreach',
-            'post_status' => 'publish',
-            'post_author' => $current_user_id,
+            'post_title'   => $post_title,
+            'post_type'    => 'outreach',
+            'post_status'  => 'publish',
+            'post_author'  => $current_user_id,
             'post_content' => $data['message'] . '<div class="hide-element">' . get_the_title($data['influencer_id']) . '</div>'
         ];
 
@@ -611,6 +610,9 @@ class DD_Outreach_Manager
                 $sanitized_value = ('message' === $meta_key) ? sanitize_textarea_field($meta_value) : sanitize_text_field($meta_value);
                 update_post_meta($post_id, sanitize_key($meta_key), $sanitized_value);
             }
+
+            // Dispatch HTML notification immediately after persisting state
+            $this->send_outreach_email($data, $current_user_id);
 
             if (function_exists('deduct_points_from_current_user')) {
                 deduct_points_from_current_user(1, 'Outreach Form Submission');
@@ -682,18 +684,285 @@ class DD_Outreach_Manager
                     </span>
                 </a>
             </div>
-            <!--
-            <div class="button-box submit-new">
-                <a class="elementor-button elementor-button-link elementor-size-sm" href="#">
-                    <span class="elementor-button-content-wrapper">
-                        <span class="elementor-button-text"> Send another message</span>
-                    </span>
-                </a>
-            </div>-->
         </div>
     <?php
         $custom_html = ob_get_clean();
         $ajax_handler->add_response_data('dd_custom_html', $custom_html);
+    }
+
+    /**
+     * Compiles and dispatches the HTML outreach email payload to the target influencer.
+     * * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
+     * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
+     * @return bool                  True on successful dispatch; false otherwise.
+     */
+    private function send_outreach_email($data, $current_user_id)
+    {
+        // Resolve Sender Identity
+        $sender = get_userdata($current_user_id);
+        if (!$sender) {
+            return false;
+        }
+
+        $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
+        $sender_email = $sender->user_email;
+        // Allows brands to override their display name via a user meta key.
+        $brand_name   = get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name;
+
+        // Resolve Influencer Context
+        $influencer_id   = absint($data['influencer_id']);
+        $influencer_name = get_the_title($influencer_id);
+
+        // Map influencer recipient address. Adjust 'influencer_email' if utilizing a different meta schema.
+        // $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+        $influencer_email = 'donald@cprogress.co.uk';
+        // Fallback: Bind to the post author's user account email if meta mapping fails
+        if (empty($influencer_email) || !is_email($influencer_email)) {
+            $influencer_post = get_post($influencer_id);
+            if ($influencer_post) {
+                $influencer_user = get_userdata($influencer_post->post_author);
+                if ($influencer_user) {
+                    $influencer_email = $influencer_user->user_email;
+                }
+            }
+            if (empty($influencer_email)) {
+                return false;
+            }
+        }
+
+        $subject = 'A partnership opportunity with ' . esc_html($brand_name);
+        $headers = [
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $brand_name . ' <' . $sender_email . '>',
+            'Reply-To: ' . $sender_name . ' <' . $sender_email . '>'
+        ];
+
+        ob_start();
+    ?>
+        <!DOCTYPE html>
+        <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="x-apple-disable-message-reformatting">
+            <title>Partnership Opportunity</title>
+            <style>
+                /* [Core Resets & Typography] */
+                table,
+                td,
+                div,
+                h1,
+                p,
+                a,
+                span {
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                }
+
+                table,
+                td {
+                    mso-table-lspace: 0pt;
+                    mso-table-rspace: 0pt;
+                }
+
+                img {
+                    -ms-interpolation-mode: bicubic;
+                    border: 0;
+                    height: auto;
+                    line-height: 100%;
+                    outline: none;
+                    text-decoration: none;
+                }
+
+                /* [Hover States & Mobile Refinements] */
+                a:hover {
+                    text-decoration: none !important;
+                }
+
+                @media screen and (max-width: 600px) {
+                    .w-100 {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+
+                    .stack-column {
+                        display: block !important;
+                        width: 100% !important;
+                        text-align: center !important;
+                        margin-bottom: 15px !important;
+                    }
+
+                    .mobile-center {
+                        text-align: center !important;
+                    }
+
+                    .footer-action {
+                        margin-top: 15px !important;
+                    }
+                }
+            </style>
+        </head>
+
+        <body style="margin:0;padding:0;word-spacing:normal;background-color:#EBEBEB;color:#1A1A1A;">
+
+            <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#EBEBEB;padding: 20px 0;">
+                <table role="presentation" style="width:100%;border:none;border-spacing:0;">
+                    <tr>
+                        <td align="center" style="padding:0;">
+
+                            <table role="presentation" class="w-100" style="width:100%;max-width:393px;border:none;border-spacing:0;text-align:left;background-color:#EBEBEB; margin: 0 auto;">
+
+                                <tr>
+                                    <td style="background-color:#3B1527; padding: 20px 30px;">
+                                        <table role="presentation" style="width:100%;border:none;border-spacing:0;">
+                                            <tr>
+                                                <td width="40" valign="middle">
+                                                    <img src="https://via.placeholder.com/30x30/FF8A65/FFFFFF?text=!" alt="Alert" width="30" style="display:block; width:30px; height:auto; border-radius:4px;">
+                                                </td>
+                                                <td valign="middle" style="color:#FFFFFF; font-size:18px; font-weight:bold; line-height:24px;">
+                                                    A partnership opportunity with <?php echo esc_html($brand_name); ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 30px 30px 20px 30px;">
+                                        <h2 style="margin:0 0 25px 0; font-size:20px; font-weight:bold; line-height:28px;">
+                                            <?php echo esc_html($brand_name); ?> reached out to you via The Ribbon Box Influencer Collective.
+                                        </h2>
+
+                                        <p style="margin:0 0 15px 0; font-size:16px; font-weight:bold;">Message received from</p>
+
+                                        <table role="presentation" style="border:none;border-spacing:0;">
+                                            <tr>
+                                                <td width="70" valign="top">
+                                                    <img src="https://via.placeholder.com/60x60" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC;">
+                                                </td>
+                                                <td valign="middle" style="font-size:15px; line-height:22px;">
+                                                    <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
+                                                    Representative at <?php echo esc_html($brand_name); ?><br>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 0 30px;">
+                                        <table role="presentation" style="width:100%;border:none;border-spacing:0;">
+                                            <tr>
+                                                <td style="border-bottom: 1px solid #D1D1D1; padding-bottom: 15px;">
+                                                    <span style="font-style:italic; color:#777777; font-size:14px;">Sent via</span>
+                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 25px 30px 10px 30px;">
+                                        <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold;">Opportunity overview</h3>
+                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px;">A brief summary of the opportunity shared by <?php echo esc_html($brand_name); ?></p>
+
+                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
+                                            <tr>
+                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
+                                                    Project type: <?php echo esc_html($data['project_type'] ?? 'N/A'); ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
+                                            <tr>
+                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
+                                                    Project length: <?php echo esc_html($data['project_length'] ?? 'N/A'); ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
+                                            <tr>
+                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
+                                                    Project dates: <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:25px;">
+                                            <tr>
+                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
+                                                    Budget: <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 0 30px 20px 30px;">
+                                        <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
+                                        <div style="font-size:15px; line-height:24px; color:#333333;">
+                                            <p style="margin:0 0 15px 0;">Hi <?php echo esc_html($influencer_name); ?>,</p>
+
+                                            <?php echo wp_kses_post(wpautop($data['message'])); ?>
+
+                                            <p style="margin:15px 0 0 0;">Best regards,<br><?php echo esc_html($sender_name); ?><br><?php echo esc_html($brand_name); ?></p>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 10px 30px 20px 30px;">
+                                        <table role="presentation" style="width:100%; border:none; border-spacing:0;">
+                                            <tr>
+                                                <td align="center" style="background-color:#2D2D2D; border-radius:4px;">
+                                                    <a href="mailto:<?php echo esc_attr($sender_email); ?>" style="display:block; padding:16px 20px; font-size:14px; font-weight:bold; color:#FFFFFF; text-decoration:none; text-transform:uppercase; letter-spacing:1px;">
+                                                        💬 Reply to <?php echo esc_html($brand_name); ?>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <table role="presentation" style="width:100%; border:none; border-spacing:0; margin-top:15px;">
+                                            <tr>
+                                                <td width="20" valign="top">
+                                                    <span style="color:#0099FF; font-size:16px;">ⓘ</span>
+                                                </td>
+                                                <td valign="middle" style="font-size:14px; color:#333333;">
+                                                    Replies are sent directly to the brand via email
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding: 20px 30px;">
+                                        <table role="presentation" style="width:100%; border:none; border-spacing:0;">
+                                            <tr>
+                                                <td style="border-top: 1px solid #D1D1D1; padding-top: 30px; text-align:center;">
+                                                    <p style="margin:0 0 15px 0; font-size:13px; line-height:20px; color:#999999;">
+                                                        This message was sent via The Ribbon Box Influencer Collective, a platform that connects brands and creators. You are receiving this because your contact details are publicly available on your creator profile.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </body>
+
+        </html>
+    <?php
+        $html_content = ob_get_clean();
+
+        return wp_mail($influencer_email, $subject, $html_content, $headers);
     }
 
     /**
