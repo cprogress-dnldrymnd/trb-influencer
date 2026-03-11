@@ -836,9 +836,9 @@ class DD_Outreach_Manager
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
                                                 <td width="40" valign="middle">
-                                                    <img src="<?= get_stylesheet_directory_uri().'/assets/images/influencer-email.png' ?>" alt="Alert" width="30"d style="display:block; width:30px; height:auto; border-radius:4px;">
+                                                    <img src="<?= get_stylesheet_directory_uri() . '/assets/images/influencer-email.png' ?>" alt="Alert" width="30" d style="display:block; width:30px; height:auto; border-radius:4px;">
                                                 </td>
-                                                <td valign="middle" style="color:#FFFFFF; font-size:18px; font-weight:bold; line-height:24px;">
+                                                <td valign="middle" style="color:#FFFFFF; font-size:16px; font-weight:bold; line-height:24px;">
                                                     A partnership opportunity with <?php echo $brand_name; ?>
                                                 </td>
                                             </tr>
@@ -877,9 +877,9 @@ class DD_Outreach_Manager
                                     <td style="padding: 0 30px;">
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
-                                                <td style="border-bottom: 1px solid #D1D1D1; padding-bottom: 15px;">
-                                                    <span style="font-style:italic; color:#777777; font-size:14px;">Sent via</span>
-                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
+                                                <td style="border-bottom: 1px solid #E1E1E1; padding-bottom: 15px; padding-top: 15px; border-top: 1px solid #E1E1E1;"> 
+                                                   <i> <span style="font-style:italic; color:#8F8F8F; font-size:14px;">Sent via</span>
+                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a></i>
                                                 </td>
                                             </tr>
                                         </table>
@@ -964,7 +964,7 @@ class DD_Outreach_Manager
                                     <td style="padding: 20px 30px;">
                                         <table role="presentation" style="width:100%; border:none; border-spacing:0;">
                                             <tr>
-                                                <td style="border-top: 1px solid #D1D1D1; padding-top: 30px; text-align:center;">
+                                                <td style="border-top: 1px solid #E1E1E1; padding-top: 30px; text-align:center;">
                                                     <p style="margin:0 0 15px 0; font-size:13px; line-height:20px; color:#999999;">
                                                         This message was sent via The Ribbon Box Influencer Collective, a platform that connects brands and creators. You are receiving this because your contact details are publicly available on your creator profile.
                                                     </p>
