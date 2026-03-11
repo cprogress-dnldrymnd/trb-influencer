@@ -719,8 +719,8 @@ class DD_Outreach_Manager
         $influencer_name = get_the_title($influencer_id);
 
         // Map influencer recipient address.
-        $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
-
+        #$influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+        $influencer_email = 'donald@cprogress.co.uk';
         // Fallback: Bind to the post author's user account email if meta mapping fails
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
