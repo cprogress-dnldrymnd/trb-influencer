@@ -690,10 +690,11 @@ class DD_Outreach_Manager
         $ajax_handler->add_response_data('dd_custom_html', $custom_html);
     }
 
-    /**
+   /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
+     * Maps specific sender details (brand, role, location) directly from user meta context.
      *
-     * @param array $data            The sanitized submitted form data (contains message, project scopes, job title, etc.).
+     * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
      * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
      * @return bool                  True on successful dispatch; false otherwise.
      */
@@ -707,11 +708,16 @@ class DD_Outreach_Manager
 
         $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
         $sender_email = $sender->user_email;
+        
+        // Isolate brand context strictly from user meta, bypassing the $data form array
+        $meta_job_title = get_user_meta($current_user_id, 'job_title', true);
+        $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
 
-        // Capture specific form fields or fallback to default/user meta
-        $job_title       = !empty($data['job_title']) ? esc_html($data['job_title']) : 'Representative';
-        $brand_name      = !empty($data['brand_name']) ? esc_html($data['brand_name']) : (get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name);
-        $country_code    = !empty($data['country_code']) ? $data['country_code'] : '';
+        $meta_brand_name = get_user_meta($current_user_id, 'brand_name', true);
+        $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
+
+        $meta_country    = get_user_meta($current_user_id, 'country', true);
+        $country_code    = !empty($meta_country) ? $meta_country : '';
         $country_display = $this->get_country_display($country_code);
 
         // Resolve Influencer Context
@@ -719,8 +725,8 @@ class DD_Outreach_Manager
         $influencer_name = get_the_title($influencer_id);
 
         // Map influencer recipient address.
-        #$influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
-        $influencer_email = 'donald@cprogress.co.uk';
+        $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+
         // Fallback: Bind to the post author's user account email if meta mapping fails
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
@@ -735,7 +741,7 @@ class DD_Outreach_Manager
             }
         }
 
-        $subject = 'A partnership opportunity with ' . esc_html($brand_name);
+        $subject = 'A partnership opportunity with ' . $brand_name;
         $headers = [
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . $brand_name . ' <' . $sender_email . '>',
@@ -743,10 +749,9 @@ class DD_Outreach_Manager
         ];
 
         ob_start();
-    ?>
+        ?>
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -754,69 +759,42 @@ class DD_Outreach_Manager
             <title>Partnership Opportunity</title>
             <style>
                 /* [Core Resets & Typography] */
-                table,
-                td,
-                div,
-                h1,
-                p,
-                a,
-                span {
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                table, td, div, h1, p, a, span { 
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
                 }
-
-                table,
-                td {
-                    mso-table-lspace: 0pt;
-                    mso-table-rspace: 0pt;
+                table, td { 
+                    mso-table-lspace: 0pt; 
+                    mso-table-rspace: 0pt; 
                 }
-
-                img {
-                    -ms-interpolation-mode: bicubic;
-                    border: 0;
-                    height: auto;
-                    line-height: 100%;
-                    outline: none;
-                    text-decoration: none;
+                img { 
+                    -ms-interpolation-mode: bicubic; 
+                    border: 0; 
+                    height: auto; 
+                    line-height: 100%; 
+                    outline: none; 
+                    text-decoration: none; 
                 }
-
+                
                 /* [Hover States & Mobile Refinements] */
-                a:hover {
-                    text-decoration: none !important;
-                }
-
+                a:hover { text-decoration: none !important; }
+                
                 @media screen and (max-width: 600px) {
-                    .w-100 {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                    }
-
-                    .stack-column {
-                        display: block !important;
-                        width: 100% !important;
-                        text-align: center !important;
-                        margin-bottom: 15px !important;
-                    }
-
-                    .mobile-center {
-                        text-align: center !important;
-                    }
-
-                    .footer-action {
-                        margin-top: 15px !important;
-                    }
+                    .w-100 { width: 100% !important; max-width: 100% !important; }
+                    .stack-column { display: block !important; width: 100% !important; text-align: center !important; margin-bottom: 15px !important; }
+                    .mobile-center { text-align: center !important; }
+                    .footer-action { margin-top: 15px !important; }
                 }
             </style>
         </head>
-
         <body style="margin:0;padding:0;word-spacing:normal;background-color:#EBEBEB;color:#1A1A1A;">
 
             <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#EBEBEB;padding: 20px 0;">
                 <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                     <tr>
                         <td align="center" style="padding:0;">
-
+                            
                             <table role="presentation" class="w-100" style="width:100%;max-width:393px;border:none;border-spacing:0;text-align:left;background-color:#EBEBEB; margin: 0 auto;">
-
+                                
                                 <tr>
                                     <td style="background-color:#3B1527; padding: 20px 30px;">
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
@@ -825,7 +803,7 @@ class DD_Outreach_Manager
                                                     <img src="https://via.placeholder.com/30x30/FF8A65/FFFFFF?text=!" alt="Alert" width="30" style="display:block; width:30px; height:auto; border-radius:4px;">
                                                 </td>
                                                 <td valign="middle" style="color:#FFFFFF; font-size:18px; font-weight:bold; line-height:24px;">
-                                                    A partnership opportunity with <?php echo esc_html($brand_name); ?>
+                                                    A partnership opportunity with <?php echo $brand_name; ?>
                                                 </td>
                                             </tr>
                                         </table>
@@ -835,11 +813,11 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 30px 30px 20px 30px;">
                                         <h2 style="margin:0 0 25px 0; font-size:20px; font-weight:bold; line-height:28px;">
-                                            <?php echo esc_html($brand_name); ?> reached out to you via The Ribbon Box Influencer Collective.
+                                            <?php echo $brand_name; ?> reached out to you via The Ribbon Box Influencer Collective.
                                         </h2>
-
+                                        
                                         <p style="margin:0 0 15px 0; font-size:16px; font-weight:bold;">Message received from</p>
-
+                                        
                                         <table role="presentation" style="border:none;border-spacing:0;">
                                             <tr>
                                                 <td width="70" valign="top">
@@ -847,7 +825,7 @@ class DD_Outreach_Manager
                                                 </td>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
                                                     <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
-                                                    <?php echo esc_html($job_title); ?> at <?php echo esc_html($brand_name); ?><br>
+                                                    <?php echo $job_title; ?> at <?php echo $brand_name; ?><br>
                                                     <?php if ($country_display) : ?>
                                                         <span style="font-size: 14px;"><?php echo $country_display; ?></span>
                                                     <?php endif; ?>
@@ -862,8 +840,8 @@ class DD_Outreach_Manager
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
                                                 <td style="border-bottom: 1px solid #D1D1D1; padding-bottom: 15px;">
-                                                    <span style="font-style:italic; color:#777777; font-size:14px;">Sent via</span>
-                                                    <a href="" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
+                                                    <span style="font-style:italic; color:#777777; font-size:14px;">Sent via</span> 
+                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
                                                 </td>
                                             </tr>
                                         </table>
@@ -873,8 +851,8 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 25px 30px 10px 30px;">
                                         <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold;">Opportunity overview</h3>
-                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px;">A brief summary of the opportunity shared by <?php echo esc_html($brand_name); ?></p>
-
+                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px;">A brief summary of the opportunity shared by <?php echo $brand_name; ?></p>
+                                        
                                         <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
                                             <tr>
                                                 <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
@@ -911,10 +889,10 @@ class DD_Outreach_Manager
                                         <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
                                         <div style="font-size:15px; line-height:24px; color:#333333;">
                                             <p style="margin:0 0 15px 0;">Hi <?php echo esc_html($influencer_name); ?>,</p>
-
+                                            
                                             <?php echo wp_kses_post(wpautop($data['message'])); ?>
-
-                                            <p style="margin:15px 0 0 0;">Best regards,<br><?php echo esc_html($sender_name); ?><br><?php echo esc_html($brand_name); ?></p>
+                                            
+                                            <p style="margin:15px 0 0 0;">Best regards,<br><?php echo esc_html($sender_name); ?><br><?php echo $brand_name; ?></p>
                                         </div>
                                     </td>
                                 </tr>
@@ -925,12 +903,12 @@ class DD_Outreach_Manager
                                             <tr>
                                                 <td align="center" style="background-color:#2D2D2D; border-radius:4px;">
                                                     <a href="mailto:<?php echo esc_attr($sender_email); ?>" style="display:block; padding:16px 20px; font-size:14px; font-weight:bold; color:#FFFFFF; text-decoration:none; text-transform:uppercase; letter-spacing:1px;">
-                                                        💬 Reply to <?php echo esc_html($brand_name); ?>
+                                                        💬 Reply to <?php echo $brand_name; ?>
                                                     </a>
                                                 </td>
                                             </tr>
                                         </table>
-
+                                        
                                         <table role="presentation" style="width:100%; border:none; border-spacing:0; margin-top:15px;">
                                             <tr>
                                                 <td width="20" valign="top">
@@ -959,15 +937,14 @@ class DD_Outreach_Manager
                                 </tr>
 
                             </table>
-
+                            
                         </td>
                     </tr>
                 </table>
             </div>
         </body>
-
         </html>
-    <?php
+        <?php
         $html_content = ob_get_clean();
 
         return wp_mail($influencer_email, $subject, $html_content, $headers);
@@ -1662,7 +1639,6 @@ class DD_Outreach_Manager
             'nonce'    => wp_create_nonce('dd_outreach_nonce')
         ]);
     }
-
     /**
      * Converts a 2-letter ISO country code to its corresponding Emoji flag and full name.
      * Utilizes HTML decimal entities for bulletproof rendering in email clients.
@@ -1686,8 +1662,7 @@ class DD_Outreach_Manager
             $flag = "&#{$char1};&#{$char2};";
         }
 
-        // Comprehensive mapping dictionary for ISO 3166-1 alpha-2 country codes. 
-        // Note: For extensive global coverage, consider hooking into WC()->countries->countries if WooCommerce is active.
+        // Standard mapping dictionary for common country codes
         $country_names = [
             'AF' => 'Afghanistan',
             'AX' => 'Åland Islands',
