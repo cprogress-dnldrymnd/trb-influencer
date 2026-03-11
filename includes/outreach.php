@@ -847,9 +847,9 @@ class DD_Outreach_Manager
                                                 </td>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
                                                     <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
-                                                    <?php echo $job_title; ?> at <?php echo $brand_name; ?><br>
+                                                    <?php echo esc_html($job_title); ?> at <?php echo esc_html($brand_name); ?><br>
                                                     <?php if ($country_display) : ?>
-                                                        <span style="font-size: 14px;"><?php echo esc_html($country_display); ?></span>
+                                                        <span style="font-size: 14px;"><?php echo $country_display; ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>
@@ -863,7 +863,7 @@ class DD_Outreach_Manager
                                             <tr>
                                                 <td style="border-bottom: 1px solid #D1D1D1; padding-bottom: 15px;">
                                                     <span style="font-style:italic; color:#777777; font-size:14px;">Sent via</span>
-                                                    <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
+                                                    <a href="" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a>
                                                 </td>
                                             </tr>
                                         </table>
@@ -1665,10 +1665,10 @@ class DD_Outreach_Manager
 
     /**
      * Converts a 2-letter ISO country code to its corresponding Emoji flag and full name.
-     * Utilizes ordinal offsets to calculate the Unicode Regional Indicator Symbol.
+     * Utilizes HTML decimal entities for bulletproof rendering in email clients.
      *
      * @param string $country_code The 2-letter ISO country code (e.g., 'GB', 'US').
-     * @return string The concatenated emoji flag and country name.
+     * @return string The concatenated HTML flag entity and country name.
      */
     private function get_country_display($country_code)
     {
@@ -1678,10 +1678,12 @@ class DD_Outreach_Manager
 
         $country_code = strtoupper(trim($country_code));
 
-        // Dynamically generate the emoji flag by shifting the ASCII value to the Regional Indicator block
+        // Generate the emoji flag using HTML entities for maximum email client compatibility
         $flag = '';
         if (preg_match('/^[A-Z]{2}$/', $country_code)) {
-            $flag = mb_chr(ord($country_code[0]) + 127397, 'UTF-8') . mb_chr(ord($country_code[1]) + 127397, 'UTF-8');
+            $char1 = ord($country_code[0]) + 127397;
+            $char2 = ord($country_code[1]) + 127397;
+            $flag = "&#{$char1};&#{$char2};";
         }
 
         // Comprehensive mapping dictionary for ISO 3166-1 alpha-2 country codes. 
@@ -1938,7 +1940,8 @@ class DD_Outreach_Manager
             'ZW' => 'Zimbabwe'
         ];
 
-        $name = isset($country_names[$country_code]) ? $country_names[$country_code] : $country_code;
+        // Ensure the fallback name is escaped here so the final string is safe to output raw
+        $name = isset($country_names[$country_code]) ? $country_names[$country_code] : esc_html($country_code);
 
         return $flag . ' ' . $name;
     }
