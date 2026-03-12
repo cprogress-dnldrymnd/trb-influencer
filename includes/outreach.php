@@ -2383,13 +2383,3 @@ class DD_Outreach_Manager
 }
 
 new DD_Outreach_Manager();
-
-function user_meta()
-{
-    ob_start();
-    echo '<pre>';
-    var_dump(get_user_meta(get_current_user_id()));
-    echo '</pre>';
-    return ob_get_clean();
-}
-add_shortcode('user_meta', 'user_meta');
