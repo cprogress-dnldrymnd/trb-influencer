@@ -1437,6 +1437,9 @@ class DD_Outreach_Manager
                 .dd-notes-list-container {
                     width: 100%;
                 }
+                .dd-dashboard-list-container {
+                    max-width: 100%;
+                }
             }
         </style>
     <?php
