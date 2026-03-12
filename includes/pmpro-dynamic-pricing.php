@@ -364,6 +364,7 @@ class DD_PMPro_Frontend_Pricing
 				font-weight: bold;
 				max-width: 300px;
 				width: 100%;
+				text-align: center;
 			}
 
 			.dd-plan-name {
