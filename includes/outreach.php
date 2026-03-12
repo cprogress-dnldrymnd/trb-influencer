@@ -337,7 +337,7 @@ class DD_Outreach_Manager
                 firstItem.trigger('click');
             } else {
                 // Display notice on placeholder if no items are found on initial load
-                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
+                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found.</span>');
                 $('#no-outreach-found').removeClass('hide-element');
                 $('#outreach-found').addClass('hide-element');
             }
@@ -406,7 +406,7 @@ class DD_Outreach_Manager
                                 newFirstItem.trigger('click');
                             } else {
                                 // Display notice on placeholder if no filter results are found
-                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found matching your criteria.</span>');
+                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found matching your criteria.</span>');
                             }
                         }
                     }
@@ -1962,7 +1962,7 @@ class DD_Outreach_Manager
     public function render_list_shortcode($atts)
     {
         if (! is_user_logged_in()) {
-            return '<p>Please log in to view your projects.</p>';
+            return '<p>Please log in to view your outreach.</p>';
         }
 
         $raw_fields = get_query_var('influencer_outreach_fields');
@@ -2083,7 +2083,7 @@ class DD_Outreach_Manager
             }
             wp_reset_postdata();
         } else {
-            $html .= '<p style="padding: 20px; color:#888;">No outreach projects found matching your criteria.</p>';
+            $html .= '<p style="padding: 20px; color:#888;">No outreach found matching your criteria.</p>';
         }
 
         return $html;
