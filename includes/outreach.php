@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches HTML notifications, and provides dynamic shortcode views for project management.
- * Version: 1.9.0
+ * Version: 2.0.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -16,7 +16,7 @@ if (! defined('ABSPATH')) {
 /**
  * Class DD_Outreach_Manager
  * Handles Elementor form interception, dynamic HTML generation, master-detail dashboard,
- * and the backend Email Builder settings.
+ * and the backend HTML Email Builder.
  */
 class DD_Outreach_Manager
 {
@@ -69,9 +69,8 @@ class DD_Outreach_Manager
      */
     public function register_admin_menu()
     {
-        // Attaching under the 'outreach' CPT if it exists, fallback to standard options-general.php
         $parent_slug = post_type_exists('outreach') ? 'edit.php?post_type=outreach' : 'options-general.php';
-
+        
         add_submenu_page(
             $parent_slug,
             'Outreach Settings',
@@ -94,7 +93,7 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues administration scripts and styles strictly for the settings page.
-     * Handles live preview debounce and WYSIWYG integration.
+     * Handles live HTML preview rendering via AJAX.
      *
      * @param string $hook The current admin page hook.
      * @return void
@@ -106,7 +105,7 @@ class DD_Outreach_Manager
         }
 
         wp_enqueue_script('jquery');
-
+        
         $custom_js = "
         jQuery(document).ready(function($) {
             // Tab Switcher Logic
@@ -119,31 +118,29 @@ class DD_Outreach_Manager
                 $(target).show();
             });
 
-            // Merge Tag Injection
+            // Merge Tag Injection into Raw Textarea
             $('.dd-merge-tag').on('click', function(e) {
                 e.preventDefault();
                 var tag = $(this).data('tag');
-                if (typeof tinymce !== 'undefined' && tinymce.get('dd_outreach_email_template')) {
-                    tinymce.get('dd_outreach_email_template').execCommand('mceInsertContent', false, tag);
-                } else {
-                    var txtarea = $('#dd_outreach_email_template');
-                    var val = txtarea.val();
-                    var start = txtarea[0].selectionStart;
-                    var end = txtarea[0].selectionEnd;
-                    txtarea.val(val.substring(0, start) + tag + val.substring(end));
-                }
+                var txtarea = $('#dd_outreach_email_template');
+                var val = txtarea.val();
+                var start = txtarea[0].selectionStart;
+                var end = txtarea[0].selectionEnd;
+                
+                txtarea.val(val.substring(0, start) + tag + val.substring(end));
+                
+                // Trigger preview update after injection
                 triggerPreviewUpdate();
+                
+                // Refocus cursor
+                txtarea.focus();
+                txtarea[0].selectionEnd = start + tag.length;
             });
 
             // Live Preview AJAX trigger
             var previewTimer;
             function triggerPreviewUpdate() {
-                var content = '';
-                if (typeof tinymce !== 'undefined' && tinymce.get('dd_outreach_email_template')) {
-                    content = tinymce.get('dd_outreach_email_template').getContent();
-                } else {
-                    content = $('#dd_outreach_email_template').val();
-                }
+                var content = $('#dd_outreach_email_template').val();
 
                 $.post(ajaxurl, {
                     action: 'dd_preview_email',
@@ -160,25 +157,14 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Bind TinyMCE keyup/change events for real-time rendering
-            if (typeof tinymce !== 'undefined') {
-                tinymce.on('AddEditor', function(e) {
-                    if(e.editor.id === 'dd_outreach_email_template') {
-                        e.editor.on('keyup change', function() {
-                            clearTimeout(previewTimer);
-                            previewTimer = setTimeout(triggerPreviewUpdate, 600);
-                        });
-                    }
-                });
-            }
-
+            // Bind text editor events for real-time rendering
             $('#dd_outreach_email_template').on('keyup change', function() {
                 clearTimeout(previewTimer);
-                previewTimer = setTimeout(triggerPreviewUpdate, 600);
+                previewTimer = setTimeout(triggerPreviewUpdate, 500);
             });
 
             // Initial load rendering
-            setTimeout(triggerPreviewUpdate, 500);
+            setTimeout(triggerPreviewUpdate, 300);
         });
         ";
 
@@ -189,22 +175,47 @@ class DD_Outreach_Manager
     }
 
     /**
+     * Helper to return the default HTML boilerplate so it's not bloating the UI logic.
+     * @return string
+     */
+    private function get_default_html_template()
+    {
+        return '<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Partnership Opportunity</title>
+</head>
+<body style="margin:0;padding:20px;background-color:#EBEBEB;color:#1A1A1A;font-family:sans-serif;">
+    <div style="background:#fff; max-width:600px; margin:0 auto; padding:30px; border-radius:8px;">
+        <h2>A partnership opportunity with {brand_name}</h2>
+        <p>Hi {influencer_name},</p>
+        <div>{message}</div>
+        <br>
+        <p>Best regards,<br>{sender_name}<br>{job_title} at {brand_name}</p>
+        <p>Country: {country}</p>
+        <img src="{avatar_url}" width="60" style="border-radius:50%;" />
+        <br><br>
+        <a href="mailto:{sender_email}">Reply to {brand_name}</a>
+    </div>
+</body>
+</html>';
+    }
+
+    /**
      * Renders the Backend Settings Page HTML.
-     * Contains the tabbed logic and the WYSIWYG Email Builder.
+     * Contains the tabbed logic and the Raw HTML Code Editor.
      *
      * @return void
      */
     public function render_settings_page()
     {
-        $default_template = '<p style="margin:0 0 15px 0;">Hi {influencer_name},</p>
-{message}
-<p style="margin:15px 0 0 0;">Best regards,<br>{sender_name}<br>{brand_name}</p>';
-
-        $template = get_option('dd_outreach_email_template', $default_template);
-?>
+        $template = get_option('dd_outreach_email_template', $this->get_default_html_template());
+        ?>
         <div class="wrap">
             <h1>Outreach Manager Settings</h1>
-
+            
             <h2 class="nav-tab-wrapper">
                 <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
                 <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
@@ -217,38 +228,33 @@ class DD_Outreach_Manager
             <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_outreach_settings_group'); ?>
-
+                    
                     <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-
+                        
                         <div style="flex: 1; min-width: 400px;">
-                            <h3>Email Content Template</h3>
-                            <p>Customize the message body of your outreach emails. The layout and header/footer structure are managed dynamically.</p>
-
+                            <h3>Raw HTML Email Builder</h3>
+                            <p>Paste your full HTML structural markup here. Use the buttons below to inject dynamic merge tags into your code.</p>
+                            
                             <div style="margin-bottom: 15px;">
                                 <strong>Available Merge Tags:</strong><br>
                                 <?php
-                                $tags = ['{influencer_name}', '{brand_name}', '{sender_name}', '{job_title}', '{country}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
+                                $tags = ['{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
                                 ?>
                             </div>
 
-                            <?php
-                            wp_editor($template, 'dd_outreach_email_template', [
-                                'media_buttons' => false,
-                                'textarea_rows' => 15,
-                                'teeny'         => true
-                            ]);
-                            ?>
-
+                            <textarea id="dd_outreach_email_template" name="dd_outreach_email_template" style="width: 100%; height: 600px; font-family: monospace; font-size: 13px; line-height: 1.5; padding: 15px; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,.07); border: 1px solid #8c8f94;" dir="ltr"><?php echo esc_textarea($template); ?></textarea>
+                            
                             <?php submit_button('Save Email Template'); ?>
                         </div>
 
                         <div style="flex: 1; min-width: 400px;">
                             <h3>Live Preview</h3>
+                            <p>Showing the most recent outreach data (or default placeholder data if empty).</p>
                             <div style="border: 1px solid #ccc; border-radius: 8px; overflow: hidden; background: #EBEBEB; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                <iframe id="dd-email-preview-iframe" style="width: 100%; height: 600px; border: none;" src="about:blank"></iframe>
+                                <iframe id="dd-email-preview-iframe" style="width: 100%; height: 750px; border: none;" src="about:blank"></iframe>
                             </div>
                         </div>
 
@@ -256,12 +262,12 @@ class DD_Outreach_Manager
                 </form>
             </div>
         </div>
-    <?php
+        <?php
     }
 
     /**
      * AJAX endpoint to render the live HTML preview of the email builder.
-     * Parses the current WYSIWYG content and injects the latest outreach data (or dummy data if none exists).
+     * Parses the current raw HTML content and injects the latest outreach data.
      *
      * @return void
      */
@@ -273,7 +279,7 @@ class DD_Outreach_Manager
             wp_send_json_error('Unauthorized');
         }
 
-        $template = isset($_POST['template']) ? wp_kses_post(wp_unslash($_POST['template'])) : '';
+        $template = isset($_POST['template']) ? wp_unslash($_POST['template']) : '';
 
         // 1. Establish dummy fallback data
         $preview_data = [
@@ -319,9 +325,9 @@ class DD_Outreach_Manager
             $meta_country    = get_user_meta($author_id, 'country', true);
             $country_display = $this->get_country_display($meta_country);
 
-            // Extract PMPro User Avatar safely
+            // Extract PMPro User Avatar
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
-            $avatar_url  = 'https://placehold.co/62x62'; // fallback
+            $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
                 if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
                     $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($author_id, 'user_avatar', 'thumbnail'));
@@ -364,32 +370,27 @@ class DD_Outreach_Manager
             '{sender_name}'     => $preview_data['sender_name'],
             '{job_title}'       => $preview_data['job_title'],
             '{country}'         => $preview_data['country_display'],
+            '{avatar_url}'      => $preview_data['avatar_url'],
             '{project_type}'    => $preview_data['project_type'],
             '{project_length}'  => $preview_data['project_length'],
             '{project_dates}'   => $preview_data['project_dates'],
             '{budget}'          => $preview_data['budget'],
             '{message}'         => $preview_data['message'],
+            '{sender_email}'    => $preview_data['sender_email'],
         ];
 
-        // 5. Execute Merge Tag Search & Replace
-        $parsed_message = str_replace(array_keys($dictionary), array_values($dictionary), $template);
-
-        // 6. Render through the abstract HTML skeleton
-        $final_html = $this->get_email_html_skeleton($parsed_message, $preview_data);
+        // 5. Execute Merge Tag Search & Replace over the raw HTML
+        $final_html = str_replace(array_keys($dictionary), array_values($dictionary), $template);
 
         wp_send_json_success($final_html);
     }
 
     /**
      * Outputs consolidated CSS into the document <head>.
-     * Restores the exact original CSS for the form summary and applies it to the view.
-     *
-     * @return void
      */
     public function inject_global_styles()
     {
-        // Outputting existing styles unmodified.
-    ?>
+?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
             .dd-message-overview {
@@ -399,7 +400,6 @@ class DD_Outreach_Manager
                 font-size: 16px;
                 font-weight: 500;
             }
-
             .dd-message-overview-container {
                 font-family: inherit;
                 margin-top: 15px;
@@ -407,11 +407,9 @@ class DD_Outreach_Manager
                 border: 2px solid #034146;
                 background-color: #fff;
             }
-
             .mt-0 {
                 margin-top: 0 !important;
             }
-
             .dd-profile-header {
                 display: flex;
                 align-items: center;
@@ -419,25 +417,20 @@ class DD_Outreach_Manager
                 padding: 15px 20px;
                 border-bottom: 1px solid #E7E7E7;
             }
-
-
             .dd-avatar.dd-avatar.dd-avatar {
                 width: 50px;
                 height: 50px;
                 border-radius: 50%;
             }
-
             .dd-profile-info {
                 flex-grow: 1;
                 line-height: 1.4;
             }
-
             .dd-message-sent-date {
                 padding: 15px 20px;
                 border-bottom: 1px solid #E7E7E7;
                 font-size: 14px;
             }
-
             .dd-overview-header {
                 display: flex;
                 justify-content: space-between;
@@ -445,12 +438,10 @@ class DD_Outreach_Manager
                 font-size: 14px;
                 font-weight: bold;
             }
-
             .dd-overview-header .dd-timestamp {
                 font-weight: normal;
                 color: #555;
             }
-
             .dd-btn-outline {
                 background-color: var(--e-global-color-1c4ea17);
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
@@ -464,22 +455,18 @@ class DD_Outreach_Manager
                 padding: 14px 23px 14px 23px;
                 border-radius: 5px;
             }
-
             .dd-btn-outline:hover {
                 background-color: var(--e-global-color-accent);
                 color: var(--e-global-color-2ba2932);
             }
-
             .dd-message-overview-container .tags-container.tags-container.tags-container {
                 padding: 15px 20px;
                 margin: 0;
                 border-bottom: 1px solid #E7E7E7;
             }
-
             .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
                 gap: 4px;
             }
-
             .dd-subject-title {
                 color: #034146;
                 font-size: 18px !important;
@@ -489,7 +476,6 @@ class DD_Outreach_Manager
                 font-family: Inter !important;
                 padding: 15px 20px;
             }
-
             .dd-message-content {
                 font-size: 15px;
                 color: #000000;
@@ -499,13 +485,11 @@ class DD_Outreach_Manager
                 padding: 15px 20px;
                 font-family: Inter;
             }
-
             .dd-footer {
                 display: flex;
                 gap: 15px;
                 margin-top: 15px;
             }
-
             .dd-footer a {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
                 font-size: 14px !important;
@@ -513,31 +497,25 @@ class DD_Outreach_Manager
                 line-height: var(--e-global-typography-2a20fd0-line-height);
                 letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
             }
-
             .view-outreach a {
                 background-color: var(--e-global-color-accent) !important;
                 border: 1px solid var(--e-global-color-accent);
                 color: var(--e-global-color-2ba2932) !important;
             }
-
             .view-outreach a:hover {
                 background-color: var(--e-global-color-secondary) !important;
                 border: 1px solid var(--e-global-color-secondary);
             }
-
             .close-outreach a {
                 border-style: solid;
                 border-color: var(--e-global-color-ee06e41) !important;
                 background-color: transparent !important;
                 color: var(--e-global-color-ee06e41) !important;
             }
-
-
             .close-outreach a:hover {
                 background-color: var(--e-global-color-ee06e41) !important;
                 color: var(--e-global-color-2ba2932) !important;
             }
-
             .submit-new a {
                 border: none !important;
                 background-color: transparent !important;
@@ -545,7 +523,6 @@ class DD_Outreach_Manager
                 padding-left: 0 !important;
                 padding-right: 0 !important;
             }
-
             .submit-new a span.elementor-button-text {
                 text-decoration: underline;
             }
@@ -558,16 +535,13 @@ class DD_Outreach_Manager
                 width: 100%;
                 max-width: 350px;
             }
-
             .outreach-filter {
                 padding: 20px;
                 border-bottom: 1px solid #BCBCBC;
             }
-
             .dd-filter-controls {
                 margin-bottom: 20px;
             }
-
             .dd-list-search {
                 width: 100%;
                 margin-bottom: 15px;
@@ -576,20 +550,17 @@ class DD_Outreach_Manager
                 border: 1px solid #ccc;
                 box-sizing: border-box;
             }
-
             .dd-filter-label-row {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 10px;
             }
-
             .dd-filter-reset {
                 font-size: 12px;
                 color: #888;
                 text-decoration: none;
             }
-
             .dd-filter-select {
                 width: 100%;
                 padding: 10px;
@@ -597,13 +568,11 @@ class DD_Outreach_Manager
                 border: 1px solid #ccc;
                 box-sizing: border-box;
             }
-
             .dd-filter-buttons-row {
                 margin-top: 15px;
                 display: flex;
                 gap: 10px;
             }
-
             .dd-filter-btn {
                 border-radius: 20px;
                 border: 1px solid #ccc;
@@ -612,18 +581,15 @@ class DD_Outreach_Manager
                 cursor: pointer;
                 font-size: 13px;
             }
-
             .dd-filter-btn.active {
                 border-color: #4DB2A6;
                 background: #E6F4F1;
                 color: #4DB2A6;
             }
-
             .dd-item-list {
                 max-height: 600px;
                 overflow-y: auto;
             }
-
             .dd-outreach-item {
                 display: flex;
                 align-items: center;
@@ -633,26 +599,22 @@ class DD_Outreach_Manager
                 cursor: pointer;
                 transition: background 0.2s;
             }
-
             .dd-outreach-item .avatar-holder {
                 flex: 0 0 68px;
                 width: 68px;
             }
-
             .dd-outreach-item .dd-item-content {
                 flex: 0 0 calc(100% - 68px);
                 width: calc(100% - 68px);
                 padding-left: 10px;
                 ;
             }
-
             .dd-outreach-item:hover,
             .dd-outreach-item.active-item {
                 background: #FEF6F3;
                 border-bottom: 1px solid #3B1527;
                 border-top: 1px solid #3B1527;
             }
-
             .dd-item-avatar.dd-item-avatar.dd-item-avatar {
                 width: 68px;
                 height: 68px;
@@ -661,25 +623,21 @@ class DD_Outreach_Manager
                 margin-right: 15px;
                 border: 1px solid gray;
             }
-
             .dd-item-content {
                 flex-grow: 1;
             }
-
             .dd-item-name {
                 display: block;
                 font-size: 15px;
                 font-weight: 500;
                 color: #000000;
             }
-
             .dd-item-handle {
                 display: block;
                 color: #000000;
                 font-size: 14px;
                 font-weight: 400;
             }
-
             .dd-item-title {
                 display: block;
                 font-size: 14px;
@@ -691,7 +649,6 @@ class DD_Outreach_Manager
                 white-space: nowrap;
                 max-width: 200px;
             }
-
             .dd-item-date {
                 color: #8F8F8F;
                 font-size: 13px;
@@ -702,14 +659,12 @@ class DD_Outreach_Manager
                 width: 100%;
                 box-sizing: border-box;
             }
-
             .dd-view-placeholder {
                 text-align: center;
                 color: #888;
                 margin-top: 10%;
                 display: block;
             }
-
             .dd-view-error {
                 text-align: center;
                 color: red;
@@ -717,7 +672,6 @@ class DD_Outreach_Manager
                 transform: translateY(-50%);
                 display: block;
             }
-
             .dd-notes-grid {
                 display: flex;
                 gap: 20px;
@@ -726,7 +680,6 @@ class DD_Outreach_Manager
                 margin-top: 20px;
                 font-family: Inter;
             }
-
             .dd-note-card {
                 flex: 1;
                 min-width: 280px;
@@ -738,7 +691,6 @@ class DD_Outreach_Manager
                 position: sticky;
                 top: 20px;
             }
-
             .dd-notes-list-container {
                 flex: 1;
                 min-width: 280px;
@@ -746,9 +698,6 @@ class DD_Outreach_Manager
                 flex-direction: column;
                 gap: 15px;
             }
-
-
-
             .dd-note-title.dd-note-title {
                 margin-top: 0;
                 font-size: 20px;
@@ -756,13 +705,11 @@ class DD_Outreach_Manager
                 color: #3B1527;
                 font-weight: bold;
             }
-
             .dd-note-desc {
                 font-size: 14px;
                 color: #8F8F8F;
                 margin-bottom: 15px;
             }
-
             .dd-note-input {
                 width: 100%;
                 margin-bottom: 10px;
@@ -772,7 +719,6 @@ class DD_Outreach_Manager
                 box-sizing: border-box;
                 font-family: inherit;
             }
-
             .dd-note-textarea {
                 width: 100%;
                 height: 80px;
@@ -783,7 +729,6 @@ class DD_Outreach_Manager
                 resize: vertical;
                 font-family: inherit;
             }
-
             .dd-note-btn {
                 margin-top: 10px;
                 background: #ffcc00;
@@ -796,12 +741,10 @@ class DD_Outreach_Manager
                 font-size: 13px;
                 transition: opacity 0.2s;
             }
-
             .dd-note-btn:disabled {
                 opacity: 0.6;
                 cursor: not-allowed;
             }
-
             .dd-steps-content {
                 background: #FCF3D5;
                 padding: 15px;
@@ -812,13 +755,11 @@ class DD_Outreach_Manager
                 line-height: 1.5;
                 border: 1px solid #FFE17B;
             }
-
             .dd-steps-actions {
                 display: flex;
                 justify-content: flex-end;
                 gap: 10px;
             }
-
             .dd-delete-btn {
                 border: none;
                 background: transparent;
@@ -826,7 +767,6 @@ class DD_Outreach_Manager
                 cursor: pointer;
                 font-size: 12px;
             }
-
             .dd-edit-btn {
                 border: 1px solid #ddd;
                 background: #f9f9f9;
@@ -836,7 +776,6 @@ class DD_Outreach_Manager
                 font-size: 12px;
                 color: #333;
             }
-
             .dd-last-edited {
                 text-align: right;
                 font-size: 14px;
@@ -844,7 +783,6 @@ class DD_Outreach_Manager
                 margin-top: 10px !important;
                 display: block;
             }
-
             .dd-no-notes {
                 text-align: center;
                 color: #888;
@@ -853,7 +791,6 @@ class DD_Outreach_Manager
                 border-radius: 8px;
                 background-color: #fff;
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn {
                 padding: 12px 20px !important;
                 border: 1px solid #BCBCBC;
@@ -865,29 +802,23 @@ class DD_Outreach_Manager
                 align-items: center;
                 gap: 10px;
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow {
                 background-color: #FFE17B;
                 border-color: #FFE17B;
                 color: #000000;
-
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline {
                 background-color: transparent;
                 color: #BCBCBC;
                 border-color: #BCBCBC;
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span {
                 text-decoration: underline;
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link {
                 border: none;
                 background-color: transparent;
             }
-
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
@@ -898,10 +829,6 @@ class DD_Outreach_Manager
     /**
      * Intercepts the Elementor Form submission to compile a custom HTML payload.
      * Generates a new 'outreach' post type entry and triggers email dispatch.
-     *
-     * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record
-     * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler
-     * @return void
      */
     public function process_elementor_form_response($record, $ajax_handler)
     {
@@ -919,7 +846,6 @@ class DD_Outreach_Manager
         }
 
         $current_user_id = get_current_user_id();
-
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
 
         $new_post_args = [
@@ -945,7 +871,6 @@ class DD_Outreach_Manager
                 deduct_points_from_current_user(1, 'Outreach Form Submission');
             }
 
-
             if (function_exists('mycred_get_users_cred')) {
                 $updated_points = mycred_get_users_cred($current_user_id);
                 $ajax_handler->add_response_data('updated_points', $updated_points);
@@ -954,7 +879,6 @@ class DD_Outreach_Manager
         } else {
             $sent_date = date_i18n(get_option('date_format'));
         }
-
 
         ob_start();
     ?>
@@ -1018,262 +942,17 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Reusable logic to assemble the strict HTML layout frame for the Outreach email.
-     * Keeps code DRY between the actual dispatch event and the Live Preview AJAX route.
-     *
-     * @param string $message_content The parsed content string containing dynamic inner HTML.
-     * @param array  $data            Array of structural variables required for the header/footer block.
-     * @return string                 The fully compiled HTML string.
-     */
-    private function get_email_html_skeleton($message_content, $data)
-    {
-        ob_start();
-    ?>
-        <!DOCTYPE html>
-        <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <meta name="x-apple-disable-message-reformatting">
-            <title>Partnership Opportunity</title>
-            <style>
-                /* [Core Resets & Typography] */
-                table,
-                td,
-                div,
-                h1,
-                p,
-                a,
-                span {
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                }
-
-                table,
-                td {
-                    mso-table-lspace: 0pt;
-                    mso-table-rspace: 0pt;
-                }
-
-                img {
-                    -ms-interpolation-mode: bicubic;
-                    border: 0;
-                    height: auto;
-                    line-height: 100%;
-                    outline: none;
-                    text-decoration: none;
-                }
-
-                /* [Hover States & Mobile Refinements] */
-                a:hover {
-                    text-decoration: none !important;
-                }
-
-                @media screen and (max-width: 600px) {
-                    .w-100 {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                    }
-
-                    .stack-column {
-                        display: block !important;
-                        width: 100% !important;
-                        text-align: center !important;
-                        margin-bottom: 15px !important;
-                    }
-
-                    .mobile-center {
-                        text-align: center !important;
-                    }
-
-                    .footer-action {
-                        margin-top: 15px !important;
-                    }
-                }
-            </style>
-        </head>
-
-        <body style="margin:0;padding:0;word-spacing:normal;background-color:#EBEBEB;color:#1A1A1A;">
-
-            <div role="article" aria-roledescription="email" lang="en" style="text-size-adjust:100%;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#EBEBEB;padding: 20px 0;">
-                <table role="presentation" style="width:100%;border:none;border-spacing:0;">
-                    <tr>
-                        <td align="center" style="padding:0;">
-
-                            <table role="presentation" class="w-100" style="width:100%;max-width:393px;border:none;border-spacing:0;text-align:left;background-color:#EBEBEB; margin: 0 auto; background-color: #FFFFFF">
-
-                                <tr>
-                                    <td style="background-color:#3B1527; padding: 20px 30px;">
-                                        <table role="presentation" style="width:100%;border:none;border-spacing:0;">
-                                            <tr>
-                                                <td width="40" valign="middle">
-                                                    <img src="<?= get_stylesheet_directory_uri() . '/assets/images/influencer-email.png' ?>" alt="Alert" width="30" style="display:block; width:30px; height:auto; border-radius:4px;">
-                                                </td>
-                                                <td valign="middle" style="color:#FFFFFF; font-size:16px; font-weight:bold; line-height:24px;">
-                                                    A partnership opportunity with <?php echo esc_html($data['brand_name'] ?? ''); ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 30px 30px 20px 30px;">
-                                        <h2 style="margin:0 0 25px 0; font-size:18px; font-weight:bold; line-height:28px;">
-                                            <?php echo esc_html($data['brand_name'] ?? ''); ?> <span style="font-weight: 400">reached out to you via</span> The Ribbon Box Influencer Collective.
-                                        </h2>
-
-                                        <p style="margin:0 0 15px 0; font-size:16px; font-weight:bold;">Message received from</p>
-
-                                        <table role="presentation" style="border:none;border-spacing:0;">
-                                            <tr>
-                                                <?php if (!empty($data['avatar_url'])) { ?>
-                                                    <td width="70" valign="top">
-                                                        <img src="<?php echo esc_url($data['avatar_url']); ?>" alt="<?php echo esc_attr($data['sender_name'] ?? ''); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
-                                                    </td>
-                                                <?php } ?>
-                                                <td valign="middle" style="font-size:15px; line-height:22px;">
-                                                    <span style="font-weight:bold;"><?php echo esc_html($data['sender_name'] ?? ''); ?></span><br>
-                                                    <?php echo esc_html($data['job_title'] ?? ''); ?> at <?php echo esc_html($data['brand_name'] ?? ''); ?><br>
-                                                    <?php if (!empty($data['country_display'])) : ?>
-                                                        <span style="font-size: 14px;"><?php echo $data['country_display']; ?></span>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 0 30px;">
-                                        <table role="presentation" style="width:100%;border:none;border-spacing:0;">
-                                            <tr>
-                                                <td style="border-bottom: 1px solid #E1E1E1; padding-bottom: 15px; padding-top: 15px; border-top: 1px solid #E1E1E1;">
-                                                    <i> <span style="font-style:italic; color:#8F8F8F; font-size:14px;">Sent via</span>
-                                                        <a href="#" style="color:#0099FF; text-decoration:underline; font-size:14px;">The Ribbon Box Influencer Collective</a></i>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 25px 30px 10px 30px;">
-                                        <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; letter-spacing: 0.9px;">Opportunity overview</h3>
-                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px; letter-spacing: 0.75px">A brief summary of the opportunity shared by <?php echo esc_html($data['brand_name'] ?? ''); ?></p>
-
-                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
-                                            <tr>
-                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
-                                                    Project type: <?php echo esc_html($data['project_type'] ?? 'N/A'); ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
-                                            <tr>
-                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
-                                                    Project length: <?php echo esc_html($data['project_length'] ?? 'N/A'); ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
-                                            <tr>
-                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
-                                                    Project dates: <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        <table role="presentation" style="border:none;border-spacing:0; margin-bottom:25px;">
-                                            <tr>
-                                                <td style="background-color:#D8EFDE; border: 1px solid #1E5F36; border-radius: 20px; padding: 6px 16px; font-size: 14px; color: #1E5F36; font-weight: bold;">
-                                                    Budget: <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 0 30px 20px 30px;">
-                                        <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
-                                        <div style="font-size:15px; line-height:24px; color:#000; letter-spacing: 0.9px;">
-                                            <?php echo $message_content; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 10px 30px 20px 30px;">
-                                        <table role="presentation" style="width:100%; border:none; border-spacing:0;">
-                                            <tr>
-                                                <td align="center" style="background-color:#2D2D2D; border-radius:4px;">
-                                                    <a href="mailto:<?php echo esc_attr($data['sender_email'] ?? ''); ?>" style="display:block; padding:16px 20px; font-size:14px; font-weight:bold; color:#FFFFFF; text-decoration:none; text-transform:uppercase; letter-spacing:1px;">
-                                                        💬 Reply to <?php echo esc_html($data['brand_name'] ?? ''); ?>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        </table>
-
-                                        <table role="presentation" style="width:100%; border:none; border-spacing:0; margin-top:15px;">
-                                            <tr>
-                                                <td width="20" valign="top">
-                                                    <span style="color:#0099FF; font-size:16px;">ⓘ</span>
-                                                </td>
-                                                <td valign="middle" style="font-size:14px; color:#333333;">
-                                                    Replies are sent directly to the brand via email
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <td style="padding: 20px 30px;">
-                                        <table role="presentation" style="width:100%; border:none; border-spacing:0;">
-                                            <tr>
-                                                <td style="border-top: 1px solid #E1E1E1; padding-top: 30px; text-align:center;">
-                                                    <p style="margin:0 0 15px 0; font-size:13px; line-height:20px; color:#999999;">
-                                                        This message was sent via The Ribbon Box Influencer Collective, a platform that connects brands and creators. You are receiving this because your contact details are publicly available on your creator profile.
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-
-                            </table>
-
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </body>
-
-        </html>
-    <?php
-        return ob_get_clean();
-    }
-
-    /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Maps specific sender details (brand, role, location, PMPro avatar) directly from user meta context.
-     *
-     * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
-     * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
-     * @return bool                  True on successful dispatch; false otherwise.
+     * Uses a full string replace algorithm to parse raw HTML template from WP options.
      */
     private function send_outreach_email($data, $current_user_id)
     {
-        // Resolve Sender Identity
         $sender = get_userdata($current_user_id);
-        if (!$sender) {
-            return false;
-        }
+        if (!$sender) return false;
 
         $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
         $sender_email = $sender->user_email;
 
-        // Isolate brand context strictly from user meta, bypassing the $data form array
         $meta_job_title = get_user_meta($current_user_id, 'job_title', true);
         $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
 
@@ -1281,24 +960,24 @@ class DD_Outreach_Manager
         $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
 
         $meta_country    = get_user_meta($current_user_id, 'country', true);
-        $country_code    = !empty($meta_country) ? $meta_country : '';
-        $country_display = $this->get_country_display($country_code);
+        $country_display = $this->get_country_display($meta_country);
 
         // Extract PMPro User Avatar
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-        $avatar_url  = '';
+        $avatar_url  = 'https://via.placeholder.com/60x60'; // Default safety fallback
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
+            if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
+                $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
+            } else {
+                $avatar_url = $avatar_meta['fullurl'];
+            }
         }
 
         // Resolve Influencer Context
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
-
-        // Map influencer recipient address.
         $influencer_email = 'donald@cprogress.co.uk';
 
-        // Fallback: Bind to the post author's user account email if meta mapping fails
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
             if ($influencer_post) {
@@ -1307,9 +986,7 @@ class DD_Outreach_Manager
                     $influencer_email = $influencer_user->user_email;
                 }
             }
-            if (empty($influencer_email)) {
-                return false;
-            }
+            if (empty($influencer_email)) return false;
         }
 
         $subject = 'A partnership opportunity with ' . $brand_name;
@@ -1319,56 +996,33 @@ class DD_Outreach_Manager
             'Reply-To: ' . $sender_name . ' <' . $sender_email . '>'
         ];
 
-        // Retrieve saved Email Template OR Default
-        $default_template = '<p style="margin:0 0 15px 0;">Hi {influencer_name},</p>
-{message}
-<p style="margin:15px 0 0 0;">Best regards,<br>{sender_name}<br>{brand_name}</p>';
-        $raw_template = get_option('dd_outreach_email_template', $default_template);
+        // Retrieve the full saved Raw HTML Email Template
+        $raw_template = get_option('dd_outreach_email_template', $this->get_default_html_template());
 
         // Compile Dictionary for Search/Replace execution
         $dictionary = [
-            'influencer_name' => $influencer_name,
-            'brand_name'      => $brand_name,
-            'sender_name'     => $sender_name,
-            'job_title'       => $job_title,
-            'country'         => $country_display,
-            'project_type'    => esc_html($data['project_type'] ?? 'N/A'),
-            'project_length'  => esc_html($data['project_length'] ?? 'N/A'),
-            'project_dates'   => esc_html($data['project_dates'] ?? 'Flexible'),
-            'budget'          => esc_html($data['budget'] ?? 'To be discussed'),
-            'message'         => wp_kses_post(wpautop($data['message'] ?? ''))
+            '{influencer_name}' => $influencer_name,
+            '{brand_name}'      => $brand_name,
+            '{sender_name}'     => $sender_name,
+            '{sender_email}'    => $sender_email,
+            '{job_title}'       => $job_title,
+            '{country}'         => $country_display,
+            '{avatar_url}'      => esc_url($avatar_url),
+            '{project_type}'    => esc_html($data['project_type'] ?? 'N/A'),
+            '{project_length}'  => esc_html($data['project_length'] ?? 'N/A'),
+            '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
+            '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
+            '{message}'         => wp_kses_post(wpautop($data['message'] ?? ''))
         ];
 
-        // Execute merge tags replacement safely
-        $search  = array_map(function ($key) {
-            return '{' . $key . '}';
-        }, array_keys($dictionary));
-        $replace = array_values($dictionary);
-        $compiled_message = str_replace($search, $replace, $raw_template);
-
-        // Inject compiled string & environment variables into the layout Skeleton
-        $template_args = [
-            'brand_name'      => $brand_name,
-            'sender_name'     => $sender_name,
-            'job_title'       => $job_title,
-            'country_display' => $country_display,
-            'avatar_url'      => $avatar_url,
-            'sender_email'    => $sender_email,
-            'project_type'    => esc_html($data['project_type'] ?? 'N/A'),
-            'project_length'  => esc_html($data['project_length'] ?? 'N/A'),
-            'project_dates'   => esc_html($data['project_dates'] ?? 'Flexible'),
-            'budget'          => esc_html($data['budget'] ?? 'To be discussed'),
-        ];
-
-        $html_content = $this->get_email_html_skeleton($compiled_message, $template_args);
+        // Execute merge tags replacement across the entire HTML string
+        $html_content = str_replace(array_keys($dictionary), array_values($dictionary), $raw_template);
 
         return wp_mail($influencer_email, $subject, $html_content, $headers);
     }
 
     /**
      * Injects frontend JavaScript for Elementor AJAX response.
-     *
-     * @return void
      */
     public function inject_elementor_success_scripts()
     {
@@ -1412,7 +1066,6 @@ class DD_Outreach_Manager
 
     /**
      * Backend Meta Box setup for the wp-admin screen.
-     * Provides a read-only list of all notes created for the project.
      */
     public function add_note_meta_box()
     {
@@ -1451,7 +1104,6 @@ class DD_Outreach_Manager
 
     /**
      * Renders the HTML block for all notes assigned to a post.
-     * Reused by the main render view and the AJAX response.
      */
     private function generate_notes_list_html($post_id)
     {
@@ -1461,7 +1113,6 @@ class DD_Outreach_Manager
         if (empty($notes) || !is_array($notes)) {
             $html .= '<div class="dd-no-notes">No notes have been added to this project yet.</div>';
         } else {
-            // Display newest notes first
             $notes = array_reverse($notes);
 
             foreach ($notes as $note) {
@@ -1474,7 +1125,6 @@ class DD_Outreach_Manager
                 $html .= '<div class="dd-steps-card dd-note-card" data-note-id="' . $note_id . '">';
                 $html .= '<h4 class="dd-note-title dd-display-note-title">' . $title . '</h4>';
                 $html .= '<div class="dd-steps-content dd-display-note-content">' . $content . '</div>';
-                // Hidden textarea retains raw format for editing
                 $html .= '<textarea class="dd-raw-note-content" style="display:none;">' . $raw . '</textarea>';
 
                 $html .= '<div class="dd-steps-actions">';
@@ -1512,7 +1162,6 @@ class DD_Outreach_Manager
         if (!is_array($notes)) $notes = [];
 
         if (!empty($note_id)) {
-            // Update existing note
             foreach ($notes as &$note) {
                 if ($note['id'] === $note_id) {
                     $note['title'] = $title;
@@ -1522,7 +1171,6 @@ class DD_Outreach_Manager
                 }
             }
         } else {
-            // Create new note
             $notes[] = [
                 'id'      => uniqid('note_'),
                 'title'   => $title,
@@ -1532,8 +1180,6 @@ class DD_Outreach_Manager
         }
 
         update_post_meta($post_id, 'dd_outreach_project_notes', $notes);
-
-        // Return the fresh HTML for the notes list
         wp_send_json_success($this->generate_notes_list_html($post_id));
     }
 
@@ -1553,16 +1199,13 @@ class DD_Outreach_Manager
         $notes = get_post_meta($post_id, 'dd_outreach_project_notes', true);
 
         if (is_array($notes) && !empty($note_id)) {
-            // Filter out the deleted note
             $notes = array_filter($notes, function ($note) use ($note_id) {
                 return $note['id'] !== $note_id;
             });
-            // Re-index array
             $notes = array_values($notes);
             update_post_meta($post_id, 'dd_outreach_project_notes', $notes);
         }
 
-        // Return the fresh HTML for the notes list
         wp_send_json_success($this->generate_notes_list_html($post_id));
     }
 
@@ -2339,7 +1982,6 @@ class DD_Outreach_Manager
 }
 
 new DD_Outreach_Manager();
-
 
 function user_meta()
 {
