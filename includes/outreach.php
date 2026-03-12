@@ -3,8 +3,8 @@
 /**
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
- * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, and provides a master-detail dashboard.
- * Version: 2.1.0
+ * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, and provides a master-detail dashboard with Form & Email Builders.
+ * Version: 2.2.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -16,14 +16,14 @@ if (! defined('ABSPATH')) {
 /**
  * Class DD_Outreach_Manager
  * Handles Elementor form interception, dynamic HTML generation, master-detail dashboard,
- * and the advanced backend HTML Email Builder with repeater functionalities.
+ * and the backend HTML Email Builder & Form Builder with generic repeater functionalities.
  */
 class DD_Outreach_Manager
 {
 
     /**
      * Initializes the class, registers hooks, shortcodes, and AJAX endpoints.
-     * @return void
+     * * @return void
      */
     public function __construct()
     {
@@ -82,18 +82,19 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Registers the settings and database options for the Email Builder array.
+     * Registers the settings and database options for the Form Builder and Email Builder.
      *
      * @return void
      */
     public function register_settings()
     {
         register_setting('dd_outreach_settings_group', 'dd_outreach_email_templates');
+        register_setting('dd_outreach_settings_group', 'dd_outreach_form_fields');
     }
 
     /**
      * Enqueues administration scripts and styles strictly for the settings page.
-     * Handles live HTML preview rendering, merge tag injection, and Repeater Field logic.
+     * Handles live HTML preview rendering, merge tag injection, and Generic Repeater Field logic.
      *
      * @param string $hook The current admin page hook.
      * @return void
@@ -120,10 +121,11 @@ class DD_Outreach_Manager
                 $(target).show();
             });
 
-            // --- 2. Repeater Field Logic (Duplicate, Delete, Reorder, Collapse) ---
-            function reindexRepeater() {
-                $('#dd-repeater-container .dd-repeater-item:not(.blueprint)').each(function(index) {
-                    $(this).find('[name^=\"dd_outreach_email_templates\"]').each(function() {
+            // --- 2. Generic Repeater Field Logic (Duplicate, Delete, Reorder, Collapse) ---
+            function reindexRepeater(container) {
+                var baseName = container.data('repeater-name');
+                container.find('.dd-repeater-item:not(.blueprint)').each(function(index) {
+                    $(this).find('[name^=\"' + baseName + '\"]').each(function() {
                         var name = $(this).attr('name');
                         if (name) {
                             var newName = name.replace(/\[\d+\]/, '[' + index + ']');
@@ -134,54 +136,61 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Initialize Sortable
-            $('#dd-repeater-container').sortable({
-                handle: '.drag-handle',
-                axis: 'y',
-                update: function(event, ui) {
-                    reindexRepeater();
-                }
+            // Initialize Sortable for all repeater containers
+            $('.dd-repeater-container').each(function() {
+                $(this).sortable({
+                    handle: '.drag-handle',
+                    axis: 'y',
+                    update: function(event, ui) {
+                        reindexRepeater($(this));
+                    }
+                });
             });
 
-            // Add New Item
-            $('#dd-add-template').on('click', function(e) {
+            // Add New Item dynamically based on nearest blueprint
+            $('.dd-add-repeater-item').on('click', function(e) {
                 e.preventDefault();
-                var clone = $('.dd-repeater-item.blueprint').clone(true).removeClass('blueprint').hide();
-                clone.find('input, textarea').prop('disabled', false); // Enable fields in clone
-                $('#dd-repeater-container').append(clone);
+                var containerId = $(this).data('target');
+                var container = $('#' + containerId);
+                var clone = container.find('.dd-repeater-item.blueprint').clone(true).removeClass('blueprint').hide();
+                
+                clone.find('input, textarea, select').prop('disabled', false); // Enable fields in clone
+                container.append(clone);
                 clone.fadeIn(300);
-                reindexRepeater();
+                reindexRepeater(container);
             });
 
             // Duplicate Item
-            $('#dd-repeater-container').on('click', '.duplicate-item', function(e) {
+            $('.dd-repeater-container').on('click', '.duplicate-item', function(e) {
                 e.preventDefault();
+                var container = $(this).closest('.dd-repeater-container');
                 var item = $(this).closest('.dd-repeater-item');
                 var clone = item.clone(true);
                 
-                // Manually copy textarea values as .clone() misses them sometimes
-                item.find('textarea').each(function(i) {
-                    clone.find('textarea').eq(i).val($(this).val());
+                // Manually copy textarea/select values as .clone() misses them sometimes
+                item.find('textarea, select').each(function(i) {
+                    clone.find('textarea, select').eq(i).val($(this).val());
                 });
 
                 item.after(clone);
                 clone.hide().fadeIn(300);
-                reindexRepeater();
+                reindexRepeater(container);
             });
 
             // Delete Item
-            $('#dd-repeater-container').on('click', '.delete-item', function(e) {
+            $('.dd-repeater-container').on('click', '.delete-item', function(e) {
                 e.preventDefault();
-                if (confirm('Are you sure you want to delete this template?')) {
+                var container = $(this).closest('.dd-repeater-container');
+                if (confirm('Are you sure you want to delete this item?')) {
                     $(this).closest('.dd-repeater-item').fadeOut(300, function() {
                         $(this).remove();
-                        reindexRepeater();
+                        reindexRepeater(container);
                     });
                 }
             });
 
             // Collapse Item
-            $('#dd-repeater-container').on('click', '.collapse-item, .drag-handle', function(e) {
+            $('.dd-repeater-container').on('click', '.collapse-item, .drag-handle', function(e) {
                 e.preventDefault();
                 var body = $(this).closest('.dd-repeater-item').find('.dd-repeater-body');
                 body.slideToggle(200);
@@ -194,7 +203,7 @@ class DD_Outreach_Manager
             var lastFocusedElement = null;
 
             // Track the last focused input or textarea within the template container
-            $('#dd-repeater-container').on('focus', 'input[type=\"text\"], textarea', function() {
+            $('#dd-repeater-email-container').on('focus', 'input[type=\"text\"], textarea', function() {
                 lastFocusedElement = this;
                 
                 // Immediately trigger preview for the active textarea if it's a body editor
@@ -249,7 +258,7 @@ class DD_Outreach_Manager
             }
 
             // Update preview as the user types in ANY body textarea
-            $('#dd-repeater-container').on('keyup change', '.dd-email-body-editor', function() {
+            $('#dd-repeater-email-container').on('keyup change', '.dd-email-body-editor', function() {
                 var content = $(this).val();
                 clearTimeout(previewTimer);
                 previewTimer = setTimeout(function() {
@@ -259,7 +268,7 @@ class DD_Outreach_Manager
 
             // Render the first active template on page load
             setTimeout(function() {
-                var firstBody = $('#dd-repeater-container .dd-repeater-item:not(.blueprint) .dd-email-body-editor').first();
+                var firstBody = $('#dd-repeater-email-container .dd-repeater-item:not(.blueprint) .dd-email-body-editor').first();
                 if(firstBody.length) {
                     triggerPreviewUpdate(firstBody.val());
                 }
@@ -276,7 +285,7 @@ class DD_Outreach_Manager
 
     /**
      * Helper to return the default HTML boilerplate so it's not bloating the UI logic.
-     * @return string
+     * * @return string
      */
     private function get_default_html_template()
     {
@@ -304,10 +313,10 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Helper to retrieve default template structure for initialization
-     * @return array
+     * Helper to retrieve default Email template structure for initialization.
+     * * @return array
      */
-    private function get_default_template_structure()
+    private function get_default_email_structure()
     {
         return [
             [
@@ -324,19 +333,35 @@ class DD_Outreach_Manager
     }
 
     /**
+     * Helper to retrieve default Form Fields structure for initialization.
+     * * @return array
+     */
+    private function get_default_form_structure()
+    {
+        return [
+            ['label' => 'Project Type', 'meta_key' => 'project_type', 'type' => 'text', 'options' => '', 'show_in_overview' => '1'],
+            ['label' => 'Project Length', 'meta_key' => 'project_length', 'type' => 'text', 'options' => '', 'show_in_overview' => '1'],
+            ['label' => 'Project Dates', 'meta_key' => 'project_dates', 'type' => 'text', 'options' => '', 'show_in_overview' => '1'],
+            ['label' => 'Budget', 'meta_key' => 'budget', 'type' => 'text', 'options' => '', 'show_in_overview' => '1'],
+            ['label' => 'Subject', 'meta_key' => 'subject', 'type' => 'text', 'options' => '', 'show_in_overview' => '0'],
+            ['label' => 'Message', 'meta_key' => 'message', 'type' => 'textarea', 'options' => '', 'show_in_overview' => '0']
+        ];
+    }
+
+    /**
      * Renders the Backend Settings Page HTML.
-     * Contains the tabbed logic and the Repeater Email Builder.
+     * Contains the Form Builder and the Email Builder with Generic Repeaters.
      *
      * @return void
      */
     public function render_settings_page()
     {
-        $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
-        
-        // Safety catch: if somehow empty, force default structure
-        if (!is_array($templates) || empty($templates)) {
-            $templates = $this->get_default_template_structure();
-        }
+        $email_templates = get_option('dd_outreach_email_templates', $this->get_default_email_structure());
+        if (!is_array($email_templates) || empty($email_templates)) $email_templates = $this->get_default_email_structure();
+
+        $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
+        if (!is_array($form_fields) || empty($form_fields)) $form_fields = $this->get_default_form_structure();
+
         ?>
         <style>
             /* Repeater UI CSS */
@@ -347,10 +372,10 @@ class DD_Outreach_Manager
             .dd-repeater-header .actions a { margin-left: 10px; text-decoration: none; font-size: 13px; }
             .dd-repeater-header .actions a.delete-item { color: #d63638; }
             .dd-repeater-body { padding: 15px; }
-            .dd-field-group { margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap; }
-            .dd-field-group .field { flex: 1; min-width: 250px; }
+            .dd-field-group { margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
+            .dd-field-group .field { flex: 1; min-width: 200px; }
             .dd-field-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; }
-            .dd-field-group input { width: 100%; }
+            .dd-field-group input[type="text"], .dd-field-group select { width: 100%; }
             .blueprint { display: none; }
         </style>
 
@@ -358,21 +383,103 @@ class DD_Outreach_Manager
             <h1>Outreach Manager Settings</h1>
 
             <h2 class="nav-tab-wrapper">
-                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
-                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
+                <a href="#tab-form-builder" class="nav-tab nav-tab-active">Form Builder</a>
+                <a href="#tab-email-builder" class="nav-tab">Email Builder</a>
             </h2>
 
-            <div id="tab-form-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
-                <div style="background:#fff; padding:20px; border:1px solid #ccc; border-radius:4px;">
-                    <h3>Form Module Configuration</h3>
-                    <p><em>Form Builder repeater mechanics (Duplication, Reordering, Collapsing) to be mapped to Elementor front-end forms in future phase...</em></p>
+            <form method="post" action="options.php">
+                <?php settings_fields('dd_outreach_settings_group'); ?>
+
+                <div id="tab-form-builder" class="dd-tab-content" style="margin-top:20px;">
+                    <div style="max-width: 900px;">
+                        <h3>Form Field Mapping Configuration</h3>
+                        <p>Define the fields mapping to your Elementor frontend form. These definitions will dictate available dynamic merge tags and overview configurations.</p>
+                        
+                        <div id="dd-repeater-form-container" class="dd-repeater-container" data-repeater-name="dd_outreach_form_fields">
+                            <?php foreach ($form_fields as $index => $field) : ?>
+                                <div class="dd-repeater-item">
+                                    <div class="dd-repeater-header">
+                                        <span class="dashicons dashicons-menu drag-handle"></span>
+                                        <h4>Field: <span style="font-weight:normal;"><?php echo esc_html($field['label']); ?></span> <span class="template-counter" style="display:none;"><?php echo $index + 1; ?></span></h4>
+                                        <div class="actions">
+                                            <a href="#" class="collapse-item">Collapse</a>
+                                            <a href="#" class="duplicate-item">Duplicate</a>
+                                            <a href="#" class="delete-item">Delete</a>
+                                        </div>
+                                    </div>
+                                    <div class="dd-repeater-body">
+                                        <div class="dd-field-group">
+                                            <div class="field">
+                                                <label>Field Label</label>
+                                                <input type="text" name="dd_outreach_form_fields[<?php echo $index; ?>][label]" value="<?php echo esc_attr($field['label']); ?>" placeholder="e.g. Project Type">
+                                            </div>
+                                            <div class="field">
+                                                <label>Meta Key / Form ID</label>
+                                                <input type="text" name="dd_outreach_form_fields[<?php echo $index; ?>][meta_key]" value="<?php echo esc_attr($field['meta_key']); ?>" placeholder="e.g. project_type">
+                                            </div>
+                                            <div class="field">
+                                                <label>Field Type</label>
+                                                <select name="dd_outreach_form_fields[<?php echo $index; ?>][type]">
+                                                    <option value="text" <?php selected($field['type'], 'text'); ?>>Text</option>
+                                                    <option value="textarea" <?php selected($field['type'], 'textarea'); ?>>Textarea</option>
+                                                    <option value="select" <?php selected($field['type'], 'select'); ?>>Select Dropdown</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="dd-field-group">
+                                            <div class="field" style="flex: 2;">
+                                                <label>Options (Comma separated for Select fields)</label>
+                                                <input type="text" name="dd_outreach_form_fields[<?php echo $index; ?>][options]" value="<?php echo esc_attr($field['options'] ?? ''); ?>">
+                                            </div>
+                                            <div class="field" style="flex: 1; padding-top: 5px;">
+                                                <label>
+                                                    <input type="checkbox" name="dd_outreach_form_fields[<?php echo $index; ?>][show_in_overview]" value="1" <?php checked(isset($field['show_in_overview']) && $field['show_in_overview'] === '1'); ?>>
+                                                    Show as tag in Dashboard Overview
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <div class="dd-repeater-item blueprint">
+                                <div class="dd-repeater-header">
+                                    <span class="dashicons dashicons-menu drag-handle"></span>
+                                    <h4>New Field <span class="template-counter" style="display:none;"></span></h4>
+                                    <div class="actions">
+                                        <a href="#" class="collapse-item">Collapse</a>
+                                        <a href="#" class="duplicate-item">Duplicate</a>
+                                        <a href="#" class="delete-item">Delete</a>
+                                    </div>
+                                </div>
+                                <div class="dd-repeater-body">
+                                    <div class="dd-field-group">
+                                        <div class="field"><label>Field Label</label><input type="text" name="dd_outreach_form_fields[999][label]" value="" disabled></div>
+                                        <div class="field"><label>Meta Key / Form ID</label><input type="text" name="dd_outreach_form_fields[999][meta_key]" value="" disabled></div>
+                                        <div class="field">
+                                            <label>Field Type</label>
+                                            <select name="dd_outreach_form_fields[999][type]" disabled>
+                                                <option value="text">Text</option>
+                                                <option value="textarea">Textarea</option>
+                                                <option value="select">Select Dropdown</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="dd-field-group">
+                                        <div class="field" style="flex: 2;"><label>Options (Comma separated)</label><input type="text" name="dd_outreach_form_fields[999][options]" value="" disabled></div>
+                                        <div class="field" style="flex: 1; padding-top: 5px;">
+                                            <label><input type="checkbox" name="dd_outreach_form_fields[999][show_in_overview]" value="1" disabled> Show as tag in Dashboard Overview</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="button button-secondary dd-add-repeater-item" data-target="dd-repeater-form-container"> + Add Form Field</button>
+                    </div>
                 </div>
-            </div>
 
-            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
-                <form method="post" action="options.php">
-                    <?php settings_fields('dd_outreach_settings_group'); ?>
-
+                <div id="tab-email-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
                     <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
 
                         <div style="flex: 1.5; min-width: 500px;">
@@ -380,17 +487,22 @@ class DD_Outreach_Manager
                             <p>Add multiple templates. All active templates in this list will be dispatched simultaneously when an outreach is submitted.</p>
 
                             <div style="margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                                <strong>Global Merge Tags (Click field to focus, then click tag to insert):</strong><br>
+                                <strong>Merge Tags (Click field to focus, then click tag to insert):</strong><br>
                                 <?php
-                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
+                                // Dynamically generate merge tags from standard profile info + saved form fields
+                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}'];
+                                foreach ($form_fields as $f) {
+                                    if (!empty($f['meta_key'])) $tags[] = '{' . $f['meta_key'] . '}';
+                                }
+                                
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
                                 ?>
                             </div>
 
-                            <div id="dd-repeater-container">
-                                <?php foreach ($templates as $index => $tpl) : ?>
+                            <div id="dd-repeater-email-container" class="dd-repeater-container" data-repeater-name="dd_outreach_email_templates">
+                                <?php foreach ($email_templates as $index => $tpl) : ?>
                                     <div class="dd-repeater-item">
                                         <div class="dd-repeater-header">
                                             <span class="dashicons dashicons-menu drag-handle"></span>
@@ -442,7 +554,7 @@ class DD_Outreach_Manager
 
                                             <div class="dd-field-group">
                                                 <div class="field" style="width: 100%;">
-                                                    <label>Email HTML Body (Click here to Live Preview)</label>
+                                                    <label>Email HTML Body (Focus editor to trigger Live Preview)</label>
                                                     <textarea name="dd_outreach_email_templates[<?php echo $index; ?>][body]" class="dd-email-body-editor" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; line-height: 1.5; padding: 15px; border-radius: 4px; border: 1px solid #8c8f94;" dir="ltr"><?php echo esc_textarea($tpl['body']); ?></textarea>
                                                 </div>
                                             </div>
@@ -485,10 +597,7 @@ class DD_Outreach_Manager
                                 </div>
                             </div>
 
-                            <button type="button" id="dd-add-template" class="button button-secondary"> + Add Another Email Template</button>
-                            
-                            <hr style="margin: 20px 0;">
-                            <?php submit_button('Save All Templates', 'primary', 'submit', false); ?>
+                            <button type="button" class="button button-secondary dd-add-repeater-item" data-target="dd-repeater-email-container"> + Add Notification Template</button>
                         </div>
 
                         <div style="flex: 1; min-width: 400px; position: sticky; top: 40px;">
@@ -500,8 +609,13 @@ class DD_Outreach_Manager
                         </div>
 
                     </div>
-                </form>
-            </div>
+                </div>
+                
+                <div style="margin-top: 30px; background: #fff; padding: 15px 20px; border: 1px solid #c3c4c7; position: sticky; bottom: 0; z-index: 99; box-shadow: 0 -2px 5px rgba(0,0,0,0.05);">
+                    <?php submit_button('Save All Settings', 'primary', 'submit', false); ?>
+                </div>
+
+            </form>
         </div>
         <?php
     }
@@ -522,21 +636,21 @@ class DD_Outreach_Manager
 
         $template = isset($_POST['template']) ? wp_unslash($_POST['template']) : '';
 
-        // 1. Establish dummy fallback data
+        // 1. Establish dummy fallback data mapped to standard + dynamic fields
         $preview_data = [
-            'influencer_email'=> 'creator@example.com',
-            'influencer_name' => 'Cory Ruth',
-            'brand_name'      => 'Acme Health Co.',
-            'sender_name'     => 'Jane Doe',
-            'job_title'       => 'Partnerships Director',
-            'country_display' => $this->get_country_display('US'),
-            'avatar_url'      => 'https://via.placeholder.com/60x60',
-            'project_type'    => 'Affiliate partnership',
-            'project_length'  => 'Ongoing / long-term',
-            'project_dates'   => 'Flexible',
-            'budget'          => '$1,000 - $5,000',
-            'message'         => wp_kses_post(wpautop("We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.")),
-            'sender_email'    => 'outreach@acmehealth.com'
+            '{influencer_email}'=> 'creator@example.com',
+            '{influencer_name}' => 'Cory Ruth',
+            '{brand_name}'      => 'Acme Health Co.',
+            '{sender_name}'     => 'Jane Doe',
+            '{job_title}'       => 'Partnerships Director',
+            '{country}'         => $this->get_country_display('US'),
+            '{avatar_url}'      => 'https://via.placeholder.com/60x60',
+            '{sender_email}'    => 'outreach@acmehealth.com',
+            '{project_type}'    => 'Affiliate partnership',
+            '{project_length}'  => 'Ongoing / long-term',
+            '{project_dates}'   => 'Flexible',
+            '{budget}'          => '$1,000 - $5,000',
+            '{message}'         => wp_kses_post(wpautop("We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you."))
         ];
 
         // 2. Query the latest outreach post
@@ -554,74 +668,49 @@ class DD_Outreach_Manager
             $post_id   = $post->ID;
             $author_id = $post->post_author;
 
-            // Extract Sender (Brand) Identity
             $sender      = get_userdata($author_id);
             $sender_name = $sender ? ($sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name) : 'Unknown Sender';
 
             $meta_job_title = get_user_meta($author_id, 'job_title', true);
-            $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
-
             $meta_brand_name = get_user_meta($author_id, 'brand_name', true);
-            $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
-
             $meta_country    = get_user_meta($author_id, 'country', true);
-            $country_display = $this->get_country_display($meta_country);
 
-            // Extract PMPro User Avatar explicitly via absolute url path
+            // Extract PMPro User Avatar
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
             $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
                 $avatar_url = $avatar_meta['fullurl'];
             }
 
-            // Extract Influencer & Project Scope
             $influencer_id    = get_post_meta($post_id, 'influencer_id', true);
             $influencer_name  = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
             $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'influencer_email', true) : 'creator@example.com';
 
-            $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
-            $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
-            $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
-            $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
-            $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
+            // Overwrite static defaults
+            $preview_data['{influencer_email}'] = esc_html($influencer_email);
+            $preview_data['{influencer_name}']  = esc_html($influencer_name);
+            $preview_data['{brand_name}']       = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
+            $preview_data['{sender_name}']      = esc_html($sender_name);
+            $preview_data['{job_title}']        = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
+            $preview_data['{country}']          = $this->get_country_display($meta_country);
+            $preview_data['{avatar_url}']       = esc_url($avatar_url);
+            $preview_data['{sender_email}']     = $sender ? $sender->user_email : 'no-reply@example.com';
 
-            // Populate the array with the live data
-            $preview_data = [
-                'influencer_email'=> esc_html($influencer_email),
-                'influencer_name' => esc_html($influencer_name),
-                'brand_name'      => esc_html($brand_name),
-                'sender_name'     => esc_html($sender_name),
-                'job_title'       => esc_html($job_title),
-                'country_display' => $country_display,
-                'avatar_url'      => esc_url($avatar_url),
-                'project_type'    => esc_html($project_type),
-                'project_length'  => esc_html($project_length),
-                'project_dates'   => esc_html($project_dates),
-                'budget'          => esc_html($budget),
-                'message'         => wp_kses_post(wpautop($message)),
-                'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com'
-            ];
+            // Pull dynamic form fields and map them to their tags
+            $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
+            foreach ($form_fields as $field) {
+                if (empty($field['meta_key'])) continue;
+                $val = get_post_meta($post_id, $field['meta_key'], true);
+                if ($field['type'] === 'textarea') {
+                    $preview_data['{' . $field['meta_key'] . '}'] = wp_kses_post(wpautop($val ?: 'N/A'));
+                } else {
+                    $preview_data['{' . $field['meta_key'] . '}'] = esc_html($val ?: 'N/A');
+                }
+            }
         }
 
-        // 4. Map the exact Merge Tags to the data array
-        $dictionary = [
-            '{influencer_email}'=> $preview_data['influencer_email'],
-            '{influencer_name}' => $preview_data['influencer_name'],
-            '{brand_name}'      => $preview_data['brand_name'],
-            '{sender_name}'     => $preview_data['sender_name'],
-            '{job_title}'       => $preview_data['job_title'],
-            '{country}'         => $preview_data['country_display'],
-            '{avatar_url}'      => $preview_data['avatar_url'],
-            '{project_type}'    => $preview_data['project_type'],
-            '{project_length}'  => $preview_data['project_length'],
-            '{project_dates}'   => $preview_data['project_dates'],
-            '{budget}'          => $preview_data['budget'],
-            '{message}'         => $preview_data['message'],
-            '{sender_email}'    => $preview_data['sender_email'],
-        ];
-
-        // 5. Execute Merge Tag Search & Replace over the raw HTML
-        $final_html = str_replace(array_keys($dictionary), array_values($dictionary), $template);
+        // 4. Execute Merge Tag Search & Replace over the raw HTML
+        $final_html = str_replace(array_keys($preview_data), array_values($preview_data), $template);
 
         wp_send_json_success($final_html);
     }
@@ -634,514 +723,79 @@ class DD_Outreach_Manager
     ?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
-            .dd-message-overview {
-                display: flex;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                font-size: 16px;
-                font-weight: 500;
-            }
-
-            .dd-message-overview-container {
-                font-family: inherit;
-                margin-top: 15px;
-                border-radius: 10px;
-                border: 2px solid #034146;
-                background-color: #fff;
-            }
-
-            .mt-0 {
-                margin-top: 0 !important;
-            }
-
-            .dd-profile-header {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-            }
-
-            .dd-avatar.dd-avatar.dd-avatar {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-            }
-
-            .dd-profile-info {
-                flex-grow: 1;
-                line-height: 1.4;
-            }
-
-            .dd-message-sent-date {
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-                font-size: 14px;
-            }
-
-            .dd-overview-header {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-
-            .dd-overview-header .dd-timestamp {
-                font-weight: normal;
-                color: #555;
-            }
-
-            .dd-btn-outline {
-                background-color: var(--e-global-color-1c4ea17);
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: var(--e-global-typography-2a20fd0-font-size);
-                font-weight: var(--e-global-typography-2a20fd0-font-weight);
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-                fill: var(--e-global-color-accent);
-                color: var(--e-global-color-accent);
-                border: 1px solid var(--e-global-color-accent);
-                padding: 14px 23px 14px 23px;
-                border-radius: 5px;
-            }
-
-            .dd-btn-outline:hover {
-                background-color: var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932);
-            }
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container {
-                padding: 15px 20px;
-                margin: 0;
-                border-bottom: 1px solid #E7E7E7;
-            }
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
-                gap: 4px;
-            }
-
-            .dd-subject-title {
-                color: #034146;
-                font-size: 18px !important;
-                font-weight: bold;
-                margin: 0;
-                border-bottom: 1px solid #E7E7E7;
-                font-family: Inter !important;
-                padding: 15px 20px;
-            }
-
-            .dd-message-content {
-                font-size: 15px;
-                color: #000000;
-                line-height: 1.6;
-                max-height: 300px;
-                overflow-y: auto;
-                padding: 15px 20px;
-                font-family: Inter;
-            }
-
-            .dd-footer {
-                display: flex;
-                gap: 15px;
-                margin-top: 15px;
-            }
-
-            .dd-footer a {
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: 14px !important;
-                font-weight: 600 !important;
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-            }
-
-            .view-outreach a {
-                background-color: var(--e-global-color-accent) !important;
-                border: 1px solid var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932) !important;
-            }
-
-            .view-outreach a:hover {
-                background-color: var(--e-global-color-secondary) !important;
-                border: 1px solid var(--e-global-color-secondary);
-            }
-
-            .close-outreach a {
-                border-style: solid;
-                border-color: var(--e-global-color-ee06e41) !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-            }
-
-            .close-outreach a:hover {
-                background-color: var(--e-global-color-ee06e41) !important;
-                color: var(--e-global-color-2ba2932) !important;
-            }
-
-            .submit-new a {
-                border: none !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
-
-            .submit-new a span.elementor-button-text {
-                text-decoration: underline;
-            }
+            .dd-message-overview { display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 16px; font-weight: 500; }
+            .dd-message-overview-container { font-family: inherit; margin-top: 15px; border-radius: 10px; border: 2px solid #034146; background-color: #fff; }
+            .mt-0 { margin-top: 0 !important; }
+            .dd-profile-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #E7E7E7; }
+            .dd-avatar.dd-avatar.dd-avatar { width: 50px; height: 50px; border-radius: 50%; }
+            .dd-profile-info { flex-grow: 1; line-height: 1.4; }
+            .dd-message-sent-date { padding: 15px 20px; border-bottom: 1px solid #E7E7E7; font-size: 14px; }
+            .dd-overview-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+            .dd-overview-header .dd-timestamp { font-weight: normal; color: #555; }
+            .dd-btn-outline { background-color: var(--e-global-color-1c4ea17); font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); fill: var(--e-global-color-accent); color: var(--e-global-color-accent); border: 1px solid var(--e-global-color-accent); padding: 14px 23px 14px 23px; border-radius: 5px; }
+            .dd-btn-outline:hover { background-color: var(--e-global-color-accent); color: var(--e-global-color-2ba2932); }
+            .dd-message-overview-container .tags-container.tags-container.tags-container { padding: 15px 20px; margin: 0; border-bottom: 1px solid #E7E7E7; }
+            .dd-message-overview-container .tags-container.tags-container.tags-container .tag { gap: 4px; }
+            .dd-subject-title { color: #034146; font-size: 18px !important; font-weight: bold; margin: 0; border-bottom: 1px solid #E7E7E7; font-family: Inter !important; padding: 15px 20px; }
+            .dd-message-content { font-size: 15px; color: #000000; line-height: 1.6; max-height: 300px; overflow-y: auto; padding: 15px 20px; font-family: Inter; }
+            .dd-footer { display: flex; gap: 15px; margin-top: 15px; }
+            .dd-footer a { font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: 14px !important; font-weight: 600 !important; line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); }
+            .view-outreach a { background-color: var(--e-global-color-accent) !important; border: 1px solid var(--e-global-color-accent); color: var(--e-global-color-2ba2932) !important; }
+            .view-outreach a:hover { background-color: var(--e-global-color-secondary) !important; border: 1px solid var(--e-global-color-secondary); }
+            .close-outreach a { border-style: solid; border-color: var(--e-global-color-ee06e41) !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; }
+            .close-outreach a:hover { background-color: var(--e-global-color-ee06e41) !important; color: var(--e-global-color-2ba2932) !important; }
+            .submit-new a { border: none !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; padding-left: 0 !important; padding-right: 0 !important; }
+            .submit-new a span.elementor-button-text { text-decoration: underline; }
 
             /* --- Dashboard List Navigation Styles --- */
-            .dd-dashboard-list-container {
-                background: #fdfdfd;
-                border: 1px solid #eaeaea;
-                border-radius: 8px;
-                width: 100%;
-                max-width: 350px;
-            }
-
-            .outreach-filter {
-                padding: 20px;
-                border-bottom: 1px solid #BCBCBC;
-            }
-
-            .dd-filter-controls {
-                margin-bottom: 20px;
-            }
-
-            .dd-list-search {
-                width: 100%;
-                margin-bottom: 15px;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-filter-label-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-            }
-
-            .dd-filter-reset {
-                font-size: 12px;
-                color: #888;
-                text-decoration: none;
-            }
-
-            .dd-filter-select {
-                width: 100%;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-filter-buttons-row {
-                margin-top: 15px;
-                display: flex;
-                gap: 10px;
-            }
-
-            .dd-filter-btn {
-                border-radius: 20px;
-                border: 1px solid #ccc;
-                background: transparent;
-                padding: 5px 15px;
-                cursor: pointer;
-                font-size: 13px;
-            }
-
-            .dd-filter-btn.active {
-                border-color: #4DB2A6;
-                background: #E6F4F1;
-                color: #4DB2A6;
-            }
-
-            .dd-item-list {
-                max-height: 600px;
-                overflow-y: auto;
-            }
-
-            .dd-outreach-item {
-                display: flex;
-                align-items: center;
-                padding: 15px 20px;
-                border-bottom: 1px solid #eee;
-                border-top: 1px solid transparent;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-
-            .dd-outreach-item .avatar-holder {
-                flex: 0 0 68px;
-                width: 68px;
-            }
-
-            .dd-outreach-item .dd-item-content {
-                flex: 0 0 calc(100% - 68px);
-                width: calc(100% - 68px);
-                padding-left: 10px;
-                ;
-            }
-
-            .dd-outreach-item:hover,
-            .dd-outreach-item.active-item {
-                background: #FEF6F3;
-                border-bottom: 1px solid #3B1527;
-                border-top: 1px solid #3B1527;
-            }
-
-            .dd-item-avatar.dd-item-avatar.dd-item-avatar {
-                width: 68px;
-                height: 68px;
-                border-radius: 50%;
-                object-fit: cover;
-                margin-right: 15px;
-                border: 1px solid gray;
-            }
-
-            .dd-item-content {
-                flex-grow: 1;
-            }
-
-            .dd-item-name {
-                display: block;
-                font-size: 15px;
-                font-weight: 500;
-                color: #000000;
-            }
-
-            .dd-item-handle {
-                display: block;
-                color: #000000;
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .dd-item-title {
-                display: block;
-                font-size: 14px;
-                color: #034146;
-                font-weight: bold;
-                margin-top: 4px;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                white-space: nowrap;
-                max-width: 200px;
-            }
-
-            .dd-item-date {
-                color: #8F8F8F;
-                font-size: 13px;
-            }
+            .dd-dashboard-list-container { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; width: 100%; max-width: 350px; }
+            .outreach-filter { padding: 20px; border-bottom: 1px solid #BCBCBC; }
+            .dd-filter-controls { margin-bottom: 20px; }
+            .dd-list-search { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            .dd-filter-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+            .dd-filter-reset { font-size: 12px; color: #888; text-decoration: none; }
+            .dd-filter-select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            .dd-filter-buttons-row { margin-top: 15px; display: flex; gap: 10px; }
+            .dd-filter-btn { border-radius: 20px; border: 1px solid #ccc; background: transparent; padding: 5px 15px; cursor: pointer; font-size: 13px; }
+            .dd-filter-btn.active { border-color: #4DB2A6; background: #E6F4F1; color: #4DB2A6; }
+            .dd-item-list { max-height: 600px; overflow-y: auto; }
+            .dd-outreach-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; }
+            .dd-outreach-item .avatar-holder { flex: 0 0 68px; width: 68px; }
+            .dd-outreach-item .dd-item-content { flex: 0 0 calc(100% - 68px); width: calc(100% - 68px); padding-left: 10px; ; }
+            .dd-outreach-item:hover, .dd-outreach-item.active-item { background: #FEF6F3; border-bottom: 1px solid #3B1527; border-top: 1px solid #3B1527; }
+            .dd-item-avatar.dd-item-avatar.dd-item-avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid gray; }
+            .dd-item-content { flex-grow: 1; }
+            .dd-item-name { display: block; font-size: 15px; font-weight: 500; color: #000000; }
+            .dd-item-handle { display: block; color: #000000; font-size: 14px; font-weight: 400; }
+            .dd-item-title { display: block; font-size: 14px; color: #034146; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
+            .dd-item-date { color: #8F8F8F; font-size: 13px; }
 
             /* --- Notes Component Styles --- */
-            .dd-outreach-view-container {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            .dd-view-placeholder {
-                text-align: center;
-                color: #888;
-                margin-top: 10%;
-                display: block;
-            }
-
-            .dd-view-error {
-                text-align: center;
-                color: red;
-                margin-top: 50%;
-                transform: translateY(-50%);
-                display: block;
-            }
-
-            .dd-notes-grid {
-                display: flex;
-                gap: 20px;
-                flex-wrap: nowrap;
-                align-items: flex-start;
-                margin-top: 20px;
-                font-family: Inter;
-            }
-
-            .dd-note-card {
-                flex: 1;
-                min-width: 280px;
-                background: var(--e-global-color-2ba2932);
-                border: 2px solid #FFE17B;
-                border-radius: 8px;
-                padding: 20px;
-                box-sizing: border-box;
-                position: sticky;
-                top: 20px;
-            }
-
-            .dd-notes-list-container {
-                flex: 1;
-                min-width: 280px;
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .dd-note-title.dd-note-title {
-                margin-top: 0;
-                font-size: 20px;
-                margin-bottom: 15px;
-                color: #3B1527;
-                font-weight: bold;
-            }
-
-            .dd-note-desc {
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-bottom: 15px;
-            }
-
-            .dd-note-input {
-                width: 100%;
-                margin-bottom: 10px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                font-family: inherit;
-            }
-
-            .dd-note-textarea {
-                width: 100%;
-                height: 80px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                resize: vertical;
-                font-family: inherit;
-            }
-
-            .dd-note-btn {
-                margin-top: 10px;
-                background: #ffcc00;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
-                cursor: pointer;
-                color: #333;
-                font-size: 13px;
-                transition: opacity 0.2s;
-            }
-
-            .dd-note-btn:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-            }
-
-            .dd-steps-content {
-                background: #FCF3D5;
-                padding: 15px;
-                border-radius: 8px;
-                font-size: 14px;
-                color: #000;
-                margin-bottom: 15px;
-                line-height: 1.5;
-                border: 1px solid #FFE17B;
-            }
-
-            .dd-steps-actions {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-
-            .dd-delete-btn {
-                border: none;
-                background: transparent;
-                color: #aaa;
-                cursor: pointer;
-                font-size: 12px;
-            }
-
-            .dd-edit-btn {
-                border: 1px solid #ddd;
-                background: #f9f9f9;
-                padding: 8px 15px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                color: #333;
-            }
-
-            .dd-last-edited {
-                text-align: right;
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-top: 10px !important;
-                display: block;
-            }
-
-            .dd-no-notes {
-                text-align: center;
-                color: #888;
-                padding: 20px;
-                border: 1px dashed #ccc;
-                border-radius: 8px;
-                background-color: #fff;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn {
-                padding: 12px 20px !important;
-                border: 1px solid #BCBCBC;
-                font-family: Inter !important;
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0.6px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow {
-                background-color: #FFE17B;
-                border-color: #FFE17B;
-                color: #000000;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline {
-                background-color: transparent;
-                color: #BCBCBC;
-                border-color: #BCBCBC;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span {
-                text-decoration: underline;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link {
-                border: none;
-                background-color: transparent;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
-                text-decoration: underline;
-            }
-
-            @media(max-width: 1199px) {
-                .dd-notes-grid {
-                    flex-direction: column;
-                }
-
-                .dd-note-card {
-                    width: 100%;
-                }
-
-                .dd-notes-list-container {
-                    width: 100%;
-                }
-            }
+            .dd-outreach-view-container { width: 100%; box-sizing: border-box; }
+            .dd-view-placeholder { text-align: center; color: #888; margin-top: 10%; display: block; }
+            .dd-view-error { text-align: center; color: red; margin-top: 50%; transform: translateY(-50%); display: block; }
+            .dd-notes-grid { display: flex; gap: 20px; flex-wrap: nowrap; align-items: flex-start; margin-top: 20px; font-family: Inter; }
+            .dd-note-card { flex: 1; min-width: 280px; background: var(--e-global-color-2ba2932); border: 2px solid #FFE17B; border-radius: 8px; padding: 20px; box-sizing: border-box; position: sticky; top: 20px; }
+            .dd-notes-list-container { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 15px; }
+            .dd-note-title.dd-note-title { margin-top: 0; font-size: 20px; margin-bottom: 15px; color: #3B1527; font-weight: bold; }
+            .dd-note-desc { font-size: 14px; color: #8F8F8F; margin-bottom: 15px; }
+            .dd-note-input { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+            .dd-note-textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; }
+            .dd-note-btn { margin-top: 10px; background: #ffcc00; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; font-size: 13px; transition: opacity 0.2s; }
+            .dd-note-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+            .dd-steps-content { background: #FCF3D5; padding: 15px; border-radius: 8px; font-size: 14px; color: #000; margin-bottom: 15px; line-height: 1.5; border: 1px solid #FFE17B; }
+            .dd-steps-actions { display: flex; justify-content: flex-end; gap: 10px; }
+            .dd-delete-btn { border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 12px; }
+            .dd-edit-btn { border: 1px solid #ddd; background: #f9f9f9; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #333; }
+            .dd-last-edited { text-align: right; font-size: 14px; color: #8F8F8F; margin-top: 10px !important; display: block; }
+            .dd-no-notes { text-align: center; color: #888; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; background-color: #fff; }
+            .dd-note-btn.dd-note-btn.dd-note-btn { padding: 12px 20px !important; border: 1px solid #BCBCBC; font-family: Inter !important; font-size: 12px; font-weight: 600; letter-spacing: 0.6px; display: flex; align-items: center; gap: 10px; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow { background-color: #FFE17B; border-color: #FFE17B; color: #000000; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline { background-color: transparent; color: #BCBCBC; border-color: #BCBCBC; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span { text-decoration: underline; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link { border: none; background-color: transparent; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span { text-decoration: underline; }
+            @media(max-width: 1199px) { .dd-notes-grid { flex-direction: column; } .dd-note-card { width: 100%; } .dd-notes-list-container { width: 100%; } }
         </style>
     <?php
     }
@@ -1201,6 +855,7 @@ class DD_Outreach_Manager
         }
 
         ob_start();
+        $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
     ?>
         <div class="dd-message-overview">
             <span class="m-overview">Message overview</span>
@@ -1219,10 +874,13 @@ class DD_Outreach_Manager
             </div>
             <div class="dd-overview-body">
                 <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type :</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project length :</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project Dates :</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
-                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
+                    <?php 
+                    foreach ($form_fields as $field) {
+                        if (!empty($field['show_in_overview']) && $field['show_in_overview'] === '1' && !empty($field['meta_key'])) {
+                            echo '<span class="tag"><strong>' . esc_html($field['label']) . ' :</strong> ' . esc_html($data[$field['meta_key']] ?? 'N/A') . '</span>';
+                        }
+                    }
+                    ?>
                 </div>
 
                 <h3 class="dd-subject-title"><?php echo esc_html($data['subject'] ?? 'No Subject'); ?></h3>
@@ -1263,7 +921,7 @@ class DD_Outreach_Manager
 
     /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Iterates over all saved repeater templates and dynamically compiles their header/body merge tags.
+     * Uses a full string replace algorithm to parse raw HTML template from WP options.
      */
     private function send_outreach_email($data, $current_user_id)
     {
@@ -1282,19 +940,18 @@ class DD_Outreach_Manager
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_display = $this->get_country_display($meta_country);
 
-        // Extract PMPro User Avatar explicitly via absolute url path
+        // Extract PMPro User Avatar
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
         $avatar_url  = 'https://via.placeholder.com/60x60'; // Default safety fallback
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
             $avatar_url = $avatar_meta['fullurl'];
         }
 
-        // Resolve Influencer Context strictly via post meta
-        $influencer_id   = absint($data['influencer_id']);
-        $influencer_name = get_the_title($influencer_id);
+        // Resolve Influencer Context
+        $influencer_id    = absint($data['influencer_id']);
+        $influencer_name  = get_the_title($influencer_id);
         $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
 
-        // Fallback constraint to post_author account email if no explicit meta is present
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
             if ($influencer_post) {
@@ -1303,7 +960,6 @@ class DD_Outreach_Manager
                     $influencer_email = $influencer_user->user_email;
                 }
             }
-            // Abort if unable to establish recipient address
             if (empty($influencer_email)) return false;
         }
 
@@ -1317,50 +973,46 @@ class DD_Outreach_Manager
             '{job_title}'       => $job_title,
             '{country}'         => $country_display,
             '{avatar_url}'      => esc_url($avatar_url),
-            '{project_type}'    => esc_html($data['project_type'] ?? 'N/A'),
-            '{project_length}'  => esc_html($data['project_length'] ?? 'N/A'),
-            '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
-            '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
-            '{message}'         => wp_kses_post(wpautop($data['message'] ?? ''))
         ];
+
+        // Map form builder fields
+        $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
+        foreach ($form_fields as $field) {
+            if (empty($field['meta_key'])) continue;
+            $val = $data[$field['meta_key']] ?? 'N/A';
+            if ($field['type'] === 'textarea') {
+                $dictionary['{' . $field['meta_key'] . '}'] = wp_kses_post(wpautop($val));
+            } else {
+                $dictionary['{' . $field['meta_key'] . '}'] = esc_html($val);
+            }
+        }
 
         $search  = array_keys($dictionary);
         $replace = array_values($dictionary);
 
         // Retrieve the repeater array of Email Templates
-        $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
-        
+        $templates = get_option('dd_outreach_email_templates', $this->get_default_email_structure());
         $success = false;
 
         // Loop through each configured template and dispatch dynamically
         foreach ($templates as $tpl) {
-            
             $to         = str_replace($search, $replace, $tpl['to']);
             $subject    = str_replace($search, $replace, $tpl['subject']);
             $from_name  = str_replace($search, $replace, $tpl['from_name']);
             $from_email = str_replace($search, $replace, $tpl['from_email']);
-            $reply_to   = str_replace($search, $replace, $tpl['reply_to']);
-            $cc         = str_replace($search, $replace, $tpl['cc']);
-            $bcc        = str_replace($search, $replace, $tpl['bcc']);
+            $reply_to   = str_replace($search, $replace, $tpl['reply_to'] ?? '');
+            $cc         = str_replace($search, $replace, $tpl['cc'] ?? '');
+            $bcc        = str_replace($search, $replace, $tpl['bcc'] ?? '');
             $body       = str_replace($search, $replace, $tpl['body']);
 
-            // Compile the Mail Headers payload array
             $headers = ['Content-Type: text/html; charset=UTF-8'];
-            
             if (!empty($from_email) && is_email($from_email)) {
                 $headers[] = !empty($from_name) ? 'From: ' . $from_name . ' <' . $from_email . '>' : 'From: ' . $from_email;
             }
-            if (!empty($reply_to)) {
-                $headers[] = 'Reply-To: ' . $reply_to;
-            }
-            if (!empty($cc)) {
-                $headers[] = 'Cc: ' . $cc;
-            }
-            if (!empty($bcc)) {
-                $headers[] = 'Bcc: ' . $bcc;
-            }
+            if (!empty($reply_to)) $headers[] = 'Reply-To: ' . $reply_to;
+            if (!empty($cc)) $headers[] = 'Cc: ' . $cc;
+            if (!empty($bcc)) $headers[] = 'Bcc: ' . $bcc;
 
-            // Ensure we have a valid parsed recipient before dispatching
             if (is_email($to)) {
                 $sent = wp_mail($to, $subject, $body, $headers);
                 if ($sent) $success = true;
@@ -1569,6 +1221,7 @@ class DD_Outreach_Manager
 
         $raw_fields = get_query_var('influencer_outreach_fields');
         $influencer_outreach_fields = is_array($raw_fields) ? $raw_fields : [];
+        $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
 
         ob_start();
     ?>
@@ -1578,20 +1231,18 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-                    <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
-                            echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
+                    <?php
+                    // Only render filters for fields specifically configured as 'select' types in the Form Builder
+                    if (function_exists('select_filter')) {
+                        foreach ($form_fields as $field) {
+                            if ($field['type'] === 'select' && !empty($field['meta_key'])) {
+                                echo '<div class="influencer-search-item">';
+                                echo select_filter($field['meta_key'], $field['label'], 'Filter by ' . strtolower($field['label']), $influencer_outreach_fields[$field['meta_key']] ?? '');
+                                echo '</div>';
+                            }
                         }
-                        ?>
-                    </div>
-                    <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
-                            echo select_filter('project_length', 'Project length', 'Filter by project length', $influencer_outreach_fields['project_length'] ?? '');
-                        }
-                        ?>
-                    </div>
+                    }
+                    ?>
                 </div>
             </div>
 
@@ -1668,7 +1319,6 @@ class DD_Outreach_Manager
                 $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
 
-
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
 
@@ -1743,13 +1393,9 @@ class DD_Outreach_Manager
         $influencer_id = get_post_meta($post_id, 'influencer_id', true);
         $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
         $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
-
-        $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
-        $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
-        $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
-        $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
-        $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
         $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
+        
+        $form_fields = get_option('dd_outreach_form_fields', $this->get_default_form_structure());
 
         ob_start();
     ?>
@@ -1766,10 +1412,14 @@ class DD_Outreach_Manager
             </div>
             <div class="dd-overview-body">
                 <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
-                    <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
-                    <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
-                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
+                    <?php 
+                    foreach ($form_fields as $field) {
+                        if (!empty($field['show_in_overview']) && $field['show_in_overview'] === '1' && !empty($field['meta_key'])) {
+                            $val = get_post_meta($post_id, $field['meta_key'], true);
+                            echo '<span class="tag"><strong>' . esc_html($field['label']) . ' :</strong> ' . esc_html($val ?: 'N/A') . '</span>';
+                        }
+                    }
+                    ?>
                 </div>
                 <div class="dd-message-sent-date">
                     <span>Sent at <?php echo esc_html($sent_date); ?></span>
@@ -1778,7 +1428,7 @@ class DD_Outreach_Manager
                 <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
 
                 <div class="dd-message-content">
-                    <?php echo nl2br(esc_html($message)); ?>
+                    <?php echo nl2br(esc_html(get_post_meta($post_id, 'message', true) ?: 'No message provided.')); ?>
                 </div>
             </div>
         </div>
