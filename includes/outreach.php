@@ -391,6 +391,17 @@ class DD_Outreach_Manager
                 triggerFilter();
             });
 
+            // Reset button: clear all filter inputs and re-run the list query
+            $(document).on('click', '.dd-filter-reset', function(e) {
+                e.preventDefault();
+                $('#dd-outreach-search').val('');
+                $('input[name=\"project_type[]\"]').prop('checked', false);
+                $('input[name=\"project_length[]\"]').prop('checked', false);
+                $('select[name=\"project_type\"]').val('');
+                $('select[name=\"project_length\"]').val('');
+                triggerFilter();
+            });
+
 
             // --- 3. Note CRUD Event Delegation ---
             var viewContainer = $('#dd-outreach-view-container');
