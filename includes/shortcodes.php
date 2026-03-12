@@ -551,7 +551,7 @@ function shortcode_influencer_search_filter_main()
             <div class="influencer-search-filter-holder">
                 <input type="hidden" value="true" name="search_active">
                 <?php if (!$is_free_trial) { ?>
-                    <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search ">
+                    <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
                         <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
                     </div>
                 <?php } else { ?>
