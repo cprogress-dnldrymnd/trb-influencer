@@ -453,7 +453,7 @@ class DD_PMPro_Frontend_Pricing
 				font-size: var(--e-global-typography-accent-font-size);
 				font-weight: var(--e-global-typography-accent-font-weight);
 				letter-spacing: var(--e-global-typography-accent-letter-spacing);
-				padding: clamp(10px, 1.25, 24px) clamp(15px, 1.563vw, 30px);
+				padding: clamp(10px, 1.25vw, 24px) clamp(15px, 1.563vw, 30px);
 				color: var(--e-global-color-2ba2932);
 				text-align: center;
 				border-radius: 5px;
