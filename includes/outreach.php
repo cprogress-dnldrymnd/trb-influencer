@@ -392,7 +392,7 @@ class DD_Outreach_Manager
             });
 
             // Reset button: clear all filter inputs and re-run the list query
-            $(document).on('click', '.dd-filter-reset', function(e) {
+            $(document).on('click', '.reset-btn', function(e) {
                 e.preventDefault();
                 $('#dd-outreach-search').val('');
                 $('input[name=\"project_type[]\"]').prop('checked', false);
