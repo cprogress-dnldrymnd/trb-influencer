@@ -521,6 +521,9 @@ input:checked + .slider:before {
 #pmpro_login .pmpro_actions_nav {
     font-size: 14px;
 }
+.pmpro_form_input.pmpro_form_input  {
+    width: 100%;
+}
 .pmpro.pmpro {
     * {
         font-family: Inter !important;
