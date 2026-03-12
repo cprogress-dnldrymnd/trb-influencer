@@ -284,33 +284,79 @@ class DD_Outreach_Manager
         $script = "
         jQuery(document).ready(function($) {
             
+            // --- 0. Modal scaffold (injected once) ---
+            if (!$('#dd-detail-modal').length) {
+                $('body').append(
+                    '<div id="dd-detail-modal" class="dd-modal-overlay" role="dialog" aria-modal="true" aria-label="Outreach detail">' +
+                        '<div class="dd-modal-dialog">' +
+                            '<button class="dd-modal-close" aria-label="Close">&times;</button>' +
+                            '<div id="dd-modal-body"></div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            }
+
+            // Close modal on ✕ button or overlay click
+            $(document).on('click', '.dd-modal-close', function() {
+                $('#dd-detail-modal').removeClass('is-open');
+                $('body').css('overflow', '');
+            });
+            $(document).on('click', '#dd-detail-modal', function(e) {
+                if ($(e.target).is('#dd-detail-modal')) {
+                    $(this).removeClass('is-open');
+                    $('body').css('overflow', '');
+                }
+            });
+            // Close modal on Escape key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    $('#dd-detail-modal').removeClass('is-open');
+                    $('body').css('overflow', '');
+                }
+            });
+
+            function isMobileBreakpoint() {
+                return window.innerWidth < 1025;
+            }
+
             // --- 1. Master-Detail List Click Loader ---
+            function loadOutreachDetail(postId) {
+                var isMobile   = isMobileBreakpoint();
+                var container  = isMobile ? $('#dd-modal-body') : $('#dd-outreach-view-container');
+                var loadingMsg = '<span class=\"dd-view-placeholder\">Loading...</span>';
+
+                if (isMobile) {
+                    container.html(loadingMsg);
+                    $('#dd-detail-modal').addClass('is-open');
+                    $('body').css('overflow', 'hidden');
+                } else {
+                    container.html(loadingMsg);
+                }
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_get_outreach_details',
+                        security: ddOutreach.nonce,
+                        post_id: postId
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            container.html(response.data);
+                        } else {
+                            container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
+                        }
+                    }
+                });
+            }
+
             function bindListItemClicks() {
                 $('.dd-outreach-item').off('click').on('click', function() {
                     var postId = $(this).data('post-id');
-                    var container = $('#dd-outreach-view-container');
-                    
                     $('.dd-outreach-item').removeClass('active-item');
                     $(this).addClass('active-item');
-
-                    container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
-
-                    $.ajax({
-                        url: ddOutreach.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'dd_get_outreach_details',
-                            security: ddOutreach.nonce,
-                            post_id: postId
-                        },
-                        success: function(response) {
-                            if(response.success) {
-                                container.html(response.data);
-                            } else {
-                                container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
-                            }
-                        }
-                    });
+                    loadOutreachDetail(postId);
                 });
             }
 
@@ -318,7 +364,10 @@ class DD_Outreach_Manager
             bindListItemClicks();
             var firstItem = $('.dd-outreach-item').first();
             if (firstItem.length) {
-                firstItem.trigger('click');
+                // Auto-open first item only on desktop; on mobile wait for user tap
+                if (!isMobileBreakpoint()) {
+                    firstItem.trigger('click');
+                }
             } else {
                 // Display notice on placeholder if no items are found on initial load
                 $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
@@ -368,11 +417,14 @@ class DD_Outreach_Manager
                     success: function(response) {
                         if(response.success) {
                             $('#dd-outreach-list-container').html(response.data);
-                            bindListItemClicks(); 
-                            
+                            bindListItemClicks();
+
                             var newFirstItem = $('.dd-outreach-item').first();
                             if (newFirstItem.length) {
-                                newFirstItem.trigger('click');
+                                // Auto-select first result only on desktop
+                                if (!isMobileBreakpoint()) {
+                                    newFirstItem.trigger('click');
+                                }
                             } else {
                                 // Display notice on placeholder if no filter results are found
                                 $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found matching your criteria.</span>');
@@ -399,10 +451,12 @@ class DD_Outreach_Manager
 
 
             // --- 3. Note CRUD Event Delegation ---
-            var viewContainer = $('#dd-outreach-view-container');
+            // Delegates from document so events fire whether content is in the
+            // desktop view-container OR the mobile modal body.
+            var $noteScope = $(document);
 
             // Save / Update Action
-            viewContainer.on('click', '#dd-save-note', function(e) {
+            $noteScope.on('click', '#dd-save-note', function(e) {
                 e.preventDefault();
                 var btn = $(this);
                 var postId = btn.data('post-id');
@@ -444,7 +498,7 @@ class DD_Outreach_Manager
             });
 
             // Edit Action (Populate Form)
-            viewContainer.on('click', '.dd-edit-note', function(e) {
+            $noteScope.on('click', '.dd-edit-note', function(e) {
                 e.preventDefault();
                 var card = $(this).closest('.dd-steps-card');
                 var noteId = $(this).data('note-id');
@@ -461,7 +515,7 @@ class DD_Outreach_Manager
             });
 
             // Cancel Edit Action
-            viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
+            $noteScope.on('click', '#dd-cancel-edit-note', function(e) {
                 e.preventDefault();
                 $('#dd-note-input-id').val('');
                 $('#dd-note-input-title').val('');
@@ -471,7 +525,7 @@ class DD_Outreach_Manager
             });
 
             // Delete Action
-            viewContainer.on('click', '.dd-delete-note', function(e) {
+            $noteScope.on('click', '.dd-delete-note', function(e) {
                 e.preventDefault();
                 if (!confirm('Are you sure you want to permanently delete this note?')) return;
                 
@@ -1437,9 +1491,57 @@ class DD_Outreach_Manager
                 .dd-notes-list-container {
                     width: 100%;
                 }
-                .dd-dashboard-list-container {
-                    max-width: 100%;
-                }
+            }
+
+            /* --- Mobile Detail Modal (< 1025px) --- */
+            .dd-modal-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                z-index: 99999;
+                background: rgba(0, 0, 0, 0.55);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .dd-modal-overlay.is-open {
+                display: block;
+            }
+
+            .dd-modal-dialog {
+                position: relative;
+                background: #fff;
+                margin: 20px auto;
+                width: calc(100% - 32px);
+                max-width: 720px;
+                border-radius: 10px;
+                padding: 20px;
+                box-sizing: border-box;
+                animation: ddModalIn 0.25s ease;
+            }
+
+            @keyframes ddModalIn {
+                from { opacity: 0; transform: translateY(24px); }
+                to   { opacity: 1; transform: translateY(0);    }
+            }
+
+            .dd-modal-close {
+                position: absolute;
+                top: 12px;
+                right: 14px;
+                background: transparent;
+                border: none;
+                font-size: 22px;
+                line-height: 1;
+                cursor: pointer;
+                color: #555;
+                padding: 4px 8px;
+                border-radius: 4px;
+                transition: background 0.15s;
+            }
+
+            .dd-modal-close:hover {
+                background: #f0f0f0;
             }
         </style>
     <?php
