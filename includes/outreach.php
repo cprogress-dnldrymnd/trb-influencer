@@ -665,16 +665,10 @@ class DD_Outreach_Manager
             <h1>Outreach Manager Settings</h1>
 
             <h2 class="nav-tab-wrapper">
-                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
                 <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
             </h2>
 
-            <div id="tab-form-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
-                <div style="background:#fff; padding:20px; border:1px solid #ccc; border-radius:4px;">
-                    <h3>Form Module Configuration</h3>
-                    <p><em>Form Builder repeater mechanics (Duplication, Reordering, Collapsing) to be mapped to Elementor front-end forms in future phase...</em></p>
-                </div>
-            </div>
+     
 
             <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
