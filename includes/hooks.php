@@ -165,62 +165,6 @@ function dd_restrict_dashboard_template_access()
 add_action('template_redirect', 'dd_restrict_dashboard_template_access');
 
 
-/**
- * Redirects the influencer discovery page to the search page conditionally.
- * Hooks into 'template_redirect' to process the redirect before headers are sent.
- * Validates the existence of required globals, checks if the current query
- * matches the discovery page, and triggers a redirect. The redirect executes 
- * if a search is inactive, OR if the user is on an active free trial and 
- * has met or exceeded their query limit (>= 3).
- *
- * @global int  $search_results_page_id The ID of the page triggering the redirect.
- * @global int  $search_page_id         The ID of the target destination page.
- * @global bool $is_free_trial          Flag indicating if the user is on a free trial.
- * @global int  $number_of_searches     The total number of searches executed by the user.
- * @return void
- */
-function dd_execute_conditional_page_redirect()
-{
-    // Access the defined global variables in the current scope.
-    global $search_results_page_id, $search_page_id, $is_free_trial, $number_of_searches;
-
-    // Terminate early if the global variables are undefined or evaluate to empty.
-    if (empty($search_results_page_id) || empty($search_page_id)) {
-        return;
-    }
-
-    // Evaluate if the currently requested page matches the target ID.
-    if (is_page($search_results_page_id)) {
-
-        // Check if the 'search_active' query parameter is explicitly set to 'true'.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $is_search_active = isset($_GET['search_active']) && sanitize_text_field(wp_unslash($_GET['search_active'])) === 'true';
-
-        // Evaluate if the user has exhausted their free trial search limits.
-        // strict type checking and isset() prevent PHP warnings from uninitialized globals.
-        $trial_limit_reached = (isset($is_free_trial) && $is_free_trial === true && isset($number_of_searches) && (int) $number_of_searches >= 3);
-
-        // Allow the page to load ONLY if a search is active AND the trial limit has not been reached.
-        if ($is_search_active && !$trial_limit_reached) {
-            return; // Halt execution and allow the current page to load.
-        }
-
-        // Retrieve the fully qualified URL for the destination page.
-        $destination_url = get_permalink($search_page_id);
-
-        // Proceed only if a valid permalink was successfully returned.
-        if ($destination_url) {
-
-            // Execute the redirect. A 301 (permanent) status is used here for SEO, 
-            // but can be changed to 302 (temporary) if the routing is dynamic/temporary.
-            wp_safe_redirect($destination_url, 301);
-
-            // Always invoke exit after a redirect header to halt further script execution.
-            exit;
-        }
-    }
-}
-add_action('template_redirect', 'dd_execute_conditional_page_redirect');
 
 
 /**
