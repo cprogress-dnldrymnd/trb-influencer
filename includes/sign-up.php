@@ -184,7 +184,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          */
         public function add_avatar_field()
         {
-            if (! function_exists('pmpro_add_user_field')) {
+            if (! function_exists('pmpro_add_user_field') |) {
                 return;
             }
 
