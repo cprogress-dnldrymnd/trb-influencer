@@ -426,12 +426,17 @@ input:checked + .slider:before {
   max-width: 1430px;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 0; }
+  margin-bottom: 0;
+  margin-top: 0; }
   .pmpro.pmpro .pmpro_section:last-child {
     margin-bottom: 0; }
 @media (min-width: 1025px) {
   .pmpro.pmpro {
     font-size: clamp(12px, 0.833vw, 16px); } }
+
+@media (min-width: 1025px) {
+  .pmpro_font-large {
+    font-size: clamp(16px, 1.25vw, 24px); } }
 
 .breadcrumbs {
   --breadcrumbs-gap: 10px;

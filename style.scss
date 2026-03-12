@@ -545,12 +545,19 @@ input:checked + .slider:before {
         margin-left: auto;
         margin-right: auto;
         margin-bottom: 0;
+        margin-top: 0;
         &:last-child {
             margin-bottom: 0;
         }
     }
-    @media(min-width: 1025px) {
-        font-size: clamp(12px, 0.833vw, 16px);;
+    @media (min-width: 1025px) {
+        font-size: clamp(12px, 0.833vw, 16px);
+    }
+}
+
+.pmpro_font-large {
+    @media (min-width: 1025px) {
+        font-size: clamp(16px, 1.25vw, 24px);
     }
 }
 
