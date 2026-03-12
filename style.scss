@@ -1710,6 +1710,9 @@ body:not(.page-id-4144) {
         }
     }
 }
+.pmpro_card > br {
+    display: none;
+}
 
 /*responsive*/
 @media (min-width: 1025px) {

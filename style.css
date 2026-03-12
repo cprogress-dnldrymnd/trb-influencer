@@ -1353,6 +1353,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     font-size: 18px;
     color: var(--e-global-color-text); }
 
+.pmpro_card > br {
+  display: none; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
