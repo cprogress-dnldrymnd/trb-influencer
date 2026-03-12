@@ -386,7 +386,7 @@ input:checked + .slider:before {
   margin: 0;
   min-height: auto;
   outline: none;
-  padding: 12px;
+  padding: 8px 12px;
   line-height: 1; }
 .pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field-checkbox .pmpro_form_label {
   font-size: 18px; }
