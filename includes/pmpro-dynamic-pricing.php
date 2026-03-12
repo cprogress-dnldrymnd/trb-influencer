@@ -336,7 +336,7 @@ class DD_PMPro_Frontend_Pricing
 			.dd-card {
 				background: var(--e-global-color-2ba2932);
 				border-radius: 20px;
-				padding: 55px 40px 40px;
+				padding: 55px clamp(20px, 2vw, 40px) clamp(20px, 2vw, 40px);
 				position: relative;
 				display: flex;
 				flex-direction: column;
@@ -367,22 +367,20 @@ class DD_PMPro_Frontend_Pricing
 				text-align: center;
 			}
 
-			.dd-plan-name {
-				font-size: 2rem;
+			.dd-plan-name.dd-plan-name.dd-plan-name {
+				font-size: clamp(22px, 1.927vw, 37px);
 				margin: 0 0 1rem 0;
 				color: var(--e-global-color-secondary);
-
-
 			}
 
 			.dd-plan-desc {
 				margin-bottom: 1.5rem;
 				flex-grow: 1;
-				font-size: 16px;
+				font-size: clamp(12px, 0.833vw, 16px);
 			}
 
 			.dd-price-wrapper {
-				font-size: 37px;
+				font-size: clamp(22px, 1.927vw, 37px);
 				font-weight: bold;
 				color: var(--e-global-color-secondary);
 				margin-bottom: 1rem;
@@ -456,9 +454,8 @@ class DD_PMPro_Frontend_Pricing
 				font-size: var(--e-global-typography-accent-font-size);
 				font-weight: var(--e-global-typography-accent-font-weight);
 				letter-spacing: var(--e-global-typography-accent-letter-spacing);
-				padding: 23px 30px;
+				padding: clamp(10px, 1.25, 24px) clamp(15px, 1.563vw, 30px);
 				color: var(--e-global-color-2ba2932);
-				;
 				text-align: center;
 				border-radius: 5px;
 				transition: 400ms;
@@ -466,7 +463,6 @@ class DD_PMPro_Frontend_Pricing
 
 			.dd-btn:hover {
 				background: var(--e-global-color-secondary);
-				;
 			}
 
 			.dd-btn-disabled {
