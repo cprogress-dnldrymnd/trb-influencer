@@ -287,10 +287,10 @@ class DD_Outreach_Manager
             // --- 0. Modal scaffold (injected once) ---
             if (!$('#dd-detail-modal').length) {
                 $('body').append(
-                    '<div id="dd-detail-modal" class="dd-modal-overlay" role="dialog" aria-modal="true" aria-label="Outreach detail">' +
-                        '<div class="dd-modal-dialog">' +
-                            '<button class="dd-modal-close" aria-label="Close">&times;</button>' +
-                            '<div id="dd-modal-body"></div>' +
+                    '<div id='dd-detail-modal' class='dd-modal-overlay' role='dialog' aria-modal='true' aria-label='Outreach detail'>' +
+                        '<div class='dd-modal-dialog'>' +
+                            '<button class='dd-modal-close' aria-label='Close'>&times;</button>' +
+                            '<div id='dd-modal-body'></div>' +
                         '</div>' +
                     '</div>'
                 );
