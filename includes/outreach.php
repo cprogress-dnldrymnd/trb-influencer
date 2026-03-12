@@ -321,7 +321,7 @@ class DD_Outreach_Manager
 
             // Extract PMPro User Avatar safely
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
-            $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
+            $avatar_url  = 'https://placehold.co/62x62'; // fallback
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
                 if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
                     $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($author_id, 'user_avatar', 'thumbnail'));
