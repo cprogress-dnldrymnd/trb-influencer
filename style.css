@@ -1158,7 +1158,8 @@ input:checked + .slider:before {
         background-size: 25px;
         border: 1px solid var(--e-global-color-71dc021);
         background-position: center;
-        background-repeat: no-repeat; }
+        background-repeat: no-repeat;
+        background-color: var(--e-global-color-2ba2932); }
         @media (max-width: 575px) {
           .notice-wrap.notice-wrap.notice-wrap .notice-item.succes:before {
             width: 20px;

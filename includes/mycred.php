@@ -232,7 +232,7 @@ class DD_PMPro_Rewards_Manager
                         'pmpro_registration',
                         $user_id,
                         $reg_points,
-                        sprintf('Points gained by joining %s Membership', $level_name), // Updated text per requirements
+                        sprintf('Credits gained by joining %s Membership', $level_name), // Updated text per requirements
                         $level_id,          // Reference ID
                         '',                 // Data
                         $this->point_type   // Explicit: 'mycred_default'
