@@ -3,8 +3,8 @@
 /**
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
- * Description: Manages Elementor form submissions for outreach, dispatches HTML notifications, and provides dynamic shortcode views for project management.
- * Version: 2.0.0
+ * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, and provides a master-detail dashboard.
+ * Version: 2.1.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -16,7 +16,7 @@ if (! defined('ABSPATH')) {
 /**
  * Class DD_Outreach_Manager
  * Handles Elementor form interception, dynamic HTML generation, master-detail dashboard,
- * and the backend HTML Email Builder.
+ * and the advanced backend HTML Email Builder with repeater functionalities.
  */
 class DD_Outreach_Manager
 {
@@ -82,18 +82,18 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Registers the settings and database options for the Email Builder.
+     * Registers the settings and database options for the Email Builder array.
      *
      * @return void
      */
     public function register_settings()
     {
-        register_setting('dd_outreach_settings_group', 'dd_outreach_email_template');
+        register_setting('dd_outreach_settings_group', 'dd_outreach_email_templates');
     }
 
     /**
      * Enqueues administration scripts and styles strictly for the settings page.
-     * Handles live HTML preview rendering via AJAX.
+     * Handles live HTML preview rendering, merge tag injection, and Repeater Field logic.
      *
      * @param string $hook The current admin page hook.
      * @return void
@@ -105,10 +105,12 @@ class DD_Outreach_Manager
         }
 
         wp_enqueue_script('jquery');
+        wp_enqueue_script('jquery-ui-sortable'); // Require sortable for drag-and-drop
 
         $custom_js = "
         jQuery(document).ready(function($) {
-            // Tab Switcher Logic
+            
+            // --- 1. Tab Switcher Logic ---
             $('.nav-tab').on('click', function(e) {
                 e.preventDefault();
                 $('.nav-tab').removeClass('nav-tab-active');
@@ -118,34 +120,123 @@ class DD_Outreach_Manager
                 $(target).show();
             });
 
-            // Merge Tag Injection into Raw Textarea
+            // --- 2. Repeater Field Logic (Duplicate, Delete, Reorder, Collapse) ---
+            function reindexRepeater() {
+                $('#dd-repeater-container .dd-repeater-item:not(.blueprint)').each(function(index) {
+                    $(this).find('[name^=\"dd_outreach_email_templates\"]').each(function() {
+                        var name = $(this).attr('name');
+                        if (name) {
+                            var newName = name.replace(/\[\d+\]/, '[' + index + ']');
+                            $(this).attr('name', newName);
+                        }
+                    });
+                    $(this).find('.template-counter').text(index + 1);
+                });
+            }
+
+            // Initialize Sortable
+            $('#dd-repeater-container').sortable({
+                handle: '.drag-handle',
+                axis: 'y',
+                update: function(event, ui) {
+                    reindexRepeater();
+                }
+            });
+
+            // Add New Item
+            $('#dd-add-template').on('click', function(e) {
+                e.preventDefault();
+                var clone = $('.dd-repeater-item.blueprint').clone(true).removeClass('blueprint').hide();
+                clone.find('input, textarea').prop('disabled', false); // Enable fields in clone
+                $('#dd-repeater-container').append(clone);
+                clone.fadeIn(300);
+                reindexRepeater();
+            });
+
+            // Duplicate Item
+            $('#dd-repeater-container').on('click', '.duplicate-item', function(e) {
+                e.preventDefault();
+                var item = $(this).closest('.dd-repeater-item');
+                var clone = item.clone(true);
+                
+                // Manually copy textarea values as .clone() misses them sometimes
+                item.find('textarea').each(function(i) {
+                    clone.find('textarea').eq(i).val($(this).val());
+                });
+
+                item.after(clone);
+                clone.hide().fadeIn(300);
+                reindexRepeater();
+            });
+
+            // Delete Item
+            $('#dd-repeater-container').on('click', '.delete-item', function(e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to delete this template?')) {
+                    $(this).closest('.dd-repeater-item').fadeOut(300, function() {
+                        $(this).remove();
+                        reindexRepeater();
+                    });
+                }
+            });
+
+            // Collapse Item
+            $('#dd-repeater-container').on('click', '.collapse-item, .drag-handle', function(e) {
+                e.preventDefault();
+                var body = $(this).closest('.dd-repeater-item').find('.dd-repeater-body');
+                body.slideToggle(200);
+                var btn = $(this).closest('.dd-repeater-item').find('.collapse-item');
+                btn.text(body.is(':visible') ? 'Collapse' : 'Expand');
+            });
+
+
+            // --- 3. Merge Tag Injection & Editor Tracking ---
+            var lastFocusedElement = null;
+
+            // Track the last focused input or textarea within the template container
+            $('#dd-repeater-container').on('focus', 'input[type=\"text\"], textarea', function() {
+                lastFocusedElement = this;
+                
+                // Immediately trigger preview for the active textarea if it's a body editor
+                if ($(this).hasClass('dd-email-body-editor')) {
+                    triggerPreviewUpdate($(this).val());
+                }
+            });
+
             $('.dd-merge-tag').on('click', function(e) {
                 e.preventDefault();
                 var tag = $(this).data('tag');
-                var txtarea = $('#dd_outreach_email_template');
-                var val = txtarea.val();
-                var start = txtarea[0].selectionStart;
-                var end = txtarea[0].selectionEnd;
                 
-                txtarea.val(val.substring(0, start) + tag + val.substring(end));
-                
-                // Trigger preview update after injection
-                triggerPreviewUpdate();
-                
-                // Refocus cursor
-                txtarea.focus();
-                txtarea[0].selectionEnd = start + tag.length;
+                if (lastFocusedElement) {
+                    var txtarea = $(lastFocusedElement);
+                    var val = txtarea.val();
+                    var start = lastFocusedElement.selectionStart;
+                    var end = lastFocusedElement.selectionEnd;
+                    
+                    txtarea.val(val.substring(0, start) + tag + val.substring(end));
+                    
+                    // If it was the body, trigger preview
+                    if (txtarea.hasClass('dd-email-body-editor')) {
+                        triggerPreviewUpdate(txtarea.val());
+                    }
+                    
+                    // Refocus
+                    txtarea.focus();
+                    lastFocusedElement.selectionEnd = start + tag.length;
+                } else {
+                    alert('Please click inside a field (To, Subject, or Body) to insert a merge tag.');
+                }
             });
 
-            // Live Preview AJAX trigger
+            // --- 4. Live Preview AJAX logic ---
             var previewTimer;
-            function triggerPreviewUpdate() {
-                var content = $('#dd_outreach_email_template').val();
+            function triggerPreviewUpdate(contentToPreview) {
+                if (!contentToPreview) return; // Ignore if undefined
 
                 $.post(ajaxurl, {
                     action: 'dd_preview_email',
                     security: ddAdmin.nonce,
-                    template: content
+                    template: contentToPreview
                 }, function(response) {
                     if (response.success) {
                         var iframe = document.getElementById('dd-email-preview-iframe');
@@ -157,14 +248,23 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Bind text editor events for real-time rendering
-            $('#dd_outreach_email_template').on('keyup change', function() {
+            // Update preview as the user types in ANY body textarea
+            $('#dd-repeater-container').on('keyup change', '.dd-email-body-editor', function() {
+                var content = $(this).val();
                 clearTimeout(previewTimer);
-                previewTimer = setTimeout(triggerPreviewUpdate, 500);
+                previewTimer = setTimeout(function() {
+                    triggerPreviewUpdate(content);
+                }, 500);
             });
 
-            // Initial load rendering
-            setTimeout(triggerPreviewUpdate, 300);
+            // Render the first active template on page load
+            setTimeout(function() {
+                var firstBody = $('#dd-repeater-container .dd-repeater-item:not(.blueprint) .dd-email-body-editor').first();
+                if(firstBody.length) {
+                    triggerPreviewUpdate(firstBody.val());
+                }
+            }, 300);
+
         });
         ";
 
@@ -173,6 +273,244 @@ class DD_Outreach_Manager
             'nonce' => wp_create_nonce('dd_admin_nonce')
         ]);
     }
+
+    /**
+     * Enqueues the custom jQuery.
+     */
+    public function enqueue_dashboard_scripts()
+    {
+        wp_enqueue_script('jquery');
+
+        $script = "
+        jQuery(document).ready(function($) {
+            
+            // --- 1. Master-Detail List Click Loader ---
+            function bindListItemClicks() {
+                $('.dd-outreach-item').off('click').on('click', function() {
+                    var postId = $(this).data('post-id');
+                    var container = $('#dd-outreach-view-container');
+                    
+                    $('.dd-outreach-item').removeClass('active-item');
+                    $(this).addClass('active-item');
+
+                    container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
+
+                    $.ajax({
+                        url: ddOutreach.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'dd_get_outreach_details',
+                            security: ddOutreach.nonce,
+                            post_id: postId
+                        },
+                        success: function(response) {
+                            if(response.success) {
+                                container.html(response.data);
+                            } else {
+                                container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Bind list clicks on initial load and click first item
+            bindListItemClicks();
+            var firstItem = $('.dd-outreach-item').first();
+            if (firstItem.length) {
+                firstItem.trigger('click');
+            } else {
+                // Display notice on placeholder if no items are found on initial load
+                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
+                $('#no-outreach-found').removeClass('hide-element');
+                $('#outreach-found').addClass('hide-element');
+            }
+
+
+            // --- 2. Filtering Logic ---
+            var filterTimer;
+            
+            function triggerFilter() {
+                var searchQuery = $('#dd-outreach-search').val();
+                
+                // Collect project types
+                var selectedTypes = [];
+                $('input[name=\"project_type[]\"]:checked').each(function() {
+                    var val = $(this).attr('data-label') || $(this).val();
+                    selectedTypes.push(val);
+                });
+                if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
+                    selectedTypes.push($('select[name=\"project_type\"]').val());
+                }
+
+                // Collect project lengths
+                var selectedLengths = [];
+                $('input[name=\"project_length[]\"]:checked').each(function() {
+                    var val = $(this).attr('data-label') || $(this).val();
+                    selectedLengths.push(val);
+                });
+                if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
+                    selectedLengths.push($('select[name=\"project_length\"]').val());
+                }
+
+                $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_filter_outreach_list',
+                        security: ddOutreach.nonce,
+                        search: searchQuery,
+                        project_type: selectedTypes,
+                        project_length: selectedLengths
+                    },
+                    success: function(response) {
+                        if(response.success) {
+                            $('#dd-outreach-list-container').html(response.data);
+                            bindListItemClicks(); 
+                            
+                            var newFirstItem = $('.dd-outreach-item').first();
+                            if (newFirstItem.length) {
+                                newFirstItem.trigger('click');
+                            } else {
+                                // Display notice on placeholder if no filter results are found
+                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found matching your criteria.</span>');
+                            }
+                        }
+                    }
+                });
+            }
+
+            $('#dd-outreach-search').on('keyup', function() {
+                clearTimeout(filterTimer);
+                filterTimer = setTimeout(triggerFilter, 500);
+            });
+
+            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"], input[name=\"project_length[]\"], select[name=\"project_length\"]', function() {
+                triggerFilter();
+            });
+
+
+            // --- 3. Note CRUD Event Delegation ---
+            var viewContainer = $('#dd-outreach-view-container');
+
+            // Save / Update Action
+            viewContainer.on('click', '#dd-save-note', function(e) {
+                e.preventDefault();
+                var btn = $(this);
+                var postId = btn.data('post-id');
+                var noteId = $('#dd-note-input-id').val();
+                var title = $('#dd-note-input-title').val();
+                var content = $('#dd-note-input-content').val();
+
+                if (!content.trim()) {
+                    alert('Please enter note content before saving.');
+                    return;
+                }
+
+                btn.text('SAVING...').prop('disabled', true);
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_save_outreach_note',
+                        security: ddOutreach.nonce,
+                        post_id: postId,
+                        note_id: noteId,
+                        note_title: title,
+                        note_content: content
+                    },
+                    success: function(res) {
+                        btn.text('💾 SAVE NOTE').prop('disabled', false);
+                        if(res.success) {
+                            // Inject the freshly built list of notes into the wrapper
+                            $('#dd-notes-list-wrapper').html(res.data);
+                            
+                            // Reset form back to \"Create\" state
+                            $('#dd-cancel-edit-note').trigger('click');
+                        } else {
+                            alert('An error occurred while saving the note.');
+                        }
+                    }
+                });
+            });
+
+            // Edit Action (Populate Form)
+            viewContainer.on('click', '.dd-edit-note', function(e) {
+                e.preventDefault();
+                var card = $(this).closest('.dd-steps-card');
+                var noteId = $(this).data('note-id');
+                var currentTitle = card.find('.dd-display-note-title').text();
+                var currentContent = card.find('.dd-raw-note-content').val();
+                
+                $('#dd-note-input-id').val(noteId);
+                $('#dd-note-input-title').val(currentTitle);
+                $('#dd-note-input-content').val(currentContent);
+                
+                $('#dd-note-form-heading').text('✏️ Edit Note');
+                $('#dd-cancel-edit-note').show();
+                $('#dd-note-input-content').focus();
+            });
+
+            // Cancel Edit Action
+            viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
+                e.preventDefault();
+                $('#dd-note-input-id').val('');
+                $('#dd-note-input-title').val('');
+                $('#dd-note-input-content').val('');
+                $('#dd-note-form-heading').text('🗒️ Create a note for this project');
+                $(this).hide();
+            });
+
+            // Delete Action
+            viewContainer.on('click', '.dd-delete-note', function(e) {
+                e.preventDefault();
+                if (!confirm('Are you sure you want to permanently delete this note?')) return;
+                
+                var btn = $(this);
+                var postId = btn.data('post-id');
+                var noteId = btn.data('note-id');
+
+                btn.text('DELETING...').prop('disabled', true);
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_delete_outreach_note',
+                        security: ddOutreach.nonce,
+                        post_id: postId,
+                        note_id: noteId
+                    },
+                    success: function(res) {
+                        if(res.success) {
+                            // Inject updated notes list
+                            $('#dd-notes-list-wrapper').html(res.data);
+                            
+                            // If they delete the note they were currently editing, reset the form
+                            if ($('#dd-note-input-id').val() === noteId) {
+                                $('#dd-cancel-edit-note').trigger('click');
+                            }
+                        }
+                    }
+                });
+            });
+
+        });
+        ";
+
+        wp_register_script('dd-outreach-app', '', [], '', true);
+        wp_enqueue_script('dd-outreach-app');
+        wp_add_inline_script('dd-outreach-app', $script);
+
+        wp_localize_script('dd-outreach-app', 'ddOutreach', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce'    => wp_create_nonce('dd_outreach_nonce')
+        ]);
+    }
+
 
     /**
      * Helper to return the default HTML boilerplate so it's not bloating the UI logic.
@@ -204,46 +542,254 @@ class DD_Outreach_Manager
     }
 
     /**
+     * Helper to retrieve default template structure for initialization
+     * @return array
+     */
+    private function get_default_template_structure()
+    {
+        return [
+            [
+                'to'         => '{influencer_email}',
+                'subject'    => 'A partnership opportunity with {brand_name}',
+                'from_email' => '{sender_email}',
+                'from_name'  => '{sender_name}',
+                'reply_to'   => '{sender_email}',
+                'cc'         => '',
+                'bcc'        => '',
+                'body'       => $this->get_default_html_template()
+            ]
+        ];
+    }
+
+    /**
      * Renders the Backend Settings Page HTML.
-     * Contains the Raw HTML Code Editor and Live Preview.
+     * Contains the tabbed logic and the Repeater Email Builder.
      *
      * @return void
      */
     public function render_settings_page()
     {
-        $template = get_option('dd_outreach_email_template', $this->get_default_html_template());
+        $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
+
+        // Safety catch: if somehow empty, force default structure
+        if (!is_array($templates) || empty($templates)) {
+            $templates = $this->get_default_template_structure();
+        }
 ?>
+        <style>
+            /* Repeater UI CSS */
+            .dd-repeater-item {
+                border: 1px solid #c3c4c7;
+                background: #fff;
+                margin-bottom: 15px;
+                border-radius: 4px;
+                box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+            }
+
+            .dd-repeater-header {
+                padding: 10px 15px;
+                background: #f6f7f7;
+                border-bottom: 1px solid #c3c4c7;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .dd-repeater-header h4 {
+                margin: 0;
+                font-size: 14px;
+                flex-grow: 1;
+                padding-left: 10px;
+                cursor: pointer;
+            }
+
+            .dd-repeater-header .drag-handle {
+                cursor: grab;
+                color: #8c8f94;
+            }
+
+            .dd-repeater-header .actions a {
+                margin-left: 10px;
+                text-decoration: none;
+                font-size: 13px;
+            }
+
+            .dd-repeater-header .actions a.delete-item {
+                color: #d63638;
+            }
+
+            .dd-repeater-body {
+                padding: 15px;
+            }
+
+            .dd-field-group {
+                margin-bottom: 15px;
+                display: flex;
+                gap: 15px;
+                flex-wrap: wrap;
+            }
+
+            .dd-field-group .field {
+                flex: 1;
+                min-width: 250px;
+            }
+
+            .dd-field-group label {
+                display: block;
+                font-weight: 600;
+                margin-bottom: 5px;
+                font-size: 12px;
+            }
+
+            .dd-field-group input {
+                width: 100%;
+            }
+
+            .blueprint {
+                display: none;
+            }
+        </style>
+
         <div class="wrap">
             <h1>Outreach Manager Settings</h1>
 
-            <div style="margin-top:20px;">
+            <h2 class="nav-tab-wrapper">
+                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
+                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
+            </h2>
+
+            <div id="tab-form-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
+                <div style="background:#fff; padding:20px; border:1px solid #ccc; border-radius:4px;">
+                    <h3>Form Module Configuration</h3>
+                    <p><em>Form Builder repeater mechanics (Duplication, Reordering, Collapsing) to be mapped to Elementor front-end forms in future phase...</em></p>
+                </div>
+            </div>
+
+            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_outreach_settings_group'); ?>
 
-                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
 
-                        <div style="flex: 1; min-width: 400px;">
-                            <h3>Raw HTML Email Builder</h3>
-                            <p>Paste your full HTML structural markup here. Use the buttons below to inject dynamic merge tags into your code.</p>
+                        <div style="flex: 1.5; min-width: 500px;">
+                            <h3>Email Notification Templates</h3>
+                            <p>Add multiple templates. All active templates in this list will be dispatched simultaneously when an outreach is submitted.</p>
 
-                            <div style="margin-bottom: 15px;">
-                                <strong>Available Merge Tags:</strong><br>
+                            <div style="margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                                <strong>Global Merge Tags (Click field to focus, then click tag to insert):</strong><br>
                                 <?php
-                                $tags = ['{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
+                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
                                 ?>
                             </div>
 
-                            <textarea id="dd_outreach_email_template" name="dd_outreach_email_template" style="width: 100%; height: 600px; font-family: monospace; font-size: 13px; line-height: 1.5; padding: 15px; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,.07); border: 1px solid #8c8f94;" dir="ltr"><?php echo esc_textarea($template); ?></textarea>
+                            <div id="dd-repeater-container">
+                                <?php foreach ($templates as $index => $tpl) : ?>
+                                    <div class="dd-repeater-item">
+                                        <div class="dd-repeater-header">
+                                            <span class="dashicons dashicons-menu drag-handle"></span>
+                                            <h4>Notification Template <span class="template-counter"><?php echo $index + 1; ?></span></h4>
+                                            <div class="actions">
+                                                <a href="#" class="collapse-item">Collapse</a>
+                                                <a href="#" class="duplicate-item">Duplicate</a>
+                                                <a href="#" class="delete-item">Delete</a>
+                                            </div>
+                                        </div>
+                                        <div class="dd-repeater-body">
 
-                            <?php submit_button('Save Email Template'); ?>
+                                            <div class="dd-field-group">
+                                                <div class="field">
+                                                    <label>To (Recipient)</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][to]" value="<?php echo esc_attr($tpl['to']); ?>" placeholder="{influencer_email}">
+                                                </div>
+                                                <div class="field">
+                                                    <label>Subject Line</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][subject]" value="<?php echo esc_attr($tpl['subject']); ?>">
+                                                </div>
+                                            </div>
+
+                                            <div class="dd-field-group">
+                                                <div class="field">
+                                                    <label>From Name</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][from_name]" value="<?php echo esc_attr($tpl['from_name']); ?>" placeholder="{sender_name}">
+                                                </div>
+                                                <div class="field">
+                                                    <label>From Email</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][from_email]" value="<?php echo esc_attr($tpl['from_email']); ?>" placeholder="{sender_email}">
+                                                </div>
+                                                <div class="field">
+                                                    <label>Reply-To</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][reply_to]" value="<?php echo esc_attr($tpl['reply_to'] ?? ''); ?>" placeholder="{sender_email}">
+                                                </div>
+                                            </div>
+
+                                            <div class="dd-field-group">
+                                                <div class="field">
+                                                    <label>CC</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][cc]" value="<?php echo esc_attr($tpl['cc'] ?? ''); ?>" placeholder="Optional (Comma separated)">
+                                                </div>
+                                                <div class="field">
+                                                    <label>BCC</label>
+                                                    <input type="text" name="dd_outreach_email_templates[<?php echo $index; ?>][bcc]" value="<?php echo esc_attr($tpl['bcc'] ?? ''); ?>" placeholder="Optional (Comma separated)">
+                                                </div>
+                                            </div>
+
+                                            <div class="dd-field-group">
+                                                <div class="field" style="width: 100%;">
+                                                    <label>Email HTML Body (Click here to Live Preview)</label>
+                                                    <textarea name="dd_outreach_email_templates[<?php echo $index; ?>][body]" class="dd-email-body-editor" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; line-height: 1.5; padding: 15px; border-radius: 4px; border: 1px solid #8c8f94;" dir="ltr"><?php echo esc_textarea($tpl['body']); ?></textarea>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <div class="dd-repeater-item blueprint">
+                                    <div class="dd-repeater-header">
+                                        <span class="dashicons dashicons-menu drag-handle"></span>
+                                        <h4>New Template <span class="template-counter"></span></h4>
+                                        <div class="actions">
+                                            <a href="#" class="collapse-item">Collapse</a>
+                                            <a href="#" class="duplicate-item">Duplicate</a>
+                                            <a href="#" class="delete-item">Delete</a>
+                                        </div>
+                                    </div>
+                                    <div class="dd-repeater-body">
+                                        <div class="dd-field-group">
+                                            <div class="field"><label>To (Recipient)</label><input type="text" name="dd_outreach_email_templates[999][to]" value="{influencer_email}" disabled></div>
+                                            <div class="field"><label>Subject Line</label><input type="text" name="dd_outreach_email_templates[999][subject]" value="A partnership opportunity with {brand_name}" disabled></div>
+                                        </div>
+                                        <div class="dd-field-group">
+                                            <div class="field"><label>From Name</label><input type="text" name="dd_outreach_email_templates[999][from_name]" value="{sender_name}" disabled></div>
+                                            <div class="field"><label>From Email</label><input type="text" name="dd_outreach_email_templates[999][from_email]" value="{sender_email}" disabled></div>
+                                            <div class="field"><label>Reply-To</label><input type="text" name="dd_outreach_email_templates[999][reply_to]" value="{sender_email}" disabled></div>
+                                        </div>
+                                        <div class="dd-field-group">
+                                            <div class="field"><label>CC</label><input type="text" name="dd_outreach_email_templates[999][cc]" value="" disabled></div>
+                                            <div class="field"><label>BCC</label><input type="text" name="dd_outreach_email_templates[999][bcc]" value="" disabled></div>
+                                        </div>
+                                        <div class="dd-field-group">
+                                            <div class="field" style="width: 100%;">
+                                                <label>Email HTML Body</label>
+                                                <textarea name="dd_outreach_email_templates[999][body]" class="dd-email-body-editor" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; line-height: 1.5; padding: 15px; border-radius: 4px; border: 1px solid #8c8f94;" disabled dir="ltr"><?php echo esc_textarea($this->get_default_html_template()); ?></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" id="dd-add-template" class="button button-secondary"> + Add Another Email Template</button>
+
+                            <hr style="margin: 20px 0;">
+                            <?php submit_button('Save All Templates', 'primary', 'submit', false); ?>
                         </div>
 
-                        <div style="flex: 1; min-width: 400px;">
-                            <h3>Live Preview</h3>
-                            <p>Showing the most recent outreach data (or default placeholder data if empty).</p>
+                        <div style="flex: 1; min-width: 400px; position: sticky; top: 40px;">
+                            <h3>Live Frame Preview</h3>
+                            <p>Reflects the currently focused HTML body textarea utilizing the most recent database outreach (if available).</p>
                             <div style="border: 1px solid #ccc; border-radius: 8px; overflow: hidden; background: #EBEBEB; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                                 <iframe id="dd-email-preview-iframe" style="width: 100%; height: 750px; border: none;" src="about:blank"></iframe>
                             </div>
@@ -257,8 +803,8 @@ class DD_Outreach_Manager
     }
 
     /**
-     * AJAX endpoint to render the live HTML preview of the email builder.
-     * Parses the current raw HTML content and injects the latest outreach data.
+     * AJAX endpoint to render the live HTML preview of the active editor.
+     * Parses the focused textarea content and injects real database data.
      *
      * @return void
      */
@@ -274,6 +820,7 @@ class DD_Outreach_Manager
 
         // 1. Establish dummy fallback data
         $preview_data = [
+            'influencer_email' => 'creator@example.com',
             'influencer_name' => 'Cory Ruth',
             'brand_name'      => 'Acme Health Co.',
             'sender_name'     => 'Jane Doe',
@@ -316,20 +863,17 @@ class DD_Outreach_Manager
             $meta_country    = get_user_meta($author_id, 'country', true);
             $country_display = $this->get_country_display($meta_country);
 
-            // Extract PMPro User Avatar
+            // Extract PMPro User Avatar explicitly via absolute url path
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
             $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-                if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
-                    $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($author_id, 'user_avatar', 'thumbnail'));
-                } else {
-                    $avatar_url = $avatar_meta['fullurl'];
-                }
+                $avatar_url = $avatar_meta['fullurl'];
             }
 
             // Extract Influencer & Project Scope
-            $influencer_id   = get_post_meta($post_id, 'influencer_id', true);
-            $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
+            $influencer_id    = get_post_meta($post_id, 'influencer_id', true);
+            $influencer_name  = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
+            $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'influencer_email', true) : 'creator@example.com';
 
             $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
             $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
@@ -339,12 +883,13 @@ class DD_Outreach_Manager
 
             // Populate the array with the live data
             $preview_data = [
-                'influencer_name' => $influencer_name,
-                'brand_name'      => $brand_name,
-                'sender_name'     => $sender_name,
-                'job_title'       => $job_title,
+                'influencer_email' => esc_html($influencer_email),
+                'influencer_name' => esc_html($influencer_name),
+                'brand_name'      => esc_html($brand_name),
+                'sender_name'     => esc_html($sender_name),
+                'job_title'       => esc_html($job_title),
                 'country_display' => $country_display,
-                'avatar_url'      => $avatar_url,
+                'avatar_url'      => esc_url($avatar_url),
                 'project_type'    => esc_html($project_type),
                 'project_length'  => esc_html($project_length),
                 'project_dates'   => esc_html($project_dates),
@@ -356,6 +901,7 @@ class DD_Outreach_Manager
 
         // 4. Map the exact Merge Tags to the data array
         $dictionary = [
+            '{influencer_email}' => $preview_data['influencer_email'],
             '{influencer_name}' => $preview_data['influencer_name'],
             '{brand_name}'      => $preview_data['brand_name'],
             '{sender_name}'     => $preview_data['sender_name'],
@@ -1013,7 +1559,7 @@ class DD_Outreach_Manager
 
     /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Uses a full string replace algorithm to parse raw HTML template from WP options.
+     * Iterates over all saved repeater templates and dynamically compiles their header/body merge tags.
      */
     private function send_outreach_email($data, $current_user_id)
     {
@@ -1032,22 +1578,19 @@ class DD_Outreach_Manager
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_display = $this->get_country_display($meta_country);
 
-        // Extract PMPro User Avatar
+        // Extract PMPro User Avatar explicitly via absolute url path
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
         $avatar_url  = 'https://via.placeholder.com/60x60'; // Default safety fallback
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
-                $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
-            } else {
-                $avatar_url = $avatar_meta['fullurl'];
-            }
+            $avatar_url = $avatar_meta['fullurl'];
         }
 
-        // Resolve Influencer Context
+        // Resolve Influencer Context strictly via post meta
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
-        $influencer_email = 'donald@cprogress.co.uk';
+        $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
 
+        // Fallback constraint to post_author account email if no explicit meta is present
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
             if ($influencer_post) {
@@ -1056,21 +1599,13 @@ class DD_Outreach_Manager
                     $influencer_email = $influencer_user->user_email;
                 }
             }
+            // Abort if unable to establish recipient address
             if (empty($influencer_email)) return false;
         }
 
-        $subject = 'A partnership opportunity with ' . $brand_name;
-        $headers = [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $brand_name . ' <' . $sender_email . '>',
-            'Reply-To: ' . $sender_name . ' <' . $sender_email . '>'
-        ];
-
-        // Retrieve the full saved Raw HTML Email Template
-        $raw_template = get_option('dd_outreach_email_template', $this->get_default_html_template());
-
         // Compile Dictionary for Search/Replace execution
         $dictionary = [
+            '{influencer_email}' => $influencer_email,
             '{influencer_name}' => $influencer_name,
             '{brand_name}'      => $brand_name,
             '{sender_name}'     => $sender_name,
@@ -1085,10 +1620,50 @@ class DD_Outreach_Manager
             '{message}'         => wp_kses_post(wpautop($data['message'] ?? ''))
         ];
 
-        // Execute merge tags replacement across the entire HTML string
-        $html_content = str_replace(array_keys($dictionary), array_values($dictionary), $raw_template);
+        $search  = array_keys($dictionary);
+        $replace = array_values($dictionary);
 
-        return wp_mail($influencer_email, $subject, $html_content, $headers);
+        // Retrieve the repeater array of Email Templates
+        $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
+
+        $success = false;
+
+        // Loop through each configured template and dispatch dynamically
+        foreach ($templates as $tpl) {
+
+            $to         = str_replace($search, $replace, $tpl['to']);
+            $subject    = str_replace($search, $replace, $tpl['subject']);
+            $from_name  = str_replace($search, $replace, $tpl['from_name']);
+            $from_email = str_replace($search, $replace, $tpl['from_email']);
+            $reply_to   = str_replace($search, $replace, $tpl['reply_to']);
+            $cc         = str_replace($search, $replace, $tpl['cc']);
+            $bcc        = str_replace($search, $replace, $tpl['bcc']);
+            $body       = str_replace($search, $replace, $tpl['body']);
+
+            // Compile the Mail Headers payload array
+            $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+            if (!empty($from_email) && is_email($from_email)) {
+                $headers[] = !empty($from_name) ? 'From: ' . $from_name . ' <' . $from_email . '>' : 'From: ' . $from_email;
+            }
+            if (!empty($reply_to)) {
+                $headers[] = 'Reply-To: ' . $reply_to;
+            }
+            if (!empty($cc)) {
+                $headers[] = 'Cc: ' . $cc;
+            }
+            if (!empty($bcc)) {
+                $headers[] = 'Bcc: ' . $bcc;
+            }
+
+            // Ensure we have a valid parsed recipient before dispatching
+            if (is_email($to)) {
+                $sent = wp_mail($to, $subject, $body, $headers);
+                if ($sent) $success = true;
+            }
+        }
+
+        return $success;
     }
 
     /**
@@ -1532,248 +2107,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Enqueues the custom jQuery.
-     */
-    public function enqueue_dashboard_scripts()
-    {
-        wp_enqueue_script('jquery');
-
-        $script = "
-        jQuery(document).ready(function($) {
-            
-            // --- 1. Master-Detail List Click Loader ---
-            function bindListItemClicks() {
-                $('.dd-outreach-item').off('click').on('click', function() {
-                    var postId = $(this).data('post-id');
-                    var container = $('#dd-outreach-view-container');
-                    
-                    $('.dd-outreach-item').removeClass('active-item');
-                    $(this).addClass('active-item');
-
-                    container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
-
-                    $.ajax({
-                        url: ddOutreach.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'dd_get_outreach_details',
-                            security: ddOutreach.nonce,
-                            post_id: postId
-                        },
-                        success: function(response) {
-                            if(response.success) {
-                                container.html(response.data);
-                            } else {
-                                container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
-                            }
-                        }
-                    });
-                });
-            }
-
-            // Bind list clicks on initial load and click first item
-            bindListItemClicks();
-            var firstItem = $('.dd-outreach-item').first();
-            if (firstItem.length) {
-                firstItem.trigger('click');
-            } else {
-                // Display notice on placeholder if no items are found on initial load
-                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found.</span>');
-                $('#no-outreach-found').removeClass('hide-element');
-                $('#outreach-found').addClass('hide-element');
-            }
-
-
-            // --- 2. Filtering Logic ---
-            var filterTimer;
-            
-            function triggerFilter() {
-                var searchQuery = $('#dd-outreach-search').val();
-                
-                // Collect project types
-                var selectedTypes = [];
-                $('input[name=\"project_type[]\"]:checked').each(function() {
-                    var val = $(this).attr('data-label') || $(this).val();
-                    selectedTypes.push(val);
-                });
-                if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
-                    selectedTypes.push($('select[name=\"project_type\"]').val());
-                }
-
-                // Collect project lengths
-                var selectedLengths = [];
-                $('input[name=\"project_length[]\"]:checked').each(function() {
-                    var val = $(this).attr('data-label') || $(this).val();
-                    selectedLengths.push(val);
-                });
-                if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
-                    selectedLengths.push($('select[name=\"project_length\"]').val());
-                }
-
-                $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_filter_outreach_list',
-                        security: ddOutreach.nonce,
-                        search: searchQuery,
-                        project_type: selectedTypes,
-                        project_length: selectedLengths
-                    },
-                    success: function(response) {
-                        if(response.success) {
-                            $('#dd-outreach-list-container').html(response.data);
-                            bindListItemClicks(); 
-                            
-                            var newFirstItem = $('.dd-outreach-item').first();
-                            if (newFirstItem.length) {
-                                newFirstItem.trigger('click');
-                            } else {
-                                // Display notice on placeholder if no filter results are found
-                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach projects found matching your criteria.</span>');
-                            }
-                        }
-                    }
-                });
-            }
-
-            $('#dd-outreach-search').on('keyup', function() {
-                clearTimeout(filterTimer);
-                filterTimer = setTimeout(triggerFilter, 500);
-            });
-
-            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"], input[name=\"project_length[]\"], select[name=\"project_length\"]', function() {
-                triggerFilter();
-            });
-
-
-            // --- 3. Note CRUD Event Delegation ---
-            var viewContainer = $('#dd-outreach-view-container');
-
-            // Save / Update Action
-            viewContainer.on('click', '#dd-save-note', function(e) {
-                e.preventDefault();
-                var btn = $(this);
-                var postId = btn.data('post-id');
-                var noteId = $('#dd-note-input-id').val();
-                var title = $('#dd-note-input-title').val();
-                var content = $('#dd-note-input-content').val();
-
-                if (!content.trim()) {
-                    alert('Please enter note content before saving.');
-                    return;
-                }
-
-                btn.text('SAVING...').prop('disabled', true);
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_save_outreach_note',
-                        security: ddOutreach.nonce,
-                        post_id: postId,
-                        note_id: noteId,
-                        note_title: title,
-                        note_content: content
-                    },
-                    success: function(res) {
-                        btn.text('💾 SAVE NOTE').prop('disabled', false);
-                        if(res.success) {
-                            // Inject the freshly built list of notes into the wrapper
-                            $('#dd-notes-list-wrapper').html(res.data);
-                            
-                            // Reset form back to \"Create\" state
-                            $('#dd-cancel-edit-note').trigger('click');
-                        } else {
-                            alert('An error occurred while saving the note.');
-                        }
-                    }
-                });
-            });
-
-            // Edit Action (Populate Form)
-            viewContainer.on('click', '.dd-edit-note', function(e) {
-                e.preventDefault();
-                var card = $(this).closest('.dd-steps-card');
-                var noteId = $(this).data('note-id');
-                var currentTitle = card.find('.dd-display-note-title').text();
-                var currentContent = card.find('.dd-raw-note-content').val();
-                
-                $('#dd-note-input-id').val(noteId);
-                $('#dd-note-input-title').val(currentTitle);
-                $('#dd-note-input-content').val(currentContent);
-                
-                $('#dd-note-form-heading').text('✏️ Edit Note');
-                $('#dd-cancel-edit-note').show();
-                $('#dd-note-input-content').focus();
-            });
-
-            // Cancel Edit Action
-            viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
-                e.preventDefault();
-                $('#dd-note-input-id').val('');
-                $('#dd-note-input-title').val('');
-                $('#dd-note-input-content').val('');
-                $('#dd-note-form-heading').text('🗒️ Create a note for this project');
-                $(this).hide();
-            });
-
-            // Delete Action
-            viewContainer.on('click', '.dd-delete-note', function(e) {
-                e.preventDefault();
-                if (!confirm('Are you sure you want to permanently delete this note?')) return;
-                
-                var btn = $(this);
-                var postId = btn.data('post-id');
-                var noteId = btn.data('note-id');
-
-                btn.text('DELETING...').prop('disabled', true);
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_delete_outreach_note',
-                        security: ddOutreach.nonce,
-                        post_id: postId,
-                        note_id: noteId
-                    },
-                    success: function(res) {
-                        if(res.success) {
-                            // Inject updated notes list
-                            $('#dd-notes-list-wrapper').html(res.data);
-                            
-                            // If they delete the note they were currently editing, reset the form
-                            if ($('#dd-note-input-id').val() === noteId) {
-                                $('#dd-cancel-edit-note').trigger('click');
-                            }
-                        }
-                    }
-                });
-            });
-
-        });
-        ";
-
-        wp_register_script('dd-outreach-app', '', [], '', true);
-        wp_enqueue_script('dd-outreach-app');
-        wp_add_inline_script('dd-outreach-app', $script);
-
-        wp_localize_script('dd-outreach-app', 'ddOutreach', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('dd_outreach_nonce')
-        ]);
-    }
-
-    /**
      * Converts a 2-letter ISO country code to its corresponding Emoji flag and full name.
-     * Utilizes HTML decimal entities for bulletproof rendering in email clients.
-     *
-     * @param string $country_code The 2-letter ISO country code (e.g., 'GB', 'US').
-     * @return string The concatenated HTML flag entity and country name.
      */
     private function get_country_display($country_code)
     {
@@ -1783,7 +2117,6 @@ class DD_Outreach_Manager
 
         $country_code = strtoupper(trim($country_code));
 
-        // Generate the emoji flag using HTML entities for maximum email client compatibility
         $flag = '';
         if (preg_match('/^[A-Z]{2}$/', $country_code)) {
             $char1 = ord($country_code[0]) + 127397;
@@ -1791,7 +2124,6 @@ class DD_Outreach_Manager
             $flag = "&#{$char1};&#{$char2};";
         }
 
-        // Standard mapping dictionary for common country codes
         $country_names = [
             'AF' => 'Afghanistan',
             'AX' => 'Åland Islands',
@@ -2044,7 +2376,6 @@ class DD_Outreach_Manager
             'ZW' => 'Zimbabwe'
         ];
 
-        // Ensure the fallback name is escaped here so the final string is safe to output raw
         $name = isset($country_names[$country_code]) ? $country_names[$country_code] : esc_html($country_code);
 
         return $flag . ' ' . $name;
