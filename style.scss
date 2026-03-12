@@ -482,8 +482,9 @@ input:checked + .slider:before {
     color: var(--e-global-color-primary);
 }
 
-.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field {
-    input {
+.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field,
+.pmpro_section.pmpro_section #loginform {
+    input, .input {
         font-size: 16px;
         background-color: var(--pmpro--color--base);
         border: 1px solid var(--pmpro--color--border);
