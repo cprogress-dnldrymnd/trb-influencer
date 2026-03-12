@@ -1750,6 +1750,12 @@ body:not(.page-id-4144) {
     font-family: "Playfair Display", Sans-serif !important;
 }
 
+.fake-textarea {
+    padding: 16px;
+    border-radius: 5px;
+    border: 1px solid var(--e-global-color-670824e);
+}
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
@@ -1773,6 +1779,9 @@ body:not(.page-id-4144) {
     }
     .influencer-search-filter-holder {
         gap: clamp(10px, 1.042vw, 20px);
+    }
+    .fake-textarea {
+        padding: clamp(12px, 0.833vw, 16px);
     }
 }
 /*end responsive*/
