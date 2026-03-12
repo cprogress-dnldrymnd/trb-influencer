@@ -557,11 +557,9 @@ function shortcode_influencer_search_filter_main()
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
             <div class="influencer-search-filter-holder">
                 <input type="hidden" value="true" name="search_active">
-                <?php if (!$is_free_trial) { ?>
-                    <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $fullbrieft_search_class ?>">
-                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
-                    </div>
-                <?php } ?>
+                <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $fullbrieft_search_class ?>">
+                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
+                </div>
 
                 <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search <?= $filtered_search_class ?>">
                     <div class="influencer-search-item">
@@ -698,7 +696,7 @@ function shortcode_influencer_search_summary()
                 </a>
             </div>
         <?php endif; ?>
-      
+
         <?php if (! empty($parts) && empty($brief)) : ?>
             <div class="search-summary-item search-summary-filters">
                 <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
@@ -2158,7 +2156,7 @@ function shortcode_influencer_platform_score($atts)
     $html .= '<span class="influencer-platform-score-value">' . $score . '</span>';
     $html .= '<span class="influencer-platform-score-total">/100</span>';
     $icon = '<span class="influencer-platform-score-icon" aria-hidden="true">↗</span>';
-    $html .= ' <span class="influencer-platform-score-tag chip">' . $icon .' '. esc_html($label) . '</span>';
+    $html .= ' <span class="influencer-platform-score-tag chip">' . $icon . ' ' . esc_html($label) . '</span>';
     if ($tooltip) {
         $html .= ' <span class="influencer-platform-score-info" title="' . esc_attr($tooltip) . '" aria-label="Score breakdown">ℹ</span>';
     }
@@ -2211,7 +2209,8 @@ add_shortcode('instagram_id', 'shortcode_intagram_id_fixed');
  *
  * @return string The current 4-digit year.
  */
-function dd_current_year_shortcode() {
+function dd_current_year_shortcode()
+{
     // Return the current year in 'Y' format (e.g., 2026)
     return date('Y');
 }
