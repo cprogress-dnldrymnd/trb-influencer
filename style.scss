@@ -549,6 +549,9 @@ input:checked + .slider:before {
             margin-bottom: 0;
         }
     }
+    @media(min-width: 1025px) {
+        font-size: clamp(12px, 0.833vw, 16px);;
+    }
 }
 
 .breadcrumbs {

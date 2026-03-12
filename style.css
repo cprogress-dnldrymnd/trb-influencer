@@ -429,6 +429,9 @@ input:checked + .slider:before {
   margin-bottom: 0; }
   .pmpro.pmpro .pmpro_section:last-child {
     margin-bottom: 0; }
+@media (min-width: 1025px) {
+  .pmpro.pmpro {
+    font-size: clamp(12px, 0.833vw, 16px); } }
 
 .breadcrumbs {
   --breadcrumbs-gap: 10px;
