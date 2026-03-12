@@ -480,6 +480,7 @@ input:checked + .slider:before {
 .pmpro_form_label:not(.pmpro_form_label-inline) {
     font-size: 14px;
     color: var(--e-global-color-primary);
+    line-height: 1;
 }
 
 .pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field,
@@ -518,12 +519,15 @@ input:checked + .slider:before {
 }
 .pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label),
 .pmpro_section #loginform .login-remember label,
-#pmpro_login .pmpro_actions_nav, .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state{
+#pmpro_login .pmpro_actions_nav,
+.pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
     font-size: 14px;
+    line-height: 1;
 }
-.pmpro_form_input.pmpro_form_input  {
+.pmpro_form_input.pmpro_form_input {
     width: 100%;
 }
+
 .pmpro.pmpro {
     * {
         font-family: Inter !important;
@@ -1699,7 +1703,11 @@ body:not(.page-id-4144) {
 }
 .pmpro_signup_form.pmpro_signup_form {
     .pmpro_form_legend {
-        margin-top: 20px;
+        margin-bottom: 10px;
+        .pmpro_form_heading {
+            font-size: 18px;
+            color: var(--e-global-color-text);
+        }
     }
 }
 
