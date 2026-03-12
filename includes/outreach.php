@@ -392,11 +392,9 @@ class DD_Outreach_Manager
             });
 
             // Reset button: clear all filter inputs and re-run the list query
-            $(document).on('click', '.reset-btn', function(e) {
+            $(document).on('click', '.reset-btn, .tag-close', function(e) {
                 e.preventDefault();
-   
                 triggerFilter();
-                console.log('test');
             });
 
 
