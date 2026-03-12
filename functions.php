@@ -61,7 +61,7 @@ require $dir . '/includes/elementor.php';
 require $dir . '/includes/outreach.php';
 require $dir . '/includes/charts.php';
 require $dir . '/includes/feeds.php';
-#require $dir . '/includes/shortcodes.php';
+require $dir . '/includes/shortcodes.php';
 require $dir . '/includes/ajax.php';
 
 function influencers_meta()
