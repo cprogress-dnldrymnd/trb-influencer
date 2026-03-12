@@ -307,6 +307,7 @@ class DD_PMPro_Frontend_Pricing
 					<span class="dd-slider round"></span>
 				</label>
 				<span class="dd-toggle-label">Yearly</span>
+				<span class="dd-discount">Save 20%</span>
 			</div>
 			<a <?php echo $current_url ? 'href="' . esc_url($current_url) . '"' : ''; ?> class="<?php echo esc_attr($btn_class); ?>"><?php echo esc_html($btn_text); ?></a>
 		</div>
