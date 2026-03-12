@@ -484,7 +484,7 @@ input:checked + .slider:before {
   @media (max-width: 1024px) {
     .breadcrumbs {
       --breadcrumbs-gap: 5px;
-      --icon-size: 10px; } }
+      --icon-size: 12px; } }
 
 .premium-content-notice.premium-content-notice.premium-content-notice {
   display: flex;
