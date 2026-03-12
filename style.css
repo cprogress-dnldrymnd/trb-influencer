@@ -1064,7 +1064,7 @@ input:checked + .slider:before {
   color: var(--e-global-color-primary); }
 
 /*end of login pages*/
-.pmpro-checkout #pmpro_form_fieldset-profile .pmpro_form_heading,
+.pmpro-checkout #pmpro_form_fieldset-profile .pmpro_form_legend,
 .pmpro-checkout #pmpro_form_fieldset-profile #user_avatar_div {
   display: none; }
 
