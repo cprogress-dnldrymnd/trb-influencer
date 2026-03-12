@@ -388,6 +388,16 @@ class DD_PMPro_Frontend_Pricing
 				margin-bottom: 1rem;
 			}
 
+			.dd-discount {
+				background-color: #ABFFB6;
+				padding: 0px 10px 0px 10px;
+				border-radius: 50px 50px 50px 50px;
+				font-size: var(--e-global-typography-0ffc5c1-font-size);
+				font-weight: var(--e-global-typography-0ffc5c1-font-weight);
+				line-height: var(--e-global-typography-0ffc5c1-line-height);
+				color: var(--e-global-color-primary);
+			}
+
 			.dd-toggle-wrapper {
 				display: flex;
 				align-items: center;
@@ -407,6 +417,7 @@ class DD_PMPro_Frontend_Pricing
 				width: 0;
 				height: 0;
 			}
+
 
 			.dd-slider {
 				position: absolute;
