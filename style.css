@@ -1331,6 +1331,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
       background-color: var(--e-global-color-d48a6cb);
       color: var(--e-global-color-2ba2932); }
 
+.pmpro_signup_form.pmpro_signup_form .pmpro_form_legend {
+  margin-top: 20px; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
