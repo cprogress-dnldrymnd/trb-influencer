@@ -422,7 +422,8 @@ input:checked + .slider:before {
 .pmpro.pmpro .pmpro_section {
   max-width: 1430px;
   margin-left: auto;
-  margin-right: auto; }
+  margin-right: auto;
+  margin-bottom: 0; }
   .pmpro.pmpro .pmpro_section:last-child {
     margin-bottom: 0; }
 
