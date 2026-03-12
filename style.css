@@ -1091,7 +1091,7 @@ input:checked + .slider:before {
     .page-id-4144.page-id-4144 .pmpro_card > .pmpro_card_actions a:hover {
       text-decoration: none; }
 
-.pmpro_card_actions a {
+.pmpro_card_actions.pmpro_card_actions.pmpro_card_actions a {
   color: var(--e-global-color-2ba2932); }
 
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
