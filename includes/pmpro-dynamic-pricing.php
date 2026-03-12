@@ -340,7 +340,7 @@ class DD_PMPro_Frontend_Pricing
 				position: relative;
 				display: flex;
 				flex-direction: column;
-				border: 2px solid var(--e-global-color-2ba2932);
+				border: 4px solid var(--e-global-color-2ba2932);
 				font-family: Work Sans, sans-serif;
 			}
 
