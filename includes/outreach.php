@@ -275,7 +275,9 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Enqueues the custom jQuery.
+     * Enqueues the custom jQuery dashboard handler.
+     * Incorporates explicit breakpoint handlers for < 1025px modal triggering.
+     * * @return void
      */
     public function enqueue_dashboard_scripts()
     {
@@ -286,14 +288,28 @@ class DD_Outreach_Manager
             
             // --- 1. Master-Detail List Click Loader ---
             function bindListItemClicks() {
-                $('.dd-outreach-item').off('click').on('click', function() {
+                $('.dd-outreach-item').off('click').on('click', function(e) {
+                    
+                    // Determine if triggered by physical click vs script dispatch
+                    var isHumanClick = e.originalEvent !== undefined;
                     var postId = $(this).data('post-id');
                     var container = $('#dd-outreach-view-container');
                     
+                    // Responsive Check: If < 1025px, avoid auto-loading the first element immediately
+                    if ($(window).width() < 1025 && !isHumanClick) {
+                        return; // Halt execution to prevent the modal from popping open instantly on load
+                    }
+
                     $('.dd-outreach-item').removeClass('active-item');
                     $(this).addClass('active-item');
 
-                    container.html('<span class=\"dd-view-placeholder\">Loading...</span>');
+                    // Activate modal overlay lock strictly on devices < 1025px
+                    if ($(window).width() < 1025) {
+                        container.addClass('dd-modal-active');
+                        $('body').css('overflow', 'hidden'); // Lock background scroll
+                    }
+
+                    container.html('<div class=\"dd-modal-content-wrapper\"><span class=\"dd-view-placeholder\">Loading...</span></div>');
 
                     $.ajax({
                         url: ddOutreach.ajax_url,
@@ -307,7 +323,7 @@ class DD_Outreach_Manager
                             if(response.success) {
                                 container.html(response.data);
                             } else {
-                                container.html(response.data || '<span class=\"dd-view-error\">Error loading details.</span>');
+                                container.html('<div class=\"dd-modal-content-wrapper\">' + (response.data || '<span class=\"dd-view-error\">Error loading details.</span>') + '</div>');
                             }
                         }
                     });
@@ -325,6 +341,21 @@ class DD_Outreach_Manager
                 $('#no-outreach-found').removeClass('hide-element');
                 $('#outreach-found').addClass('hide-element');
             }
+
+            // --- Modal Destruction Handlers (< 1025px) ---
+            $(document).on('click', '#dd-close-modal', function(e) {
+                e.preventDefault();
+                $('#dd-outreach-view-container').removeClass('dd-modal-active');
+                $('body').css('overflow', '');
+            });
+
+            // Dismiss modal when clicking outside the container content bounds
+            $(document).on('click', '#dd-outreach-view-container', function(e) {
+                if ($(window).width() < 1025 && e.target === this) {
+                    $(this).removeClass('dd-modal-active');
+                    $('body').css('overflow', '');
+                }
+            });
 
 
             // --- 2. Filtering Logic ---
@@ -663,8 +694,6 @@ class DD_Outreach_Manager
                 <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
             </h2>
 
-     
-
             <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_outreach_settings_group'); ?>
@@ -924,6 +953,7 @@ class DD_Outreach_Manager
 
     /**
      * Outputs consolidated CSS into the document <head>.
+     * Responsive modal overlay logic is introduced at max-width: 1024px.
      */
     public function inject_global_styles()
     {
@@ -1179,7 +1209,7 @@ class DD_Outreach_Manager
                 flex: 0 0 calc(100% - 68px);
                 width: calc(100% - 68px);
                 padding-left: 10px;
-                ;
+                
             }
 
             .dd-outreach-item:hover,
@@ -1237,6 +1267,15 @@ class DD_Outreach_Manager
             .dd-outreach-view-container {
                 width: 100%;
                 box-sizing: border-box;
+            }
+
+            /* --- Base Wrapper --- */
+            .dd-modal-content-wrapper {
+                width: 100%;
+                position: relative;
+            }
+            .dd-close-modal {
+                display: none; /* Hidden by default on desktop */
             }
 
             .dd-view-placeholder {
@@ -1423,6 +1462,54 @@ class DD_Outreach_Manager
 
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
+            }
+
+            /* --- Responsive Mobile Modal Interception --- */
+            @media (max-width: 1024px) {
+                .dd-outreach-view-container {
+                    display: none; /* Hide static desktop interface */
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(0, 0, 0, 0.6);
+                    z-index: 999999;
+                    padding: 20px;
+                    box-sizing: border-box;
+                    align-items: center;
+                    justify-content: center;
+                    backdrop-filter: blur(3px);
+                }
+
+                .dd-outreach-view-container.dd-modal-active {
+                    display: flex; /* Execute Modal Sequence */
+                }
+
+                .dd-modal-content-wrapper {
+                    background: #fff;
+                    width: 100%;
+                    max-width: 600px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    border-radius: 8px;
+                    padding: 30px 20px 20px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                }
+
+                .dd-close-modal {
+                    display: block; /* Reveal responsive close trigger */
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    background: none;
+                    border: none;
+                    font-size: 28px;
+                    cursor: pointer;
+                    color: #333;
+                    z-index: 10;
+                    line-height: 1;
+                }
             }
 
             @media(max-width: 1199px) {
@@ -2023,6 +2110,7 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to fetch specific outreach post details.
+     * Re-factored payload to inject `.dd-modal-content-wrapper` and the mobile close trigger for responsive viewing.
      */
     public function ajax_get_outreach_details()
     {
@@ -2052,56 +2140,60 @@ class DD_Outreach_Manager
 
         ob_start();
     ?>
-        <div class="dd-message-overview-container mt-0">
-            <div class="dd-profile-header">
-                <div class="avatar-holder" style="--size: 84px">
-                    <?= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]') ?>
-                </div>
-                <div class="dd-profile-info">
-                    <strong><?php echo esc_html($influencer_name); ?> </strong><br>
-                    <small>@<?php echo esc_html($influencer_handle); ?></small>
-                </div>
-                <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
-            </div>
-            <div class="dd-overview-body">
-                <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
-                    <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
-                    <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
-                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
-                </div>
-                <div class="dd-message-sent-date">
-                    <span>Sent at <?php echo esc_html($sent_date); ?></span>
-                </div>
+        <div class="dd-modal-content-wrapper">
+            <button class="dd-close-modal" id="dd-close-modal">&times;</button>
 
-                <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
-
-                <div class="dd-message-content">
-                    <?php echo nl2br(esc_html($message)); ?>
+            <div class="dd-message-overview-container mt-0">
+                <div class="dd-profile-header">
+                    <div class="avatar-holder" style="--size: 84px">
+                        <?= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]') ?>
+                    </div>
+                    <div class="dd-profile-info">
+                        <strong><?php echo esc_html($influencer_name); ?> </strong><br>
+                        <small>@<?php echo esc_html($influencer_handle); ?></small>
+                    </div>
+                    <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
                 </div>
-            </div>
-        </div>
+                <div class="dd-overview-body">
+                    <div class="tags-container tags-container tags-container">
+                        <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
+                        <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
+                        <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
+                        <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
+                    </div>
+                    <div class="dd-message-sent-date">
+                        <span>Sent at <?php echo esc_html($sent_date); ?></span>
+                    </div>
 
-        <div class="dd-notes-grid">
-            <div class="dd-note-card">
-                <h4 class="dd-note-title" id="dd-note-form-heading">🗒️ Create a note for this project</h4>
-                <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
-                <input type="hidden" id="dd-note-input-id" value="">
-                <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
-                <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button id="dd-save-note" class="dd-note-btn dd-note-btn-yellow" data-post-id="<?php echo esc_attr($post_id); ?>">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
-                            <path id="saved" fill="currentColor" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
-                        </svg>
-                        SAVE NOTE
-                    </button>
-                    <button id="dd-cancel-edit-note" class="dd-delete-btn dd-note-btn dd-note-btn-link" style="display:none; margin-top:10px;">CANCEL</button>
+                    <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
+
+                    <div class="dd-message-content">
+                        <?php echo nl2br(esc_html($message)); ?>
+                    </div>
                 </div>
             </div>
 
-            <div class="dd-notes-list-container" id="dd-notes-list-wrapper">
-                <?php echo $this->generate_notes_list_html($post_id); ?>
+            <div class="dd-notes-grid">
+                <div class="dd-note-card">
+                    <h4 class="dd-note-title" id="dd-note-form-heading">🗒️ Create a note for this project</h4>
+                    <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
+                    <input type="hidden" id="dd-note-input-id" value="">
+                    <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
+                    <textarea id="dd-note-input-content" class="dd-note-textarea" placeholder="Start typing your note..."></textarea>
+                    <div style="display:flex; gap:10px;">
+                        <button id="dd-save-note" class="dd-note-btn dd-note-btn-yellow" data-post-id="<?php echo esc_attr($post_id); ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332">
+                                <path id="saved" fill="currentColor" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" />
+                            </svg>
+                            SAVE NOTE
+                        </button>
+                        <button id="dd-cancel-edit-note" class="dd-delete-btn dd-note-btn dd-note-btn-link" style="display:none; margin-top:10px;">CANCEL</button>
+                    </div>
+                </div>
+
+                <div class="dd-notes-list-container" id="dd-notes-list-wrapper">
+                    <?php echo $this->generate_notes_list_html($post_id); ?>
+                </div>
             </div>
         </div>
 <?php

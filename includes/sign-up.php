@@ -47,7 +47,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
             add_action('init', array($this, 'add_acceptance_field'));
-            
+
             // Hook early into checkout validation to prevent ghost user creation.
             add_filter('pmpro_registration_checks', array($this, 'validate_acceptance_field'));
         }
@@ -196,7 +196,8 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                     'profile'      => true,
                     'preview'      => true,
                     'allow_delete' => true,
-                    'hint'         => 'Recommended size: 200x200 pixels.'
+                    'hint'         => 'Recommended size: 200x200 pixels.',
+                    'levels'       => array()
                 )
             );
 
