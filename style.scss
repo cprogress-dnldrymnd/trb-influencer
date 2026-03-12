@@ -518,7 +518,7 @@ input:checked + .slider:before {
 }
 .pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label),
 .pmpro_section #loginform .login-remember,
-#pmpro_login .pmpro_actions_nav {
+#pmpro_login .pmpro_actions_nav, .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state{
     font-size: 14px;
 }
 .pmpro_form_input.pmpro_form_input  {
