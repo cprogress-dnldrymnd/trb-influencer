@@ -1673,6 +1673,22 @@ body:not(.page-id-4144) {
         padding-top: 0;
     }
 }
+#pmpro_submit_span {
+    width: 100%;
+    #pmpro_btn-submit {
+        padding: 8px 12px;
+        font-size: 16px;
+        width: 100%;
+        background-color: transparent;
+        color: var(--e-global-color-d48a6cb);
+        border: 1px solid var(--e-global-color-d48a6cb) !important;
+        &:hover {
+            background-color: var(--e-global-color-d48a6cb);
+            color: var(--e-global-color-2ba2932);
+        }
+    }
+}
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
