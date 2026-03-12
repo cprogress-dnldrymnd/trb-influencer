@@ -1359,7 +1359,9 @@ input:checked + .slider:before {
         }
     }
 }
-
+.pmpro_card_actions a {
+    color: var(--e-global-color-2ba2932);
+}
 .pmpro_form_field-password-toggle-state.pmpro_form_field-password-toggle-state {
     color: var(--e-global-color-primary);
 }
