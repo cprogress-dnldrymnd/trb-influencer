@@ -71,7 +71,7 @@ class DD_Outreach_Manager
     {
         // Attaching under the 'outreach' CPT if it exists, fallback to standard options-general.php
         $parent_slug = post_type_exists('outreach') ? 'edit.php?post_type=outreach' : 'options-general.php';
-        
+
         add_submenu_page(
             $parent_slug,
             'Outreach Settings',
@@ -106,7 +106,7 @@ class DD_Outreach_Manager
         }
 
         wp_enqueue_script('jquery');
-        
+
         $custom_js = "
         jQuery(document).ready(function($) {
             // Tab Switcher Logic
@@ -201,10 +201,10 @@ class DD_Outreach_Manager
 <p style="margin:15px 0 0 0;">Best regards,<br>{sender_name}<br>{brand_name}</p>';
 
         $template = get_option('dd_outreach_email_template', $default_template);
-        ?>
+?>
         <div class="wrap">
             <h1>Outreach Manager Settings</h1>
-            
+
             <h2 class="nav-tab-wrapper">
                 <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
                 <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
@@ -217,13 +217,13 @@ class DD_Outreach_Manager
             <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_outreach_settings_group'); ?>
-                    
+
                     <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-                        
+
                         <div style="flex: 1; min-width: 400px;">
                             <h3>Email Content Template</h3>
                             <p>Customize the message body of your outreach emails. The layout and header/footer structure are managed dynamically.</p>
-                            
+
                             <div style="margin-bottom: 15px;">
                                 <strong>Available Merge Tags:</strong><br>
                                 <?php
@@ -234,14 +234,14 @@ class DD_Outreach_Manager
                                 ?>
                             </div>
 
-                            <?php 
+                            <?php
                             wp_editor($template, 'dd_outreach_email_template', [
                                 'media_buttons' => false,
                                 'textarea_rows' => 15,
                                 'teeny'         => true
-                            ]); 
+                            ]);
                             ?>
-                            
+
                             <?php submit_button('Save Email Template'); ?>
                         </div>
 
@@ -256,12 +256,12 @@ class DD_Outreach_Manager
                 </form>
             </div>
         </div>
-        <?php
+    <?php
     }
 
     /**
      * AJAX endpoint to render the live HTML preview of the email builder.
-     * Parses the current WYSIWYG content and injects dummy data.
+     * Parses the current WYSIWYG content and injects the latest outreach data (or dummy data if none exists).
      *
      * @return void
      */
@@ -275,8 +275,8 @@ class DD_Outreach_Manager
 
         $template = isset($_POST['template']) ? wp_kses_post(wp_unslash($_POST['template'])) : '';
 
-        // Inject dummy data for preview representation
-        $dummy_data = [
+        // 1. Establish dummy fallback data
+        $preview_data = [
             'influencer_name' => 'Cory Ruth',
             'brand_name'      => 'Acme Health Co.',
             'sender_name'     => 'Jane Doe',
@@ -287,17 +287,95 @@ class DD_Outreach_Manager
             'project_length'  => 'Ongoing / long-term',
             'project_dates'   => 'Flexible',
             'budget'          => '$1,000 - $5,000',
-            'message'         => "We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.",
+            'message'         => wp_kses_post(wpautop("We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.")),
             'sender_email'    => 'outreach@acmehealth.com'
         ];
 
-        // Process standard merge tags
-        $search  = array_map(function($key) { return '{' . $key . '}'; }, array_keys($dummy_data));
-        $replace = array_values($dummy_data);
-        $parsed_message = str_replace($search, $replace, $template);
+        // 2. Query the latest outreach post
+        $latest_outreach = get_posts([
+            'post_type'      => 'outreach',
+            'posts_per_page' => 1,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'post_status'    => 'publish'
+        ]);
 
-        // Render through the abstract HTML skeleton
-        $final_html = $this->get_email_html_skeleton($parsed_message, $dummy_data);
+        // 3. If an outreach post exists, overwrite dummy data with real data
+        if (!empty($latest_outreach)) {
+            $post      = $latest_outreach[0];
+            $post_id   = $post->ID;
+            $author_id = $post->post_author;
+
+            // Extract Sender (Brand) Identity
+            $sender      = get_userdata($author_id);
+            $sender_name = $sender ? ($sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name) : 'Unknown Sender';
+
+            $meta_job_title = get_user_meta($author_id, 'job_title', true);
+            $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
+
+            $meta_brand_name = get_user_meta($author_id, 'brand_name', true);
+            $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
+
+            $meta_country    = get_user_meta($author_id, 'country', true);
+            $country_display = $this->get_country_display($meta_country);
+
+            // Extract PMPro User Avatar safely
+            $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
+            $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
+            if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
+                if (function_exists('get_pmpro_file_field_url') && function_exists('convert_pmpro_path_to_url')) {
+                    $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($author_id, 'user_avatar', 'thumbnail'));
+                } else {
+                    $avatar_url = $avatar_meta['fullurl'];
+                }
+            }
+
+            // Extract Influencer & Project Scope
+            $influencer_id   = get_post_meta($post_id, 'influencer_id', true);
+            $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
+
+            $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
+            $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
+            $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
+            $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
+            $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
+
+            // Populate the array with the live data
+            $preview_data = [
+                'influencer_name' => $influencer_name,
+                'brand_name'      => $brand_name,
+                'sender_name'     => $sender_name,
+                'job_title'       => $job_title,
+                'country_display' => $country_display,
+                'avatar_url'      => $avatar_url,
+                'project_type'    => esc_html($project_type),
+                'project_length'  => esc_html($project_length),
+                'project_dates'   => esc_html($project_dates),
+                'budget'          => esc_html($budget),
+                'message'         => wp_kses_post(wpautop($message)),
+                'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com'
+            ];
+        }
+
+        // 4. Map the exact Merge Tags to the data array
+        $dictionary = [
+            '{influencer_name}' => $preview_data['influencer_name'],
+            '{brand_name}'      => $preview_data['brand_name'],
+            '{sender_name}'     => $preview_data['sender_name'],
+            '{job_title}'       => $preview_data['job_title'],
+            '{country}'         => $preview_data['country_display'],
+            '{project_type}'    => $preview_data['project_type'],
+            '{project_length}'  => $preview_data['project_length'],
+            '{project_dates}'   => $preview_data['project_dates'],
+            '{budget}'          => $preview_data['budget'],
+            '{message}'         => $preview_data['message'],
+        ];
+
+        // 5. Execute Merge Tag Search & Replace
+        $parsed_message = str_replace(array_keys($dictionary), array_values($dictionary), $template);
+
+        // 6. Render through the abstract HTML skeleton
+        $final_html = $this->get_email_html_skeleton($parsed_message, $preview_data);
 
         wp_send_json_success($final_html);
     }
@@ -311,7 +389,7 @@ class DD_Outreach_Manager
     public function inject_global_styles()
     {
         // Outputting existing styles unmodified.
-?>
+    ?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
             .dd-message-overview {
@@ -950,7 +1028,7 @@ class DD_Outreach_Manager
     private function get_email_html_skeleton($message_content, $data)
     {
         ob_start();
-        ?>
+    ?>
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
@@ -961,13 +1039,22 @@ class DD_Outreach_Manager
             <title>Partnership Opportunity</title>
             <style>
                 /* [Core Resets & Typography] */
-                table, td, div, h1, p, a, span {
+                table,
+                td,
+                div,
+                h1,
+                p,
+                a,
+                span {
                     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 }
-                table, td {
+
+                table,
+                td {
                     mso-table-lspace: 0pt;
                     mso-table-rspace: 0pt;
                 }
+
                 img {
                     -ms-interpolation-mode: bicubic;
                     border: 0;
@@ -976,13 +1063,32 @@ class DD_Outreach_Manager
                     outline: none;
                     text-decoration: none;
                 }
+
                 /* [Hover States & Mobile Refinements] */
-                a:hover { text-decoration: none !important; }
+                a:hover {
+                    text-decoration: none !important;
+                }
+
                 @media screen and (max-width: 600px) {
-                    .w-100 { width: 100% !important; max-width: 100% !important; }
-                    .stack-column { display: block !important; width: 100% !important; text-align: center !important; margin-bottom: 15px !important; }
-                    .mobile-center { text-align: center !important; }
-                    .footer-action { margin-top: 15px !important; }
+                    .w-100 {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+
+                    .stack-column {
+                        display: block !important;
+                        width: 100% !important;
+                        text-align: center !important;
+                        margin-bottom: 15px !important;
+                    }
+
+                    .mobile-center {
+                        text-align: center !important;
+                    }
+
+                    .footer-action {
+                        margin-top: 15px !important;
+                    }
                 }
             </style>
         </head>
@@ -1144,7 +1250,7 @@ class DD_Outreach_Manager
         </body>
 
         </html>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
@@ -1234,7 +1340,9 @@ class DD_Outreach_Manager
         ];
 
         // Execute merge tags replacement safely
-        $search  = array_map(function($key) { return '{' . $key . '}'; }, array_keys($dictionary));
+        $search  = array_map(function ($key) {
+            return '{' . $key . '}';
+        }, array_keys($dictionary));
         $replace = array_values($dictionary);
         $compiled_message = str_replace($search, $replace, $raw_template);
 
