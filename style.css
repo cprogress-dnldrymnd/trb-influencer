@@ -403,7 +403,9 @@ input:checked + .slider:before {
   font-weight: 400;
   color: var(--e-global-color-primary); }
 
-.pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label), .pmpro_section #loginform .login-remember {
+.pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label),
+.pmpro_section #loginform .login-remember,
+#pmpro_login .pmpro_actions_nav {
   font-size: 14px; }
 
 .pmpro.pmpro * {
