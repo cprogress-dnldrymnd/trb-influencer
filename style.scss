@@ -15,12 +15,10 @@ Tags: flexible-header, custom-colors, custom-menu, custom-logo, editor-style, fe
 /* Add your custom styles here */
 @media (min-width: 1025px) {
     body {
-        :root {
-            --pmpro--color--contrast: #000;
-            --pmpro--base--spacing--small: clamp(8px, 0.625vw, 12px);
-            --pmpro--base--spacing--medium: clamp(10px, 1.042vw, 20px);
-            --pmpro--base--spacing--large: clamp(15px, 1.875vw, 36px);
-        }
+        --pmpro--color--contrast: #000;
+        --pmpro--base--spacing--small: clamp(8px, 0.625vw, 12px);
+        --pmpro--base--spacing--medium: clamp(10px, 1.042vw, 20px);
+        --pmpro--base--spacing--large: clamp(15px, 1.875vw, 36px);
     }
 }
 
