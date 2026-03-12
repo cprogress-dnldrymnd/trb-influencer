@@ -445,9 +445,6 @@ class DD_PMPro_Frontend_Pricing
 				border-radius: 50%;
 			}
 
-			.dd-toggle-label {
-				font-size: clamp(12px, 0.833vw, 16px);
-			}
 
 			.dd-btn {
 				background-color: var(--e-global-color-accent);
