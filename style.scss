@@ -1343,7 +1343,10 @@ input:checked + .slider:before {
 
 .pmpro-checkout {
     #pmpro_form_fieldset-profile {
-        display: none;
+        .pmpro_form_heading,
+        #user_avatar_div {
+            display: none;
+        }
     }
 }
 
