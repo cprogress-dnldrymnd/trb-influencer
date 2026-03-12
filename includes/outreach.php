@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches HTML notifications, and provides dynamic shortcode views for project management.
- * Version: 1.8.0
+ * Version: 1.9.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -15,8 +15,8 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_Outreach_Manager
- * Handles Elementor form interception, dynamic HTML generation, and shortcode
- * rendering for the master-detail outreach dashboard.
+ * Handles Elementor form interception, dynamic HTML generation, master-detail dashboard,
+ * and the backend Email Builder settings.
  */
 class DD_Outreach_Manager
 {
@@ -38,19 +38,268 @@ class DD_Outreach_Manager
         add_shortcode('dd_outreach_list', [$this, 'render_list_shortcode']);
         add_shortcode('dd_outreach_view', [$this, 'render_view_shortcode']);
 
-        // AJAX Handlers for dynamic viewing & filtering
+        // Frontend AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
 
-        // AJAX Handlers for Notes CRUD
+        // Frontend AJAX Handlers for Notes CRUD
         add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
         add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
 
-        // Enqueue necessary scripts for the interactive dashboard
+        // Backend Admin Menu & Settings
+        add_action('admin_menu', [$this, 'register_admin_menu']);
+        add_action('admin_init', [$this, 'register_settings']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
+
+        // Backend AJAX Handler for Live Email Preview
+        add_action('wp_ajax_dd_preview_email', [$this, 'ajax_preview_email']);
+
+        // Enqueue necessary scripts for the interactive frontend dashboard
         add_action('wp_enqueue_scripts', [$this, 'enqueue_dashboard_scripts']);
 
         // Backend Meta Boxes
         add_action('add_meta_boxes', [$this, 'add_note_meta_box']);
+    }
+
+    /**
+     * Registers the plugin settings submenu page under the 'outreach' custom post type.
+     * Logically partitions components via a tabbed interface.
+     *
+     * @return void
+     */
+    public function register_admin_menu()
+    {
+        // Attaching under the 'outreach' CPT if it exists, fallback to standard options-general.php
+        $parent_slug = post_type_exists('outreach') ? 'edit.php?post_type=outreach' : 'options-general.php';
+        
+        add_submenu_page(
+            $parent_slug,
+            'Outreach Settings',
+            'Settings',
+            'manage_options',
+            'dd-outreach-settings',
+            [$this, 'render_settings_page']
+        );
+    }
+
+    /**
+     * Registers the settings and database options for the Email Builder.
+     *
+     * @return void
+     */
+    public function register_settings()
+    {
+        register_setting('dd_outreach_settings_group', 'dd_outreach_email_template');
+    }
+
+    /**
+     * Enqueues administration scripts and styles strictly for the settings page.
+     * Handles live preview debounce and WYSIWYG integration.
+     *
+     * @param string $hook The current admin page hook.
+     * @return void
+     */
+    public function enqueue_admin_scripts($hook)
+    {
+        if (strpos($hook, 'dd-outreach-settings') === false) {
+            return;
+        }
+
+        wp_enqueue_script('jquery');
+        
+        $custom_js = "
+        jQuery(document).ready(function($) {
+            // Tab Switcher Logic
+            $('.nav-tab').on('click', function(e) {
+                e.preventDefault();
+                $('.nav-tab').removeClass('nav-tab-active');
+                $(this).addClass('nav-tab-active');
+                $('.dd-tab-content').hide();
+                var target = $(this).attr('href');
+                $(target).show();
+            });
+
+            // Merge Tag Injection
+            $('.dd-merge-tag').on('click', function(e) {
+                e.preventDefault();
+                var tag = $(this).data('tag');
+                if (typeof tinymce !== 'undefined' && tinymce.get('dd_outreach_email_template')) {
+                    tinymce.get('dd_outreach_email_template').execCommand('mceInsertContent', false, tag);
+                } else {
+                    var txtarea = $('#dd_outreach_email_template');
+                    var val = txtarea.val();
+                    var start = txtarea[0].selectionStart;
+                    var end = txtarea[0].selectionEnd;
+                    txtarea.val(val.substring(0, start) + tag + val.substring(end));
+                }
+                triggerPreviewUpdate();
+            });
+
+            // Live Preview AJAX trigger
+            var previewTimer;
+            function triggerPreviewUpdate() {
+                var content = '';
+                if (typeof tinymce !== 'undefined' && tinymce.get('dd_outreach_email_template')) {
+                    content = tinymce.get('dd_outreach_email_template').getContent();
+                } else {
+                    content = $('#dd_outreach_email_template').val();
+                }
+
+                $.post(ajaxurl, {
+                    action: 'dd_preview_email',
+                    security: ddAdmin.nonce,
+                    template: content
+                }, function(response) {
+                    if (response.success) {
+                        var iframe = document.getElementById('dd-email-preview-iframe');
+                        var doc = iframe.contentWindow.document;
+                        doc.open();
+                        doc.write(response.data);
+                        doc.close();
+                    }
+                });
+            }
+
+            // Bind TinyMCE keyup/change events for real-time rendering
+            if (typeof tinymce !== 'undefined') {
+                tinymce.on('AddEditor', function(e) {
+                    if(e.editor.id === 'dd_outreach_email_template') {
+                        e.editor.on('keyup change', function() {
+                            clearTimeout(previewTimer);
+                            previewTimer = setTimeout(triggerPreviewUpdate, 600);
+                        });
+                    }
+                });
+            }
+
+            $('#dd_outreach_email_template').on('keyup change', function() {
+                clearTimeout(previewTimer);
+                previewTimer = setTimeout(triggerPreviewUpdate, 600);
+            });
+
+            // Initial load rendering
+            setTimeout(triggerPreviewUpdate, 500);
+        });
+        ";
+
+        wp_add_inline_script('jquery-core', $custom_js);
+        wp_localize_script('jquery-core', 'ddAdmin', [
+            'nonce' => wp_create_nonce('dd_admin_nonce')
+        ]);
+    }
+
+    /**
+     * Renders the Backend Settings Page HTML.
+     * Contains the tabbed logic and the WYSIWYG Email Builder.
+     *
+     * @return void
+     */
+    public function render_settings_page()
+    {
+        $default_template = '<p style="margin:0 0 15px 0;">Hi {influencer_name},</p>
+{message}
+<p style="margin:15px 0 0 0;">Best regards,<br>{sender_name}<br>{brand_name}</p>';
+
+        $template = get_option('dd_outreach_email_template', $default_template);
+        ?>
+        <div class="wrap">
+            <h1>Outreach Manager Settings</h1>
+            
+            <h2 class="nav-tab-wrapper">
+                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
+                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
+            </h2>
+
+            <div id="tab-form-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
+                <p><em>Form Builder configuration (Duplication, Reordering, Collapsing) to be implemented here...</em></p>
+            </div>
+
+            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
+                <form method="post" action="options.php">
+                    <?php settings_fields('dd_outreach_settings_group'); ?>
+                    
+                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+                        
+                        <div style="flex: 1; min-width: 400px;">
+                            <h3>Email Content Template</h3>
+                            <p>Customize the message body of your outreach emails. The layout and header/footer structure are managed dynamically.</p>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <strong>Available Merge Tags:</strong><br>
+                                <?php
+                                $tags = ['{influencer_name}', '{brand_name}', '{sender_name}', '{job_title}', '{country}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
+                                foreach ($tags as $tag) {
+                                    echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
+                                }
+                                ?>
+                            </div>
+
+                            <?php 
+                            wp_editor($template, 'dd_outreach_email_template', [
+                                'media_buttons' => false,
+                                'textarea_rows' => 15,
+                                'teeny'         => true
+                            ]); 
+                            ?>
+                            
+                            <?php submit_button('Save Email Template'); ?>
+                        </div>
+
+                        <div style="flex: 1; min-width: 400px;">
+                            <h3>Live Preview</h3>
+                            <div style="border: 1px solid #ccc; border-radius: 8px; overflow: hidden; background: #EBEBEB; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                <iframe id="dd-email-preview-iframe" style="width: 100%; height: 600px; border: none;" src="about:blank"></iframe>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * AJAX endpoint to render the live HTML preview of the email builder.
+     * Parses the current WYSIWYG content and injects dummy data.
+     *
+     * @return void
+     */
+    public function ajax_preview_email()
+    {
+        check_ajax_referer('dd_admin_nonce', 'security');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $template = isset($_POST['template']) ? wp_kses_post(wp_unslash($_POST['template'])) : '';
+
+        // Inject dummy data for preview representation
+        $dummy_data = [
+            'influencer_name' => 'Cory Ruth',
+            'brand_name'      => 'Acme Health Co.',
+            'sender_name'     => 'Jane Doe',
+            'job_title'       => 'Partnerships Director',
+            'country_display' => $this->get_country_display('US'),
+            'avatar_url'      => 'https://via.placeholder.com/60x60',
+            'project_type'    => 'Affiliate partnership',
+            'project_length'  => 'Ongoing / long-term',
+            'project_dates'   => 'Flexible',
+            'budget'          => '$1,000 - $5,000',
+            'message'         => "We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.",
+            'sender_email'    => 'outreach@acmehealth.com'
+        ];
+
+        // Process standard merge tags
+        $search  = array_map(function($key) { return '{' . $key . '}'; }, array_keys($dummy_data));
+        $replace = array_values($dummy_data);
+        $parsed_message = str_replace($search, $replace, $template);
+
+        // Render through the abstract HTML skeleton
+        $final_html = $this->get_email_html_skeleton($parsed_message, $dummy_data);
+
+        wp_send_json_success($final_html);
     }
 
     /**
@@ -564,22 +813,6 @@ class DD_Outreach_Manager
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
-            @media(max-width: 1199px) {
-                .dd-notes-grid {
-                    flex-direction: column;
-                }
-                .dd-note-card {
-                    width: 100%;
-                }
-                .dd-notes-list-container {
-                    width: 100%;
-                }
-            }
-            @media(max-width: 1024px) {
-                .dd-dashboard-list-container {
-                    max-width: 100%;
-                }
-            }
         </style>
     <?php
     }
@@ -707,73 +940,17 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Maps specific sender details (brand, role, location, PMPro avatar) directly from user meta context.
+     * Reusable logic to assemble the strict HTML layout frame for the Outreach email.
+     * Keeps code DRY between the actual dispatch event and the Live Preview AJAX route.
      *
-     * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
-     * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
-     * @return bool                  True on successful dispatch; false otherwise.
+     * @param string $message_content The parsed content string containing dynamic inner HTML.
+     * @param array  $data            Array of structural variables required for the header/footer block.
+     * @return string                 The fully compiled HTML string.
      */
-    private function send_outreach_email($data, $current_user_id)
+    private function get_email_html_skeleton($message_content, $data)
     {
-        // Resolve Sender Identity
-        $sender = get_userdata($current_user_id);
-        if (!$sender) {
-            return false;
-        }
-
-        $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
-        $sender_email = $sender->user_email;
-
-        // Isolate brand context strictly from user meta, bypassing the $data form array
-        $meta_job_title = get_user_meta($current_user_id, 'job_title', true);
-        $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
-
-        $meta_brand_name = get_user_meta($current_user_id, 'brand_name', true);
-        $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
-
-        $meta_country    = get_user_meta($current_user_id, 'country', true);
-        $country_code    = !empty($meta_country) ? $meta_country : '';
-        $country_display = $this->get_country_display($country_code);
-
-        // Extract PMPro User Avatar
-        $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-
-        if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
-        }
-
-        // Resolve Influencer Context
-        $influencer_id   = absint($data['influencer_id']);
-        $influencer_name = get_the_title($influencer_id);
-
-        // Map influencer recipient address.
-        #$influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
-        $influencer_email = 'donald@cprogress.co.uk';
-
-        // Fallback: Bind to the post author's user account email if meta mapping fails
-        if (empty($influencer_email) || !is_email($influencer_email)) {
-            $influencer_post = get_post($influencer_id);
-            if ($influencer_post) {
-                $influencer_user = get_userdata($influencer_post->post_author);
-                if ($influencer_user) {
-                    $influencer_email = $influencer_user->user_email;
-                }
-            }
-            if (empty($influencer_email)) {
-                return false;
-            }
-        }
-
-        $subject = 'A partnership opportunity with ' . $brand_name;
-        $headers = [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $brand_name . ' <' . $sender_email . '>',
-            'Reply-To: ' . $sender_name . ' <' . $sender_email . '>'
-        ];
-
         ob_start();
-    ?>
+        ?>
         <!DOCTYPE html>
         <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
@@ -784,22 +961,13 @@ class DD_Outreach_Manager
             <title>Partnership Opportunity</title>
             <style>
                 /* [Core Resets & Typography] */
-                table,
-                td,
-                div,
-                h1,
-                p,
-                a,
-                span {
+                table, td, div, h1, p, a, span {
                     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 }
-
-                table,
-                td {
+                table, td {
                     mso-table-lspace: 0pt;
                     mso-table-rspace: 0pt;
                 }
-
                 img {
                     -ms-interpolation-mode: bicubic;
                     border: 0;
@@ -808,32 +976,13 @@ class DD_Outreach_Manager
                     outline: none;
                     text-decoration: none;
                 }
-
                 /* [Hover States & Mobile Refinements] */
-                a:hover {
-                    text-decoration: none !important;
-                }
-
+                a:hover { text-decoration: none !important; }
                 @media screen and (max-width: 600px) {
-                    .w-100 {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                    }
-
-                    .stack-column {
-                        display: block !important;
-                        width: 100% !important;
-                        text-align: center !important;
-                        margin-bottom: 15px !important;
-                    }
-
-                    .mobile-center {
-                        text-align: center !important;
-                    }
-
-                    .footer-action {
-                        margin-top: 15px !important;
-                    }
+                    .w-100 { width: 100% !important; max-width: 100% !important; }
+                    .stack-column { display: block !important; width: 100% !important; text-align: center !important; margin-bottom: 15px !important; }
+                    .mobile-center { text-align: center !important; }
+                    .footer-action { margin-top: 15px !important; }
                 }
             </style>
         </head>
@@ -852,10 +1001,10 @@ class DD_Outreach_Manager
                                         <table role="presentation" style="width:100%;border:none;border-spacing:0;">
                                             <tr>
                                                 <td width="40" valign="middle">
-                                                    <img src="<?= get_stylesheet_directory_uri() . '/assets/images/influencer-email.png' ?>" alt="Alert" width="30" d style="display:block; width:30px; height:auto; border-radius:4px;">
+                                                    <img src="<?= get_stylesheet_directory_uri() . '/assets/images/influencer-email.png' ?>" alt="Alert" width="30" style="display:block; width:30px; height:auto; border-radius:4px;">
                                                 </td>
                                                 <td valign="middle" style="color:#FFFFFF; font-size:16px; font-weight:bold; line-height:24px;">
-                                                    A partnership opportunity with <?php echo $brand_name; ?>
+                                                    A partnership opportunity with <?php echo esc_html($data['brand_name'] ?? ''); ?>
                                                 </td>
                                             </tr>
                                         </table>
@@ -865,23 +1014,23 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 30px 30px 20px 30px;">
                                         <h2 style="margin:0 0 25px 0; font-size:18px; font-weight:bold; line-height:28px;">
-                                            <?php echo $brand_name; ?> <span style="font-weight: 400">reached out to you via</span> The Ribbon Box Influencer Collective.
+                                            <?php echo esc_html($data['brand_name'] ?? ''); ?> <span style="font-weight: 400">reached out to you via</span> The Ribbon Box Influencer Collective.
                                         </h2>
 
                                         <p style="margin:0 0 15px 0; font-size:16px; font-weight:bold;">Message received from</p>
 
                                         <table role="presentation" style="border:none;border-spacing:0;">
                                             <tr>
-                                                <?php if ($avatar_url) { ?>
+                                                <?php if (!empty($data['avatar_url'])) { ?>
                                                     <td width="70" valign="top">
-                                                        <img src="<?php echo esc_url($avatar_url); ?>" alt="<?php echo esc_attr($sender_name); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
+                                                        <img src="<?php echo esc_url($data['avatar_url']); ?>" alt="<?php echo esc_attr($data['sender_name'] ?? ''); ?>" width="60" style="display:block; width:60px; height:60px; border-radius:50%; border: 1px solid #CCCCCC; object-fit: cover;">
                                                     </td>
                                                 <?php } ?>
                                                 <td valign="middle" style="font-size:15px; line-height:22px;">
-                                                    <span style="font-weight:bold;"><?php echo esc_html($sender_name); ?></span><br>
-                                                    <?php echo $job_title; ?> at <?php echo $brand_name; ?><br>
-                                                    <?php if ($country_display) : ?>
-                                                        <span style="font-size: 14px;"><?php echo $country_display; ?></span>
+                                                    <span style="font-weight:bold;"><?php echo esc_html($data['sender_name'] ?? ''); ?></span><br>
+                                                    <?php echo esc_html($data['job_title'] ?? ''); ?> at <?php echo esc_html($data['brand_name'] ?? ''); ?><br>
+                                                    <?php if (!empty($data['country_display'])) : ?>
+                                                        <span style="font-size: 14px;"><?php echo $data['country_display']; ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>
@@ -905,7 +1054,7 @@ class DD_Outreach_Manager
                                 <tr>
                                     <td style="padding: 25px 30px 10px 30px;">
                                         <h3 style="margin:0 0 5px 0; font-size:18px; font-weight:bold; letter-spacing: 0.9px;">Opportunity overview</h3>
-                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px; letter-spacing: 0.75px">A brief summary of the opportunity shared by <?php echo $brand_name; ?></p>
+                                        <p style="margin:0 0 20px 0; font-size:15px; line-height:22px; letter-spacing: 0.75px">A brief summary of the opportunity shared by <?php echo esc_html($data['brand_name'] ?? ''); ?></p>
 
                                         <table role="presentation" style="border:none;border-spacing:0; margin-bottom:10px;">
                                             <tr>
@@ -942,11 +1091,7 @@ class DD_Outreach_Manager
                                     <td style="padding: 0 30px 20px 30px;">
                                         <h3 style="margin:0 0 15px 0; font-size:18px; font-weight:bold;">Outreach message</h3>
                                         <div style="font-size:15px; line-height:24px; color:#000; letter-spacing: 0.9px;">
-                                            <p style="margin:0 0 15px 0;">Hi <?php echo esc_html($influencer_name); ?>,</p>
-
-                                            <?php echo wp_kses_post(wpautop($data['message'])); ?>
-
-                                            <p style="margin:15px 0 0 0;">Best regards,<br><?php echo esc_html($sender_name); ?><br><?php echo $brand_name; ?></p>
+                                            <?php echo $message_content; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -956,8 +1101,8 @@ class DD_Outreach_Manager
                                         <table role="presentation" style="width:100%; border:none; border-spacing:0;">
                                             <tr>
                                                 <td align="center" style="background-color:#2D2D2D; border-radius:4px;">
-                                                    <a href="mailto:<?php echo esc_attr($sender_email); ?>" style="display:block; padding:16px 20px; font-size:14px; font-weight:bold; color:#FFFFFF; text-decoration:none; text-transform:uppercase; letter-spacing:1px;">
-                                                        💬 Reply to <?php echo $brand_name; ?>
+                                                    <a href="mailto:<?php echo esc_attr($data['sender_email'] ?? ''); ?>" style="display:block; padding:16px 20px; font-size:14px; font-weight:bold; color:#FFFFFF; text-decoration:none; text-transform:uppercase; letter-spacing:1px;">
+                                                        💬 Reply to <?php echo esc_html($data['brand_name'] ?? ''); ?>
                                                     </a>
                                                 </td>
                                             </tr>
@@ -999,8 +1144,115 @@ class DD_Outreach_Manager
         </body>
 
         </html>
-    <?php
-        $html_content = ob_get_clean();
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Compiles and dispatches the HTML outreach email payload to the target influencer.
+     * Maps specific sender details (brand, role, location, PMPro avatar) directly from user meta context.
+     *
+     * @param array $data            The sanitized submitted form data (contains message, project scopes, etc.).
+     * @param int   $current_user_id The ID of the authenticated user submitting the form (the brand).
+     * @return bool                  True on successful dispatch; false otherwise.
+     */
+    private function send_outreach_email($data, $current_user_id)
+    {
+        // Resolve Sender Identity
+        $sender = get_userdata($current_user_id);
+        if (!$sender) {
+            return false;
+        }
+
+        $sender_name  = $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name;
+        $sender_email = $sender->user_email;
+
+        // Isolate brand context strictly from user meta, bypassing the $data form array
+        $meta_job_title = get_user_meta($current_user_id, 'job_title', true);
+        $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
+
+        $meta_brand_name = get_user_meta($current_user_id, 'brand_name', true);
+        $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
+
+        $meta_country    = get_user_meta($current_user_id, 'country', true);
+        $country_code    = !empty($meta_country) ? $meta_country : '';
+        $country_display = $this->get_country_display($country_code);
+
+        // Extract PMPro User Avatar
+        $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
+        $avatar_url  = '';
+        if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
+            $avatar_url = convert_pmpro_path_to_url(get_pmpro_file_field_url($current_user_id, 'user_avatar', 'thumbnail'));
+        }
+
+        // Resolve Influencer Context
+        $influencer_id   = absint($data['influencer_id']);
+        $influencer_name = get_the_title($influencer_id);
+
+        // Map influencer recipient address.
+        $influencer_email = 'donald@cprogress.co.uk';
+
+        // Fallback: Bind to the post author's user account email if meta mapping fails
+        if (empty($influencer_email) || !is_email($influencer_email)) {
+            $influencer_post = get_post($influencer_id);
+            if ($influencer_post) {
+                $influencer_user = get_userdata($influencer_post->post_author);
+                if ($influencer_user) {
+                    $influencer_email = $influencer_user->user_email;
+                }
+            }
+            if (empty($influencer_email)) {
+                return false;
+            }
+        }
+
+        $subject = 'A partnership opportunity with ' . $brand_name;
+        $headers = [
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $brand_name . ' <' . $sender_email . '>',
+            'Reply-To: ' . $sender_name . ' <' . $sender_email . '>'
+        ];
+
+        // Retrieve saved Email Template OR Default
+        $default_template = '<p style="margin:0 0 15px 0;">Hi {influencer_name},</p>
+{message}
+<p style="margin:15px 0 0 0;">Best regards,<br>{sender_name}<br>{brand_name}</p>';
+        $raw_template = get_option('dd_outreach_email_template', $default_template);
+
+        // Compile Dictionary for Search/Replace execution
+        $dictionary = [
+            'influencer_name' => $influencer_name,
+            'brand_name'      => $brand_name,
+            'sender_name'     => $sender_name,
+            'job_title'       => $job_title,
+            'country'         => $country_display,
+            'project_type'    => esc_html($data['project_type'] ?? 'N/A'),
+            'project_length'  => esc_html($data['project_length'] ?? 'N/A'),
+            'project_dates'   => esc_html($data['project_dates'] ?? 'Flexible'),
+            'budget'          => esc_html($data['budget'] ?? 'To be discussed'),
+            'message'         => wp_kses_post(wpautop($data['message'] ?? ''))
+        ];
+
+        // Execute merge tags replacement safely
+        $search  = array_map(function($key) { return '{' . $key . '}'; }, array_keys($dictionary));
+        $replace = array_values($dictionary);
+        $compiled_message = str_replace($search, $replace, $raw_template);
+
+        // Inject compiled string & environment variables into the layout Skeleton
+        $template_args = [
+            'brand_name'      => $brand_name,
+            'sender_name'     => $sender_name,
+            'job_title'       => $job_title,
+            'country_display' => $country_display,
+            'avatar_url'      => $avatar_url,
+            'sender_email'    => $sender_email,
+            'project_type'    => esc_html($data['project_type'] ?? 'N/A'),
+            'project_length'  => esc_html($data['project_length'] ?? 'N/A'),
+            'project_dates'   => esc_html($data['project_dates'] ?? 'Flexible'),
+            'budget'          => esc_html($data['budget'] ?? 'To be discussed'),
+        ];
+
+        $html_content = $this->get_email_html_skeleton($compiled_message, $template_args);
 
         return wp_mail($influencer_email, $subject, $html_content, $headers);
     }
@@ -1694,6 +1946,7 @@ class DD_Outreach_Manager
             'nonce'    => wp_create_nonce('dd_outreach_nonce')
         ]);
     }
+
     /**
      * Converts a 2-letter ISO country code to its corresponding Emoji flag and full name.
      * Utilizes HTML decimal entities for bulletproof rendering in email clients.
