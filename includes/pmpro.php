@@ -355,7 +355,6 @@ function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, 
 // Hook into the logout_redirect filter with a standard priority of 10, accepting 3 arguments
 add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
 
-<?php
 /**
  * Plugin Name: PMPro - Append Billing Cycle on Plan Switch
  * Description: Modifies the recurring billing start date when users switch between subscription plans (e.g., Monthly to Annual), appending the new cycle to the existing next payment date.
