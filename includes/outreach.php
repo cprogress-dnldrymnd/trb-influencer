@@ -873,7 +873,7 @@ class DD_Outreach_Manager
             // Extract Influencer & Project Scope
             $influencer_id    = get_post_meta($post_id, 'influencer_id', true);
             $influencer_name  = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
-            $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'influencer_email', true) : 'creator@example.com';
+            $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'creator_contact_emails', true) : 'creator@example.com';
 
             $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
             $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
