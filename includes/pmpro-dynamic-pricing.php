@@ -342,6 +342,8 @@ class DD_PMPro_Frontend_Pricing
 				flex-direction: column;
 				border: 4px solid var(--e-global-color-2ba2932);
 				font-family: Work Sans, sans-serif;
+				font-size: clamp(12px, 0.938vw, 18px);
+
 			}
 
 			.dd-card:hover {
@@ -376,7 +378,6 @@ class DD_PMPro_Frontend_Pricing
 			.dd-plan-desc {
 				margin-bottom: 1.5rem;
 				flex-grow: 1;
-				font-size: clamp(12px, 0.938vw, 18px);
 			}
 
 			.dd-price-wrapper {
