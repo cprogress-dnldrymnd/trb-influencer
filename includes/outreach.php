@@ -400,6 +400,7 @@ class DD_Outreach_Manager
                 $('select[name=\"project_type\"]').val('');
                 $('select[name=\"project_length\"]').val('');
                 triggerFilter();
+                console.log('test');
             });
 
 
