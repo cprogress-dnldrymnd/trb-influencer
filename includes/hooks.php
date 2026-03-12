@@ -105,10 +105,10 @@ function action_wp_head()
         $ranked_niches_stats = false;
     }
     if ($ranked_niches_stats == false && $recently_viewed_stats == false) {
-        echo '#starts-a-search { display: flex !important; }';
+        #echo '#starts-a-search { display: flex !important; }';
         echo '#dashboard-activity { display: none !important; }';
     } else {
-        echo '#starts-a-search { display: none !important; }';
+        #echo '#starts-a-search { display: none !important; }';
     }
 
 
