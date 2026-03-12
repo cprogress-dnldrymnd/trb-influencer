@@ -394,11 +394,7 @@ class DD_Outreach_Manager
             // Reset button: clear all filter inputs and re-run the list query
             $(document).on('click', '.reset-btn', function(e) {
                 e.preventDefault();
-                $('#dd-outreach-search').val('');
-                $('input[name=\"project_type[]\"]').prop('checked', false);
-                $('input[name=\"project_length[]\"]').prop('checked', false);
-                $('select[name=\"project_type\"]').val('');
-                $('select[name=\"project_length\"]').val('');
+   
                 triggerFilter();
                 console.log('test');
             });
