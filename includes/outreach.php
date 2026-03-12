@@ -1209,7 +1209,7 @@ class DD_Outreach_Manager
                 flex: 0 0 calc(100% - 68px);
                 width: calc(100% - 68px);
                 padding-left: 10px;
-                
+
             }
 
             .dd-outreach-item:hover,
@@ -1274,8 +1274,10 @@ class DD_Outreach_Manager
                 width: 100%;
                 position: relative;
             }
+
             .dd-close-modal {
-                display: none; /* Hidden by default on desktop */
+                display: none;
+                /* Hidden by default on desktop */
             }
 
             .dd-view-placeholder {
@@ -1467,7 +1469,8 @@ class DD_Outreach_Manager
             /* --- Responsive Mobile Modal Interception --- */
             @media (max-width: 1024px) {
                 .dd-outreach-view-container {
-                    display: none; /* Hide static desktop interface */
+                    display: none;
+                    /* Hide static desktop interface */
                     position: fixed;
                     top: 0;
                     left: 0;
@@ -1483,7 +1486,8 @@ class DD_Outreach_Manager
                 }
 
                 .dd-outreach-view-container.dd-modal-active {
-                    display: flex; /* Execute Modal Sequence */
+                    display: flex;
+                    /* Execute Modal Sequence */
                 }
 
                 .dd-modal-content-wrapper {
@@ -1493,12 +1497,13 @@ class DD_Outreach_Manager
                     max-height: 90vh;
                     overflow-y: auto;
                     border-radius: 8px;
-                    padding: 30px 20px 20px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                    padding: 50px 20px 20px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                 }
 
-                .dd-close-modal {
-                    display: block; /* Reveal responsive close trigger */
+                .dd-close-modal.dd-close-modal {
+                    display: block;
+                    /* Reveal responsive close trigger */
                     position: absolute;
                     top: 10px;
                     right: 15px;
@@ -1509,6 +1514,12 @@ class DD_Outreach_Manager
                     color: #333;
                     z-index: 10;
                     line-height: 1;
+                    background-color: transparent;
+                    padding: 0;
+                    border: none;
+                }
+                .dd-item-list {
+                    max-height: 100%;
                 }
             }
 
@@ -1524,6 +1535,7 @@ class DD_Outreach_Manager
                 .dd-notes-list-container {
                     width: 100%;
                 }
+
                 .dd-dashboard-list-container {
                     max-width: 100%;
                 }
