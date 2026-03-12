@@ -373,7 +373,8 @@ input:checked + .slider:before {
   font-size: 14px;
   color: var(--e-global-color-primary); }
 
-.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field input, .pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field .input,
+.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field input,
+.pmpro_form_field.pmpro_form_field.pmpro_form_field.pmpro_form_field .input,
 .pmpro_section.pmpro_section #loginform input,
 .pmpro_section.pmpro_section #loginform .input {
   font-size: 16px;
@@ -401,6 +402,9 @@ input:checked + .slider:before {
   font-size: 14px;
   font-weight: 400;
   color: var(--e-global-color-primary); }
+
+.pmpro_section #loginform label:not(.pmpro_section #loginform .login-remember label), .pmpro_section #loginform .login-remember {
+  font-size: 14px; }
 
 .pmpro.pmpro * {
   font-family: Inter !important; }
