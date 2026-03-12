@@ -990,7 +990,14 @@ input:checked + .slider:before {
     color: var(--e-global-color-2ba2932);
     border: none !important;
 }
-
+.pmpro_btn-cancel.pmpro_btn-cancel {
+    padding: 23px 30px;
+    border-color: var(--e-global-color-accent);
+    &:hover {
+        background-color: var(--e-global-color-accent);
+        color: var(--e-global-color-2ba2932);
+    }
+}
 #pmpro_levels {
     .pmpro_btn {
         text-transform: uppercase;
