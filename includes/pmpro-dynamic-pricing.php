@@ -363,7 +363,7 @@ class DD_PMPro_Frontend_Pricing
 				padding: 14px 22px;
 				border-radius: 20px;
 				font-size: 22px;
-				font-weight: bold;
+				font-weight: 600;
 				max-width: 300px;
 				width: 100%;
 				text-align: center;
