@@ -184,7 +184,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          */
         public function add_avatar_field()
         {
-            if (! function_exists('pmpro_add_user_field')) {
+            if (! function_exists('pmpro_add_user_field') && !is_page(1551)) {
                 return;
             }
 
@@ -197,7 +197,6 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                     'preview'      => true,
                     'allow_delete' => true,
                     'hint'         => 'Recommended size: 200x200 pixels.',
-                    'levels'       => array()
                 )
             );
 
