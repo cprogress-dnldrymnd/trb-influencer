@@ -356,18 +356,6 @@ function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, 
 add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
 
 /**
- * Plugin Name: PMPro - Append Billing Cycle on Plan Switch
- * Description: Modifies the recurring billing start date when users switch between subscription plans (e.g., Monthly to Annual), appending the new cycle to the existing next payment date.
- * Version: 1.0.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly.
-}
-
-/**
  * Adjusts the profile_start_date and initial_payment for the new membership level during checkout.
  * This ensures the new billing cycle appends to the existing subscription's next payment date appropriately.
  *
@@ -424,3 +412,73 @@ function dd_pmpro_append_billing_cycle_on_switch( $level ) {
     return $level;
 }
 add_filter( 'pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1 );
+
+
+/**
+ * Intercepts the checkout completion to detect if a downgrade occurred.
+ * If so, it restores the previous higher-tier access, sets it to expire at the end 
+ * of the paid term, and queues the new lower-tier level in user meta.
+ *
+ * @param int $user_id The ID of the user who just checked out.
+ * @param MemberOrder $morder The order object for the transaction.
+ * @return void
+ */
+function dd_pmpro_queue_delayed_downgrade( $user_id, $morder ) {
+    // PMPro stores the old level in user meta during checkout. 
+    // We retrieve it to compare against the new level being purchased.
+    $old_level_id = get_user_meta( $user_id, 'pmpro_checkout_old_level', true );
+    $new_level_id = intval( $morder->membership_id );
+
+    if ( empty( $old_level_id ) || $old_level_id == $new_level_id ) {
+        return;
+    }
+
+    $old_level = pmpro_getLevel( $old_level_id );
+    $new_level = pmpro_getLevel( $new_level_id );
+
+    // Define downgrade logic: The new plan costs less than the old plan.
+    $is_downgrade = ( (float) $new_level->billing_amount < (float) $old_level->billing_amount );
+
+    if ( $is_downgrade ) {
+        // 1. Calculate the end date of their current paid term based on the gateway subscription.
+        $next_payment_timestamp = pmpro_next_payment( $user_id );
+        
+        if ( $next_payment_timestamp && $next_payment_timestamp > current_time( 'timestamp' ) ) {
+            
+            // 2. Queue the new (downgraded) level in user meta to be applied later.
+            update_user_meta( $user_id, '_dd_pending_downgrade_level', $new_level_id );
+
+            // 3. Restore the user's access to the old (Growth) level immediately, 
+            // but inject an expiration date matching their next payment cycle.
+            pmpro_changeMembershipLevel( array(
+                'user_id'       => $user_id,
+                'membership_id' => $old_level_id,
+                'enddate'       => date( "Y-m-d H:i:s", $next_payment_timestamp )
+            ), $user_id );
+        }
+    }
+}
+add_action( 'pmpro_after_checkout', 'dd_pmpro_queue_delayed_downgrade', 10, 2 );
+
+/**
+ * Hooks into PMPro's daily expiration cron job.
+ * If a user's membership expires and they have a queued downgrade, 
+ * this applies the queued level automatically instead of dropping them to a free state.
+ *
+ * @param int $user_id The ID of the user whose membership is expiring.
+ * @param int $membership_id The ID of the membership level that just expired.
+ * @return void
+ */
+function dd_pmpro_apply_queued_downgrade_on_expiry( $user_id, $membership_id ) {
+    // Retrieve the queued downgrade level ID.
+    $pending_level_id = get_user_meta( $user_id, '_dd_pending_downgrade_level', true );
+
+    if ( ! empty( $pending_level_id ) ) {
+        // 1. Clear the queue to prevent looping.
+        delete_user_meta( $user_id, '_dd_pending_downgrade_level' );
+
+        // 2. Apply the downgraded level (e.g., Essential) now that the Growth term is finished.
+        pmpro_changeMembershipLevel( $pending_level_id, $user_id );
+    }
+}
+add_action( 'pmpro_membership_post_membership_expiry', 'dd_pmpro_apply_queued_downgrade_on_expiry', 10, 2 );
