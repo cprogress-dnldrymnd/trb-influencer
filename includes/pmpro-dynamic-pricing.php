@@ -1,6 +1,6 @@
 <?php
 if (! defined('ABSPATH')) {
-    exit; // Exit if accessed directly to prevent direct file execution.
+	exit; // Exit if accessed directly to prevent direct file execution.
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
@@ -299,7 +299,7 @@ class DD_PMPro_Frontend_Pricing
 			data-owns-annual="<?php echo $is_current_annual ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
-			<p class="dd-plan-desc"><?php echo esc_html($description); ?></p>
+			<p class="dd-plan-desc"><?php echo do_shortcode($description) ?></p>
 			<div class="dd-price-wrapper"><span class="dd-price-amount"><?php echo wp_kses_post($current_price); ?></span></div>
 			<div class="dd-toggle-wrapper">
 				<label class="dd-switch">
@@ -511,7 +511,7 @@ class DD_PMPro_Frontend_Pricing
 			?>
 				<div class="dd-card">
 					<h3 class="dd-plan-name"><?php echo esc_html($cta_heading); ?></h3>
-					<p class="dd-plan-desc"><?php echo esc_html($cta_desc); ?></p>
+					<p class="dd-plan-desc"><?php echo do_shortcode($cta_desc) ?></p>
 					<a href="<?php echo esc_url($cta_link); ?>" class="dd-btn"><?php echo esc_html($cta_btn); ?></a>
 				</div>
 			<?php
