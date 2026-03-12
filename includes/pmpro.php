@@ -412,3 +412,41 @@ function dd_pmpro_append_billing_cycle_on_switch( $level ) {
     return $level;
 }
 add_filter( 'pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1 );
+
+
+/**
+ * Displays a clarifying notice on the PMPro checkout page before redirecting to Stripe.
+ * This informs the user that Stripe's mandatory UI will label their previously paid time as a 'Free Trial'.
+ *
+ * @global object $pmpro_level The current membership level being processed at checkout.
+ * @return void Outputs HTML directly to the checkout page.
+ */
+function dd_pmpro_checkout_stripe_trial_notice() {
+    global $pmpro_level;
+    
+    // Ensure we are actively on the checkout page processing a level for an authenticated user.
+    if ( empty( $pmpro_level ) || ! is_user_logged_in() ) {
+        return;
+    }
+
+    $user_id = get_current_user_id();
+    $old_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    // Abort if there is no active subscription or if the user is renewing the exact same level.
+    if ( empty( $old_level ) || $old_level->id == $pmpro_level->id ) {
+        return;
+    }
+
+    // Retrieve the UNIX timestamp for the existing subscription's next scheduled payment.
+    $next_payment_timestamp = pmpro_next_payment( $user_id );
+
+    // If the user has a future payment date (indicating prepaid time remains), inject the warning notice.
+    if ( $next_payment_timestamp && $next_payment_timestamp > current_time( 'timestamp' ) ) {
+        $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
+        
+        echo '<div class="pmpro_message pmpro_alert" style="margin-bottom: 20px; padding: 15px; border-left: 4px solid #ffba00; background-color: #fff9e6;">';
+        echo '<strong>Billing Notice:</strong> On the next screen, the payment gateway may display your remaining prepaid time (valid until <strong>' . esc_html( $formatted_date ) . '</strong>) as a "Free Trial". This is a system limitation; it simply represents the time you have already paid for on your current plan. You will not be double-charged.';
+        echo '</div>';
+    }
+}
+add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );
