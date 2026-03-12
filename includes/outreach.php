@@ -564,6 +564,22 @@ class DD_Outreach_Manager
             .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
                 text-decoration: underline;
             }
+            @media(max-width: 1199px) {
+                .dd-notes-grid {
+                    flex-direction: column;
+                }
+                .dd-note-card {
+                    width: 100%;
+                }
+                .dd-notes-list-container {
+                    width: 100%;
+                }
+            }
+            @media(max-width: 1024px) {
+                .dd-dashboard-list-container {
+                    max-width: 100%;
+                }
+            }
         </style>
     <?php
     }
