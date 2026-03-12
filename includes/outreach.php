@@ -205,7 +205,7 @@ class DD_Outreach_Manager
 
     /**
      * Renders the Backend Settings Page HTML.
-     * Contains the tabbed logic and the Raw HTML Code Editor.
+     * Contains the Raw HTML Code Editor and Live Preview.
      *
      * @return void
      */
@@ -216,16 +216,7 @@ class DD_Outreach_Manager
         <div class="wrap">
             <h1>Outreach Manager Settings</h1>
 
-            <h2 class="nav-tab-wrapper">
-                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
-                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
-            </h2>
-
-            <div id="tab-form-builder" class="dd-tab-content" style="display:none; margin-top:20px;">
-                <p><em>Form Builder configuration (Duplication, Reordering, Collapsing) to be implemented here...</em></p>
-            </div>
-
-            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
+            <div style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_outreach_settings_group'); ?>
 
