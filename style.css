@@ -1357,6 +1357,12 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 .pmpro_card > br {
   display: none; }
 
+.pmpro_font-x-large.pmpro_font-x-large {
+  font-size: var(--e-global-typography-8e7af27-font-size);
+  font-weight: var(--e-global-typography-8e7af27-font-weight);
+  color: var(--e-global-color-text);
+  font-family: "Playfair Display", Sans-serif !important; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
