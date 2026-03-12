@@ -354,3 +354,74 @@ function dd_custom_pmpro_logout_redirect( $redirect_to, $requested_redirect_to, 
 
 // Hook into the logout_redirect filter with a standard priority of 10, accepting 3 arguments
 add_filter( 'logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3 );
+
+<?php
+/**
+ * Plugin Name: PMPro - Append Billing Cycle on Plan Switch
+ * Description: Modifies the recurring billing start date when users switch between subscription plans (e.g., Monthly to Annual), appending the new cycle to the existing next payment date.
+ * Version: 1.0.0
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly.
+}
+
+/**
+ * Adjusts the profile_start_date and initial_payment for the new membership level during checkout.
+ * This ensures the new billing cycle appends to the existing subscription's next payment date appropriately.
+ *
+ * @param object $level The membership level object being processed at checkout.
+ * @return object The modified membership level object.
+ */
+function dd_pmpro_append_billing_cycle_on_switch( $level ) {
+    // Ensure the user is authenticated and the level has recurring billing configured.
+    if ( ! is_user_logged_in() || empty( $level ) || empty( $level->billing_amount ) ) {
+        return $level;
+    }
+
+    $user_id = get_current_user_id();
+    $old_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    // Abort if the user lacks an active subscription or is attempting to checkout for the exact same level.
+    if ( empty( $old_level ) || $old_level->id == $level->id ) {
+        return $level;
+    }
+
+    // Retrieve the UNIX timestamp for the next scheduled payment of the current active subscription.
+    $next_payment_timestamp = pmpro_next_payment( $user_id );
+
+    // If no future payment date exists (e.g., cancelled or expired), rely on default PMPro behavior.
+    if ( ! $next_payment_timestamp || $next_payment_timestamp <= current_time( 'timestamp' ) ) {
+        return $level;
+    }
+
+    // Extract cycle parameters for comparison and calculation.
+    $new_cycle_number = ! empty( $level->cycle_number ) ? (int) $level->cycle_number : 1;
+    $new_cycle_period = ! empty( $level->cycle_period ) ? $level->cycle_period : 'Month';
+    
+    $old_cycle_period = ! empty( $old_level->cycle_period ) ? $old_level->cycle_period : 'Month';
+
+    // Determine if this is a shift from Annual to Monthly (Downgrade) or Monthly to Annual (Upgrade).
+    if ( $old_cycle_period === 'Year' && $new_cycle_period === 'Month' ) {
+        // DOWNGRADE SCENARIO: Annual to Monthly
+        // User shouldn't pay today since they already paid for the year. 
+        // The new monthly billing should commence exactly when the current annual cycle ends.
+        $level->initial_payment = 0;
+        $level->profile_start_date = date( "Y-m-d\TH:i:s", $next_payment_timestamp );
+    } else {
+        // UPGRADE SCENARIO: Monthly to Annual 
+        // User pays the initial fee today (covering the new annual cycle). 
+        // The next recurring payment pushes out exactly one year from their CURRENT next payment date.
+        // E.g., Upgrading on Mar 12. Current next payment: Apr 12 2024. New Start: Apr 12 2025.
+        $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
+        $new_start_timestamp = strtotime( $strtotime_modifier, $next_payment_timestamp );
+        
+        // Format the date for PMPro gateways (requires Y-m-d\TH:i:s format).
+        $level->profile_start_date = date( "Y-m-d\TH:i:s", $new_start_timestamp );
+    }
+
+    return $level;
+}
+add_filter( 'pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1 );
