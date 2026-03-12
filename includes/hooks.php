@@ -84,7 +84,7 @@ function action_wp_head()
     if ($is_free_trial) {
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
-        echo ".filtered-search{ display: flex !important }";
+       # echo ".filtered-search{ display: flex !important }";
     }
 
     $current_balance = get_current_user_remaining_mycred_balance();
