@@ -1372,9 +1372,9 @@ input:checked + .slider:before {
                 margin: 0;
                 font-size: 16px;
                 font-weight: 500;
-            }
-            @media (max-width: 575px) {
-                font-size: 14px;
+                @media (max-width: 575px) {
+                    font-size: 14px;
+                }
             }
         }
         p {

@@ -1087,9 +1087,9 @@ input:checked + .slider:before {
       margin: 0;
       font-size: 16px;
       font-weight: 500; }
-    @media (max-width: 575px) {
-      .notice-wrap.notice-wrap.notice-wrap .notice-item .my-cred-notice-text {
-        font-size: 14px; } }
+      @media (max-width: 575px) {
+        .notice-wrap.notice-wrap.notice-wrap .notice-item .my-cred-notice-text h4 {
+          font-size: 14px; } }
     .notice-wrap.notice-wrap.notice-wrap .notice-item p {
       font-size: 14px;
       margin: 0; }
