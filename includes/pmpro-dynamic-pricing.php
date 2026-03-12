@@ -284,7 +284,7 @@ class DD_PMPro_Frontend_Pricing
 		$toggle_checked      = $show_annual_default ? 'checked' : '';
 		$current_price     = $show_annual_default ? $annual_data['price'] : $monthly_data['price'];
 		$owns_current_view = $show_annual_default ? $is_current_annual : $is_current_monthly;
-		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : 'JOIN NOW';
+		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : 'UPGRADE PLAN';
 		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
 		$current_url       = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
 
@@ -548,7 +548,7 @@ class DD_PMPro_Frontend_Pricing
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							} else {
-								btnEl.textContent = 'JOIN NOW';
+								btnEl.textContent = 'UPGRADE PLAN';
 								btnEl.classList.remove('dd-btn-disabled');
 								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
 							}
