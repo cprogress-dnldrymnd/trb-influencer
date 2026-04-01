@@ -1,13 +1,4 @@
 <?php
-
-/**
- * Plugin Name: Featured Influencers Manager
- * Description: Adds a WooCommerce-style featured toggle to the Influencer post type and syncs it with a global settings page.
- * Version: 1.0.0
- * Author: Digitally Disruptive - Donald Raymundo
- * Author URI: https://digitallydisruptive.co.uk/
- */
-
 if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
