@@ -188,7 +188,7 @@ class DD_Featured_Influencer_Manager
     public function add_settings_page()
     {
         add_submenu_page(
-            'edit.php?post_type=influencer',
+            'edit.php?post_type=page',
             'Featured Influencers',
             'Featured Influencers',
             'manage_options',
