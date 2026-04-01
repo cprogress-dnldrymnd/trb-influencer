@@ -1,12 +1,11 @@
 <?php
 
 /**
- * Plugin Name: DD Featured Influencers Manager
- * Description: Advanced two-way synchronization for Featured Influencers, featuring AJAX list-table toggles, post meta integration, and a global tabbed repeater settings interface.
+ * Plugin Name: Featured Influencers Manager
+ * Description: Adds a WooCommerce-style featured toggle to the Influencer post type and syncs it with a global settings page.
  * Version: 1.0.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
- * Text Domain: dd-featured-influencers
  */
 
 if (! defined('ABSPATH')) {
@@ -15,518 +14,317 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_Featured_Influencer_Manager
- * * Handles all functionality related to starring/featuring influencer CPTs
- * and synchronizing them with a global options repeater interface.
+ * * Handles the column UI, AJAX toggling, settings page creation, 
+ * and data synchronization for featured influencers.
  */
 class DD_Featured_Influencer_Manager
 {
 
     /**
-     * Meta key used on the individual post.
-     * * @var string
-     */
-    private $meta_key = '_dd_is_featured_influencer';
-
-    /**
-     * Option key used to store the ordered array of featured IDs globally.
-     * * @var string
-     */
-    private $option_key = 'dd_global_featured_influencers';
-
-    /**
-     * Constructor. Initializes all hooks.
+     * Constructor.
+     * * Initializes all necessary WordPress hooks for the functionality.
      */
     public function __construct()
     {
-        // Admin styling and scripts
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
-
-        // List Table Columns
+        // Admin Column Hooks
         add_filter('manage_influencer_posts_columns', [$this, 'add_featured_column']);
         add_action('manage_influencer_posts_custom_column', [$this, 'render_featured_column'], 10, 2);
 
-        // AJAX Handler for list table toggle
+        // AJAX Handler for the star toggle
         add_action('wp_ajax_dd_toggle_featured_influencer', [$this, 'ajax_toggle_featured']);
 
-        // Meta Box
-        add_action('add_meta_boxes_influencer', [$this, 'add_meta_box']);
-        add_action('save_post_influencer', [$this, 'save_post_meta'], 10, 2);
+        // Scripts and Styles
+        add_action('admin_head', [$this, 'print_admin_scripts']);
 
-        // Global Options Page
-        add_action('admin_menu', [$this, 'add_options_page']);
-        add_action('admin_post_dd_save_global_influencers', [$this, 'save_global_options']);
+        // Settings Page Hooks
+        add_action('admin_menu', [$this, 'add_settings_page']);
+        add_action('admin_init', [$this, 'register_settings']);
+
+        // Cleanup Hook
+        add_action('deleted_post', [$this, 'handle_post_deletion'], 10, 2);
     }
 
- 
     /**
-     * Enqueues CSS and JS required for the Admin interfaces.
-     * * @param string $hook The current admin page.
-     * @return void
-     */
-    public function enqueue_admin_assets($hook)
-    {
-        $is_influencer_list = ($hook === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'influencer');
-        $is_global_page     = ($hook === 'influencer_page_dd-featured-influencers');
-
-        if ($is_influencer_list) {
-            wp_enqueue_script('jquery');
-            wp_add_inline_script('jquery', $this->get_list_table_script());
-
-            // Updated CSS: Tightened column width to 40px for better alignment next to checkboxes
-            wp_add_inline_style('common', '.column-featured_influencer { width: 40px; text-align: center; } .dd-star-toggle { cursor: pointer; color: #b4b9be; transition: color 0.2s ease; } .dd-star-toggle.is-featured { color: #f56e28; }');
-        }
-
-        if ($is_global_page) {
-            wp_enqueue_script('jquery-ui-sortable');
-            wp_add_inline_script('jquery-ui-sortable', $this->get_repeater_tabs_script());
-            wp_add_inline_style('common', $this->get_repeater_tabs_css());
-        }
-    }
-    /**
-     * Adds the "Featured" column to the influencer post list.
-     * * @param array $columns Existing columns.
-     * @return array Modified columns.
+     * Adds the 'Featured' column to the Influencer post list table.
+     *
+     * @param array $columns Existing post columns.
+     * @return array Modified columns array with the featured star column.
      */
     public function add_featured_column($columns)
     {
         $new_columns = [];
-
         foreach ($columns as $key => $title) {
             $new_columns[$key] = $title;
-
-            // Inject the featured column immediately after the bulk action checkbox.
-            if ($key === 'cb') {
-                $new_columns['featured_influencer'] = '<span class="dashicons dashicons-star-filled" title="Featured" style="color:#a7aaad;"></span>';
+            if ('title' === $key) {
+                // Insert the featured column right after the title column.
+                $new_columns['featured_influencer'] = '<span class="dashicons dashicons-star-filled" title="Featured"></span>';
             }
         }
-
-        // Fallback: If 'cb' is missing from your custom setup, prepend it to the start of the table.
-        if (! array_key_exists('featured_influencer', $new_columns)) {
-            $featured    = ['featured_influencer' => '<span class="dashicons dashicons-star-filled" title="Featured" style="color:#a7aaad;"></span>'];
-            $new_columns = array_merge($featured, $new_columns);
-        }
-
         return $new_columns;
     }
 
     /**
-     * Renders the star icon in the custom column.
-     * * @param string $column_name The name of the column.
-     * @param int    $post_id     The current post ID.
-     * @return void
+     * Renders the star toggle icon in the 'Featured' column for each influencer.
+     *
+     * @param string $column  The current column name.
+     * @param int    $post_id The current post ID.
      */
-    public function render_featured_column($column_name, $post_id)
+    public function render_featured_column($column, $post_id)
     {
-        if ($column_name === 'featured_influencer') {
-            $is_featured = get_post_meta($post_id, $this->meta_key, true);
-            $class       = $is_featured ? 'is-featured dashicons-star-filled' : 'dashicons-star-empty';
-            $nonce       = wp_create_nonce('dd_toggle_star_' . $post_id);
+        if ('featured_influencer' === $column) {
+            $is_featured = get_post_meta($post_id, '_featured_influencer', true);
+            $star_class  = ('yes' === $is_featured) ? 'dashicons-star-filled' : 'dashicons-star-empty';
+            $nonce       = wp_create_nonce('dd_toggle_featured_' . $post_id);
 
-            printf(
-                '<span class="dashicons %s dd-star-toggle" data-id="%d" data-nonce="%s"></span>',
-                esc_attr($class),
+            echo sprintf(
+                '<a href="#" class="dd-featured-toggle" data-post-id="%d" data-nonce="%s" title="%s">
+					<span class="dashicons %s"></span>
+				</a>',
                 esc_attr($post_id),
-                esc_attr($nonce)
+                esc_attr($nonce),
+                esc_attr__('Toggle Featured Status', 'dd-influencer'),
+                esc_attr($star_class)
             );
         }
     }
 
     /**
-     * AJAX endpoint to toggle the featured status from the list table.
-     * * @return void
+     * Processes the AJAX request to toggle the featured status.
+     * * Updates the individual post meta and synchronizes the global option array.
      */
     public function ajax_toggle_featured()
     {
         $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-        $nonce   = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
+        $nonce   = isset($_POST['nonce']) ? $_POST['nonce'] : '';
 
-        if (! wp_verify_nonce($nonce, 'dd_toggle_star_' . $post_id) || ! current_user_can('edit_post', $post_id)) {
-            wp_send_json_error(['message' => 'Unauthorized']);
+        if (! $post_id || ! wp_verify_nonce($nonce, 'dd_toggle_featured_' . $post_id)) {
+            wp_send_json_error('Invalid nonce or post ID.');
         }
 
-        $current_status = get_post_meta($post_id, $this->meta_key, true);
-        $new_status     = $current_status ? '0' : '1';
+        if (! current_user_can('edit_post', $post_id)) {
+            wp_send_json_error('Insufficient permissions.');
+        }
 
-        update_post_meta($post_id, $this->meta_key, $new_status);
-        $this->sync_single_to_global($post_id, (bool) $new_status);
+        $current_status = get_post_meta($post_id, '_featured_influencer', true);
+        $new_status     = ('yes' === $current_status) ? 'no' : 'yes';
 
-        wp_send_json_success(['new_status' => $new_status]);
+        // Update individual post meta
+        update_post_meta($post_id, '_featured_influencer', $new_status);
+
+        // Sync with the global array
+        $global_featured = get_option('featured_influencers', []);
+        if (! is_array($global_featured)) {
+            $global_featured = [];
+        }
+
+        if ('yes' === $new_status) {
+            if (! in_array($post_id, $global_featured)) {
+                $global_featured[] = $post_id;
+            }
+        } else {
+            $global_featured = array_diff($global_featured, [$post_id]);
+        }
+
+        // Save the global option (this triggers the sanitize callback, which acts as a secondary sync layer)
+        update_option('featured_influencers', array_values($global_featured));
+
+        wp_send_json_success(['status' => $new_status]);
     }
 
     /**
-     * Adds the Featured meta box to the edit screen.
-     * * @return void
+     * Inlines CSS and JS strictly on the Influencer list table screen to handle the toggle UI.
      */
-    public function add_meta_box()
+    public function print_admin_scripts()
     {
-        add_meta_box(
-            'dd_featured_influencer_mb',
-            'Featured Influencer Status',
-            [$this, 'render_meta_box'],
-            'influencer',
-            'side',
-            'high'
-        );
-    }
-
-    /**
-     * Renders the meta box contents.
-     * * @param WP_Post $post The current post object.
-     * @return void
-     */
-    public function render_meta_box($post)
-    {
-        wp_nonce_field('dd_save_featured_meta', 'dd_featured_meta_nonce');
-        $is_featured = get_post_meta($post->ID, $this->meta_key, true);
+        global $typenow;
+        if ('influencer' !== $typenow) {
+            return;
+        }
 ?>
-        <label for="dd_is_featured">
-            <input type="checkbox" id="dd_is_featured" name="dd_is_featured" value="1" <?php checked($is_featured, '1'); ?> />
-            Mark as a Featured Influencer
-        </label>
-        <p class="description">If checked, this influencer will be added to the global featured roster.</p>
+        <style>
+            .column-featured_influencer {
+                width: 50px;
+                text-align: center;
+            }
+
+            .dd-featured-toggle {
+                text-decoration: none;
+                cursor: pointer;
+                outline: none;
+                box-shadow: none;
+            }
+
+            .dd-featured-toggle .dashicons-star-filled {
+                color: #f5da55;
+            }
+
+            .dd-featured-toggle .dashicons-star-empty {
+                color: #b4b9be;
+            }
+        </style>
+        <script>
+            jQuery(document).ready(function($) {
+                $('.dd-featured-toggle').on('click', function(e) {
+                    e.preventDefault();
+                    var $btn = $(this);
+                    var $icon = $btn.find('.dashicons');
+                    var post_id = $btn.data('post-id');
+                    var nonce = $btn.data('nonce');
+
+                    // Optimistic UI update
+                    var is_filled = $icon.hasClass('dashicons-star-filled');
+                    $icon.removeClass('dashicons-star-filled dashicons-star-empty')
+                        .addClass(is_filled ? 'dashicons-star-empty' : 'dashicons-star-filled');
+
+                    $.post(ajaxurl, {
+                        action: 'dd_toggle_featured_influencer',
+                        post_id: post_id,
+                        nonce: nonce
+                    }).fail(function() {
+                        // Revert if request fails
+                        $icon.removeClass('dashicons-star-filled dashicons-star-empty')
+                            .addClass(is_filled ? 'dashicons-star-filled' : 'dashicons-star-empty');
+                    });
+                });
+            });
+        </script>
     <?php
     }
 
     /**
-     * Saves the meta box data when the post is saved.
-     * * @param int     $post_id The ID of the post being saved.
-     * @param WP_Post $post    The post object.
-     * @return void
+     * Registers the submenu page under the Influencer post type.
      */
-    public function save_post_meta($post_id, $post)
-    {
-        if (! isset($_POST['dd_featured_meta_nonce']) || ! wp_verify_nonce($_POST['dd_featured_meta_nonce'], 'dd_save_featured_meta')) {
-            return;
-        }
-
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
-        }
-
-        if (! current_user_can('edit_post', $post_id)) {
-            return;
-        }
-
-        $is_featured = isset($_POST['dd_is_featured']) ? '1' : '0';
-        update_post_meta($post_id, $this->meta_key, $is_featured);
-
-        // Auto-adjust global configuration to maintain synchronization.
-        $this->sync_single_to_global($post_id, $is_featured === '1');
-    }
-
-    /**
-     * Adds the global configuration page under the CPT menu.
-     * * @return void
-     */
-    public function add_options_page()
+    public function add_settings_page()
     {
         add_submenu_page(
             'edit.php?post_type=influencer',
-            'Featured Roster',
-            'Featured Roster',
+            'Featured Influencers',
+            'Featured Influencers',
             'manage_options',
             'dd-featured-influencers',
-            [$this, 'render_options_page']
+            [$this, 'render_settings_page']
         );
     }
 
     /**
-     * Renders the global tabbed UI and repeater interface.
-     * * @return void
+     * Registers the global setting and its sanitization callback.
      */
-    public function render_options_page()
+    public function register_settings()
     {
-        $featured_ids = get_option($this->option_key, []);
+        register_setting(
+            'dd_featured_influencers_group',
+            'featured_influencers',
+            [
+                'sanitize_callback' => [$this, 'sanitize_and_sync_featured_influencers']
+            ]
+        );
+    }
 
-        // Fetch all influencers to populate dropdowns
-        $influencers = get_posts([
-            'post_type'      => 'influencer',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish',
-            'orderby'        => 'title',
-            'order'          => 'ASC'
-        ]);
+    /**
+     * Sanitizes the incoming global featured options and synchronizes the meta data
+     * across all affected Influencer posts.
+     *
+     * @param array $input The submitted array of post IDs from the settings page.
+     * @return array The filtered and sanitized array of post IDs.
+     */
+    public function sanitize_and_sync_featured_influencers($input)
+    {
+        // Ensure input is an array and filter out empty values (like the dummy 0)
+        $input = array_filter(array_map('intval', (array) $input));
+        $input = array_values($input); // Reset keys
 
+        $old_value = get_option('featured_influencers', []);
+        if (! is_array($old_value)) {
+            $old_value = [];
+        }
+
+        $added   = array_diff($input, $old_value);
+        $removed = array_diff($old_value, $input);
+
+        // Sync newly added posts
+        foreach ($added as $post_id) {
+            update_post_meta($post_id, '_featured_influencer', 'yes');
+        }
+
+        // Sync newly removed posts
+        foreach ($removed as $post_id) {
+            update_post_meta($post_id, '_featured_influencer', 'no');
+        }
+
+        return $input;
+    }
+
+    /**
+     * Renders the HTML markup for the global Featured Influencers settings page.
+     */
+    public function render_settings_page()
+    {
     ?>
-        <div class="wrap dd-options-wrap">
-            <h1>Global Featured Influencers</h1>
+        <div class="wrap">
+            <h1><?php esc_html_e('Manage Featured Influencers', 'dd-influencer'); ?></h1>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields('dd_featured_influencers_group');
+                do_settings_sections('dd_featured_influencers_group');
 
-            <?php if (isset($_GET['updated'])) : ?>
-                <div class="notice notice-success is-dismissible">
-                    <p>Settings synchronized and saved.</p>
-                </div>
-            <?php endif; ?>
+                $selected_influencers = get_option('featured_influencers', []);
+                if (! is_array($selected_influencers)) {
+                    $selected_influencers = [];
+                }
 
-            <h2 class="nav-tab-wrapper" id="dd-tabs">
-                <a href="#tab-roster" class="nav-tab nav-tab-active">Featured Roster Builder</a>
-                <a href="#tab-settings" class="nav-tab">Display Settings</a>
-            </h2>
-
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="dd_save_global_influencers">
-                <?php wp_nonce_field('dd_verify_global_save', 'dd_global_nonce'); ?>
-
-                <div id="tab-roster" class="dd-tab-content active">
-                    <p class="description">Order, duplicate, or delete featured influencers below. This strictly synchronizes with individual post data.</p>
-
-                    <div id="dd-repeater-container">
-                        <?php
-                        if (empty($featured_ids)) {
-                            $featured_ids = ['']; // Provide at least one empty row
-                        }
-
-                        foreach ($featured_ids as $index => $id) :
-                        ?>
-                            <div class="dd-repeater-row">
-                                <div class="dd-repeater-header">
-                                    <span class="dashicons dashicons-menu drag-handle"></span>
-                                    <h3 class="row-title">Influencer Entry</h3>
-                                    <div class="row-actions">
-                                        <span class="dashicons dashicons-arrow-up move-up" title="Move Up"></span>
-                                        <span class="dashicons dashicons-arrow-down move-down" title="Move Down"></span>
-                                        <span class="dashicons dashicons-admin-page duplicate-row" title="Duplicate"></span>
-                                        <span class="dashicons dashicons-arrow-up-alt2 collapse-row" title="Collapse/Expand"></span>
-                                        <span class="dashicons dashicons-trash delete-row" title="Delete"></span>
-                                    </div>
-                                </div>
-                                <div class="dd-repeater-body">
-                                    <label>Select Influencer:
-                                        <select name="dd_featured_ids[]" class="widefat">
-                                            <option value="">-- Select --</option>
-                                            <?php foreach ($influencers as $inf) : ?>
-                                                <option value="<?php echo esc_attr($inf->ID); ?>" <?php selected($id, $inf->ID); ?>>
-                                                    <?php echo esc_html($inf->post_title); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </label>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <button type="button" class="button button-secondary" id="dd-add-row">Add Influencer</button>
-                </div>
-
-                <div id="tab-settings" class="dd-tab-content" style="display: none;">
-                    <p>Additional global configurations can be placed here (e.g., Grid Layout vs Carousel Layout).</p>
-                    <label>
-                        <input type="checkbox" name="dd_display_names" value="1" checked>
-                        Display Influencer Names on Frontend
-                    </label>
-                </div>
-
-                <p class="submit">
-                    <input type="submit" name="submit" id="submit" class="button button-primary" value="Save & Synchronize Setup">
-                </p>
+                $all_influencers = get_posts([
+                    'post_type'      => 'influencer',
+                    'posts_per_page' => -1,
+                    'post_status'    => 'any',
+                    'orderby'        => 'title',
+                    'order'          => 'ASC',
+                ]);
+                ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="featured_influencers_select"><?php esc_html_e('Select Featured Influencers', 'dd-influencer'); ?></label></th>
+                        <td>
+                            <input type="hidden" name="featured_influencers[]" value="0">
+                            <select name="featured_influencers[]" id="featured_influencers_select" multiple="multiple" style="width: 100%; max-width: 500px; height: 350px;">
+                                <?php foreach ($all_influencers as $influencer) : ?>
+                                    <?php $is_selected = in_array($influencer->ID, $selected_influencers) ? 'selected="selected"' : ''; ?>
+                                    <option value="<?php echo esc_attr($influencer->ID); ?>" <?php echo $is_selected; ?>>
+                                        <?php echo esc_html($influencer->post_title); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description"><?php esc_html_e('Hold down Ctrl (Windows) or Command (Mac) to select or deselect multiple influencers.', 'dd-influencer'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button(); ?>
             </form>
         </div>
 <?php
     }
 
     /**
-     * Processes the saving of the global options page and synchronizes downwards to single metas.
-     * * @return void
+     * Hooks into post deletion to securely remove the influencer from the global 
+     * options array if they are permanently deleted.
+     *
+     * @param int     $post_id The ID of the post being deleted.
+     * @param WP_Post $post    The post object.
      */
-    public function save_global_options()
+    public function handle_post_deletion($post_id, $post)
     {
-        if (! isset($_POST['dd_global_nonce']) || ! wp_verify_nonce($_POST['dd_global_nonce'], 'dd_verify_global_save')) {
-            wp_die('Security check failed.');
+        if ('influencer' !== $post->post_type) {
+            return;
         }
 
-        if (! current_user_can('manage_options')) {
-            wp_die('Unauthorized.');
+        $global_featured = get_option('featured_influencers', []);
+
+        if (is_array($global_featured) && in_array($post_id, $global_featured)) {
+            $global_featured = array_diff($global_featured, [$post_id]);
+            // Update the option directly without triggering the sync hook redundantly
+            update_option('featured_influencers', array_values($global_featured));
         }
-
-        // Sanitize and save the ordered array
-        $submitted_ids = isset($_POST['dd_featured_ids']) ? array_map('intval', $_POST['dd_featured_ids']) : [];
-        $submitted_ids = array_filter($submitted_ids); // Remove empty 0s
-
-        update_option($this->option_key, array_values($submitted_ids));
-
-        // Synchronize downwards: Wipes all to 0, sets present to 1
-        $this->sync_global_to_single($submitted_ids);
-
-        wp_safe_redirect(admin_url('edit.php?post_type=influencer&page=dd-featured-influencers&updated=true'));
-        exit;
-    }
-
-    /**
-     * Helper: Adds or removes a single post ID from the global array to keep data in sync.
-     * * @param int  $post_id  The influencer post ID.
-     * @param bool $featured True to add, false to remove.
-     * @return void
-     */
-    private function sync_single_to_global($post_id, $featured)
-    {
-        $current_global = get_option($this->option_key, []);
-
-        if ($featured) {
-            if (! in_array($post_id, $current_global)) {
-                $current_global[] = $post_id;
-            }
-        } else {
-            $current_global = array_diff($current_global, [$post_id]);
-        }
-
-        update_option($this->option_key, array_values($current_global));
-    }
-
-    /**
-     * Helper: Enforces the global IDs onto the individual post meta records.
-     * * @param array $active_ids Array of explicitly featured post IDs.
-     * @return void
-     */
-    private function sync_global_to_single($active_ids)
-    {
-        global $wpdb;
-
-        // Reset all to 0 first to ensure clean slate
-        $wpdb->query($wpdb->prepare("UPDATE {$wpdb->postmeta} SET meta_value = '0' WHERE meta_key = %s", $this->meta_key));
-
-        // Set explicitly featured IDs to 1
-        if (! empty($active_ids)) {
-            $ids_placeholder = implode(',', array_fill(0, count($active_ids), '%d'));
-            $query = $wpdb->prepare(
-                "UPDATE {$wpdb->postmeta} SET meta_value = '1' WHERE meta_key = %s AND post_id IN ($ids_placeholder)",
-                array_merge([$this->meta_key], $active_ids)
-            );
-            $wpdb->query($query);
-
-            // Ensure meta exists if it was never created
-            foreach ($active_ids as $id) {
-                if (! get_post_meta($id, $this->meta_key, true)) {
-                    update_post_meta($id, $this->meta_key, '1');
-                }
-            }
-        }
-    }
-
-    /**
-     * Returns the JS block for the List Table AJAX interactions.
-     * * @return string
-     */
-    private function get_list_table_script()
-    {
-        return "
-		jQuery(document).ready(function($) {
-			$('.dd-star-toggle').on('click', function() {
-				var \$star = $(this);
-				var post_id = \$star.data('id');
-				var nonce = \$star.data('nonce');
-
-				// Optimistic UI Update
-				\$star.toggleClass('dashicons-star-filled dashicons-star-empty is-featured');
-
-				$.post(ajaxurl, {
-					action: 'dd_toggle_featured_influencer',
-					post_id: post_id,
-					nonce: nonce
-				}, function(response) {
-					if(!response.success) {
-						// Revert if failed
-						\$star.toggleClass('dashicons-star-filled dashicons-star-empty is-featured');
-						alert('Failed to toggle featured status.');
-					}
-				});
-			});
-		});
-		";
-    }
-
-    /**
-     * Returns the comprehensive CSS for the tabbed repeater architecture.
-     * * @return string
-     */
-    private function get_repeater_tabs_css()
-    {
-        return "
-		.dd-tab-content { display: none; padding: 20px; background: #fff; border: 1px solid #ccc; border-top: none; }
-		.dd-tab-content.active { display: block; }
-		#dd-repeater-container { margin-bottom: 15px; }
-		.dd-repeater-row { background: #fafafa; border: 1px solid #ddd; margin-bottom: 10px; border-radius: 4px; }
-		.dd-repeater-header { display: flex; align-items: center; padding: 10px; background: #eee; border-bottom: 1px solid #ddd; cursor: move; }
-		.dd-repeater-header h3 { margin: 0; flex-grow: 1; font-size: 14px; padding-left: 10px; }
-		.row-actions { display: flex; gap: 8px; }
-		.row-actions span { cursor: pointer; color: #555; transition: color 0.2s; }
-		.row-actions span:hover { color: #007cba; }
-		.row-actions .delete-row:hover { color: #d63638; }
-		.dd-repeater-body { padding: 15px; }
-		.dd-repeater-row.collapsed .dd-repeater-body { display: none; }
-		.dd-repeater-row.collapsed .dashicons-arrow-up-alt2 { transform: rotate(180deg); }
-		.ui-sortable-placeholder { border: 2px dashed #bbb; background: #f9f9f9; height: 50px; margin-bottom: 10px; }
-		";
-    }
-
-    /**
-     * Returns the vanilla/jQuery logic for Tab Navigation and Repeater functionality
-     * (Duplication, Reordering, Collapsing, Deletion).
-     * * @return string
-     */
-    private function get_repeater_tabs_script()
-    {
-        return "
-		jQuery(document).ready(function($) {
-			// Tabbed Interface Logic
-			$('.nav-tab').on('click', function(e) {
-				e.preventDefault();
-				$('.nav-tab').removeClass('nav-tab-active');
-				$(this).addClass('nav-tab-active');
-				$('.dd-tab-content').hide();
-				$($(this).attr('href')).show();
-			});
-
-			// jQuery UI Sortable for Drag and Drop
-			$('#dd-repeater-container').sortable({
-				handle: '.dd-repeater-header',
-				placeholder: 'ui-sortable-placeholder',
-				axis: 'y'
-			});
-
-			// Repeater Actions Binding
-			$('#dd-repeater-container').on('click', '.collapse-row', function() {
-				$(this).closest('.dd-repeater-row').toggleClass('collapsed');
-			});
-
-			$('#dd-repeater-container').on('click', '.delete-row', function() {
-				if ( confirm('Remove this row?') ) {
-					$(this).closest('.dd-repeater-row').slideUp(function(){ $(this).remove(); });
-				}
-			});
-
-			$('#dd-repeater-container').on('click', '.duplicate-row', function() {
-				var \$row = $(this).closest('.dd-repeater-row');
-				var \$clone = \$row.clone();
-				// Reset select value to match original exactly
-				\$clone.find('select').val( \$row.find('select').val() );
-				\$clone.hide().insertAfter(\$row).slideDown();
-			});
-
-			$('#dd-repeater-container').on('click', '.move-up', function() {
-				var \$row = $(this).closest('.dd-repeater-row');
-				if (\$row.prev('.dd-repeater-row').length > 0) {
-					\$row.insertBefore(\$row.prev('.dd-repeater-row'));
-				}
-			});
-
-			$('#dd-repeater-container').on('click', '.move-down', function() {
-				var \$row = $(this).closest('.dd-repeater-row');
-				if (\$row.next('.dd-repeater-row').length > 0) {
-					\$row.insertAfter(\$row.next('.dd-repeater-row'));
-				}
-			});
-
-			// Add New Row
-			$('#dd-add-row').on('click', function() {
-				var \$template = $('.dd-repeater-row').first().clone();
-				\$template.find('select').val('');
-				\$template.removeClass('collapsed').hide();
-				$('#dd-repeater-container').append(\$template);
-				\$template.slideDown();
-			});
-		});
-		";
     }
 }
 
+// Initialize the class
 new DD_Featured_Influencer_Manager();
