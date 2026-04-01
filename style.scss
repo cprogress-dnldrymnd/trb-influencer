@@ -1779,6 +1779,9 @@ body:not(.page-id-4144) {
         .niche-term {
             font-size: 15px;
             border-radius: 5px;
+            &:nth-child(3) {
+                display: none;
+            }
         }
         .niche-toggle {
             display: none !important;

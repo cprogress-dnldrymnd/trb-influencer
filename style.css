@@ -1410,6 +1410,8 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   .featured-niches .influencer-niche-container .niche-term {
     font-size: 15px;
     border-radius: 5px; }
+    .featured-niches .influencer-niche-container .niche-term:nth-child(3) {
+      display: none; }
   .featured-niches .influencer-niche-container .niche-toggle {
     display: none !important; }
 
