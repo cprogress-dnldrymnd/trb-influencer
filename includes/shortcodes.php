@@ -94,7 +94,17 @@ function get_lang_name_from_meta($post_id = null)
 add_shortcode('influencer_language', 'get_lang_name_from_meta');
 
 
-function shortcode_influencer_niche()
+/**
+ * Shortcode to display influencer niches with an optional limit attribute.
+ * If no limit is set, it defaults to displaying all terms.
+ *
+ * @author Digitally Disruptive - Donald Raymundo
+ * @author URI https://digitallydisruptive.co.uk/
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string HTML output for the influencer niches.
+ */
+function shortcode_influencer_niche($atts)
 {
     // 1. Get terms from the current post for taxonomy 'niche'
     $terms = get_the_terms(get_the_ID(), 'niche');
@@ -104,8 +114,16 @@ function shortcode_influencer_niche()
         return '';
     }
 
-    // 3. Settings
-    $display_limit = 3;
+    // 3. Settings (Parse attributes and establish limits)
+    $parsed_atts = shortcode_atts(
+        array(
+            'limit' => -1, // -1 serves as the default to display all
+        ),
+        $atts,
+        'influencer_niche'
+    );
+    
+    $display_limit = intval($parsed_atts['limit']);
     $count = count($terms);
 
     // 4. Start Output Buffer
@@ -119,7 +137,8 @@ function shortcode_influencer_niche()
             $i++;
 
             // Determine if this term should be hidden initially
-            $is_hidden = $i > $display_limit;
+            // Hidden only if limit is explicitly set (> 0) and current index exceeds the limit
+            $is_hidden = ($display_limit > 0 && $i > $display_limit);
             $style = $is_hidden ? 'display:none;' : '';
             $class = $is_hidden ? 'niche-term term-hidden' : 'niche-term';
 
@@ -133,7 +152,7 @@ function shortcode_influencer_niche()
         }
 
         // 5. Add the Plus Sign if needed
-        if ($count > $display_limit) : ?>
+        if ($display_limit > 0 && $count > $display_limit) : ?>
             <span class="niche-toggle">
                 + <?php echo ($count - $display_limit); ?>
             </span>
