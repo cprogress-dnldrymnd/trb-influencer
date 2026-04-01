@@ -1258,10 +1258,6 @@ function test()
         echo '</pre>';
 
 
-        echo '<pre>';
-        var_dump(get_post_meta(get_the_ID(), 'recentposts', true));
-
-        echo '</pre>';
 
         return ob_get_clean();
     }
