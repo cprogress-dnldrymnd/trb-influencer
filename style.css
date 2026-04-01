@@ -1405,6 +1405,14 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   border-radius: 5px;
   border: 1px solid var(--e-global-color-670824e); }
 
+.featured-niches .influencer-niche-container {
+  justify-content: center; }
+  .featured-niches .influencer-niche-container .niche-term {
+    font-size: 15px;
+    border-radius: 5px; }
+  .featured-niches .influencer-niche-container .niche-toggle {
+    display: none !important; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
