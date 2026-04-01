@@ -1114,7 +1114,7 @@ input:checked + .slider:before {
     }
 
     .influencer-avatar-fallback {
-        @media(min-width: 1200px) {
+        @media (min-width: 1200px) {
             font-size: clamp(20px, 7vw, 100px);
         }
     }
