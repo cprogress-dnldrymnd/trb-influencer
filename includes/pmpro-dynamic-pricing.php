@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level.
- * Version: 1.0.10
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level and disables currently owned plans on checkout.
+ * Version: 1.0.11
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -13,20 +13,21 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, and rendering of the pricing table shortcode.
+ * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, pricing table rendering, and checkout page DOM manipulation.
  */
 class DD_PMPro_Frontend_Pricing
 {
 
 	/**
 	 * Constructor.
-	 * Initializes the shortcode registration and admin menu hooks during the WordPress lifecycle.
+	 * Initializes the shortcode registration, admin menu hooks, and frontend footer scripts during the WordPress lifecycle.
 	 */
 	public function __construct()
 	{
 		add_action('init', [$this, 'register_pricing_shortcode']);
 		add_action('admin_menu', [$this, 'register_admin_menu']);
 		add_action('admin_init', [$this, 'register_plugin_settings']);
+		add_action('wp_footer', [$this, 'disable_owned_plan_on_checkout']);
 	}
 
 	/**
@@ -131,6 +132,120 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		return false; // Return false if no active Annual plan configuration is discovered.
+	}
+
+	/**
+	 * Determines the specific payment plan value a user currently owns for a given level.
+	 * Executes mathematical isolation to distinguish between standard billing and the embedded Payment Plan Add On.
+	 * @param int $user_id The WordPress User ID.
+	 * @param int $level_id The PMPro Level ID.
+	 * @return string|false Returns the exact string value of the owned plan (e.g., '8' or 'L-8-P-0'), or false if unowned.
+	 */
+	private function get_user_active_plan_value($user_id, $level_id)
+	{
+		if (!function_exists('pmpro_getMembershipLevelsForUser') || !$user_id) {
+			return false;
+		}
+
+		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
+		
+		if (!empty($user_levels)) {
+			foreach ($user_levels as $l) {
+				if ($l->id == $level_id) {
+					// Retrieve the Annual plan details to compare the raw price
+					$annual_plan = $this->get_annual_payment_plan($level_id);
+					
+					if (!$annual_plan) {
+						return (string) $level_id; // If no annual plan exists, they own the default base level.
+					}
+
+					// Extract user's active billing rate
+					$user_billing = (float)$l->billing_amount > 0 ? (float)$l->billing_amount : (float)$l->initial_payment;
+					$annual_raw   = (float)$annual_plan['raw_price'];
+
+					// If billing rate matches the annual rate within a tight tolerance, they own Annual.
+					if (abs($user_billing - $annual_raw) < 0.01) {
+						return $annual_plan['id'];
+					} else {
+						return (string) $level_id;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Injects a MutationObserver script on the PMPro Checkout page.
+	 * Actively watches for the dynamically injected Payment Plan radio buttons and disables the one the user already owns.
+	 * @return void
+	 */
+	public function disable_owned_plan_on_checkout()
+	{
+		global $pmpro_pages;
+
+		// Ensure we are strictly on the PMPro checkout page
+		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
+			return;
+		}
+
+		$level_id = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
+		$user_id  = get_current_user_id();
+
+		if (!$level_id || !$user_id) {
+			return;
+		}
+
+		// Retrieve the precise radio button value the user currently owns
+		$owned_plan_value = $this->get_user_active_plan_value($user_id, $level_id);
+
+		if (!$owned_plan_value) {
+			return;
+		}
+
+		?>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				const ownedValue = "<?php echo esc_js($owned_plan_value); ?>";
+				
+				const disableCurrentPlan = function() {
+					// Target the dynamically generated radio button using its precise value
+					const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
+					
+					if (radioBtn && !radioBtn.disabled) {
+						radioBtn.disabled = true;
+						
+						const label = document.querySelector('label[for="' + radioBtn.id + '"]');
+						if (label && !label.classList.contains('dd-plan-disabled')) {
+							label.classList.add('dd-plan-disabled');
+							label.style.opacity = '0.5';
+							label.style.cursor = 'not-allowed';
+							label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Current Plan)</span>';
+						}
+					}
+				};
+
+				// Execute initially in case elements are already parsed into the DOM
+				disableCurrentPlan();
+
+				// The PMPro Payment Plans Addon injects options dynamically via JS.
+				// We attach a MutationObserver to instantly intercept and mutate the injected nodes.
+				const targetNode = document.body; 
+				const config = { childList: true, subtree: true };
+
+				const observer = new MutationObserver(function(mutationsList) {
+					for (const mutation of mutationsList) {
+						if (mutation.type === 'childList') {
+							disableCurrentPlan();
+						}
+					}
+				});
+
+				observer.observe(targetNode, config);
+			});
+		</script>
+		<?php
 	}
 
 	/**
@@ -310,25 +425,13 @@ class DD_PMPro_Frontend_Pricing
 		$owns_monthly    = false;
 		$owns_annual     = false;
 
-		// Interrogate user's active levels to mathematically determine which payment plan they are currently on.
-		if (function_exists('pmpro_getMembershipLevelsForUser') && $current_user_id) {
-			$user_levels = pmpro_getMembershipLevelsForUser($current_user_id);
-			if (! empty($user_levels)) {
-				foreach ($user_levels as $l) {
-					if ($l->id == $level_id) {
-						// Extract user's active billing rate to compare with the Annual plan rate
-						$user_billing = (float)$l->billing_amount > 0 ? (float)$l->billing_amount : (float)$l->initial_payment;
-						$annual_raw   = (float)$annual_plan['raw_price'];
-
-						// If billing rate matches the annual rate within a tight tolerance, they own Annual. Otherwise Monthly.
-						if (abs($user_billing - $annual_raw) < 0.01) {
-							$owns_annual = true;
-						} else {
-							$owns_monthly = true;
-						}
-						break;
-					}
-				}
+		// Fetch the active plan value mapped to this user and translate it to boolean states
+		$owned_plan_value = $this->get_user_active_plan_value($current_user_id, $level_id);
+		if ($owned_plan_value) {
+			if ($owned_plan_value === $annual_plan['id']) {
+				$owns_annual = true;
+			} else {
+				$owns_monthly = true;
 			}
 		}
 
