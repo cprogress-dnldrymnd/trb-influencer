@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans on checkout, and syncs trial text across plans.
- * Version: 1.0.12
+ * Version: 1.0.13
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -13,7 +13,7 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, pricing table rendering, and checkout page DOM manipulation.
+ * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, pricing table rendering, and resilient checkout page DOM manipulation.
  */
 class DD_PMPro_Frontend_Pricing
 {
@@ -177,8 +177,8 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Injects a MutationObserver script on the PMPro Checkout page.
-	 * Disables owned plans and synchronizes the "Subscription Delays" trial text to the dynamically generated Annual plan.
+	 * Injects a robust MutationObserver script on the PMPro Checkout page.
+	 * Handles DOM parsing securely to prevent duplicate trial-text appending and ensures the current active plan remains locked out during plan transitions.
 	 * @return void
 	 */
 	public function modify_checkout_plans_dom()
@@ -207,7 +207,7 @@ class DD_PMPro_Frontend_Pricing
 				const ownedValue = "<?php echo esc_js($owned_plan_value); ?>";
 				
 				const processCheckoutDOM = function() {
-					// Feature 1: Disable Current Plan Logic
+					// Feature 1: Disable Current Plan Logic resilient against plan switches
 					if (ownedValue) {
 						const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
 						if (radioBtn && !radioBtn.disabled) {
@@ -223,7 +223,7 @@ class DD_PMPro_Frontend_Pricing
 						}
 					}
 
-					// Feature 2: Sync Trial Text to Payment Plans
+					// Feature 2: Sync Trial Text to Payment Plans securely
 					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
 					if (labels.length > 1) {
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
@@ -237,7 +237,8 @@ class DD_PMPro_Frontend_Pricing
 
 							// Iterate through remaining dynamically generated plans (e.g., Annual)
 							for (let i = 1; i < labels.length; i++) {
-								if (!labels[i].innerHTML.includes('trial')) {
+								// Prevent infinite string looping by strictly checking lowercase representation
+								if (!labels[i].innerHTML.toLowerCase().includes('trial')) {
 									// Strip the trailing period from the original string and append the trial text
 									labels[i].innerHTML = labels[i].innerHTML.replace(/\.$/, '').trim() + ' ' + trialText;
 								}
