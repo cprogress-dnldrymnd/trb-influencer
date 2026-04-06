@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -13,14 +13,14 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, and rendering of the pricing table shortcode.
+ * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, and rendering of the pricing table shortcode.
  */
 class DD_PMPro_Frontend_Pricing
 {
 
 	/**
 	 * Constructor.
-	 * * Initializes the shortcode registration and admin menu hooks during the WordPress lifecycle.
+	 * Initializes the shortcode registration and admin menu hooks during the WordPress lifecycle.
 	 */
 	public function __construct()
 	{
@@ -31,8 +31,8 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Registers the shortcode with WordPress.
-	 * * Binds the '[dd_pricing_table]' shortcode to the rendering method of this class.
-	 * * @return void
+	 * Binds the '[dd_pricing_table]' shortcode to the rendering method of this class.
+	 * @return void
 	 */
 	public function register_pricing_shortcode()
 	{
@@ -41,8 +41,8 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Retrieves and pairs PMPro levels dynamically with their corresponding Payment Plans.
-	 * * Identifies active levels (Default/Monthly) and extracts the "Annual" payment plan attached to them.
-	 * * @return array Array of dynamically paired level and payment plan data.
+	 * Identifies active levels (Default/Monthly) and extracts the "Annual" payment plan attached to them.
+	 * @return array Array of dynamically paired level and payment plan data.
 	 */
 	private function get_dynamic_plan_pairs()
 	{
@@ -79,75 +79,62 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Retrieves the 'Annual' payment plan data for a given PMPro level.
-	 * * Employs a multi-layered approach: interrogating the custom PMPro Payment Plans table, 
-	 * inspecting level meta, and leveraging the class object if accessible.
-	 * * @param int $level_id The PMPro Level ID.
-	 * @return array|false Returns an array containing the 'id' and formatted 'price', or false if undetected.
+	 * Scans all level meta to guarantee extraction regardless of the specific meta key used by the add-on.
+	 * @param int $level_id The PMPro Level ID.
+	 * @return array|false Returns an array containing the 'id' (formatted for checkout) and 'price', or false if undetected.
 	 */
 	private function get_annual_payment_plan($level_id)
 	{
 		global $wpdb;
 
-		// 1. Primary Strategy: Interrogate the PMPro Payment Plans custom table natively.
-		$table_name = $wpdb->prefix . 'pmpro_payment_plans';
+		// The PMPro Level Meta table where the Payment Plans Add On serializes data
+		$meta_table = $wpdb->prefix . 'pmpro_membership_levelmeta';
 		
-		if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name) {
-			$query = $wpdb->prepare(
-				"SELECT id, initial_payment, billing_amount FROM {$table_name} WHERE level_id = %d AND status = 'active' AND (name = 'Annual' OR name LIKE '%%Annual%%') ORDER BY display_order ASC LIMIT 1",
-				$level_id
-			);
+		if ($wpdb->get_var("SHOW TABLES LIKE '{$meta_table}'") === $meta_table) {
 			
-			$plan = $wpdb->get_row($query);
+			// Extract all meta for this level to bypass guessing the exact meta_key
+			$all_meta = $wpdb->get_results($wpdb->prepare("SELECT meta_key, meta_value FROM {$meta_table} WHERE pmpro_membership_level_id = %d", $level_id));
 			
-			if ($plan) {
-				// Payment plans may utilize initial_payment or billing_amount depending on trials/setup
-				$price = (float)$plan->initial_payment > 0 ? $plan->initial_payment : $plan->billing_amount;
-				return ['id' => $plan->id, 'price' => pmpro_formatPrice((float)$price)];
-			}
-		}
-
-		// 2. Secondary Strategy: Analyze the membership level meta (Often utilized in PMPro 3.0+ architecture)
-		if (function_exists('get_pmpro_membership_level_meta')) {
-			$meta_keys_to_check = ['pmpropp_payment_plans', 'pmpro_payment_plans', 'payment_plans'];
-			
-			foreach ($meta_keys_to_check as $meta_key) {
-				$payment_plans = get_pmpro_membership_level_meta($level_id, $meta_key, true);
+			foreach ($all_meta as $meta) {
+				$val = maybe_unserialize($meta->meta_value);
 				
-				if (!empty($payment_plans) && is_array($payment_plans)) {
-					foreach ($payment_plans as $plan_key => $plan) {
-						$plan_name   = is_array($plan) ? ($plan['name'] ?? '') : ($plan->name ?? '');
-						$plan_status = is_array($plan) ? ($plan['status'] ?? 'active') : ($plan->status ?? 'active');
+				// The Payment Plans add-on stores plans as an array
+				if (is_array($val)) {
+					foreach ($val as $plan_id => $plan) {
+						// Support both object and associative array formats
+						$p_name   = is_object($plan) ? ($plan->name ?? '') : ($plan['name'] ?? '');
+						$p_status = is_object($plan) ? ($plan->status ?? 'active') : ($plan['status'] ?? 'active');
 						
-						if (stripos($plan_name, 'annual') !== false && $plan_status === 'active') {
-							$price = is_array($plan) ? ($plan['initial_payment'] ?? $plan['billing_amount'] ?? 0) : ($plan->initial_payment ?? $plan->billing_amount ?? 0);
-							$id    = is_array($plan) ? ($plan['id'] ?? $plan_key) : ($plan->id ?? $plan_key);
+						// Search for the "Annual" plan identifier
+						if (!empty($p_name) && stripos($p_name, 'annual') !== false && strtolower($p_status) === 'active') {
 							
-							return ['id' => $id, 'price' => pmpro_formatPrice((float)$price)];
+							// Prioritize initial_payment; fallback to billing_amount
+							$initial = is_object($plan) ? ($plan->initial_payment ?? 0) : ($plan['initial_payment'] ?? 0);
+							$billing = is_object($plan) ? ($plan->billing_amount ?? 0) : ($plan['billing_amount'] ?? 0);
+							$p_price = (float)$initial > 0 ? $initial : $billing;
+							
+							// Extract internal Plan ID (Usually the array index or an 'id' prop)
+							$inner_id = is_object($plan) ? ($plan->id ?? $plan_id) : ($plan['id'] ?? $plan_id);
+							
+							// The PMPro Payment Plans Add On requires this precise identifier format (e.g., L-1-P-4)
+							$plan_identifier = 'L-' . $level_id . '-P-' . $inner_id;
+							
+							return [
+								'id'    => $plan_identifier, 
+								'price' => pmpro_formatPrice((float)$p_price)
+							];
 						}
 					}
 				}
 			}
 		}
 
-		// 3. Fallback Strategy: Execute via the Add-on's Class Object natively if instantiated
-		if (class_exists('PMPro_Payment_Plan') && method_exists('PMPro_Payment_Plan', 'get_payment_plans')) {
-			$plans = PMPro_Payment_Plan::get_payment_plans($level_id);
-			if (!empty($plans)) {
-				foreach ($plans as $plan) {
-					if (stripos($plan->name, 'annual') !== false && $plan->status === 'active') {
-						$price = (float)$plan->initial_payment > 0 ? $plan->initial_payment : $plan->billing_amount;
-						return ['id' => $plan->id, 'price' => pmpro_formatPrice((float)$price)];
-					}
-				}
-			}
-		}
-
-		return false; // Yield false if no active Annual plan configuration is discovered.
+		return false; // Return false if no active Annual plan configuration is discovered.
 	}
 
 	/**
 	 * Registers the backend submenu page under the PMPro Dashboard.
-	 * * @return void
+	 * @return void
 	 */
 	public function register_admin_menu()
 	{
@@ -167,8 +154,8 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Registers the settings, sections, and fields dynamically for the WordPress Settings API.
-	 * * Secures the data in the wp_options table for dynamic plans and the custom CTA card.
-	 * * @return void
+	 * Secures the data in the wp_options table for dynamic plans and the custom CTA card.
+	 * @return void
 	 */
 	public function register_plugin_settings()
 	{
@@ -250,7 +237,7 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Renders the HTML wrapper for the backend settings page.
-	 * * @return void
+	 * @return void
 	 */
 	public function render_settings_page()
 	{
@@ -288,8 +275,8 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Constructs the HTML for individual pricing cards.
-	 * * Compiles pricing data, dynamic URLs, and current ownership status into the interactive card layout.
-	 * * @param string $name The level name.
+	 * Compiles pricing data, dynamic URLs, and current ownership status into the interactive card layout.
+	 * @param string $name The level name.
 	 * @param string $description The custom description text.
 	 * @param int $level_id The primary PMPro Level ID (Default/Monthly).
 	 * @param array $annual_plan Array containing the Payment Plan ID and formatted price.
@@ -305,8 +292,8 @@ class DD_PMPro_Frontend_Pricing
 
 		$annual_data = [
 			'price' => $annual_plan['price'],
-			// Append the discovered Payment Plan ID parameter to the checkout URL.
-			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpro_payment_plan=' . $annual_plan['id'])
+			// Use the correct `pmpropp_chosen_plan` parameter required by the Add On
+			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpropp_chosen_plan=' . $annual_plan['id'])
 		];
 
 		$current_user_id = get_current_user_id();
