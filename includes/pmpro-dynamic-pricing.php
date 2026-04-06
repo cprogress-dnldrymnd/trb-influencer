@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level and disables currently owned plans on checkout.
- * Version: 1.0.11
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans on checkout, and syncs trial text across plans.
+ * Version: 1.0.12
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -27,7 +27,7 @@ class DD_PMPro_Frontend_Pricing
 		add_action('init', [$this, 'register_pricing_shortcode']);
 		add_action('admin_menu', [$this, 'register_admin_menu']);
 		add_action('admin_init', [$this, 'register_plugin_settings']);
-		add_action('wp_footer', [$this, 'disable_owned_plan_on_checkout']);
+		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 	}
 
 	/**
@@ -178,10 +178,10 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Injects a MutationObserver script on the PMPro Checkout page.
-	 * Actively watches for the dynamically injected Payment Plan radio buttons and disables the one the user already owns.
+	 * Disables owned plans and synchronizes the "Subscription Delays" trial text to the dynamically generated Annual plan.
 	 * @return void
 	 */
-	public function disable_owned_plan_on_checkout()
+	public function modify_checkout_plans_dom()
 	{
 		global $pmpro_pages;
 
@@ -193,51 +193,70 @@ class DD_PMPro_Frontend_Pricing
 		$level_id = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
 		$user_id  = get_current_user_id();
 
-		if (!$level_id || !$user_id) {
+		if (!$level_id) {
 			return;
 		}
 
-		// Retrieve the precise radio button value the user currently owns
+		// Retrieve the precise radio button value the user currently owns (returns false if guest/unowned)
 		$owned_plan_value = $this->get_user_active_plan_value($user_id, $level_id);
-
-		if (!$owned_plan_value) {
-			return;
-		}
 
 		?>
 		<script>
 			document.addEventListener('DOMContentLoaded', function() {
+				
 				const ownedValue = "<?php echo esc_js($owned_plan_value); ?>";
 				
-				const disableCurrentPlan = function() {
-					// Target the dynamically generated radio button using its precise value
-					const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
-					
-					if (radioBtn && !radioBtn.disabled) {
-						radioBtn.disabled = true;
+				const processCheckoutDOM = function() {
+					// Feature 1: Disable Current Plan Logic
+					if (ownedValue) {
+						const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
+						if (radioBtn && !radioBtn.disabled) {
+							radioBtn.disabled = true;
+							
+							const label = document.querySelector('label[for="' + radioBtn.id + '"]');
+							if (label && !label.classList.contains('dd-plan-disabled')) {
+								label.classList.add('dd-plan-disabled');
+								label.style.opacity = '0.5';
+								label.style.cursor = 'not-allowed';
+								label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Current Plan)</span>';
+							}
+						}
+					}
+
+					// Feature 2: Sync Trial Text to Payment Plans
+					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
+					if (labels.length > 1) {
+						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
+						const baseLabel = labels[0];
+						const trialMatch = baseLabel.innerHTML.match(/(after your .*? trial\.?)/i);
 						
-						const label = document.querySelector('label[for="' + radioBtn.id + '"]');
-						if (label && !label.classList.contains('dd-plan-disabled')) {
-							label.classList.add('dd-plan-disabled');
-							label.style.opacity = '0.5';
-							label.style.cursor = 'not-allowed';
-							label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Current Plan)</span>';
+						if (trialMatch && trialMatch[1]) {
+							let trialText = trialMatch[1].trim();
+							// Ensure the cloned text ends gracefully
+							if (!trialText.endsWith('.')) { trialText += '.'; }
+
+							// Iterate through remaining dynamically generated plans (e.g., Annual)
+							for (let i = 1; i < labels.length; i++) {
+								if (!labels[i].innerHTML.includes('trial')) {
+									// Strip the trailing period from the original string and append the trial text
+									labels[i].innerHTML = labels[i].innerHTML.replace(/\.$/, '').trim() + ' ' + trialText;
+								}
+							}
 						}
 					}
 				};
 
-				// Execute initially in case elements are already parsed into the DOM
-				disableCurrentPlan();
+				// Execute immediately in case elements are already parsed
+				processCheckoutDOM();
 
-				// The PMPro Payment Plans Addon injects options dynamically via JS.
-				// We attach a MutationObserver to instantly intercept and mutate the injected nodes.
+				// Attach a MutationObserver to instantly intercept and mutate nodes injected by the PMPro Payment Plans Addon
 				const targetNode = document.body; 
 				const config = { childList: true, subtree: true };
 
 				const observer = new MutationObserver(function(mutationsList) {
 					for (const mutation of mutationsList) {
 						if (mutation.type === 'childList') {
-							disableCurrentPlan();
+							processCheckoutDOM();
 						}
 					}
 				});
