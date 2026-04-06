@@ -3,8 +3,8 @@
 /**
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
- * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, and provides a master-detail dashboard.
- * Version: 2.1.0
+ * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs.
+ * Version: 2.2.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -82,13 +82,18 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Registers the settings and database options for the Email Builder array.
+     * Registers the settings and database options for the Email Builder array and General Settings.
      *
      * @return void
      */
     public function register_settings()
     {
         register_setting('dd_outreach_settings_group', 'dd_outreach_email_templates');
+        register_setting('dd_outreach_settings_group', 'dd_outreach_credit_cost', [
+            'type' => 'integer',
+            'default' => 1,
+            'sanitize_callback' => 'absint'
+        ]);
     }
 
     /**
@@ -607,6 +612,7 @@ class DD_Outreach_Manager
     public function render_settings_page()
     {
         $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
+        $credit_cost = get_option('dd_outreach_credit_cost', 1);
 
         // Safety catch: if somehow empty, force default structure
         if (!is_array($templates) || empty($templates)) {
@@ -691,13 +697,29 @@ class DD_Outreach_Manager
             <h1>Outreach Manager Settings</h1>
 
             <h2 class="nav-tab-wrapper">
-                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
+                <a href="#tab-general" class="nav-tab nav-tab-active">General Settings</a>
+                <a href="#tab-email-builder" class="nav-tab">Email Builder</a>
             </h2>
 
-            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
-                <form method="post" action="options.php">
-                    <?php settings_fields('dd_outreach_settings_group'); ?>
+            <form method="post" action="options.php">
+                <?php settings_fields('dd_outreach_settings_group'); ?>
 
+                <!-- GENERAL SETTINGS TAB -->
+                <div id="tab-general" class="dd-tab-content" style="margin-top:20px;">
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="dd_outreach_credit_cost">Outreach Credit Cost</label></th>
+                            <td>
+                                <input name="dd_outreach_credit_cost" type="number" id="dd_outreach_credit_cost" value="<?php echo esc_attr($credit_cost); ?>" class="regular-text" min="0">
+                                <p class="description">Define the number of credits/points to deduct when a user successfully submits an outreach form.</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <?php submit_button('Save Settings'); ?>
+                </div>
+
+                <!-- EMAIL BUILDER TAB -->
+                <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px; display:none;">
                     <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
 
                         <div style="flex: 1.5; min-width: 500px;">
@@ -825,8 +847,8 @@ class DD_Outreach_Manager
                         </div>
 
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     <?php
     }
@@ -1546,7 +1568,7 @@ class DD_Outreach_Manager
 
     /**
      * Intercepts the Elementor Form submission to compile a custom HTML payload.
-     * Generates a new 'outreach' post type entry and triggers email dispatch.
+     * Generates a new 'outreach' post type entry, triggers email dispatch, and deducts dynamic credit cost.
      */
     public function process_elementor_form_response($record, $ajax_handler)
     {
@@ -1585,15 +1607,23 @@ class DD_Outreach_Manager
             // Dispatch HTML notification immediately after persisting state
             $this->send_outreach_email($data, $current_user_id);
 
+            // Deduct Dynamic Points/Credits
             if (function_exists('deduct_points_from_current_user')) {
-                deduct_points_from_current_user(1, 'Outreach Form Submission');
+                $credit_cost = (int) get_option('dd_outreach_credit_cost', 1);
+                
+                if ($credit_cost > 0) {
+                    deduct_points_from_current_user($credit_cost, 'Outreach Form Submission');
+                }
             }
 
             if (function_exists('mycred_get_users_cred')) {
                 $updated_points = mycred_get_users_cred($current_user_id);
                 $ajax_handler->add_response_data('updated_points', $updated_points);
+                // Also pass the cost back to the frontend logic so it updates UI accurately
+                $ajax_handler->add_response_data('deducted_points', get_option('dd_outreach_credit_cost', 1));
             }
-            $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
+            
+            $sent_date = get_the_date('g:i A, F jS Y', $post_id);
         } else {
             $sent_date = date_i18n(get_option('date_format'));
         }
@@ -1795,10 +1825,12 @@ class DD_Outreach_Manager
                                             jQuery('body').addClass('reload--page');
                                         }
                                     } else {
+                                        // Fallback calculation utilizing the dynamic cost returned via ajax
                                         var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
                                         var currentVal = parseInt(currentPointsStr, 10);
-                                        if (!isNaN(currentVal) && currentVal > 0) {
-                                            $pointsTarget.text(currentVal - 1);
+                                        var cost = response.data.deducted_points ? parseInt(response.data.deducted_points, 10) : 1;
+                                        if (!isNaN(currentVal) && currentVal >= cost) {
+                                            $pointsTarget.text(currentVal - cost);
                                         }
                                     }
                                 }
