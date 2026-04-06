@@ -108,8 +108,8 @@ function get_current_user_remaining_mycred_balance($point_type_key = 'mycred_def
  * Author URI: https://digitallydisruptive.co.uk/
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
+if (! defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
 }
 
 /**
@@ -124,27 +124,28 @@ if ( ! defined( 'ABSPATH' ) ) {
  * 
  * @return float The customized package cost, or the default cost if no package matches.
  */
-function mycred_pro_custom_package_pricing( $cost, $amount, $type ) {
-	
-	// Define custom pricing tiers. Key = Point Amount, Value = Flat Fiat Cost.
-	$custom_packages = array(
-		'20'  => 90.00,
-		'50'  => 200.00,
-		'100' => 380.00,
-	);
+function mycred_pro_custom_package_pricing($cost, $amount, $type)
+{
 
-	// Cast the point amount to a string to ensure strict array key matching.
-	$amount_str = (string) $amount;
+    // Define custom pricing tiers. Key = Point Amount, Value = Flat Fiat Cost.
+    $custom_packages = array(
+        '20'  => 90.00,
+        '50'  => 200.00,
+        '150' => 525.00,
+    );
 
-	// Intercept and override the cost if the requested amount matches a custom package array key.
-	if ( array_key_exists( $amount_str, $custom_packages ) ) {
-		return (float) $custom_packages[ $amount_str ];
-	}
+    // Cast the point amount to a string to ensure strict array key matching.
+    $amount_str = (string) $amount;
 
-	// Fallback to the default calculated exchange rate for arbitrary amounts.
-	return $cost;
+    // Intercept and override the cost if the requested amount matches a custom package array key.
+    if (array_key_exists($amount_str, $custom_packages)) {
+        return (float) $custom_packages[$amount_str];
+    }
+
+    // Fallback to the default calculated exchange rate for arbitrary amounts.
+    return $cost;
 }
-add_filter( 'mycred_buycred_get_cost', 'mycred_pro_custom_package_pricing', 10, 3 );
+add_filter('mycred_buycred_get_cost', 'mycred_pro_custom_package_pricing', 10, 3);
 
 /**
  * Plugin Name: PMPro myCred Rewards Manager
