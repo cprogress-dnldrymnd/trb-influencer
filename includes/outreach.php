@@ -3,8 +3,8 @@
 /**
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
- * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs.
- * Version: 2.2.0
+ * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs via settings and shortcodes.
+ * Version: 2.3.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -37,6 +37,9 @@ class DD_Outreach_Manager
         // New Master-Detail Dashboard Functionality
         add_shortcode('dd_outreach_list', [$this, 'render_list_shortcode']);
         add_shortcode('dd_outreach_view', [$this, 'render_view_shortcode']);
+        
+        // New Shortcode for Dynamic Credit Cost
+        add_shortcode('dd_outreach_credit_cost', [$this, 'render_credit_cost_shortcode']);
 
         // Frontend AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
@@ -2031,6 +2034,15 @@ class DD_Outreach_Manager
         </div>
     <?php
         return ob_get_clean();
+    }
+    
+    /**
+     * Renders the dynamic credit cost via shortcode [dd_outreach_credit_cost].
+     */
+    public function render_credit_cost_shortcode($atts)
+    {
+        $cost = get_option('dd_outreach_credit_cost', 1);
+        return esc_html($cost);
     }
 
     /**
