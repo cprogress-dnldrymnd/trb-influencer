@@ -1118,11 +1118,11 @@ input:checked + .slider:before {
             font-size: clamp(20px, 7vw, 100px);
         }
 
-          @media (max-width: 1199px) {
+        @media (max-width: 1199px) {
             font-size: 40px;
         }
     }
-    @media(max-width: 767px) {
+    @media (max-width: 767px) {
         display: block !important;
     }
 }
@@ -1795,6 +1795,25 @@ body:not(.page-id-4144) {
         }
     }
 }
+
+.custom-buy-credit.custom-buy-credit.custom-buy-credit {
+    .form-control-static {
+        display: none;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-group {
+        width: 100%;
+        .btn {
+            width: 100%;
+            background-color: var(--e-global-color-accent);
+        }
+    }
+}
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,

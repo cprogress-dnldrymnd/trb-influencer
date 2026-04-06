@@ -1421,6 +1421,17 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   .featured-niches .influencer-niche-container .niche-toggle {
     display: none !important; }
 
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .form-control-static {
+  display: none; }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit form {
+  display: flex;
+  flex-direction: column; }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group {
+  width: 100%; }
+  .custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group .btn {
+    width: 100%;
+    background-color: var(--e-global-color-accent); }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
