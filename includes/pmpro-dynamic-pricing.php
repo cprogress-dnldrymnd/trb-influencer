@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension.
- * Version: 1.0.7
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level.
+ * Version: 1.0.8
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -81,7 +81,7 @@ class DD_PMPro_Frontend_Pricing
 	 * Retrieves the 'Annual' payment plan data for a given PMPro level.
 	 * Scans all level meta to guarantee extraction regardless of the specific meta key used by the add-on.
 	 * @param int $level_id The PMPro Level ID.
-	 * @return array|false Returns an array containing the 'id' (formatted for checkout) and 'price', or false if undetected.
+	 * @return array|false Returns an array containing the 'id' (formatted for checkout), 'price' (formatted), and 'raw_price' (float) or false if undetected.
 	 */
 	private function get_annual_payment_plan($level_id)
 	{
@@ -120,8 +120,9 @@ class DD_PMPro_Frontend_Pricing
 							$plan_identifier = 'L-' . $level_id . '-P-' . $inner_id;
 							
 							return [
-								'id'    => $plan_identifier, 
-								'price' => pmpro_formatPrice((float)$p_price)
+								'id'        => $plan_identifier, 
+								'price'     => pmpro_formatPrice((float)$p_price),
+								'raw_price' => (float)$p_price // Passed for mathematical comparison during state detection
 							];
 						}
 					}
@@ -276,10 +277,11 @@ class DD_PMPro_Frontend_Pricing
 	/**
 	 * Constructs the HTML for individual pricing cards.
 	 * Compiles pricing data, dynamic URLs, and current ownership status into the interactive card layout.
+	 * Identifies exact plan ownership mathematically to allow cross-plan switching on the same level.
 	 * @param string $name The level name.
 	 * @param string $description The custom description text.
 	 * @param int $level_id The primary PMPro Level ID (Default/Monthly).
-	 * @param array $annual_plan Array containing the Payment Plan ID and formatted price.
+	 * @param array $annual_plan Array containing the Payment Plan ID, formatted price, and raw price.
 	 * @return string The generated HTML markup.
 	 */
 	private function build_pricing_card($name, $description, $level_id, $annual_plan)
@@ -297,40 +299,57 @@ class DD_PMPro_Frontend_Pricing
 		];
 
 		$current_user_id = get_current_user_id();
-		$owns_level = false;
+		$owns_monthly    = false;
+		$owns_annual     = false;
 
-		// Note: Because Monthly and Annual are now the SAME level, ownership triggers 'CURRENT PLAN' regardless of the payment schedule.
+		// Interrogate user's active levels to mathematically determine which payment plan they are currently on.
 		if (function_exists('pmpro_getMembershipLevelsForUser') && $current_user_id) {
 			$user_levels = pmpro_getMembershipLevelsForUser($current_user_id);
 			if (! empty($user_levels)) {
 				foreach ($user_levels as $l) {
 					if ($l->id == $level_id) {
-						$owns_level = true;
+						// Extract user's active billing rate to compare with the Annual plan rate
+						$user_billing = (float)$l->billing_amount > 0 ? (float)$l->billing_amount : (float)$l->initial_payment;
+						$annual_raw   = (float)$annual_plan['raw_price'];
+
+						// If billing rate matches the annual rate within a tight tolerance, they own Annual. Otherwise Monthly.
+						if (abs($user_billing - $annual_raw) < 0.01) {
+							$owns_annual = true;
+						} else {
+							$owns_monthly = true;
+						}
 						break;
 					}
 				}
 			}
 		}
 
-		$has_any_plan = $owns_level;
+		$has_any_plan = $owns_monthly || $owns_annual;
 		$card_class = $has_any_plan ? 'dd-card dd-card-active' : 'dd-card';
 		$badge_html = $has_any_plan ? '<div class="dd-badge">CURRENT PLAN</div>' : '';
 
-		$toggle_checked    = ''; // Always default visual state to Monthly
-		$current_price     = $monthly_data['price'];
-		$btn_text          = $owns_level ? 'CURRENT PLAN' : 'UPGRADE PLAN';
-		$btn_class         = $owns_level ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
-		$current_url       = $owns_level ? '' : $monthly_data['url'];
+		// Automatically default the toggle view to the user's active plan (if they own one)
+		$show_annual_default = $owns_annual;
+		$toggle_checked      = $show_annual_default ? 'checked' : '';
+		$current_price       = $show_annual_default ? $annual_data['price'] : $monthly_data['price'];
+		
+		$owns_current_view = $show_annual_default ? $owns_annual : $owns_monthly;
+		$owns_other_view   = $show_annual_default ? $owns_monthly : $owns_annual;
+		
+		// If they own the current view, disable it. If they own the inverse view, offer a switch. Otherwise, standard upgrade.
+		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : 'UPGRADE PLAN');
+		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
+		$current_url       = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
 
 		ob_start();
 	?>
 		<div class="<?php echo esc_attr($card_class); ?>"
 			data-price-monthly="<?php echo esc_attr($monthly_data['price']); ?>"
 			data-url-monthly="<?php echo esc_url($monthly_data['url']); ?>"
-			data-owns-monthly="<?php echo $owns_level ? 'true' : 'false'; ?>"
+			data-owns-monthly="<?php echo $owns_monthly ? 'true' : 'false'; ?>"
 			data-price-annual="<?php echo esc_attr($annual_data['price']); ?>"
 			data-url-annual="<?php echo esc_url($annual_data['url']); ?>"
-			data-owns-annual="<?php echo $owns_level ? 'true' : 'false'; ?>">
+			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -571,18 +590,24 @@ class DD_PMPro_Frontend_Pricing
 							const isYearly = this.checked;
 							const priceEl = card.querySelector('.dd-price-amount');
 							const btnEl = card.querySelector('.dd-checkout-btn');
+							
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 
+							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
+							
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
+							const userOwnsOtherView    = isYearly ? ownsMonthly : ownsAnnual;
 
+							// Evaluate button state based on explicit ownership
 							if (userOwnsSelectedView) {
 								btnEl.textContent = 'CURRENT PLAN';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							} else {
-								btnEl.textContent = 'UPGRADE PLAN';
+								// Trigger 'SWITCH PLAN' if moving within same level but different term, else 'UPGRADE PLAN'
+								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : 'UPGRADE PLAN';
 								btnEl.classList.remove('dd-btn-disabled');
 								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
 							}
