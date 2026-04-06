@@ -1239,7 +1239,7 @@ input:checked + .slider:before {
     #dashboard--activity > div {
       --width: 100%; } }
 
-body:not(.pmpro-level-free-trial) .upgrade--plan.upgrade--plan {
+body:not(.pmpro-level-no-membership) .upgrade--plan.upgrade--plan {
   display: none !important; }
 
 /* Firefox (uncomment to work in Firefox) */
