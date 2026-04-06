@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.14
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans on checkout, and syncs trial text across plans.
+ * Version: 1.0.13
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -178,7 +178,6 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Injects a robust MutationObserver script on the PMPro Checkout page.
-	 * Acts as a global DOM cleaner to remove broken Payment Plan injections on non-checkout pages (like the signup shortcode).
 	 * Handles DOM parsing securely to prevent duplicate trial-text appending and ensures the current active plan remains locked out during plan transitions.
 	 * @return void
 	 */
@@ -186,36 +185,11 @@ class DD_PMPro_Frontend_Pricing
 	{
 		global $pmpro_pages;
 
-		// 1. NON-CHECKOUT PAGE CLEANUP (Fixes the empty box on [pmpro_signup] pages)
+		// Ensure we are strictly on the PMPro checkout page
 		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
-			?>
-			<script>
-				document.addEventListener('DOMContentLoaded', function() {
-					const ppContainer = document.getElementById('pmpropp_payment_plans');
-					if (ppContainer) {
-						ppContainer.style.display = 'none';
-						
-						// Remove the rogue "Select a Payment Plan" heading
-						let prev = ppContainer.previousElementSibling;
-						if (prev && prev.textContent.toLowerCase().includes('payment plan')) {
-							prev.style.display = 'none';
-						}
-					}
-					
-					// Catch any stray headings injected by the Add On independently
-					const headings = document.querySelectorAll('h2, h3, h4, label, legend, p');
-					headings.forEach(h => {
-						if (h.textContent.trim() === 'Select a Payment Plan') {
-							h.style.display = 'none';
-						}
-					});
-				});
-			</script>
-			<?php
-			return; // Abort further execution as we are not on the true checkout page
+			return;
 		}
 
-		// 2. CHECKOUT PAGE MUTATION LOGIC
 		$level_id = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
 		$user_id  = get_current_user_id();
 
