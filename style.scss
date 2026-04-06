@@ -1809,7 +1809,10 @@ body:not(.page-id-4144) {
         width: 100%;
         .btn {
             width: 100%;
-            background-color: var(--e-global-color-accent);
+            &:not(:hover) {
+                background-color: var(--e-global-color-accent);
+                border-color: var(--e-global-color-accent);
+            }
         }
     }
 }

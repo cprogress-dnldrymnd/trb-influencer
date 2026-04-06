@@ -1429,8 +1429,10 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 .custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group {
   width: 100%; }
   .custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group .btn {
-    width: 100%;
-    background-color: var(--e-global-color-accent); }
+    width: 100%; }
+    .custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group .btn:not(:hover) {
+      background-color: var(--e-global-color-accent);
+      border-color: var(--e-global-color-accent); }
 
 /*responsive*/
 @media (min-width: 1025px) {
