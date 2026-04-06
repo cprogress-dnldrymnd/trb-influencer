@@ -421,6 +421,7 @@ add_filter( 'pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 1
  * @global object $pmpro_level The current membership level being processed at checkout.
  * @return void Outputs HTML directly to the checkout page.
  */
+/*
 function dd_pmpro_checkout_stripe_trial_notice() {
     global $pmpro_level;
     
@@ -449,4 +450,4 @@ function dd_pmpro_checkout_stripe_trial_notice() {
         echo '</div>';
     }
 }
-add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );
+add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
