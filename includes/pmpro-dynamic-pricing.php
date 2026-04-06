@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -271,7 +271,15 @@ class DD_PMPro_Frontend_Pricing
 		if (empty($level)) {
 			return false;
 		}
-		return ['id' => $level->id, 'price' => pmpro_formatPrice($level->initial_payment), 'url' => pmpro_url('checkout', '?level=' . $level->id)];
+
+		// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
+		$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
+
+		return [
+			'id'    => $level->id, 
+			'price' => pmpro_formatPrice((float)$price), 
+			'url'   => pmpro_url('checkout', '?level=' . $level->id)
+		];
 	}
 
 	/**
