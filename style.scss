@@ -1118,6 +1118,9 @@ input:checked + .slider:before {
             font-size: clamp(20px, 7vw, 100px);
         }
     }
+    @media(max-width: 767px) {
+        display: block !important;
+    }
 }
 
 .medium-avatar {

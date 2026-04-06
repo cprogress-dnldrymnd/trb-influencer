@@ -892,6 +892,9 @@ input:checked + .slider:before {
 @media (min-width: 1200px) {
   .avatar-featured .influencer-avatar-fallback {
     font-size: clamp(20px, 7vw, 100px); } }
+@media (max-width: 767px) {
+  .avatar-featured {
+    display: block !important; } }
 
 .medium-avatar .avatar-holder.avatar-holder img,
 .medium-avatar .influencer-avatar-fallback {
