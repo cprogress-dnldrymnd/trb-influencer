@@ -1434,6 +1434,12 @@ body:not(.page-id-4144) span#pmpro_submit_span {
       background-color: var(--e-global-color-accent);
       border-color: var(--e-global-color-accent); }
 
+#pmpropp_payment_plans .pmpro_form_field-radio-item .pmpro_form_input {
+  width: auto; }
+#pmpropp_payment_plans .pmpro_form_field-radio-item .pmpro_form_label {
+  font-size: 16px;
+  color: #000; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,

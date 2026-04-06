@@ -1816,7 +1816,17 @@ body:not(.page-id-4144) {
         }
     }
 }
-
+#pmpropp_payment_plans {
+    .pmpro_form_field-radio-item {
+        .pmpro_form_input {
+            width: auto;
+        }
+        .pmpro_form_label {
+            font-size: 16px;
+            color: #000;
+        }
+    }
+}
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
