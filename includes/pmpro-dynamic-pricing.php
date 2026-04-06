@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans within the same level.
- * Version: 1.0.8
+ * Version: 1.0.9
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -113,11 +113,11 @@ class DD_PMPro_Frontend_Pricing
 							$billing = is_object($plan) ? ($plan->billing_amount ?? 0) : ($plan['billing_amount'] ?? 0);
 							$p_price = (float)$initial > 0 ? $initial : $billing;
 							
-							// Extract internal Plan ID (Usually the array index or an 'id' prop)
+							// Extract internal Plan ID (Usually the array key which may already contain the prefix)
 							$inner_id = is_object($plan) ? ($plan->id ?? $plan_id) : ($plan['id'] ?? $plan_id);
 							
-							// The PMPro Payment Plans Add On requires this precise identifier format (e.g., L-1-P-4)
-							$plan_identifier = 'L-' . $level_id . '-P-' . $inner_id;
+							// Prevent prefix duplication: If the ID already starts with 'L-', use it directly.
+							$plan_identifier = (strpos((string)$inner_id, 'L-') === 0) ? $inner_id : 'L-' . $level_id . '-P-' . $inner_id;
 							
 							return [
 								'id'        => $plan_identifier, 
