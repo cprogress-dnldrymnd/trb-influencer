@@ -1117,6 +1117,10 @@ input:checked + .slider:before {
         @media (min-width: 1200px) {
             font-size: clamp(20px, 7vw, 100px);
         }
+
+          @media (max-width: 1199px) {
+            font-size: 40px;
+        }
     }
     @media(max-width: 767px) {
         display: block !important;
