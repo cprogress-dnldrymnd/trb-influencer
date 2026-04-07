@@ -218,7 +218,7 @@ function dd_influencer_style_mycred_checkout()
             color: inh;
         }
 
-        .mycred-stripe-payment-main * {
+        .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter;
             text-align: inherit;
         }
