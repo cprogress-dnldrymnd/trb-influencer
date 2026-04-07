@@ -693,7 +693,9 @@ function dd_influencer_style_pmpro_checkout()
         /* influencer Card Styles */
         #dd-influencer-summary {
             margin-top: 40px !important;
-            margin-bottom: 40px !important;
+            margin-bottom: 20px !important;
+            border-bottom: 1px solid #e5e5e5 !important;
+            padding-bottom: 20px !important;
         }
 
         .infl-summary-card {
