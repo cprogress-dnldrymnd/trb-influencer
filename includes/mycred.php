@@ -376,13 +376,13 @@ function dd_influencer_style_mycred_checkout()
         }
 
         /* Bullet Points */
-        .infl-bullets {
+        .infl-bullets.infl-bullets.infl-bullets {
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 13px;
-            color: #6a6a6a;
-            line-height: 1.5;
+            font-size: 13px !important;
+            color: #6a6a6a !important;
+            line-height: 1.5 !important;
         }
 
         .infl-bullets li {
