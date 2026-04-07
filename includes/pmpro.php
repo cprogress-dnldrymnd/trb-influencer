@@ -517,3 +517,38 @@ function dd_force_free_members_to_upgrade() {
     }
 }
 add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
+
+/**
+ * Intercepts the PMPro Membership Confirmation page.
+ * If the user just completed checkout for the Free Level (ID: 15), 
+ * forcefully redirect them to the Levels/Pricing page for an immediate upsell opportunity.
+ *
+ * @return void
+ */
+function dd_redirect_free_confirmation_to_levels() {
+    // 1. Abort if Paid Memberships Pro is not active
+    if ( ! function_exists( 'pmpro_url' ) ) {
+        return;
+    }
+
+    global $pmpro_pages;
+
+    // 2. Ensure the PMPro pages array is populated and we are on the exact Confirmation page
+    if ( ! empty( $pmpro_pages['confirmation'] ) && is_page( $pmpro_pages['confirmation'] ) ) {
+        
+        // 3. Extract and sanitize the level ID from the URL parameters
+        $level_id = isset( $_GET['pmpro_level'] ) ? intval( $_GET['pmpro_level'] ) : 0;
+
+        // 4. If the completed level is the Free tier (15), execute the redirect
+        if ( $level_id === 15 ) {
+            
+            $redirect_url = pmpro_url( 'levels' );
+            
+            if ( $redirect_url ) {
+                wp_safe_redirect( $redirect_url );
+                exit;
+            }
+        }
+    }
+}
+add_action( 'template_redirect', 'dd_redirect_free_confirmation_to_levels' );
