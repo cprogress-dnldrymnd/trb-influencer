@@ -522,8 +522,6 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
-    global $is_no_membership, $number_of_searches;
-
     // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
     $raw_fields = get_query_var('influencer_search_fields');
     $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
@@ -537,63 +535,43 @@ function shortcode_influencer_search_filter_main()
     $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
 
 ?>
-    <?php if ($number_of_searches >= 3 && $is_no_membership) {  ?>
-        <style>
-            #search-header {
-                display: none;
-            }
-        </style>
-        <div class="trial-search-limit-notice">
-            <?= do_shortcode('[elementor-template id="9540"]') ?>
-        </div>
-    <?php } else { ?>
-        <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
-            <div class="influencer-search-filter-holder">
-                <input type="hidden" value="true" name="search_active">
-                <?php if (!$is_no_membership) { ?>
-                    <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
-                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
-                    </div>
-                <?php } else { ?>
-                    <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search ">
-                        <div class="fake-textarea">
-                            <?= do_shortcode('[elementor-template id="11241"]') ?>
-                        </div>
-                    </div>
-                <?php } ?>
-
-                <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search">
-                    <div class="influencer-search-item">
-                        <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
-                    </div>
-                    <div class="influencer-search-item">
-                        <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
-                    </div>
-                    <div class="influencer-search-item required-on-search">
-                        <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
-                    </div>
-                    <div class="influencer-search-item">
-                        <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
-                    </div>
-                    <div class="influencer-search-item">
-                        <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                    </div>
-                </div>
-                <div class="influencer-search-item checkbox-row">
-                    <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+    <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
+        <div class="influencer-search-filter-holder">
+            <input type="hidden" value="true" name="search_active">
+            <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
+                <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
+            </div>
+            <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search">
+                <div class="influencer-search-item">
+                    <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
-                        <span class="elementor-button-content-wrapper">
-                            <span class="elementor-button-text influencer-search-item-wrapper full-brief-search active">GENERATE MATCHES</span>
-                            <span class="elementor-button-text influencer-search-item-wrapper filtered-search">SEARCH</span>
-                        </span>
-                    </button>
+                    <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                 </div>
-
+                <div class="influencer-search-item required-on-search">
+                    <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                </div>
             </div>
-        </form>
-    <?php } ?>
+            <div class="influencer-search-item checkbox-row">
+                <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+            </div>
+            <div class="influencer-search-item">
+                <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-text influencer-search-item-wrapper full-brief-search active">GENERATE MATCHES</span>
+                        <span class="elementor-button-text influencer-search-item-wrapper filtered-search">SEARCH</span>
+                    </span>
+                </button>
+            </div>
+
+        </div>
+    </form>
 
 <?php
     return ob_get_clean();
@@ -930,7 +908,8 @@ function is_influencer_saved($current_influencer_id)
  * @link https://digitallydisruptive.co.uk/
  * * @return string The HTML representation of the user avatar, or an empty string if not logged in.
  */
-function dd_get_user_avatar_html() {
+function dd_get_user_avatar_html()
+{
     // 1. Check if user is logged in. If not, return nothing.
     if (!is_user_logged_in()) {
         return '';
@@ -947,7 +926,7 @@ function dd_get_user_avatar_html() {
         $current_user = wp_get_current_user();
         $first_name   = $current_user->user_firstname;
         $last_name    = $current_user->user_lastname;
-        
+
         if (!$first_name && !$last_name) {
             $name = $current_user->nickname;
         } else {
@@ -973,7 +952,8 @@ function dd_get_user_avatar_html() {
  * @link https://digitallydisruptive.co.uk/
  * * @return string HTML output for the user avatar.
  */
-function custom_standalone_avatar_shortcode() {
+function custom_standalone_avatar_shortcode()
+{
     return dd_get_user_avatar_html();
 }
 add_shortcode('user_avatar', 'custom_standalone_avatar_shortcode');
@@ -986,7 +966,8 @@ add_shortcode('user_avatar', 'custom_standalone_avatar_shortcode');
  * * @param array $atts Shortcode attributes.
  * @return string The HTML output for the avatar and dropdown menu.
  */
-function custom_avatar_dropdown_shortcode($atts) {
+function custom_avatar_dropdown_shortcode($atts)
+{
     // 1. Check if user is logged in. If not, return nothing (or a login button).
     if (!is_user_logged_in()) {
         return '';
