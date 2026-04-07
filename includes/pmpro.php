@@ -536,8 +536,8 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 
 /**
  * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
- * Reorders DOM elements, securely hides the payment plan selector, builds a Summary block, 
- * and injects the user avatar via shortcode.
+ * Reorders DOM elements, securely hides the payment plan selector, builds a Spotify-style 
+ * Summary block, and injects the user avatar via shortcode.
  *
  * @return void
  */
@@ -555,9 +555,10 @@ function dd_spotify_style_pmpro_checkout() {
     <style>
         /* Spotify-style CSS Overrides for PMPro */
         #pmpro_form {
-            max-width: 650px;
+            max-width: 600px;
             margin: 0 auto;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #000;
         }
 
         .dd-spotify-header {
@@ -607,13 +608,159 @@ function dd_spotify_style_pmpro_checkout() {
             border: none !important;
             margin-bottom: 15px !important;
             padding-bottom: 0 !important;
+            color: #000;
         }
 
-        /* Style the newly injected Summary section */
+        /* Hide unwanted default sections */
+        #pmpro_level_cost, 
+        #pmpropp_payment_plans {
+            display: none !important;
+        }
+
+        /* Spotify Card Styles */
         #dd-spotify-summary {
-            border-top: 1px solid #e5e5e5 !important;
-            padding-top: 30px !important;
             margin-top: 40px !important;
+        }
+
+        .spty-summary-card {
+            background: transparent;
+            padding: 10px 0;
+            margin-bottom: 20px;
+        }
+
+        .spty-header-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .spty-icon {
+            width: 50px;
+            height: 50px;
+            background: #282828;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: #fff;
+        }
+
+        .spty-icon svg {
+            width: 30px;
+            height: 30px;
+        }
+
+        .spty-plan-info {
+            flex-grow: 1;
+        }
+
+        .spty-plan-info h4 {
+            margin: 0 0 2px 0 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+        }
+
+        .spty-plan-info span {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        .spty-price-info {
+            text-align: right;
+        }
+
+        .spty-price-info h4 {
+            margin: 0 0 2px 0 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+        }
+
+        .spty-price-info span {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        /* Timeline Styles */
+        .spty-timeline {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+
+        .spty-timeline::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 10px;
+            bottom: 25px;
+            width: 1px;
+            background: #000;
+        }
+
+        .spty-timeline-item {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .spty-dot {
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #000;
+            z-index: 2;
+        }
+
+        .spty-dot.hollow {
+            background: transparent;
+            border: 2px solid #000;
+            left: -2px;
+            width: 9px;
+            height: 9px;
+        }
+
+        .spty-content p {
+            margin: 0 0 2px 0 !important;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .spty-content span {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        /* Bullet Points */
+        .spty-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+            color: #6a6a6a;
+            line-height: 1.5;
+        }
+
+        .spty-bullets li {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 6px;
+        }
+
+        .spty-bullets li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #6a6a6a;
+        }
+
+        .spty-bullets a {
+            color: #6a6a6a;
+            text-decoration: underline;
         }
 
         /* Submit Button (Spotify Green) */
@@ -628,11 +775,20 @@ function dd_spotify_style_pmpro_checkout() {
             width: 100% !important;
             text-transform: none !important;
             transition: transform 0.2s ease, background-color 0.2s ease;
+            margin-top: 20px;
         }
 
         #pmpro_btn-submit:hover {
             background-color: #1fdf64 !important;
             transform: scale(1.02);
+        }
+
+        /* Clean up residual Account Info if logged out */
+        .dd-clean-account-info h2, 
+        .dd-clean-account-info h3, 
+        .dd-clean-account-info hr,
+        .dd-clean-account-info p.pmpro_logged_in_text {
+            display: none !important;
         }
     </style>
 
@@ -641,59 +797,156 @@ function dd_spotify_style_pmpro_checkout() {
             if (typeof jQuery === 'undefined') return;
             var $ = jQuery;
 
-            // Safely pass the PHP generated shortcode HTML into JavaScript
-            var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
+            // Give the Payment Plans Add-on 100ms to inject its HTML before we parse it
+            setTimeout(function() {
+                
+                var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
 
-            // 1. Inject the Custom Header at the top of the form
-            var headerHtml = '<div class="dd-spotify-header">' +
-                             '<h2>Checkout</h2>' +
-                             '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
-                             '</div>';
-            $('#pmpro_form').prepend(headerHtml);
+                // 1. Inject Header
+                var headerHtml = '<div class="dd-spotify-header">' +
+                                 '<h2>Checkout</h2>' +
+                                 '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
+                                 '</div>';
+                $('#pmpro_form').prepend(headerHtml);
 
-            // 2. Hide Payment Plan Module (It stays in the DOM so the form submits correctly, but is invisible to the user)
-            var $paymentPlanWrapper = $('#pmpropp_payment_plans');
-            if ($paymentPlanWrapper.length) {
+                // 2. Hide Native Elements Safely
+                var $paymentPlanWrapper = $('#pmpropp_payment_plans').closest('.pmpro_checkout-section');
+                if($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
                 $paymentPlanWrapper.hide();
-                // Find the heading immediately preceding the radio buttons and hide it
                 $paymentPlanWrapper.prev('h2, h3, hr').hide();
-                // If it's wrapped in a standard PMPro section, hide the wrapper
-                $paymentPlanWrapper.closest('.pmpro_checkout-section').hide();
-            }
 
-            // Catch any stray headings related to Payment Plans
-            $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
-                if ($(this).text().indexOf('Payment Plan') !== -1) {
-                    $(this).hide();
-                    $(this).closest('.pmpro_checkout-section').hide();
+                // Hide arbitrary "Membership Information" and "Select a Payment Plan" headings
+                $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
+                    var txt = $(this).text().trim();
+                    if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
+                        $(this).hide();
+                        if($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
+                    }
+                });
+
+                // 3. Extract Data for Spotify Card
+                var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
+                
+                var planName = "Premium Plan";
+                var baseLevelMatch = $('.pmpro_checkout-section:contains("Membership Information")').text().match(/selected the (.*?) membership/i);
+                if(baseLevelMatch) planName = baseLevelMatch[1].trim();
+
+                // Determine if Annual
+                var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
+                if (isAnnual) planName = planName + " (Annual)";
+
+                var nowPrice = "₱0.00";
+                var recurringPrice = "";
+                var cycle = "month";
+                var trialDays = 0;
+
+                // Parse Initial Price
+                var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
+                if(nowMatch) nowPrice = nowMatch[1];
+
+                // Parse Recurring Price
+                var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
+                if(recMatch) {
+                    recurringPrice = recMatch[1];
+                    cycle = recMatch[2].toLowerCase();
                 }
-            });
 
-            // 3. Build the Summary Section and Reorder the DOM
-            var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h3>Summary</h3></div>');
-            
-            // Locate the Payment Information block
-            var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
-            if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields'); // Fallback
-            
-            // Inject the empty Summary section directly beneath the Payment Information
-            if ($paymentFields.length) {
-                $paymentFields.after($summarySection);
-            } else {
-                $('#pmpro_form .pmpro_checkout-section').last().after($summarySection);
-            }
+                // Parse Trial
+                var trialMatch = labelText.match(/(\d+)\s+day trial/i);
+                if(trialMatch) trialDays = parseInt(trialMatch[1], 10);
+                
+                // Fallback if no trial is detected
+                if(!nowMatch && recMatch) {
+                    nowPrice = recurringPrice;
+                }
 
-            // Pluck the Membership Information block and drop it inside the Summary
-            var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
-            if (!$memInfo.length) $memInfo = $('#pmpro_level_cost');
-            if ($memInfo.length) $summarySection.append($memInfo);
+                // Calculate Future Date
+                var options = { month: 'short', day: 'numeric', year: 'numeric' };
+                var today = new Date();
+                var startDateStr = "Now";
 
-            // Pluck the Account Information block and drop it inside the Summary
-            var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
-            if (!$accInfo.length) $accInfo = $('#pmpro_account');
-            if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
-            if ($accInfo.length) $summarySection.append($accInfo);
-            
+                if (trialDays > 0) {
+                    var startDate = new Date();
+                    startDate.setDate(today.getDate() + trialDays);
+                    startDateStr = startDate.toLocaleDateString('en-US', options);
+                }
+
+                // 4. Build Spotify UI HTML
+                var spotifyHtml = `
+                <div class="spty-summary-card">
+                    <div class="spty-header-row">
+                        <div class="spty-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.207 15.385c-.187.31-.58.41-.892.223-2.446-1.494-5.525-1.83-9.155-1.002-.345.078-.686-.137-.765-.48-.078-.344.137-.686.48-.765 3.978-.906 7.377-.52 10.11 1.15.31.186.41.58.222.892zm.643-2.003c-.235.384-.716.51-1.1.275-2.78-1.706-7.05-2.124-10.37-1.16-.43.125-.875-.12-.998-.55-.125-.43.12-.876.55-.998 3.805-1.1 8.52-.635 11.644 1.284.384.234.51.715.275 1.1zm.68-2.074c-3.32-1.97-8.8-2.15-11.96-1.19-.505.154-1.03-.13-1.185-.635-.155-.506.13-1.032.636-1.186 3.65-1.11 9.71-.9 13.56 1.39.46.273.61 1.868.337 1.33-.274.46-.868.61-1.33.336z"></path></svg>
+                        </div>
+                        <div class="spty-plan-info">
+                            <h4>${planName}</h4>
+                            <span>1 Premium account</span>
+                        </div>
+                        <div class="spty-price-info">
+                            <h4>${recurringPrice} + tax</h4>
+                            <span>/${cycle}</span>
+                        </div>
+                    </div>
+                    <div class="spty-timeline">
+                        <div class="spty-timeline-item">
+                            <div class="spty-dot filled"></div>
+                            <div class="spty-content">
+                                <p><strong>Now:</strong> ${nowPrice}</p>
+                                <span>Premium Family</span>
+                            </div>
+                        </div>
+                        <div class="spty-timeline-item">
+                            <div class="spty-dot hollow"></div>
+                            <div class="spty-content">
+                                <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} + tax/${cycle}</p>
+                                <span>${planName}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <ul class="spty-bullets">
+                        <li>When your new subscription takes effect, the other members on this plan will lose access to their Spotify subscription benefits.</li>
+                        <li>From the starting date shown, you'll be charged ${cycle}ly for your updated subscription.</li>
+                        <li>Cancel anytime online. <a href="#">Terms apply</a></li>
+                    </ul>
+                </div>`;
+
+                // 5. Inject Summary Block and Reorder DOM
+                var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
+                $summarySection.append(spotifyHtml);
+                
+                // Place Summary below Payment Information
+                var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
+                if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
+                
+                if ($paymentFields.length) {
+                    $paymentFields.after($summarySection);
+                } else {
+                    $('#pmpro_form').append($summarySection);
+                }
+
+                // 6. Move and Clean Up Account Information
+                // If they are logged out, PMPro shows input fields. We want them in the summary but stripped of clunky borders.
+                var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
+                if (!$accInfo.length) $accInfo = $('#pmpro_account');
+                if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
+                
+                if ($accInfo.length) {
+                    $accInfo.addClass('dd-clean-account-info');
+                    // Hide the logged in text, but keep the container in case there are fields
+                    if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
+                        $summarySection.append($accInfo);
+                        $accInfo.show();
+                    } else {
+                        // If they are logged in and it's just text, hide it completely
+                        $accInfo.hide();
+                    }
+                }
+                
+                // Hide original Membership Info container as the Spotify Card replaces it
+                var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
+                if ($memInfo.length) $memInfo.hide();
+
+            }, 150); // Small delay ensures Payment Plans Add-on has injected the labels
         });
     </script>
     <?php
