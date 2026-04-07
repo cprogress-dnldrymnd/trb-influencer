@@ -220,7 +220,12 @@ function dd_influencer_style_mycred_checkout()
 
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter;
-            text-align: inherit;
+            color: inherit !important;
+            text-align: left;
+        }
+
+        .mycred-stripe-payment-form p {
+            text-align: left !important;
         }
 
         .dd-checkout-title-row a {
@@ -475,7 +480,7 @@ function dd_influencer_style_mycred_checkout()
                                 <div class="infl-timeline-item">
                                     <div class="infl-dot filled"></div>
                                     <div class="infl-content">
-                                        <p><strong>Total Today:</strong> ${costAmount}</p>
+                                        <p><strong>Total:</strong> ${costAmount}</p>
                                         <span>${creditsAmount} Credits</span>
                                     </div>
                                 </div>
