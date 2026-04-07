@@ -581,6 +581,7 @@ function dd_influencer_style_pmpro_checkout()
         'default' => [
             'account_type' => '1 Account',
             'bullets' => [
+                'Enjoy unlimited access to your selected plan features.',
                 'From the starting date shown, you\'ll be charged for your updated subscription.',
                 'Cancel anytime online. <a href="/terms-of-use/">Terms apply</a>.'
             ]
