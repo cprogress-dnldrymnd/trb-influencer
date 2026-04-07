@@ -537,7 +537,7 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 /**
  * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
  * Reorders DOM elements, securely hides the payment plan selector, builds a Spotify-style 
- * Summary block, injects the user avatar, and populates dynamic features based on the Level ID.
+ * Summary block ABOVE the payment info, injects the user avatar, and populates dynamic features based on the Level ID.
  *
  * @return void
  */
@@ -549,12 +549,23 @@ function dd_spotify_style_pmpro_checkout() {
         return;
     }
 
-    // 1. DEFINE YOUR DYNAMIC PLAN DETAILS HERE
-    // Map your PMPro Level IDs to their specific text and bullet points.
+    // 1. EXTRACT REAL PLAN NAME
+    $level_id = isset( $_REQUEST['level'] ) ? intval( $_REQUEST['level'] ) : 0;
+    $real_plan_name = 'Membership Plan'; // Fallback
+    
+    if ( $level_id > 0 && function_exists( 'pmpro_getLevel' ) ) {
+        $level = pmpro_getLevel( $level_id );
+        if ( ! empty( $level ) ) {
+            $real_plan_name = $level->name;
+        }
+    }
+
+    // 2. DEFINE YOUR DYNAMIC PLAN DETAILS HERE
+    // You only need to map specific bullets or account type text here now. 
+    // The actual Plan Name is pulled automatically.
     $dynamic_plan_details = [
         '8' => [ // Example: Level ID 8 (Essential)
             'account_type' => '1 Essential Account',
-            'timeline_tag' => 'Essential Plan',
             'bullets' => [
                 'Full access to all essential tools and platform features.',
                 'From the starting date shown, you\'ll be charged for your updated subscription.',
@@ -563,7 +574,6 @@ function dd_spotify_style_pmpro_checkout() {
         ],
         'default' => [ // Fallback if a level isn't mapped above
             'account_type' => '1 Premium Account',
-            'timeline_tag' => 'Premium Plan',
             'bullets' => [
                 'Enjoy unlimited access to your selected plan features.',
                 'From the starting date shown, you\'ll be charged for your updated subscription.',
@@ -634,18 +644,19 @@ function dd_spotify_style_pmpro_checkout() {
             color: #000;
         }
 
-        /* Hide unwanted default sections */
+        /* Hide unwanted default sections and specific PMPro fields */
         #pmpro_level_cost, 
-        #pmpropp_payment_plans {
+        #pmpropp_payment_plans,
+        #pmpro_pricing_fields, 
+        #pmpro_user_fields, 
+        #pmpropp_select_payment_plan {
             display: none !important;
         }
 
-#pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan {
-            display: none !important;
-        }
         /* Spotify Card Styles */
         #dd-spotify-summary {
             margin-top: 40px !important;
+            margin-bottom: 40px !important;
         }
 
         .spty-summary-card {
@@ -828,6 +839,7 @@ function dd_spotify_style_pmpro_checkout() {
                 
                 var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
                 var dynamicPlanMeta = <?php echo wp_json_encode( $dynamic_plan_details ); ?>;
+                var realPlanName = <?php echo wp_json_encode( $real_plan_name ); ?>;
 
                 // 1. Inject Header
                 var headerHtml = '<div class="dd-spotify-header">' +
@@ -859,11 +871,10 @@ function dd_spotify_style_pmpro_checkout() {
                 // 4. Extract Pricing Data for Spotify Card
                 var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
                 
-                var planName = "Premium Plan";
-                var baseLevelMatch = $('.pmpro_checkout-section:contains("Membership Information")').text().match(/selected the (.*?) membership/i);
-                if(baseLevelMatch) planName = baseLevelMatch[1].trim();
+                // Use the database plan name as the base
+                var planName = realPlanName;
 
-                // Determine if Annual
+                // Determine if Annual and append to name if true
                 var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
                 if (isAnnual) planName = planName + " (Annual)";
 
@@ -930,7 +941,7 @@ function dd_spotify_style_pmpro_checkout() {
                             <div class="spty-dot filled"></div>
                             <div class="spty-content">
                                 <p><strong>Now:</strong> ${nowPrice}</p>
-                                <span>${planDetails.timeline_tag}</span>
+                                <span>${planName}</span>
                             </div>
                         </div>
                         <div class="spty-timeline-item">
@@ -950,30 +961,27 @@ function dd_spotify_style_pmpro_checkout() {
                 var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
                 $summarySection.append(spotifyHtml);
                 
-                // Place Summary below Payment Information
+                // Place Summary ABOVE Payment Information
                 var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
                 if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
                 
                 if ($paymentFields.length) {
-                    $paymentFields.after($summarySection);
+                    $paymentFields.before($summarySection); 
                 } else {
-                    $('#pmpro_form').append($summarySection);
+                    $('#pmpro_form').prepend($summarySection); 
                 }
 
                 // 7. Move and Clean Up Account Information
-                // If they are logged out, PMPro shows input fields. We want them in the summary but stripped of clunky borders.
                 var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
                 if (!$accInfo.length) $accInfo = $('#pmpro_account');
                 if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
                 
                 if ($accInfo.length) {
                     $accInfo.addClass('dd-clean-account-info');
-                    // Hide the logged in text, but keep the container in case there are fields
                     if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
                         $summarySection.append($accInfo);
                         $accInfo.show();
                     } else {
-                        // If they are logged in and it's just text, hide it completely
                         $accInfo.hide();
                     }
                 }
