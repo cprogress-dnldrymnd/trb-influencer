@@ -452,7 +452,6 @@ function dd_pmpro_checkout_stripe_trial_notice() {
 }
 add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
 
-<?php
 /**
  * Intercepts frontend page loads to handle two specific free-tier redirections:
  * 1. Redirects users completing checkout for the Free Level (15) directly to the pricing page.
