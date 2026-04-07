@@ -55,7 +55,7 @@ require $dir . '/includes/brief-parser.php';
 require $dir . '/includes/mycred.php';
 require $dir . '/includes/pmpro.php';
 require $dir . '/includes/pmpro-mycred-rewards-manager.php';
-require $dir . '/includes/email-template-manager.php';
+require $dir . '/includes/email-template-manager.p hp';
 require $dir . '/includes/pmpro-dynamic-pricing.php';
 require $dir . '/includes/acf.php';
 require $dir . '/includes/sign-up.php';
@@ -65,7 +65,7 @@ require $dir . '/includes/charts.php';
 require $dir . '/includes/feeds.php';
 require $dir . '/includes/shortcodes.php';
 require $dir . '/includes/ajax.php';
-//require $dir . '/includes/influencers.php';
+require $dir . '/includes/influencers.php';
 
 function influencers_meta()
 {
