@@ -455,9 +455,9 @@ add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_tri
 
 /**
  * Intercepts frontend page loads and evaluates the current user's membership level.
- * If the user holds a designated "Free" membership level, they are forcefully redirected 
- * to the PMPro Levels page to select a paid plan. Safely ignores backend requests, 
- * AJAX calls, and core PMPro functional pages to prevent infinite loops.
+ * If the user holds the Free membership level (ID: 15) AND they are attempting to 
+ * access a page utilizing the 'templates/page-dashboard.php' template, they are 
+ * forcefully redirected to the PMPro Levels page to select a paid plan.
  *
  * @return void
  */
@@ -472,36 +472,24 @@ function dd_force_free_members_to_upgrade() {
         return;
     }
 
-    // Define the exact ID(s) of your Free Membership Level(s). 
-    // UPDATE THIS ARRAY WITH YOUR ACTUAL FREE LEVEL ID (e.g., array( 1 )).
+    // Abort if the current page is NOT using the Dashboard template
+    if ( ! is_page_template( 'templates/page-dashboard.php' ) ) {
+        return;
+    }
+
+    // Define the exact ID of your Free Membership Level
     $free_level_ids = array( 15 ); 
 
-    // Evaluate if the current user possesses the specified free level
+    // Evaluate if the current user possesses the free level
     if ( pmpro_hasMembershipLevel( $free_level_ids ) ) {
         
-        global $pmpro_pages;
+        // Retrieve the dynamic URL for the PMPro Levels/Pricing page
+        $redirect_url = pmpro_url( 'levels' );
         
-        // Define critical PMPro routing pages that must be exempt from the redirect
-        $exempt_page_ids = array(1010);
-        
-        if ( ! empty( $pmpro_pages ) ) {
-            $exempt_keys = array( 'levels', 'checkout', 'cancel', 'login', 'logout' );
-            foreach ( $exempt_keys as $key ) {
-                if ( ! empty( $pmpro_pages[ $key ] ) ) {
-                    $exempt_page_ids[] = $pmpro_pages[ $key ];
-                }
-            }
-        }
-
-        // Execute the redirect ONLY if the current page is not inside the exemption array
-        if ( ! is_page( $exempt_page_ids ) ) {
-            // Retrieve the dynamic URL for the Levels page
-            $redirect_url = pmpro_url( 'levels' );
-            
-            if ( $redirect_url ) {
-                wp_safe_redirect( $redirect_url );
-                exit;
-            }
+        // Execute the redirect
+        if ( $redirect_url ) {
+            wp_safe_redirect( $redirect_url );
+            exit;
         }
     }
 }
