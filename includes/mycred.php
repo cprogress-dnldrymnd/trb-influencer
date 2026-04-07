@@ -396,6 +396,7 @@ function dd_influencer_style_mycred_checkout()
             cursor: pointer;
             text-align: center !important;
             height: auto !important;
+            min-height: 65px;
         }
 
         .mycred-stripe-buy-button:hover {
