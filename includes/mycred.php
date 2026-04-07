@@ -218,8 +218,7 @@ function dd_influencer_style_mycred_checkout()
         }
 
         .checkout-order {
-            padding: 10px;
-            color: inh;
+            padding: 20px 10px;
         }
 
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
@@ -257,6 +256,10 @@ function dd_influencer_style_mycred_checkout()
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        body {
+            background-color: #fff;
         }
 
         /* influencer Card Styles */
