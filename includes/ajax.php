@@ -147,6 +147,15 @@ function my_custom_loop_filter_handler()
         ];
     }
 
+    // Filter: Professional experts only
+    if (!empty($filter) && in_array('Professional experts only', $filter, true)) {
+        $meta_query[] = [
+            'key'     => 'is_expert',
+            'value'   => 'yes',
+            'compare' => '=',
+        ];
+    }
+
     // Followers Logic
     if (!empty($followers)) {
         // Check if it contains a hyphen indicating a range (e.g., "1000-10000")

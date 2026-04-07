@@ -651,8 +651,8 @@ function shortcode_influencer_search_summary()
     }
 
     $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
-    $verified_only        = in_array('Include only verified influencers', $filter, true);
-
+    $verified_only         = in_array('Include only verified influencers', $filter, true);
+    $expert_only           = in_array('Professional experts only', $filter, true);
     ob_start();
 ?>
     <div class="influencer-search-summary">
@@ -681,14 +681,22 @@ function shortcode_influencer_search_summary()
                 <strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?>
             </div>
         <?php endif; ?>
-        <?php if ($prioritise_engagement || $verified_only) : ?>
+        <?php if ($prioritise_engagement || $verified_only || $expert_only) : ?>
             <div class="search-summary-item search-summary-notes">
-                <?php if ($prioritise_engagement) : ?>
-                    <span>Prioritising engagement over reach</span><?= $verified_only ? ' • ' : '' ?>
-                <?php endif; ?>
-                <?php if ($verified_only) : ?>
-                    <span>Include only verified influencers</span>
-                <?php endif; ?>
+                <?php
+                $notes = [];
+                if ($prioritise_engagement) {
+                    $notes[] = '<span>Prioritising engagement over reach</span>';
+                }
+                if ($verified_only) {
+                    $notes[] = '<span>Include only verified influencers</span>';
+                }
+                if ($expert_only) {
+                    $notes[] = '<span>Professional experts only</span>';
+                }
+
+                echo implode(' • ', $notes);
+                ?>
             </div>
         <?php endif; ?>
     </div>
