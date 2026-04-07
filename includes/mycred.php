@@ -401,9 +401,9 @@ function dd_influencer_style_mycred_checkout()
 
         /* Submit Button Overlay */
         .mycred-stripe-buy-button.mycred-stripe-buy-button.mycred-stripe-buy-button {
-            background-color: var(--e-global-color-secondary) !important;
+            background-color: var(--e-global-color-primary) !important;
             color: #fff !important;
-            border-radius: 500px !important;
+            border-radius: 5px 5px 5px 5px !important;
             padding: 16px 30px !important;
             font-size: 16px !important;
             font-weight: 500 !important;
@@ -414,6 +414,7 @@ function dd_influencer_style_mycred_checkout()
             margin-top: 20px !important;
             cursor: pointer;
             text-align: center !important;
+                height: auto !important;
         }
 
         .mycred-stripe-buy-button:hover {
