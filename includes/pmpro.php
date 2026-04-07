@@ -455,32 +455,50 @@ add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_tri
 
 /**
  * Intercepts frontend page loads and evaluates the current user's membership level.
- * If the user holds the Free membership level (ID: 15) AND they are attempting to 
- * access a page utilizing the 'templates/page-dashboard.php' template, they are 
- * forcefully redirected to the PMPro Levels page to select a paid plan.
+ * Forcefully redirects Free members (Level 15) to the pricing page ONLY if they 
+ * access the dashboard template. Explicitly exempts core PMPro billing/checkout pages 
+ * to prevent accidental upgrade lockouts (defense-in-depth).
  *
  * @return void
  */
 function dd_force_free_members_to_upgrade() {
-    // Abort if Paid Memberships Pro is not active to prevent fatal errors
+    // 1. Abort if Paid Memberships Pro is not active
     if ( ! function_exists( 'pmpro_hasMembershipLevel' ) ) {
         return;
     }
 
-    // Abort if the user is not logged in, is accessing the WP Admin, or executing an AJAX/REST request
+    // 2. Abort for backend, AJAX, or logged-out users
     if ( ! is_user_logged_in() || is_admin() || wp_doing_ajax() || wp_is_json_request() ) {
         return;
     }
 
-    // Abort if the current page is NOT using the Dashboard template
+    // 3. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
+    global $pmpro_pages;
+    if ( ! empty( $pmpro_pages ) ) {
+        $exempt_keys = array( 'levels', 'checkout', 'billing', 'cancel', 'confirmation' );
+        $exempt_page_ids = array();
+        
+        foreach ( $exempt_keys as $key ) {
+            if ( ! empty( $pmpro_pages[ $key ] ) ) {
+                $exempt_page_ids[] = $pmpro_pages[ $key ];
+            }
+        }
+        
+        // If the current page is one of the core PMPro pages, abort the redirect immediately.
+        if ( is_page( $exempt_page_ids ) ) {
+            return;
+        }
+    }
+
+    // 4. Abort if the current page is NOT using the Dashboard template
     if ( ! is_page_template( 'templates/page-dashboard.php' ) ) {
         return;
     }
 
-    // Define the exact ID of your Free Membership Level
+    // 5. Define the exact ID of your Free Membership Level
     $free_level_ids = array( 15 ); 
 
-    // Evaluate if the current user possesses the free level
+    // 6. Evaluate if the current user possesses the free level
     if ( pmpro_hasMembershipLevel( $free_level_ids ) ) {
         
         // Retrieve the dynamic URL for the PMPro Levels/Pricing page
