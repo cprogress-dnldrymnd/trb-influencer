@@ -109,7 +109,7 @@ function get_current_user_remaining_mycred_balance($point_type_key = 'mycred_def
 function dd_influencer_style_mycred_checkout()
 {
     // Execute your custom avatar shortcode safely
-    $avatar_html = do_shortcode('[influencer_avatar]');
+    $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
         /* Nuke all myCred default boxed styling */
