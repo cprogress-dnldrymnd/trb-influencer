@@ -123,6 +123,10 @@ function dd_influencer_style_mycred_checkout()
             font-size: inherit !important;
         }
 
+        .mycred-stripe-payment-main + hr {
+            display: none !important;
+        }
+
         /* Nuke all myCred default boxed styling */
         #buycred-checkout-page,
         #buycred-checkout-page .checkout-body,
@@ -414,7 +418,7 @@ function dd_influencer_style_mycred_checkout()
             margin-top: 20px !important;
             cursor: pointer;
             text-align: center !important;
-                height: auto !important;
+            height: auto !important;
         }
 
         .mycred-stripe-buy-button:hover {
@@ -424,6 +428,12 @@ function dd_influencer_style_mycred_checkout()
 
         .mycred-stripe-payment-main section {
             margin-top: 0 !important;
+        }
+
+        .mycred_buy_section_1 h2,
+        .mycred_buy_section_2 h2 {
+            font-size: 24px !important;
+            text-transform: capitalize !important;
         }
     </style>
 
