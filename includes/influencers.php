@@ -277,93 +277,127 @@ function dd_influencer_register_settings_page()
 add_action('admin_menu', 'dd_influencer_register_settings_page');
 
 /**
+ * Enqueues Select2 assets strictly on the Influencer Featured Settings page.
+ * 
+ * Prevents library conflicts by ensuring the CSS and JS are only loaded
+ * when the specific $_GET['page'] parameter matches our custom submenu slug.
+ *
+ * @param string $hook The current admin page hook.
+ * @return void
+ */
+function dd_influencer_enqueue_settings_scripts( $hook ) {
+	// Strictly limit asset loading to our custom settings page
+	if ( empty( $_GET['page'] ) || 'influencer-featured-settings' !== $_GET['page'] ) {
+		return;
+	}
+
+	// Enqueue Select2 from a reliable CDN
+	wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0' );
+	wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
+
+	// Inject the initialization script inline to bind Select2 to our multiselect element
+	wp_add_inline_script( 'select2-js', "
+		jQuery(document).ready(function($) {
+			$('#featured_influencers').select2({
+				placeholder: '" . esc_js( __( 'Search and select influencers...', 'textdomain' ) ) . "',
+				allowClear: true,
+				width: '100%' // Forces Select2 to respect the parent container's width
+			});
+		});
+	" );
+}
+add_action( 'admin_enqueue_scripts', 'dd_influencer_enqueue_settings_scripts' );
+
+/**
  * Renders the HTML and handles the form submission for the Global Settings page.
  * * Implements strict memory management by utilizing 'fields' => 'ids' queries,
  * localized error suppression to prevent stream corruption, and integer casting.
- * * Updated: Converted checkbox list to a standardized multiselect field.
+ * * Updated: Integrates Select2 for an optimized multiselect user experience.
  *
  * @return void
  */
-function dd_influencer_settings_page_html()
-{
-	if (! current_user_can('manage_options')) {
-		wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'textdomain'));
+function dd_influencer_settings_page_html() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'textdomain' ) );
 	}
 
 	// NUCLEAR OPTION: Temporarily suppress visual errors on this specific view to prevent stream corruption
 	$original_error_reporting = error_reporting();
-	error_reporting(0);
-	ini_set('display_errors', 0);
+	error_reporting( 0 );
+	ini_set( 'display_errors', 0 );
 
-	if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-		if (isset($_POST['dd_settings_nonce']) && wp_verify_nonce($_POST['dd_settings_nonce'], 'dd_save_settings')) {
-
-			$selected_featured = isset($_POST['featured_influencers']) ? array_map('intval', $_POST['featured_influencers']) : array();
-
+	if ( $_SERVER['REQUEST_METHOD'] === 'POST' ) {
+		if ( isset( $_POST['dd_settings_nonce'] ) && wp_verify_nonce( $_POST['dd_settings_nonce'], 'dd_save_settings' ) ) {
+			
+			$selected_featured = isset( $_POST['featured_influencers'] ) ? array_map( 'intval', $_POST['featured_influencers'] ) : array();
+			
 			// Optimize memory footprint by querying IDs only.
-			$all_influencer_ids = get_posts(array(
-				'post_type'      => 'influencer',
-				'posts_per_page' => 1000,
-				'fields'         => 'ids'
-			));
-
-			foreach ($all_influencer_ids as $influencer_id) {
-				$status = in_array((int) $influencer_id, $selected_featured, true) ? 'yes' : 'no';
-				update_post_meta($influencer_id, '_is_featured_influencer', $status);
+			$all_influencer_ids = get_posts( array( 
+				'post_type'      => 'influencer', 
+				'posts_per_page' => 1000, 
+				'fields'         => 'ids' 
+			) );
+			
+			foreach ( $all_influencer_ids as $influencer_id ) {
+				$status = in_array( (int) $influencer_id, $selected_featured, true ) ? 'yes' : 'no';
+				update_post_meta( $influencer_id, '_is_featured_influencer', $status );
 			}
-
+			
 			dd_sync_global_featured_influencers();
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Featured influencers synchronized and updated globally.', 'textdomain') . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Featured influencers synchronized and updated globally.', 'textdomain' ) . '</p></div>';
 		}
 	}
 
 	// Fetch IDs for UI Rendering (Highly memory efficient)
-	$all_influencer_ids_display = get_posts(array(
-		'post_type'      => 'influencer',
-		'posts_per_page' => 1000,
-		'fields'         => 'ids'
-	));
+	$all_influencer_ids_display = get_posts( array( 
+		'post_type'      => 'influencer', 
+		'posts_per_page' => 1000, 
+		'fields'         => 'ids' 
+	) );
+	
+	$raw_global_featured = get_option( 'global_featured_influencers', array() );
+	$global_featured     = is_array( $raw_global_featured ) ? array_map( 'intval', $raw_global_featured ) : array();
 
-	$raw_global_featured = get_option('global_featured_influencers', array());
-	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
-
-?>
+	?>
 	<div class="wrap">
-		<h1><?php esc_html_e('Global Featured Influencers Settings', 'textdomain'); ?></h1>
-
+		<h1><?php esc_html_e( 'Global Featured Influencers Settings', 'textdomain' ); ?></h1>
+		
 		<form method="post" action="">
-			<?php wp_nonce_field('dd_save_settings', 'dd_settings_nonce'); ?>
-
+			<?php wp_nonce_field( 'dd_save_settings', 'dd_settings_nonce' ); ?>
+			
 			<table class="form-table">
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="featured_influencers"><?php esc_html_e('Featured Roster', 'textdomain'); ?></label>
+							<label for="featured_influencers"><?php esc_html_e( 'Featured Roster', 'textdomain' ); ?></label>
 						</th>
 						<td>
-							<select name="featured_influencers[]" id="featured_influencers" multiple="multiple" style="width: 100%; max-width: 400px; height: 300px; padding: 5px;">
-								<?php if (! empty($all_influencer_ids_display)) : ?>
-									<?php foreach ($all_influencer_ids_display as $influencer_id) : ?>
-										<option value="<?php echo esc_attr($influencer_id); ?>" <?php selected(in_array((int) $influencer_id, $global_featured, true), true); ?>>
-											<?php echo esc_html(get_the_title($influencer_id)); ?>
-										</option>
-									<?php endforeach; ?>
-								<?php else : ?>
-									<option value="" disabled><?php esc_html_e('No influencers found.', 'textdomain'); ?></option>
-								<?php endif; ?>
-							</select>
-							<p class="description"><?php esc_html_e('Hold down the Ctrl (Windows) or Command (Mac) key to select multiple influencers.', 'textdomain'); ?></p>
+							<!-- Adjusted width to 600px for a better Select2 layout -->
+							<div style="max-width: 600px;">
+								<select name="featured_influencers[]" id="featured_influencers" multiple="multiple">
+									<?php if ( ! empty( $all_influencer_ids_display ) ) : ?>
+										<?php foreach ( $all_influencer_ids_display as $influencer_id ) : ?>
+											<option value="<?php echo esc_attr( $influencer_id ); ?>" <?php selected( in_array( (int) $influencer_id, $global_featured, true ), true ); ?>>
+												<?php echo esc_html( get_the_title( $influencer_id ) ); ?>
+											</option>
+										<?php endforeach; ?>
+									<?php else : ?>
+										<option value="" disabled><?php esc_html_e( 'No influencers found.', 'textdomain' ); ?></option>
+									<?php endif; ?>
+								</select>
+							</div>
+							<p class="description"><?php esc_html_e( 'Search by name and click to add. You can drag to reorder or click the "x" to remove an influencer.', 'textdomain' ); ?></p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
-
-			<?php submit_button(__('Sync and Save Changes', 'textdomain')); ?>
+			
+			<?php submit_button( __( 'Sync and Save Changes', 'textdomain' ) ); ?>
 		</form>
 	</div>
-<?php
-
+	<?php
+	
 	// Restore standard error reporting
-	error_reporting($original_error_reporting);
-	ini_restore('display_errors');
+	error_reporting( $original_error_reporting );
+	ini_restore( 'display_errors' );
 }
