@@ -1,19 +1,20 @@
 <?php
-if (! defined('ABSPATH')) {
-	exit; // Exit if accessed directly.
-}
+
 /**
  * Plugin Name: Influencer Extensions
  * Description: Adds featured influencer functionality (WooCommerce style), expert toggles, and synchronized global settings to the influencer post type.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
- * Version: 1.0.0
+ * Version: 1.0.2
  */
+
+if (! defined('ABSPATH')) {
+	exit; // Exit if accessed directly.
+}
 
 /**
  * Registers the meta boxes for the 'influencer' post type.
- * 
- * Adds a custom meta box to the sidebar of the post edit screen to manage
+ * * Adds a custom meta box to the sidebar of the post edit screen to manage
  * the 'Featured Influencer' and 'Professional experts only' toggles.
  *
  * @return void
@@ -33,8 +34,7 @@ add_action('add_meta_boxes', 'dd_influencer_register_meta_boxes');
 
 /**
  * Renders the HTML for the Influencer Attributes meta box.
- * 
- * Outputs nonces for security and the checkbox fields for `_is_featured_influencer`
+ * * Outputs nonces for security and the checkbox fields for `_is_featured_influencer`
  * and `is_expert`.
  *
  * @param WP_Post $post The current post object.
@@ -65,8 +65,7 @@ function dd_influencer_attributes_meta_box_html($post)
 
 /**
  * Saves the custom meta box data when the influencer post is saved.
- * 
- * Validates nonces and permissions, updates the post meta, and triggers
+ * * Validates nonces and permissions, updates the post meta, and triggers
  * the synchronization function to update the global option.
  *
  * @param int $post_id The ID of the post being saved.
@@ -74,7 +73,6 @@ function dd_influencer_attributes_meta_box_html($post)
  */
 function dd_influencer_save_meta_box_data($post_id)
 {
-	// Security checks.
 	if (! isset($_POST['dd_influencer_attributes_nonce']) || ! wp_verify_nonce($_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save')) {
 		return;
 	}
@@ -85,25 +83,20 @@ function dd_influencer_save_meta_box_data($post_id)
 		return;
 	}
 
-	// Save Featured Status
 	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
 	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
 
-	// Save Expert Status
 	$expert_status = isset($_POST['is_expert']) ? 'yes' : 'no';
 	update_post_meta($post_id, 'is_expert', $expert_status);
 
-	// Sync with global settings
 	dd_sync_global_featured_influencers();
 }
 add_action('save_post_influencer', 'dd_influencer_save_meta_box_data');
 
 /**
  * Synchronizes the global featured influencers option with post meta.
- * 
- * Queries all influencers that have the `_is_featured_influencer` meta set to 'yes'
- * and saves their IDs into a single global array (`wp_options`). This allows for
- * O(1) performance when fetching featured influencers on the frontend.
+ * * Queries all influencers that have the `_is_featured_influencer` meta set to 'yes'
+ * and saves their IDs into a single global array (`wp_options`). 
  *
  * @return void
  */
@@ -111,7 +104,7 @@ function dd_sync_global_featured_influencers()
 {
 	$featured_query = new WP_Query(array(
 		'post_type'      => 'influencer',
-		'posts_per_page' => -1,
+		'posts_per_page' => 1000, // Hard limit to prevent infinite query timeouts
 		'fields'         => 'ids',
 		'meta_query'     => array(
 			array(
@@ -121,7 +114,9 @@ function dd_sync_global_featured_influencers()
 		),
 	));
 
-	update_option('global_featured_influencers', $featured_query->posts);
+	// Strictly cast to integers
+	$featured_ids = array_map('intval', $featured_query->posts);
+	update_option('global_featured_influencers', $featured_ids);
 }
 
 /**
@@ -139,23 +134,19 @@ function dd_influencer_add_custom_columns($columns)
 
 	foreach ($columns as $key => $title) {
 		$new_columns[$key] = $title;
-		// Inject immediately after the title column
 		if ('title' === $key) {
 			$new_columns['featured'] = '<span class="dashicons dashicons-star-filled" title="' . esc_attr__('Featured', 'textdomain') . '"></span>';
 			$inserted = true;
 		}
 	}
 
-	// Fallback: If the 'title' column was missing/renamed by another plugin, append to the end.
 	if (! $inserted) {
 		$new_columns['featured'] = '<span class="dashicons dashicons-star-filled" title="' . esc_attr__('Featured', 'textdomain') . '"></span>';
 	}
 
 	return $new_columns;
 }
-// Using the screen-specific hook is generally more robust for custom post types.
 add_filter('manage_edit-influencer_columns', 'dd_influencer_add_custom_columns', 99);
-
 
 /**
  * Renders the content for the custom 'featured' column.
@@ -179,16 +170,11 @@ function dd_influencer_render_custom_columns($column, $post_id)
 		);
 	}
 }
-// Hook for non-hierarchical post types (default)
 add_action('manage_influencer_posts_custom_column', 'dd_influencer_render_custom_columns', 99, 2);
-// Hook for hierarchical post types (failsafe)
-add_action('manage_influencer_pages_custom_column', 'dd_influencer_render_custom_columns', 99, 2);
 
 /**
  * Handles the AJAX request to toggle the featured status of an influencer.
- * 
- * Validates the nonce, toggles the `_is_featured_influencer` meta value,
- * synchronizes the global settings, and returns a JSON success response.
+ * * Validates the nonce, toggles the meta value, and syncs the global option.
  *
  * @return void
  */
@@ -213,8 +199,6 @@ add_action('wp_ajax_dd_toggle_featured', 'dd_influencer_ajax_toggle_featured');
 
 /**
  * Injects inline JavaScript and CSS to handle the WooCommerce-style AJAX toggle.
- * 
- * Ensures the script only loads on the 'influencer' edit screen.
  *
  * @return void
  */
@@ -254,10 +238,8 @@ function dd_influencer_admin_footer_scripts()
 				var post_id = $btn.data('post-id');
 				var nonce = $btn.data('nonce');
 
-				// Optimistic UI update
 				var is_filled = $icon.hasClass('dashicons-star-filled');
-				$icon.removeClass('dashicons-star-filled dashicons-star-empty');
-				$icon.addClass(is_filled ? 'dashicons-star-empty' : 'dashicons-star-filled');
+				$icon.removeClass('dashicons-star-filled dashicons-star-empty').addClass(is_filled ? 'dashicons-star-empty' : 'dashicons-star-filled');
 
 				$.post(ajaxurl, {
 					action: 'dd_toggle_featured',
@@ -265,9 +247,7 @@ function dd_influencer_admin_footer_scripts()
 					nonce: nonce
 				}, function(response) {
 					if (!response.success) {
-						// Revert on failure
-						$icon.removeClass('dashicons-star-filled dashicons-star-empty');
-						$icon.addClass(is_filled ? 'dashicons-star-filled' : 'dashicons-star-empty');
+						$icon.removeClass('dashicons-star-filled dashicons-star-empty').addClass(is_filled ? 'dashicons-star-filled' : 'dashicons-star-empty');
 						alert('Error toggling featured status.');
 					}
 				});
@@ -280,8 +260,6 @@ add_action('admin_footer', 'dd_influencer_admin_footer_scripts');
 
 /**
  * Registers a submenu page under 'Influencers' for the Global Settings.
- * 
- * Allows batch management of featured influencers from a single synchronized dashboard.
  *
  * @return void
  */
@@ -300,9 +278,8 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
 
 /**
  * Renders the HTML and handles the form submission for the Global Settings page.
- * * Includes advanced state logging to diagnose silent failures during the 
- * bidirectional synchronization process. Strictly processes POST requests
- * to prevent false-positive saves.
+ * * Implements strict memory management by utilizing 'fields' => 'ids' queries,
+ * localized error suppression to prevent stream corruption, and integer casting.
  *
  * @return void
  */
@@ -312,59 +289,46 @@ function dd_influencer_settings_page_html()
 		wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'textdomain'));
 	}
 
-	$debug_log = array();
+	// NUCLEAR OPTION: Temporarily suppress visual errors on this specific view to prevent stream corruption
+	$original_error_reporting = error_reporting();
+	error_reporting(0);
+	ini_set('display_errors', 0);
 
-	// Handle form save with strict method checking
 	if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if (isset($_POST['dd_settings_nonce']) && wp_verify_nonce($_POST['dd_settings_nonce'], 'dd_save_settings')) {
 
 			$selected_featured = isset($_POST['featured_influencers']) ? array_map('intval', $_POST['featured_influencers']) : array();
-			$debug_log[] = sprintf('Captured %d selected influencers from POST payload.', count($selected_featured));
 
-			// We must update the post meta for ALL influencers to ensure bidirectional synchronization.
-			$all_influencers = get_posts(array('post_type' => 'influencer', 'posts_per_page' => -1, 'fields' => 'ids'));
-			$debug_log[] = sprintf('Retrieved %d total influencers from database.', count($all_influencers));
+			// Optimize memory footprint by querying IDs only.
+			$all_influencer_ids = get_posts(array(
+				'post_type'      => 'influencer',
+				'posts_per_page' => 1000,
+				'fields'         => 'ids'
+			));
 
-			$update_count = 0;
-			foreach ($all_influencers as $influencer_id) {
-				$status = in_array($influencer_id, $selected_featured, true) ? 'yes' : 'no';
+			foreach ($all_influencer_ids as $influencer_id) {
+				$status = in_array((int) $influencer_id, $selected_featured, true) ? 'yes' : 'no';
 				update_post_meta($influencer_id, '_is_featured_influencer', $status);
-				$update_count++;
 			}
-			$debug_log[] = sprintf('Processed meta updates for %d influencers.', $update_count);
 
-			// Sync the optimized global option array
 			dd_sync_global_featured_influencers();
-			$debug_log[] = 'Triggered global option synchronization successfully.';
-
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Featured influencers synchronized and updated globally.', 'textdomain') . '</p></div>';
-		} else {
-			$debug_log[] = 'Nonce verification failed or nonce was missing from POST payload.';
-			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Security check failed. Please try again.', 'textdomain') . '</p></div>';
 		}
 	}
 
-	// Fetch data for the form rendering
-	$all_influencers_display = get_posts(array('post_type' => 'influencer', 'posts_per_page' => -1));
+	// Fetch IDs for UI Rendering (Highly memory efficient)
+	$all_influencer_ids_display = get_posts(array(
+		'post_type'      => 'influencer',
+		'posts_per_page' => 1000,
+		'fields'         => 'ids'
+	));
 
-	// FIX: Strict type casting to prevent in_array() from throwing a stream-corrupting warning
 	$raw_global_featured = get_option('global_featured_influencers', array());
-	$global_featured     = is_array($raw_global_featured) ? $raw_global_featured : array();
+	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
 
 ?>
 	<div class="wrap">
 		<h1><?php esc_html_e('Global Featured Influencers Settings', 'textdomain'); ?></h1>
-
-		<?php if (! empty($debug_log) && (defined('WP_DEBUG') && WP_DEBUG)) : ?>
-			<div class="notice notice-warning">
-				<p><strong><?php esc_html_e('Diagnostic Log:', 'textdomain'); ?></strong></p>
-				<ul style="list-style-type: disc; margin-left: 20px;">
-					<?php foreach ($debug_log as $log_entry) : ?>
-						<li><?php echo esc_html($log_entry); ?></li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
-		<?php endif; ?>
 
 		<form method="post" action="">
 			<?php wp_nonce_field('dd_save_settings', 'dd_settings_nonce'); ?>
@@ -375,11 +339,11 @@ function dd_influencer_settings_page_html()
 						<th scope="row"><?php esc_html_e('Featured Roster', 'textdomain'); ?></th>
 						<td>
 							<fieldset>
-								<?php if (! empty($all_influencers_display)) : ?>
-									<?php foreach ($all_influencers_display as $influencer) : ?>
+								<?php if (! empty($all_influencer_ids_display)) : ?>
+									<?php foreach ($all_influencer_ids_display as $influencer_id) : ?>
 										<label style="display:block; margin-bottom: 5px;">
-											<input type="checkbox" name="featured_influencers[]" value="<?php echo esc_attr($influencer->ID); ?>" <?php checked(in_array((int) $influencer->ID, $global_featured, true)); ?> />
-											<?php echo esc_html(get_the_title($influencer->ID)); ?>
+											<input type="checkbox" name="featured_influencers[]" value="<?php echo esc_attr($influencer_id); ?>" <?php checked(in_array((int) $influencer_id, $global_featured, true)); ?> />
+											<?php echo esc_html(get_the_title($influencer_id)); ?>
 										</label>
 									<?php endforeach; ?>
 								<?php else : ?>
@@ -395,4 +359,8 @@ function dd_influencer_settings_page_html()
 		</form>
 	</div>
 <?php
+
+	// Restore standard error reporting
+	error_reporting($original_error_reporting);
+	ini_restore('display_errors');
 }
