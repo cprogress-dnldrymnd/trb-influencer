@@ -34,33 +34,29 @@ add_action('add_meta_boxes', 'dd_influencer_register_meta_boxes');
 
 /**
  * Renders the HTML for the Influencer Attributes meta box.
- * * Outputs nonces for security and the checkbox fields for `_is_featured_influencer`
- * and `is_expert`.
- *
+ * 
  * @param WP_Post $post The current post object.
- * @return void
  */
-function dd_influencer_attributes_meta_box_html($post)
-{
-	wp_nonce_field('dd_influencer_attributes_save', 'dd_influencer_attributes_nonce');
+function dd_influencer_attributes_meta_box_html( $post ) {
+	wp_nonce_field( 'dd_influencer_attributes_save', 'dd_influencer_attributes_nonce' );
 
-	$is_featured = get_post_meta($post->ID, '_is_featured_influencer', true);
-	$is_expert   = get_post_meta($post->ID, 'is_expert', true);
+	$is_featured = get_post_meta( $post->ID, '_is_featured_influencer', true );
+	$is_expert   = get_post_meta( $post->ID, 'is_expert', true );
 
-?>
+	?>
 	<p>
 		<label for="dd_is_featured_influencer">
-			<input type="checkbox" name="dd_is_featured_influencer" id="dd_is_featured_influencer" value="yes" <?php checked($is_featured, 'yes'); ?> />
-			<?php esc_html_e('Featured Influencer', 'textdomain'); ?>
+			<input type="checkbox" name="dd_is_featured_influencer" id="dd_is_featured_influencer" value="yes" <?php checked( $is_featured, 'yes' ); ?> />
+			<?php esc_html_e( 'Featured Influencer', 'textdomain' ); ?>
 		</label>
 	</p>
 	<p>
-		<label for="dd_is_expert">
-			<input type="checkbox" name="is_expert" id="dd_is_expert" value="yes" <?php checked($is_expert, 'yes'); ?> />
-			<?php esc_html_e('Professional experts only', 'textdomain'); ?>
+		<label for="is_expert">
+			<input type="checkbox" name="is_expert" id="is_expert" value="yes" <?php checked( $is_expert, 'yes' ); ?> />
+			<?php esc_html_e( 'Professional experts only', 'textdomain' ); ?>
 		</label>
 	</p>
-<?php
+	<?php
 }
 
 /**
