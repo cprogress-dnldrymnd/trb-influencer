@@ -282,3 +282,39 @@ add_filter('elementor/frontend/widget/should_render', 'dd_evaluate_mycred_elemen
 add_filter('elementor/frontend/container/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
 add_filter('elementor/frontend/section/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
 add_filter('elementor/frontend/column/should_render', 'dd_evaluate_mycred_element_render', 9999, 2);
+
+
+/**
+ * Injects a meta query into the Elementor 'featured_influencers' custom query.
+ *
+ * This function intercepts the WP_Query instance specifically targeting the 
+ * 'featured_influencers' Query ID from the Elementor Loop Carousel settings. 
+ * It appends a meta query condition to ensure only posts with the 
+ * '_is_featured_influencer' custom field set to 'yes' are retrieved.
+ *
+ * @param \WP_Query $query The WP_Query instance (passed by reference).
+ * @return void
+ */
+function dd_filter_elementor_featured_influencers_query( $query ) {
+    
+    // Retrieve any existing meta_query arguments to prevent overwriting other conditions.
+    $meta_query = $query->get( 'meta_query' );
+    
+    // Initialize as an array if no prior meta_query exists.
+    if ( ! is_array( $meta_query ) ) {
+        $meta_query = [];
+    }
+
+    // Append the custom condition targeting the specific meta key and value.
+    $meta_query[] = [
+        'key'     => '_is_featured_influencer',
+        'value'   => 'yes',
+        'compare' => '=',
+    ];
+
+    // Apply the modified meta_query array back to the main query object.
+    $query->set( 'meta_query', $meta_query );
+}
+
+// Hook the function to the dynamic Elementor custom query action.
+add_action( 'elementor/query/featured_influencers', 'dd_filter_elementor_featured_influencers_query' );
