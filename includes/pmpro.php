@@ -537,7 +537,7 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 /**
  * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
  * Reorders DOM elements, securely hides the payment plan selector, builds a Spotify-style 
- * Summary block, and injects the user avatar via shortcode.
+ * Summary block, injects the user avatar, and populates dynamic features based on the Level ID.
  *
  * @return void
  */
@@ -548,6 +548,29 @@ function dd_spotify_style_pmpro_checkout() {
     if ( empty( $pmpro_pages['checkout'] ) || ! is_page( $pmpro_pages['checkout'] ) ) {
         return;
     }
+
+    // 1. DEFINE YOUR DYNAMIC PLAN DETAILS HERE
+    // Map your PMPro Level IDs to their specific text and bullet points.
+    $dynamic_plan_details = [
+        '8' => [ // Example: Level ID 8 (Essential)
+            'account_type' => '1 Essential Account',
+            'timeline_tag' => 'Essential Plan',
+            'bullets' => [
+                'Full access to all essential tools and platform features.',
+                'From the starting date shown, you\'ll be charged for your updated subscription.',
+                'Cancel anytime online. <a href="/terms">Terms apply</a>.'
+            ]
+        ],
+        'default' => [ // Fallback if a level isn't mapped above
+            'account_type' => '1 Premium Account',
+            'timeline_tag' => 'Premium Plan',
+            'bullets' => [
+                'Enjoy unlimited access to your selected plan features.',
+                'From the starting date shown, you\'ll be charged for your updated subscription.',
+                'Cancel anytime online. <a href="/terms">Terms apply</a>.'
+            ]
+        ]
+    ];
 
     // Execute your custom avatar shortcode safely
     $avatar_html = do_shortcode( '[influencer_avatar]' );
@@ -617,13 +640,12 @@ function dd_spotify_style_pmpro_checkout() {
             display: none !important;
         }
 
+#pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan {
+            display: none !important;
+        }
         /* Spotify Card Styles */
         #dd-spotify-summary {
             margin-top: 40px !important;
-        }
-
-        #pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan {
-            display: none !important;
         }
 
         .spty-summary-card {
@@ -805,6 +827,7 @@ function dd_spotify_style_pmpro_checkout() {
             setTimeout(function() {
                 
                 var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
+                var dynamicPlanMeta = <?php echo wp_json_encode( $dynamic_plan_details ); ?>;
 
                 // 1. Inject Header
                 var headerHtml = '<div class="dd-spotify-header">' +
@@ -828,7 +851,12 @@ function dd_spotify_style_pmpro_checkout() {
                     }
                 });
 
-                // 3. Extract Data for Spotify Card
+                // 3. Extract Level ID to load dynamic data
+                var urlParams = new URLSearchParams(window.location.search);
+                var currentLevelId = urlParams.get('level') || '';
+                var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
+
+                // 4. Extract Pricing Data for Spotify Card
                 var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
                 
                 var planName = "Premium Plan";
@@ -875,7 +903,13 @@ function dd_spotify_style_pmpro_checkout() {
                     startDateStr = startDate.toLocaleDateString('en-US', options);
                 }
 
-                // 4. Build Spotify UI HTML
+                // Build Dynamic Bullets
+                var bulletsHtml = '';
+                planDetails.bullets.forEach(function(bullet) {
+                    bulletsHtml += '<li>' + bullet + '</li>';
+                });
+
+                // 5. Build Spotify UI HTML with Dynamic Data
                 var spotifyHtml = `
                 <div class="spty-summary-card">
                     <div class="spty-header-row">
@@ -884,7 +918,7 @@ function dd_spotify_style_pmpro_checkout() {
                         </div>
                         <div class="spty-plan-info">
                             <h4>${planName}</h4>
-                            <span>1 Premium account</span>
+                            <span>${planDetails.account_type}</span>
                         </div>
                         <div class="spty-price-info">
                             <h4>${recurringPrice} + tax</h4>
@@ -896,7 +930,7 @@ function dd_spotify_style_pmpro_checkout() {
                             <div class="spty-dot filled"></div>
                             <div class="spty-content">
                                 <p><strong>Now:</strong> ${nowPrice}</p>
-                                <span>Premium Family</span>
+                                <span>${planDetails.timeline_tag}</span>
                             </div>
                         </div>
                         <div class="spty-timeline-item">
@@ -908,13 +942,11 @@ function dd_spotify_style_pmpro_checkout() {
                         </div>
                     </div>
                     <ul class="spty-bullets">
-                        <li>When your new subscription takes effect, the other members on this plan will lose access to their Spotify subscription benefits.</li>
-                        <li>From the starting date shown, you'll be charged ${cycle}ly for your updated subscription.</li>
-                        <li>Cancel anytime online. <a href="#">Terms apply</a></li>
+                        ${bulletsHtml}
                     </ul>
                 </div>`;
 
-                // 5. Inject Summary Block and Reorder DOM
+                // 6. Inject Summary Block and Reorder DOM
                 var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
                 $summarySection.append(spotifyHtml);
                 
@@ -928,7 +960,7 @@ function dd_spotify_style_pmpro_checkout() {
                     $('#pmpro_form').append($summarySection);
                 }
 
-                // 6. Move and Clean Up Account Information
+                // 7. Move and Clean Up Account Information
                 // If they are logged out, PMPro shows input fields. We want them in the summary but stripped of clunky borders.
                 var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
                 if (!$accInfo.length) $accInfo = $('#pmpro_account');
