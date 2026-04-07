@@ -116,7 +116,6 @@ function dd_influencer_style_mycred_checkout()
         .dd-mycred-checkout-container {
             max-width: 600px;
             margin: 0 auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #000;
         }
 
