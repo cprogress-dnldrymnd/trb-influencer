@@ -720,7 +720,7 @@ function dd_influencer_style_pmpro_checkout()
             color: #fff;
         }
 
-        .infl-icon svg {
+        .infl-icon img {
             width: 30px;
             height: 30px;
         }
