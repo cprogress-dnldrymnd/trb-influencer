@@ -754,6 +754,17 @@ function dd_influencer_style_pmpro_checkout()
             font-size: 14px;
             color: #b3b3b3;
         }
+    body:not(.page-id-4144) span#pmpro_submit_span {
+        width: 100%;
+    }
+        body:not(.page-id-4144) span#pmpro_submit_span:before {
+            position: static !important;
+            display: block !important;
+        }
+
+        .pmpro_form_submit {
+            flex-direction: column;
+        }
 
         /* Timeline Styles */
         .infl-timeline {
