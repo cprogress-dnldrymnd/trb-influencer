@@ -319,7 +319,7 @@ function dd_influencer_style_mycred_checkout()
             color: #b3b3b3;
         }
 
-        .infl-price-info {
+        .infl-price-info.infl-price-info.infl-price-info {
             text-align: right;
         }
 
@@ -330,8 +330,8 @@ function dd_influencer_style_mycred_checkout()
         }
 
         .infl-price-info span {
-            font-size: 14px;
-            color: #b3b3b3;
+            font-size: 14px !important;
+            color: #b3b3b3 !important;
         }
 
         /* Timeline Styles */
