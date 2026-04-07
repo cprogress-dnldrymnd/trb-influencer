@@ -314,9 +314,9 @@ function dd_influencer_style_mycred_checkout()
             font-weight: 700 !important;
         }
 
-        .infl-plan-info span {
-            font-size: 14px;
-            color: #b3b3b3;
+        .infl-plan-info.infl-plan-info.infl-plan-info span {
+            font-size: 14px !important;
+            color: #b3b3b3 !important;
         }
 
         .infl-price-info.infl-price-info.infl-price-info {
