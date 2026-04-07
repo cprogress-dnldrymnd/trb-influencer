@@ -790,9 +790,9 @@ function dd_influencer_style_pmpro_checkout()
         }
 
         .infl-dot.hollow {
-            background: transparent;
+            background: #fff;
             border: 2px solid #000;
-            left: -2px;
+            left: 0px;
             width: 9px;
             height: 9px;
         }
