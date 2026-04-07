@@ -535,13 +535,13 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 
 
 /**
- * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
- * Reorders DOM elements, securely hides the payment plan selector, builds a Spotify-style 
+ * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
+ * Reorders DOM elements, securely hides the payment plan selector, builds a influencer-style 
  * Summary block ABOVE the payment info, injects the user avatar, and populates uniform bullet points.
  *
  * @return void
  */
-function dd_spotify_style_pmpro_checkout() {
+function dd_influencer_style_pmpro_checkout() {
     global $pmpro_pages;
 
     // Abort if we are not on the explicit PMPro checkout page
@@ -577,7 +577,7 @@ function dd_spotify_style_pmpro_checkout() {
     $avatar_html = do_shortcode( '[influencer_avatar]' );
     ?>
     <style>
-        /* Spotify-style CSS Overrides for PMPro */
+        /* influencer-style CSS Overrides for PMPro */
         #pmpro_form {
             max-width: 600px;
             margin: 0 auto;
@@ -585,7 +585,7 @@ function dd_spotify_style_pmpro_checkout() {
             color: #000;
         }
 
-        .dd-spotify-header {
+        .dd-influencer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -594,7 +594,7 @@ function dd_spotify_style_pmpro_checkout() {
             margin-bottom: 30px;
         }
 
-        .dd-spotify-header h2 {
+        .dd-influencer-header h2 {
             font-size: 24px !important;
             font-weight: 700 !important;
             margin: 0 !important;
@@ -644,25 +644,25 @@ function dd_spotify_style_pmpro_checkout() {
             display: none !important;
         }
 
-        /* Spotify Card Styles */
-        #dd-spotify-summary {
+        /* influencer Card Styles */
+        #dd-influencer-summary {
             margin-top: 40px !important;
             margin-bottom: 40px !important;
         }
 
-        .spty-summary-card {
+        .infl-summary-card {
             background: transparent;
             padding: 10px 0;
             margin-bottom: 20px;
         }
 
-        .spty-header-row {
+        .infl-header-row {
             display: flex;
             align-items: center;
             margin-bottom: 25px;
         }
 
-        .spty-icon {
+        .infl-icon {
             width: 50px;
             height: 50px;
             background: #282828;
@@ -674,49 +674,49 @@ function dd_spotify_style_pmpro_checkout() {
             color: #fff;
         }
 
-        .spty-icon svg {
+        .infl-icon svg {
             width: 30px;
             height: 30px;
         }
 
-        .spty-plan-info {
+        .infl-plan-info {
             flex-grow: 1;
         }
 
-        .spty-plan-info h4 {
+        .infl-plan-info h4 {
             margin: 0 0 2px 0 !important;
             font-size: 16px !important;
             font-weight: 700 !important;
         }
 
-        .spty-plan-info span {
+        .infl-plan-info span {
             font-size: 14px;
             color: #b3b3b3;
         }
 
-        .spty-price-info {
+        .infl-price-info {
             text-align: right;
         }
 
-        .spty-price-info h4 {
+        .infl-price-info h4 {
             margin: 0 0 2px 0 !important;
             font-size: 16px !important;
             font-weight: 700 !important;
         }
 
-        .spty-price-info span {
+        .infl-price-info span {
             font-size: 14px;
             color: #b3b3b3;
         }
 
         /* Timeline Styles */
-        .spty-timeline {
+        .infl-timeline {
             position: relative;
             padding-left: 15px;
             margin-bottom: 20px;
         }
 
-        .spty-timeline::before {
+        .infl-timeline::before {
             content: '';
             position: absolute;
             left: 19px;
@@ -726,13 +726,13 @@ function dd_spotify_style_pmpro_checkout() {
             background: #000;
         }
 
-        .spty-timeline-item {
+        .infl-timeline-item {
             position: relative;
             padding-left: 20px;
             margin-bottom: 20px;
         }
 
-        .spty-dot {
+        .infl-dot {
             position: absolute;
             left: 0;
             top: 6px;
@@ -743,7 +743,7 @@ function dd_spotify_style_pmpro_checkout() {
             z-index: 2;
         }
 
-        .spty-dot.hollow {
+        .infl-dot.hollow {
             background: transparent;
             border: 2px solid #000;
             left: -2px;
@@ -751,19 +751,19 @@ function dd_spotify_style_pmpro_checkout() {
             height: 9px;
         }
 
-        .spty-content p {
+        .infl-content p {
             margin: 0 0 2px 0 !important;
             font-size: 15px;
             font-weight: 500;
         }
 
-        .spty-content span {
+        .infl-content span {
             font-size: 14px;
             color: #b3b3b3;
         }
 
         /* Bullet Points */
-        .spty-bullets {
+        .infl-bullets {
             list-style: none;
             padding: 0;
             margin: 0;
@@ -772,13 +772,13 @@ function dd_spotify_style_pmpro_checkout() {
             line-height: 1.5;
         }
 
-        .spty-bullets li {
+        .infl-bullets li {
             position: relative;
             padding-left: 15px;
             margin-bottom: 6px;
         }
 
-        .spty-bullets li::before {
+        .infl-bullets li::before {
             content: '•';
             position: absolute;
             left: 0;
@@ -786,12 +786,12 @@ function dd_spotify_style_pmpro_checkout() {
             color: #6a6a6a;
         }
 
-        .spty-bullets a {
+        .infl-bullets a {
             color: #6a6a6a;
             text-decoration: underline;
         }
 
-        /* Submit Button (Spotify Green) */
+        /* Submit Button (influencer Green) */
         #pmpro_btn-submit {
             background-color: #1ed760 !important;
             color: #000 !important;
@@ -833,8 +833,8 @@ function dd_spotify_style_pmpro_checkout() {
                 var realPlanName = <?php echo wp_json_encode( $real_plan_name ); ?>;
 
                 // 1. Inject Header
-                var headerHtml = '<div class="dd-spotify-header">' +
-                                 '<h2>Checkout</h2>' +
+                var headerHtml = '<div class="dd-influencer-header">' +
+                                 '<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
                                  '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
                                  '</div>';
                 $('#pmpro_form').prepend(headerHtml);
@@ -859,7 +859,7 @@ function dd_spotify_style_pmpro_checkout() {
                 var currentLevelId = urlParams.get('level') || '';
                 var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
 
-                // 4. Extract Pricing Data for Spotify Card
+                // 4. Extract Pricing Data for influencer Card
                 var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
                 
                 // Use the database plan name as the base
@@ -911,46 +911,46 @@ function dd_spotify_style_pmpro_checkout() {
                     bulletsHtml += '<li>' + bullet + '</li>';
                 });
 
-                // 5. Build Spotify UI HTML
-                var spotifyHtml = `
-                <div class="spty-summary-card">
-                    <div class="spty-header-row">
-                        <div class="spty-icon">
+                // 5. Build influencer UI HTML
+                var influencerHtml = `
+                <div class="infl-summary-card">
+                    <div class="infl-header-row">
+                        <div class="infl-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.207 15.385c-.187.31-.58.41-.892.223-2.446-1.494-5.525-1.83-9.155-1.002-.345.078-.686-.137-.765-.48-.078-.344.137-.686.48-.765 3.978-.906 7.377-.52 10.11 1.15.31.186.41.58.222.892zm.643-2.003c-.235.384-.716.51-1.1.275-2.78-1.706-7.05-2.124-10.37-1.16-.43.125-.875-.12-.998-.55-.125-.43.12-.876.55-.998 3.805-1.1 8.52-.635 11.644 1.284.384.234.51.715.275 1.1zm.68-2.074c-3.32-1.97-8.8-2.15-11.96-1.19-.505.154-1.03-.13-1.185-.635-.155-.506.13-1.032.636-1.186 3.65-1.11 9.71-.9 13.56 1.39.46.273.61 1.868.337 1.33-.274.46-.868.61-1.33.336z"></path></svg>
                         </div>
-                        <div class="spty-plan-info">
+                        <div class="infl-plan-info">
                             <h4>${planName}</h4>
                             <span>${planDetails.account_type}</span>
                         </div>
-                        <div class="spty-price-info">
+                        <div class="infl-price-info">
                             <h4>${recurringPrice} + tax</h4>
                             <span>/${cycle}</span>
                         </div>
                     </div>
-                    <div class="spty-timeline">
-                        <div class="spty-timeline-item">
-                            <div class="spty-dot filled"></div>
-                            <div class="spty-content">
+                    <div class="infl-timeline">
+                        <div class="infl-timeline-item">
+                            <div class="infl-dot filled"></div>
+                            <div class="infl-content">
                                 <p><strong>Now:</strong> ${nowPrice}</p>
                                 <span>${realPlanName}</span>
                             </div>
                         </div>
-                        <div class="spty-timeline-item">
-                            <div class="spty-dot hollow"></div>
-                            <div class="spty-content">
+                        <div class="infl-timeline-item">
+                            <div class="infl-dot hollow"></div>
+                            <div class="infl-content">
                                 <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} + tax/${cycle}</p>
                                 <span>${planName}</span>
                             </div>
                         </div>
                     </div>
-                    <ul class="spty-bullets">
+                    <ul class="infl-bullets">
                         ${bulletsHtml}
                     </ul>
                 </div>`;
 
                 // 6. Inject Summary Block and Reorder DOM
-                var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
-                $summarySection.append(spotifyHtml);
+                var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
+                $summarySection.append(influencerHtml);
                 
                 // Place Summary ABOVE Payment Information
                 var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
@@ -977,7 +977,7 @@ function dd_spotify_style_pmpro_checkout() {
                     }
                 }
                 
-                // Hide original Membership Info container as the Spotify Card replaces it
+                // Hide original Membership Info container as the influencer Card replaces it
                 var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
                 if ($memInfo.length) $memInfo.hide();
 
@@ -986,4 +986,4 @@ function dd_spotify_style_pmpro_checkout() {
     </script>
     <?php
 }
-add_action( 'wp_footer', 'dd_spotify_style_pmpro_checkout', 50 );
+add_action( 'wp_footer', 'dd_influencer_style_pmpro_checkout', 50 );
