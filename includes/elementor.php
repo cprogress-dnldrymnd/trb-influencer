@@ -295,13 +295,14 @@ add_filter('elementor/frontend/column/should_render', 'dd_evaluate_mycred_elemen
  * @param \WP_Query $query The WP_Query instance (passed by reference).
  * @return void
  */
-function dd_filter_elementor_featured_influencers_query( $query ) {
-    
+function dd_filter_elementor_featured_influencers_query($query)
+{
+
     // Retrieve any existing meta_query arguments to prevent overwriting other conditions.
-    $meta_query = $query->get( 'meta_query' );
-    
+    $meta_query = $query->get('meta_query');
+
     // Initialize as an array if no prior meta_query exists.
-    if ( ! is_array( $meta_query ) ) {
+    if (! is_array($meta_query)) {
         $meta_query = [];
     }
 
@@ -313,8 +314,11 @@ function dd_filter_elementor_featured_influencers_query( $query ) {
     ];
 
     // Apply the modified meta_query array back to the main query object.
-    $query->set( 'meta_query', $meta_query );
+    $query->set('meta_query', $meta_query);
+
+    // Force the query to order the results randomly.
+    $query->set('orderby', 'rand');
 }
 
 // Hook the function to the dynamic Elementor custom query action.
-add_action( 'elementor/query/featured_influencers', 'dd_filter_elementor_featured_influencers_query' );
+add_action('elementor/query/featured_influencers', 'dd_filter_elementor_featured_influencers_query');
