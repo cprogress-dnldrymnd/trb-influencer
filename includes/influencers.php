@@ -278,8 +278,7 @@ add_action( 'admin_menu', 'dd_influencer_register_settings_page' );
 
 /**
  * Renders the HTML and handles the form submission for the Global Settings page.
- * 
- * Includes advanced state logging to diagnose silent failures during the 
+ * * Includes advanced state logging to diagnose silent failures during the 
  * bidirectional synchronization process. Strictly processes POST requests
  * to prevent false-positive saves.
  *
@@ -324,7 +323,10 @@ function dd_influencer_settings_page_html() {
 
 	// Fetch data for the form rendering
 	$all_influencers_display = get_posts( array( 'post_type' => 'influencer', 'posts_per_page' => -1 ) );
-	$global_featured         = get_option( 'global_featured_influencers', array() );
+	
+	// FIX: Strict type casting to prevent in_array() from throwing a stream-corrupting warning
+	$raw_global_featured = get_option( 'global_featured_influencers', array() );
+	$global_featured     = is_array( $raw_global_featured ) ? $raw_global_featured : array();
 
 	?>
 	<div class="wrap">
