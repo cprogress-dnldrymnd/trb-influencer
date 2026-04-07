@@ -1409,10 +1409,10 @@ input:checked + .slider:before {
 /*end of login pages*/
 
 .pmpro-checkout {
-    #pmpro_form_fieldset-profile {
+    #pmpro_form_fieldset-profile, #pmpro_form_fieldset-more-information {
         .pmpro_form_legend,
         #user_avatar_div {
-            display: none;
+            display: none !important;
         }
     }
 }
@@ -1827,6 +1827,7 @@ body:not(.page-id-4144) {
         }
     }
 }
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
