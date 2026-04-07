@@ -1124,9 +1124,8 @@ input:checked + .slider:before {
   color: var(--e-global-color-primary); }
 
 /*end of login pages*/
-.pmpro-checkout #pmpro_form_fieldset-profile .pmpro_form_legend,
-.pmpro-checkout #pmpro_form_fieldset-profile #user_avatar_div, .pmpro-checkout #pmpro_form_fieldset-more-information .pmpro_form_legend,
-.pmpro-checkout #pmpro_form_fieldset-more-information #user_avatar_div {
+.pmpro-checkout #pmpro_form_fieldset-profile,
+.pmpro-checkout #pmpro_form_fieldset-more-information {
   display: none !important; }
 
 .pmpro_form_fields.pmpro_form_fields {

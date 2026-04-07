@@ -1409,11 +1409,9 @@ input:checked + .slider:before {
 /*end of login pages*/
 
 .pmpro-checkout {
-    #pmpro_form_fieldset-profile, #pmpro_form_fieldset-more-information {
-        .pmpro_form_legend,
-        #user_avatar_div {
-            display: none !important;
-        }
+    #pmpro_form_fieldset-profile,
+    #pmpro_form_fieldset-more-information {
+        display: none !important;
     }
 }
 
