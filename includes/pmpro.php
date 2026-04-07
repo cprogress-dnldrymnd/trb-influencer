@@ -712,7 +712,7 @@ function dd_influencer_style_pmpro_checkout()
             width: 50px;
             height: 50px;
             background: var(--e-global-color-secondary);
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: flex-end;
