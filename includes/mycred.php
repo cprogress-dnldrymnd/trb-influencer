@@ -400,19 +400,20 @@ function dd_influencer_style_mycred_checkout()
         }
 
         /* Submit Button Overlay */
-        .mycred-stripe-buy-button {
-            background-color: #1ed760 !important;
-            color: #000 !important;
+        .mycred-stripe-buy-button.mycred-stripe-buy-button.mycred-stripe-buy-button {
+            background-color: var(--e-global-color-secondary) !important;
+            color: #fff !important;
             border-radius: 500px !important;
             padding: 16px 30px !important;
             font-size: 16px !important;
-            font-weight: 700 !important;
+            font-weight: 500 !important;
             border: none !important;
             width: 100% !important;
             text-transform: none !important;
             transition: transform 0.2s ease, background-color 0.2s ease;
             margin-top: 20px !important;
             cursor: pointer;
+            text-align: center !important;
         }
 
         .mycred-stripe-buy-button:hover {
