@@ -391,7 +391,7 @@ function dd_influencer_settings_page_html() {
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="featured_influencers"><?php esc_html_e( 'Featured Roster', 'textdomain' ); ?></label>
+							<label for="featured_influencers"><?php esc_html_e( 'Featured Influencers', 'textdomain' ); ?></label>
 						</th>
 						<td>
 							<!-- Adjusted width to 600px for a better Select2 layout -->
