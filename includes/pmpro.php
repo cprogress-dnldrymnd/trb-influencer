@@ -958,7 +958,7 @@ function dd_influencer_style_pmpro_checkout()
                                 <span>${planDetails.account_type}</span>
                             </div>
                             <div class="infl-price-info">
-                                <h4>${recurringPrice} + tax</h4>
+                                <h4>${recurringPrice} </h4>
                                 <span>/${cycle}</span>
                             </div>
                         </div>
@@ -973,7 +973,7 @@ function dd_influencer_style_pmpro_checkout()
                             <div class="infl-timeline-item">
                                 <div class="infl-dot hollow"></div>
                                 <div class="infl-content">
-                                    <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} + tax/${cycle}</p>
+                                    <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} /${cycle}</p>
                                     <span>${planName}</span>
                                 </div>
                             </div>
