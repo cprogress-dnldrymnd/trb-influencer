@@ -375,7 +375,7 @@ function dd_influencer_style_mycred_checkout()
         }
 
         .infl-content.infl-content.infl-content span {
-            font-size: 14px !important
+            font-size: 14px !important;
             color: #b3b3b3 !important;
         }
 
