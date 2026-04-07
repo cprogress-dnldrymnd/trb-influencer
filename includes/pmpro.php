@@ -556,14 +556,19 @@ function dd_influencer_style_pmpro_checkout()
         return;
     }
 
-    // 1. EXTRACT REAL PLAN NAME FROM PMPRO DATABASE
+    // 1. EXTRACT REAL PLAN NAME & DESCRIPTION FROM PMPRO DATABASE
     $level_id = isset($_REQUEST['level']) ? intval($_REQUEST['level']) : 0;
     $real_plan_name = 'Membership Plan'; // Fallback
+    $plan_description = '';
 
     if ($level_id > 0 && function_exists('pmpro_getLevel')) {
         $level = pmpro_getLevel($level_id);
         if (! empty($level)) {
             $real_plan_name = $level->name;
+            if (! empty($level->description)) {
+                // Strip tags so the description fits cleanly inside a single bullet point
+                $plan_description = wp_strip_all_tags($level->description);
+            }
         }
     }
 
@@ -571,11 +576,11 @@ function dd_influencer_style_pmpro_checkout()
     $levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
 
     // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
+    // By only using 'default', these bullets will apply to ALL payment plans uniformly.
     $dynamic_plan_details = [
         'default' => [
             'account_type' => '1 Account',
             'bullets' => [
-                'Enjoy unlimited access to your selected plan features.',
                 'From the starting date shown, you\'ll be charged for your updated subscription.',
                 'Cancel anytime online. <a href="/terms-of-use/">Terms apply</a>.'
             ]
@@ -686,10 +691,6 @@ function dd_influencer_style_pmpro_checkout()
             padding: 0;
         }
 
-        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content {
-            padding: 0;
-        }
-
         /* influencer Card Styles */
         #dd-influencer-summary {
             margin-top: 20px !important;
@@ -754,9 +755,11 @@ function dd_influencer_style_pmpro_checkout()
             font-size: 14px;
             color: #b3b3b3;
         }
-    body:not(.page-id-4144) span#pmpro_submit_span {
-        width: 100%;
-    }
+        
+        body:not(.page-id-4144) span#pmpro_submit_span {
+            width: 100%;
+        }
+        
         body:not(.page-id-4144) span#pmpro_submit_span:before {
             position: static !important;
             display: block !important;
@@ -885,6 +888,7 @@ function dd_influencer_style_pmpro_checkout()
             var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
             var dynamicPlanMeta = <?php echo wp_json_encode($dynamic_plan_details); ?>;
             var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
+            var planDescription = <?php echo wp_json_encode($plan_description); ?>;
             var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
 
             // 1. Inject Header and Title Row immediately
@@ -978,7 +982,14 @@ function dd_influencer_style_pmpro_checkout()
                         startDateStr = startDate.toLocaleDateString('en-US', options);
                     }
 
+                    // Build Dynamic Bullets from Array
                     var bulletsHtml = '';
+                    
+                    // Inject the PMPro database description as the very first bullet
+                    if (planDescription) {
+                        bulletsHtml += '<li>' + planDescription + '</li>';
+                    }
+                    
                     planDetails.bullets.forEach(function(bullet) {
                         bulletsHtml += '<li>' + bullet + '</li>';
                     });
