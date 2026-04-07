@@ -711,11 +711,11 @@ function dd_influencer_style_pmpro_checkout()
         .infl-icon {
             width: 50px;
             height: 50px;
-            background: #282828;
+            background: var(--e-global-color-secondary);
             border-radius: 8px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-end;
             margin-right: 15px;
             color: #fff;
         }
