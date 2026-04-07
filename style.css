@@ -1242,6 +1242,9 @@ input:checked + .slider:before {
 body:not(.pmpro-level-no-membership) .upgrade--plan.upgrade--plan {
   display: none !important; }
 
+body.pmpro-level-no-membership {
+  --sidebar-width: 0; }
+
 /* Firefox (uncomment to work in Firefox) */
 /* * {
   scrollbar-width: thin;

@@ -1556,6 +1556,10 @@ body:not(.pmpro-level-no-membership) {
     }
 }
 
+body.pmpro-level-no-membership {
+    --sidebar-width: 0;
+}
+
 /* Firefox (uncomment to work in Firefox) */
 /* * {
   scrollbar-width: thin;
