@@ -421,6 +421,10 @@ function dd_influencer_style_mycred_checkout()
             background-color: #1fdf64 !important;
             transform: scale(1.02);
         }
+
+        .mycred-stripe-payment-main section {
+            margin-top: 0 !important;
+        }
     </style>
 
     <script>
