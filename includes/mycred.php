@@ -116,6 +116,13 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
+        .mycred-stripe-payment-main.mycred-stripe-payment-main * {
+            font-family: Inter !important;
+            color: inherit !important;
+            text-align: left;
+            font-size: inherit !important;
+        }
+
         /* Nuke all myCred default boxed styling */
         #buycred-checkout-page,
         #buycred-checkout-page .checkout-body,
@@ -221,11 +228,6 @@ function dd_influencer_style_mycred_checkout()
             padding: 20px 10px;
         }
 
-        .mycred-stripe-payment-main.mycred-stripe-payment-main * {
-            font-family: Inter !important;
-            color: inherit !important;
-            text-align: left;
-        }
 
         .mycred-stripe-payment-form p {
             text-align: left !important;
@@ -270,8 +272,9 @@ function dd_influencer_style_mycred_checkout()
             padding-bottom: 20px !important;
         }
 
-        .infl-summary-card {
+        .infl-summary-card.infl-summary-card {
             background: transparent;
+            font-size: 1rem;
         }
 
         .infl-header-row {
