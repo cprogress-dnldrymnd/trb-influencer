@@ -67,28 +67,29 @@ function dd_influencer_attributes_meta_box_html( $post ) {
  * @param int $post_id The ID of the post being saved.
  * @return void
  */
-function dd_influencer_save_meta_box_data($post_id)
-{
-	if (! isset($_POST['dd_influencer_attributes_nonce']) || ! wp_verify_nonce($_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save')) {
-		return;
+function dd_influencer_save_meta_box_data( $post_id ) {
+	// 1. Security & Permission Checks
+	if ( ! isset( $_POST['dd_influencer_attributes_nonce'] ) || ! wp_verify_nonce( $_POST['dd_settings_nonce'], 'dd_save_settings' ) ) {
+		// Note: Using the specific meta box nonce for individual post saves
+		if ( ! wp_verify_nonce( $_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save' ) ) {
+			return;
+		}
 	}
-	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-		return;
-	}
-	if (! current_user_can('edit_post', $post_id)) {
-		return;
-	}
+	
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+	if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
-	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
-	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
+	// 2. Save Featured Status
+	$featured_val = ( isset( $_POST['dd_is_featured_influencer'] ) && 'yes' === $_POST['dd_is_featured_influencer'] ) ? 'yes' : 'no';
+	update_post_meta( $post_id, '_is_featured_influencer', $featured_val );
 
-	$expert_status = isset($_POST['is_expert']) ? 'yes' : 'no';
-	update_post_meta($post_id, 'is_expert', $expert_status);
+	// 3. Save Expert Status (The fix for your issue)
+	$expert_val = ( isset( $_POST['is_expert'] ) && 'yes' === $_POST['is_expert'] ) ? 'yes' : 'no';
+	update_post_meta( $post_id, 'is_expert', $expert_val );
 
+	// 4. Sync Global Settings
 	dd_sync_global_featured_influencers();
 }
-add_action('save_post_influencer', 'dd_influencer_save_meta_box_data');
-
 /**
  * Synchronizes the global featured influencers option with post meta.
  * * Queries all influencers that have the `_is_featured_influencer` meta set to 'yes'
