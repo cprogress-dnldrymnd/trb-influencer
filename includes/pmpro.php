@@ -475,7 +475,7 @@ function dd_force_free_members_to_upgrade() {
     // 3. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
     global $pmpro_pages;
     if ( ! empty( $pmpro_pages ) ) {
-        $exempt_keys = array( 'levels', 'checkout', 'billing', 'cancel', 'confirmation', 'account' );
+        $exempt_keys = array( 'levels', 'checkout', 'billing', 'cancel', 'confirmation', 'account', 'profile' );
         $exempt_page_ids = array();
         
         foreach ( $exempt_keys as $key ) {
