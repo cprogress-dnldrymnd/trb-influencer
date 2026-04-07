@@ -598,9 +598,7 @@ function dd_influencer_style_pmpro_checkout()
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #e5e5e5;
             padding-bottom: 15px;
-            margin-bottom: 20px;
         }
 
 
@@ -608,7 +606,9 @@ function dd_influencer_style_pmpro_checkout()
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 20px;
         }
 
         .dd-checkout-title-row h2 {
@@ -692,7 +692,7 @@ function dd_influencer_style_pmpro_checkout()
 
         /* influencer Card Styles */
         #dd-influencer-summary {
-            margin-top: 40px !important;
+            margin-top: 20px !important;
             margin-bottom: 20px !important;
             border-bottom: 1px solid #e5e5e5 !important;
             padding-bottom: 20px !important;
