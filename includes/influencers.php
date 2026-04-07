@@ -281,6 +281,7 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
  * 
  * Prevents library conflicts by ensuring the CSS and JS are only loaded
  * when the specific $_GET['page'] parameter matches our custom submenu slug.
+ * Includes a CSS override to fix WordPress admin conflicts with the Select2 'x' button.
  *
  * @param string $hook The current admin page hook.
  * @return void
@@ -295,12 +296,33 @@ function dd_influencer_enqueue_settings_scripts( $hook ) {
 	wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0' );
 	wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
 
+	// Inject CSS to fix the WordPress admin overriding the Select2 'x' button
+	$custom_css = "
+		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+			border: none !important;
+			background: transparent !important;
+			color: #999 !important;
+			cursor: pointer !important;
+			padding: 0 5px !important;
+			position: relative;
+			z-index: 99;
+		}
+		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+			color: #d63638 !important; /* WP Core Red */
+			background: transparent !important;
+		}
+		.select2-container--default .select2-selection--multiple .select2-selection__choice {
+			margin-top: 5px !important;
+			padding: 2px 5px !important;
+		}
+	";
+	wp_add_inline_style( 'select2-css', $custom_css );
+
 	// Inject the initialization script inline to bind Select2 to our multiselect element
 	wp_add_inline_script( 'select2-js', "
 		jQuery(document).ready(function($) {
 			$('#featured_influencers').select2({
 				placeholder: '" . esc_js( __( 'Search and select influencers...', 'textdomain' ) ) . "',
-				allowClear: true,
 				width: '100%' // Forces Select2 to respect the parent container's width
 			});
 		});
