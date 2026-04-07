@@ -522,7 +522,7 @@ add_shortcode('influencer_search_filter', 'shortcode_influencer_search_filter');
 function shortcode_influencer_search_filter_main()
 {
     ob_start();
-    global $is_free_trial, $number_of_searches;
+    global $is_no_membership, $number_of_searches;
 
     // 1. Get the var, but default to an empty array if it's missing (like in Elementor Editor)
     $raw_fields = get_query_var('influencer_search_fields');
@@ -537,7 +537,7 @@ function shortcode_influencer_search_filter_main()
     $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
 
 ?>
-    <?php if ($number_of_searches >= 3 && $is_free_trial) {  ?>
+    <?php if ($number_of_searches >= 3 && $is_no_membership) {  ?>
         <style>
             #search-header {
                 display: none;
@@ -550,7 +550,7 @@ function shortcode_influencer_search_filter_main()
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
             <div class="influencer-search-filter-holder">
                 <input type="hidden" value="true" name="search_active">
-                <?php if (!$is_free_trial) { ?>
+                <?php if (!$is_no_membership) { ?>
                     <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
                         <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief — e.g. ‘We’re launching a new vegan skincare line aimed at millennial women in the UK. Budget £1,000 per creator, prefer wellness and beauty influencers on Instagram.’" required><?= esc_html($brief) ?></textarea>
                     </div>

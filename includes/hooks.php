@@ -14,7 +14,7 @@ if (! defined('ABSPATH')) {
  */
 function dd_set_global_pmpro_variable()
 {
-    global $current_membership_level, $is_free_trial, $number_of_searches, $search_results_page_id, $search_page_id, $dashboard_page_id;
+    global $current_membership_level, $is_no_membership, $number_of_searches, $search_results_page_id, $search_page_id, $dashboard_page_id;
 
     $number_of_searches = number_of_searches();
     $search_results_page_id = 1949;
@@ -23,10 +23,10 @@ function dd_set_global_pmpro_variable()
     // Verify the function exists to prevent fatal errors if PMPro is inactive
     if (function_exists('get_pmpro_membership_level_shortcode')) {
         $current_membership_level = get_pmpro_membership_level_shortcode();
-        if ($current_membership_level === 'Free Trial') {
-            $is_free_trial = true;
+        if ($current_membership_level === 'No Membership') {
+            $is_no_membership = true;
         } else {
-            $is_free_trial = false;
+            $is_no_membership = false;
         }
     } else {
         // Handle cases where the function is unavailable
@@ -50,7 +50,7 @@ add_action('init', 'dd_set_global_pmpro_variable');
 
 function action_wp_head()
 {
-    global $is_free_trial;
+    global $is_no_membership;
 
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
@@ -81,7 +81,7 @@ function action_wp_head()
     } else {
         echo "#match-score{  display: none !important;  }";
     }
-    if ($is_free_trial) {
+    if ($is_no_membership) {
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
        # echo ".filtered-search{ display: flex !important }";
@@ -175,14 +175,15 @@ add_action('template_redirect', 'dd_restrict_dashboard_template_access');
  *
  * @global int  $search_results_page_id The ID of the page triggering the redirect.
  * @global int  $search_page_id         The ID of the target destination page.
- * @global bool $is_free_trial          Flag indicating if the user is on a free trial.
+ * @global bool $is_no_membership          Flag indicating if the user is on a free trial.
  * @global int  $number_of_searches     The total number of searches executed by the user.
  * @return void
  */
+/*
 function dd_execute_conditional_page_redirect()
 {
     // Access the defined global variables in the current scope.
-    global $search_results_page_id, $search_page_id, $is_free_trial, $number_of_searches;
+    global $search_results_page_id, $search_page_id, $is_no_membership, $number_of_searches;
 
     // Terminate early if the global variables are undefined or evaluate to empty.
     if (empty($search_results_page_id) || empty($search_page_id)) {
@@ -198,7 +199,7 @@ function dd_execute_conditional_page_redirect()
 
         // Evaluate if the user has exhausted their free trial search limits.
         // strict type checking and isset() prevent PHP warnings from uninitialized globals.
-        $trial_limit_reached = (isset($is_free_trial) && $is_free_trial === true && isset($number_of_searches) && (int) $number_of_searches >= 3);
+        $trial_limit_reached = (isset($is_no_membership) && $is_no_membership === true && isset($number_of_searches) && (int) $number_of_searches >= 3);
 
         // Allow the page to load ONLY if a search is active AND the trial limit has not been reached.
         if ($is_search_active && !$trial_limit_reached) {
@@ -221,7 +222,7 @@ function dd_execute_conditional_page_redirect()
     }
 }
 add_action('template_redirect', 'dd_execute_conditional_page_redirect');
-
+*/
 
 /**
  * Injects JavaScript into the footer to intercept and prevent context menus 
