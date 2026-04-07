@@ -142,18 +142,18 @@ function dd_influencer_style_mycred_checkout()
             max-width: 600px !important;
         }
 
-        /* Hide the default table, warnings, close buttons, and old headers */
+        /* Hide the default table, warnings, close buttons, old headers, and the Personal Info Section */
         #buycred-checkout-form table,
         #buycred-checkout-form .warning,
         #buycred-checkout-form .checkout-header,
         .mycred-stripe-payment-form-header,
         .mycred_stripe_close_btn,
-        #buycred-checkout-form .cancel {
+        #buycred-checkout-form .cancel,
+        .mycred_buy_section_1 {
             display: none !important;
         }
 
-        /* Format myCred's input sections to match PMPro */
-        .mycred_buy_section_1,
+        /* Format myCred's Payment Info section to match PMPro */
         .mycred_buy_section_2 {
             background: transparent !important;
             border: none !important;
@@ -162,7 +162,6 @@ function dd_influencer_style_mycred_checkout()
             text-align: left !important;
         }
 
-        .mycred_buy_section_1 h2,
         .mycred_buy_section_2 h2 {
             font-size: 20px !important;
             font-weight: 700 !important;
@@ -171,28 +170,6 @@ function dd_influencer_style_mycred_checkout()
             padding-bottom: 0 !important;
             color: #000;
             text-align: left !important;
-        }
-
-        .mycred_buy_section_1 fieldset label {
-            display: block;
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .mycred_buy_section_1 fieldset label span {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .mycred_buy_section_1 fieldset label input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
         }
 
         /* Base Form Font setup */
@@ -430,7 +407,6 @@ function dd_influencer_style_mycred_checkout()
             margin-top: 0 !important;
         }
 
-        .mycred_buy_section_1 h2,
         .mycred_buy_section_2 h2 {
             font-size: 24px !important;
             text-transform: capitalize !important;
@@ -519,9 +495,12 @@ function dd_influencer_style_mycred_checkout()
                         </div>
                     </div>`;
 
-                    // 6. Inject Summary Block right above the user inputs (Section 1)
+                    // 6. Prevent Validation Errors & Inject Summary Block right above the user inputs (Section 1)
                     var $section1 = $form.find('.mycred_buy_section_1');
                     if ($section1.length > 0) {
+                        // Crucial: Strip "required" attributes so the invisible form can still submit
+                        $section1.find('input').removeAttr('required');
+                        
                         $section1.before(summaryHtml);
                     } else {
                         // Fallback
