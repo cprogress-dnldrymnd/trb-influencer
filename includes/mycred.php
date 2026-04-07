@@ -138,7 +138,7 @@ function dd_influencer_style_mycred_checkout()
         }
 
         /* Format myCred's input sections to match PMPro */
-        .mycred_buy_section_1, 
+        .mycred_buy_section_1,
         .mycred_buy_section_2 {
             background: transparent !important;
             border: none !important;
@@ -147,7 +147,7 @@ function dd_influencer_style_mycred_checkout()
             text-align: left !important;
         }
 
-        .mycred_buy_section_1 h2, 
+        .mycred_buy_section_1 h2,
         .mycred_buy_section_2 h2 {
             font-size: 20px !important;
             font-weight: 700 !important;
@@ -212,12 +212,15 @@ function dd_influencer_style_mycred_checkout()
             letter-spacing: -0.5px;
             font-family: Inter;
         }
+
         .checkout-order {
             padding: 10px;
+            color: inh;
         }
 
         .mycred-stripe-payment-main * {
             font-family: Inter;
+            text-align: inherit;
         }
 
         .dd-checkout-title-row a {
@@ -434,13 +437,13 @@ function dd_influencer_style_mycred_checkout()
                         '<h2>Checkout</h2>' +
                         '<a href="' + cancelUrl + '">Change amount</a>' +
                         '</div>';
-                    
+
                     $form.prepend(headerHtml);
 
                     // 4. Extract Dynamic Data from myCred Table
                     var creditsAmount = "0";
                     var costAmount = "$0.00";
-                    
+
                     var $credCol = $form.find('td.item:contains("Credits")').next('td');
                     if ($credCol.length) {
                         creditsAmount = $credCol.text().trim();
