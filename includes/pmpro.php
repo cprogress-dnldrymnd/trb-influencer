@@ -452,12 +452,11 @@ function dd_pmpro_checkout_stripe_trial_notice() {
 }
 add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
 
-
 /**
  * Intercepts frontend page loads and evaluates the current user's membership level.
  * Forcefully redirects Free members (Level 15) to the pricing page ONLY if they 
- * access the dashboard template. Explicitly exempts core PMPro billing/checkout pages 
- * to prevent accidental upgrade lockouts (defense-in-depth).
+ * access the dashboard template. Explicitly exempts core PMPro billing/checkout pages, 
+ * the account page, and any account child pages (like profiles) to prevent lockouts.
  *
  * @return void
  */
@@ -473,8 +472,9 @@ function dd_force_free_members_to_upgrade() {
     }
 
     // 3. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
-    global $pmpro_pages;
+    global $post, $pmpro_pages;
     if ( ! empty( $pmpro_pages ) ) {
+        // Added 'account' and 'profile' to the exempt keys
         $exempt_keys = array( 'levels', 'checkout', 'billing', 'cancel', 'confirmation', 'account', 'profile' );
         $exempt_page_ids = array();
         
@@ -484,8 +484,13 @@ function dd_force_free_members_to_upgrade() {
             }
         }
         
-        // If the current page is one of the core PMPro pages, abort the redirect immediately.
+        // Exemption A: Is this an exact match for a core PMPro page?
         if ( is_page( $exempt_page_ids ) ) {
+            return;
+        }
+
+        // Exemption B: Is this a child page of the Membership Account page? (e.g., /membership-account/your-profile/)
+        if ( ! empty( $pmpro_pages['account'] ) && isset( $post->post_parent ) && $post->post_parent == $pmpro_pages['account'] ) {
             return;
         }
     }
