@@ -452,11 +452,12 @@ function dd_pmpro_checkout_stripe_trial_notice() {
 }
 add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
 
+<?php
 /**
- * Intercepts frontend page loads and evaluates the current user's membership level.
- * Forcefully redirects Free members (Level 15) to the pricing page ONLY if they 
- * access the dashboard template. Explicitly exempts core PMPro billing/checkout pages, 
- * the account page, and any account child pages (like profiles) to prevent lockouts.
+ * Intercepts frontend page loads to handle two specific free-tier redirections:
+ * 1. Redirects users completing checkout for the Free Level (15) directly to the pricing page.
+ * 2. Forcefully redirects Free members to the pricing page if they access the dashboard template,
+ *    while explicitly exempting core PMPro functional pages to prevent lockouts.
  *
  * @return void
  */
@@ -471,10 +472,25 @@ function dd_force_free_members_to_upgrade() {
         return;
     }
 
-    // 3. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
     global $post, $pmpro_pages;
+
+    // 3. NEW LOGIC: Intercept Free Level (15) Confirmation Page
+    // We do this BEFORE the exemption check so it catches the free tier immediately.
+    if ( ! empty( $pmpro_pages['confirmation'] ) && is_page( $pmpro_pages['confirmation'] ) ) {
+        $level_id = isset( $_GET['pmpro_level'] ) ? intval( $_GET['pmpro_level'] ) : 0;
+        
+        if ( $level_id === 15 ) {
+            $redirect_url = pmpro_url( 'levels' );
+            if ( $redirect_url ) {
+                wp_safe_redirect( $redirect_url );
+                exit;
+            }
+        }
+    }
+
+    // 4. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
     if ( ! empty( $pmpro_pages ) ) {
-        // Added 'account' and 'profile' to the exempt keys
+        // Includes 'account' and 'profile' to the exempt keys
         $exempt_keys = array( 'levels', 'checkout', 'billing', 'cancel', 'confirmation', 'account', 'profile' );
         $exempt_page_ids = array();
         
@@ -495,15 +511,15 @@ function dd_force_free_members_to_upgrade() {
         }
     }
 
-    // 4. Abort if the current page is NOT using the Dashboard template
+    // 5. Abort if the current page is NOT using the Dashboard template
     if ( ! is_page_template( 'templates/page-dashboard.php' ) ) {
         return;
     }
 
-    // 5. Define the exact ID of your Free Membership Level
+    // 6. Define the exact ID of your Free Membership Level
     $free_level_ids = array( 15 ); 
 
-    // 6. Evaluate if the current user possesses the free level
+    // 7. Evaluate if the current user possesses the free level
     if ( pmpro_hasMembershipLevel( $free_level_ids ) ) {
         
         // Retrieve the dynamic URL for the PMPro Levels/Pricing page
@@ -517,38 +533,3 @@ function dd_force_free_members_to_upgrade() {
     }
 }
 add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
-
-/**
- * Intercepts the PMPro Membership Confirmation page.
- * If the user just completed checkout for the Free Level (ID: 15), 
- * forcefully redirect them to the Levels/Pricing page for an immediate upsell opportunity.
- *
- * @return void
- */
-function dd_redirect_free_confirmation_to_levels() {
-    // 1. Abort if Paid Memberships Pro is not active
-    if ( ! function_exists( 'pmpro_url' ) ) {
-        return;
-    }
-
-    global $pmpro_pages;
-
-    // 2. Ensure the PMPro pages array is populated and we are on the exact Confirmation page
-    if ( ! empty( $pmpro_pages['confirmation'] ) && is_page( $pmpro_pages['confirmation'] ) ) {
-        
-        // 3. Extract and sanitize the level ID from the URL parameters
-        $level_id = isset( $_GET['pmpro_level'] ) ? intval( $_GET['pmpro_level'] ) : 0;
-
-        // 4. If the completed level is the Free tier (15), execute the redirect
-        if ( $level_id === 15 ) {
-            
-            $redirect_url = pmpro_url( 'levels' );
-            
-            if ( $redirect_url ) {
-                wp_safe_redirect( $redirect_url );
-                exit;
-            }
-        }
-    }
-}
-add_action( 'template_redirect', 'dd_redirect_free_confirmation_to_levels' );
