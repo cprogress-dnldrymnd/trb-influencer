@@ -253,7 +253,7 @@ add_action( 'admin_footer', 'dd_influencer_admin_footer_scripts' );
  */
 function dd_influencer_register_settings_page() {
 	add_submenu_page(
-		'edit.php?post_type=influencer',
+		'options-general.php',
 		__( 'Featured Settings', 'textdomain' ),
 		__( 'Featured Settings', 'textdomain' ),
 		'manage_options',
