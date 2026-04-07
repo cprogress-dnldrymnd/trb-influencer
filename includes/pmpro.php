@@ -622,6 +622,10 @@ function dd_spotify_style_pmpro_checkout() {
             margin-top: 40px !important;
         }
 
+        #pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan {
+            display: none !important;
+        }
+
         .spty-summary-card {
             background: transparent;
             padding: 10px 0;
