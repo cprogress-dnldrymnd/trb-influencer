@@ -612,7 +612,7 @@ function dd_influencer_style_pmpro_checkout()
         }
 
         .dd-checkout-title-row h2 {
-            font-size: 32px !important;
+            font-size: clamp(20px, 1.5vw, 32px) !important;
             font-weight: 700 !important;
             margin: 0 !important;
             color: #000;
