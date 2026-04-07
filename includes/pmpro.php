@@ -577,7 +577,7 @@ function dd_influencer_style_pmpro_checkout()
     ];
 
     // Execute your custom avatar shortcode safely
-    $avatar_html = do_shortcode('[influencer_avatar]');
+    $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
