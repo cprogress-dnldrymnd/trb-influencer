@@ -274,7 +274,7 @@ function dd_influencer_style_mycred_checkout()
 
         .infl-summary-card.infl-summary-card {
             background: transparent;
-            font-size: 1rem;
+            font-size: 1rem !important;
         }
 
         .infl-header-row {
