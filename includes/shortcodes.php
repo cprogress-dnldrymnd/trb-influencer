@@ -922,8 +922,71 @@ function is_influencer_saved($current_influencer_id)
 }
 
 
-function custom_avatar_dropdown_shortcode($atts)
-{
+/**
+ * Helper Function: Generates the HTML for the current user's avatar.
+ * * Retrieves the avatar from Paid Memberships Pro or falls back to
+ * generating initials based on the user's name or email.
+ * * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ * * @return string The HTML representation of the user avatar, or an empty string if not logged in.
+ */
+function dd_get_user_avatar_html() {
+    // 1. Check if user is logged in. If not, return nothing.
+    if (!is_user_logged_in()) {
+        return '';
+    }
+
+    // 2. Get User Info via PMPro
+    $avatar = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
+
+    // Output the featured image if it exists
+    if ($avatar) {
+        $avatar_html = "<img src='{$avatar}' alt='User Avatar' class='cad-avatar'>";
+    } else {
+        // Fallback: Generate initials from the user data
+        $current_user = wp_get_current_user();
+        $first_name   = $current_user->user_firstname;
+        $last_name    = $current_user->user_lastname;
+        
+        if (!$first_name && !$last_name) {
+            $name = $current_user->nickname;
+        } else {
+            $name = $first_name . ' ' . $last_name;
+        }
+
+        $email = $current_user->user_email;
+
+        // Build the HTML for the initials avatar
+        // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
+        $avatar_html  = '<div class="avatar-fallback">';
+        $avatar_html .= esc_html(dd_get_initials_from_string($name ? $name : $email));
+        $avatar_html .= '</div>';
+    }
+
+    return $avatar_html;
+}
+
+/**
+ * Shortcode: Displays the user avatar standalone.
+ * * Usage: [user_avatar]
+ * * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ * * @return string HTML output for the user avatar.
+ */
+function custom_standalone_avatar_shortcode() {
+    return dd_get_user_avatar_html();
+}
+add_shortcode('user_avatar', 'custom_standalone_avatar_shortcode');
+
+/**
+ * Shortcode: Displays the user avatar wrapped in a dropdown menu.
+ * * Usage: [avatar_dropdown ids="12, 45, 20"]
+ * * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ * * @param array $atts Shortcode attributes.
+ * @return string The HTML output for the avatar and dropdown menu.
+ */
+function custom_avatar_dropdown_shortcode($atts) {
     // 1. Check if user is logged in. If not, return nothing (or a login button).
     if (!is_user_logged_in()) {
         return '';
@@ -937,38 +1000,8 @@ function custom_avatar_dropdown_shortcode($atts)
         $atts
     );
 
-    // 3. Get User Info
-    $avatar = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
-
-
-    // Output the featured image if it exists
-    if ($avatar) {
-        $avatar_html = "<img src='{$avatar}' alt='User Avatar' class='cad-avatar'>";
-    } else {
-        // Fallback: Generate initials from the post title
-
-        $current_user = wp_get_current_user();
-        $first_name = $current_user->user_firstname;
-        $last_name = $current_user->user_lastname;
-        if (!$first_name && !$last_name) {
-            $name = $current_user->nickname;
-        } else {
-            $name = $first_name . ' ' . $last_name;
-        }
-
-
-        $email = $current_user->user_email;
-
-        // Build the HTML for the initials avatar
-        // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
-        $avatar_html  = '<div class="avatar-fallback">';
-        $avatar_html .= esc_html(dd_get_initials_from_string($name ? $name : $email));
-        $avatar_html .= '</div>';
-    }
-
-
-
-
+    // 3. Fetch the Avatar HTML via our centralized helper function
+    $avatar_html = dd_get_user_avatar_html();
 
     $logout_url = wp_logout_url(home_url()); // Redirects to home after logout
 
@@ -979,7 +1012,7 @@ function custom_avatar_dropdown_shortcode($atts)
         foreach ($page_ids as $id) {
             $id = trim($id);
             if (get_post_status($id)) {
-                $link = get_permalink($id);
+                $link  = get_permalink($id);
                 $title = get_the_title($id);
                 $menu_items .= "<a href='{$link}' class='cad-menu-item'>{$title}</a>";
             }
@@ -1009,9 +1042,13 @@ function custom_avatar_dropdown_shortcode($atts)
     <script>
     // Close dropdown if clicked outside
     document.addEventListener('click', function(event) {
-        var isClickInside = document.querySelector('.cad-wrapper').contains(event.target);
-        if (!isClickInside) {
-            document.querySelector('.cad-wrapper').classList.remove('active');
+        var wrapper = document.querySelector('.cad-wrapper');
+        // Prevent JS errors if the element isn't found on the page
+        if (wrapper) {
+            var isClickInside = wrapper.contains(event.target);
+            if (!isClickInside) {
+                wrapper.classList.remove('active');
+            }
         }
     });
     </script>
