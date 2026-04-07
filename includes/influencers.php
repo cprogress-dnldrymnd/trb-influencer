@@ -123,29 +123,39 @@ function dd_sync_global_featured_influencers() {
 
 /**
  * Adds custom columns to the 'influencer' post type admin list.
- * 
- * Injects the 'Featured' column immediately after the title.
+ * * Injects the 'Featured' column immediately after the title. 
+ * Utilizes priority 99 to prevent overwrites by third-party plugins.
  *
  * @param array $columns An array of existing column names.
  * @return array Modified array of column names.
  */
 function dd_influencer_add_custom_columns( $columns ) {
 	$new_columns = array();
+	$inserted    = false;
+
 	foreach ( $columns as $key => $title ) {
 		$new_columns[ $key ] = $title;
+		// Inject immediately after the title column
 		if ( 'title' === $key ) {
-			// Add featured column after title with a dashicon representing a star
 			$new_columns['featured'] = '<span class="dashicons dashicons-star-filled" title="' . esc_attr__( 'Featured', 'textdomain' ) . '"></span>';
+			$inserted = true;
 		}
 	}
+
+	// Fallback: If the 'title' column was missing/renamed by another plugin, append to the end.
+	if ( ! $inserted ) {
+		$new_columns['featured'] = '<span class="dashicons dashicons-star-filled" title="' . esc_attr__( 'Featured', 'textdomain' ) . '"></span>';
+	}
+
 	return $new_columns;
 }
-add_filter( 'manage_influencer_posts_columns', 'dd_influencer_add_custom_columns' );
+// Using the screen-specific hook is generally more robust for custom post types.
+add_filter( 'manage_edit-influencer_columns', 'dd_influencer_add_custom_columns', 99 );
+
 
 /**
  * Renders the content for the custom 'featured' column.
- * 
- * Outputs an anchor tag with data attributes necessary for the AJAX toggle.
+ * * Outputs an anchor tag with data attributes necessary for the AJAX toggle.
  *
  * @param string $column  The name of the column to display.
  * @param int    $post_id The ID of the current post.
@@ -164,7 +174,10 @@ function dd_influencer_render_custom_columns( $column, $post_id ) {
 		);
 	}
 }
-add_action( 'manage_influencer_posts_custom_column', 'dd_influencer_render_custom_columns', 10, 2 );
+// Hook for non-hierarchical post types (default)
+add_action( 'manage_influencer_posts_custom_column', 'dd_influencer_render_custom_columns', 99, 2 );
+// Hook for hierarchical post types (failsafe)
+add_action( 'manage_influencer_pages_custom_column', 'dd_influencer_render_custom_columns', 99, 2 );
 
 /**
  * Handles the AJAX request to toggle the featured status of an influencer.
@@ -253,7 +266,7 @@ add_action( 'admin_footer', 'dd_influencer_admin_footer_scripts' );
  */
 function dd_influencer_register_settings_page() {
 	add_submenu_page(
-		'options-general.php',
+		'edit.php?post_type=influencer',
 		__( 'Featured Settings', 'textdomain' ),
 		__( 'Featured Settings', 'textdomain' ),
 		'manage_options',
