@@ -549,38 +549,25 @@ function dd_spotify_style_pmpro_checkout() {
         return;
     }
 
-    // 1. EXTRACT REAL PLAN NAME
+    // 1. EXTRACT REAL PLAN NAME & DESCRIPTION FROM PMPRO DATABASE
     $level_id = isset( $_REQUEST['level'] ) ? intval( $_REQUEST['level'] ) : 0;
-    $real_plan_name = 'Membership Plan'; // Fallback
+    
+    // Fallbacks just in case
+    $real_plan_name = 'Premium Plan'; 
+    $plan_description = '<ul class="spty-bullets"><li>Enjoy unlimited access to your selected plan features.</li><li>Cancel anytime online. <a href="/terms">Terms apply</a>.</li></ul>';
     
     if ( $level_id > 0 && function_exists( 'pmpro_getLevel' ) ) {
         $level = pmpro_getLevel( $level_id );
         if ( ! empty( $level ) ) {
             $real_plan_name = $level->name;
+            
+            // If the level has a description in the backend, use it!
+            if ( ! empty( $level->description ) ) {
+                // Wrap it in our custom class so it styles nicely like the Spotify list
+                $plan_description = '<div class="spty-dynamic-desc">' . wp_kses_post( $level->description ) . '</div>';
+            }
         }
     }
-
-    // 2. DEFINE YOUR DYNAMIC PLAN DETAILS HERE
-    // You only need to map specific bullets or account type text here now. 
-    // The actual Plan Name is pulled automatically.
-    $dynamic_plan_details = [
-        '8' => [ // Example: Level ID 8 (Essential)
-            'account_type' => '1 Essential Account',
-            'bullets' => [
-                'Full access to all essential tools and platform features.',
-                'From the starting date shown, you\'ll be charged for your updated subscription.',
-                'Cancel anytime online. <a href="/terms">Terms apply</a>.'
-            ]
-        ],
-        'default' => [ // Fallback if a level isn't mapped above
-            'account_type' => '1 Premium Account',
-            'bullets' => [
-                'Enjoy unlimited access to your selected plan features.',
-                'From the starting date shown, you\'ll be charged for your updated subscription.',
-                'Cancel anytime online. <a href="/terms">Terms apply</a>.'
-            ]
-        ]
-    ];
 
     // Execute your custom avatar shortcode safely
     $avatar_html = do_shortcode( '[influencer_avatar]' );
@@ -771,23 +758,26 @@ function dd_spotify_style_pmpro_checkout() {
             color: #b3b3b3;
         }
 
-        /* Bullet Points */
-        .spty-bullets {
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        /* Dynamic Description / Bullet Points */
+        .spty-dynamic-desc {
             font-size: 13px;
             color: #6a6a6a;
             line-height: 1.5;
         }
 
-        .spty-bullets li {
+        .spty-dynamic-desc ul, .spty-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .spty-dynamic-desc li, .spty-bullets li {
             position: relative;
             padding-left: 15px;
             margin-bottom: 6px;
         }
 
-        .spty-bullets li::before {
+        .spty-dynamic-desc li::before, .spty-bullets li::before {
             content: '•';
             position: absolute;
             left: 0;
@@ -795,7 +785,7 @@ function dd_spotify_style_pmpro_checkout() {
             color: #6a6a6a;
         }
 
-        .spty-bullets a {
+        .spty-dynamic-desc a, .spty-bullets a {
             color: #6a6a6a;
             text-decoration: underline;
         }
@@ -838,8 +828,8 @@ function dd_spotify_style_pmpro_checkout() {
             setTimeout(function() {
                 
                 var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
-                var dynamicPlanMeta = <?php echo wp_json_encode( $dynamic_plan_details ); ?>;
                 var realPlanName = <?php echo wp_json_encode( $real_plan_name ); ?>;
+                var planDescription = <?php echo wp_json_encode( $plan_description ); ?>;
 
                 // 1. Inject Header
                 var headerHtml = '<div class="dd-spotify-header">' +
@@ -854,7 +844,7 @@ function dd_spotify_style_pmpro_checkout() {
                 $paymentPlanWrapper.hide();
                 $paymentPlanWrapper.prev('h2, h3, hr').hide();
 
-                // Hide arbitrary "Membership Information" and "Select a Payment Plan" headings
+                // Hide arbitrary headings
                 $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
                     var txt = $(this).text().trim();
                     if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
@@ -863,12 +853,7 @@ function dd_spotify_style_pmpro_checkout() {
                     }
                 });
 
-                // 3. Extract Level ID to load dynamic data
-                var urlParams = new URLSearchParams(window.location.search);
-                var currentLevelId = urlParams.get('level') || '';
-                var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
-
-                // 4. Extract Pricing Data for Spotify Card
+                // 3. Extract Pricing Data for Spotify Card
                 var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
                 
                 // Use the database plan name as the base
@@ -914,13 +899,7 @@ function dd_spotify_style_pmpro_checkout() {
                     startDateStr = startDate.toLocaleDateString('en-US', options);
                 }
 
-                // Build Dynamic Bullets
-                var bulletsHtml = '';
-                planDetails.bullets.forEach(function(bullet) {
-                    bulletsHtml += '<li>' + bullet + '</li>';
-                });
-
-                // 5. Build Spotify UI HTML with Dynamic Data
+                // 4. Build Spotify UI HTML with Dynamic Database Data
                 var spotifyHtml = `
                 <div class="spty-summary-card">
                     <div class="spty-header-row">
@@ -929,7 +908,7 @@ function dd_spotify_style_pmpro_checkout() {
                         </div>
                         <div class="spty-plan-info">
                             <h4>${planName}</h4>
-                            <span>${planDetails.account_type}</span>
+                            <span>1 Account</span>
                         </div>
                         <div class="spty-price-info">
                             <h4>${recurringPrice} + tax</h4>
@@ -941,7 +920,7 @@ function dd_spotify_style_pmpro_checkout() {
                             <div class="spty-dot filled"></div>
                             <div class="spty-content">
                                 <p><strong>Now:</strong> ${nowPrice}</p>
-                                <span>${planName}</span>
+                                <span>${realPlanName}</span>
                             </div>
                         </div>
                         <div class="spty-timeline-item">
@@ -952,12 +931,10 @@ function dd_spotify_style_pmpro_checkout() {
                             </div>
                         </div>
                     </div>
-                    <ul class="spty-bullets">
-                        ${bulletsHtml}
-                    </ul>
+                    ${planDescription}
                 </div>`;
 
-                // 6. Inject Summary Block and Reorder DOM
+                // 5. Inject Summary Block and Reorder DOM
                 var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
                 $summarySection.append(spotifyHtml);
                 
@@ -971,7 +948,7 @@ function dd_spotify_style_pmpro_checkout() {
                     $('#pmpro_form').prepend($summarySection); 
                 }
 
-                // 7. Move and Clean Up Account Information
+                // 6. Move and Clean Up Account Information
                 var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
                 if (!$accInfo.length) $accInfo = $('#pmpro_account');
                 if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
