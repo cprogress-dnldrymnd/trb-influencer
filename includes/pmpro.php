@@ -534,6 +534,7 @@ function dd_force_free_members_to_upgrade() {
 add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 
 
+
 /**
  * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
  * Reorders DOM elements, securely hides the payment plan selector, builds a influencer-style 
@@ -541,29 +542,33 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
  *
  * @return void
  */
-function dd_influencer_style_pmpro_checkout() {
+function dd_influencer_style_pmpro_checkout()
+{
     global $pmpro_pages;
 
     // Abort if we are not on the explicit PMPro checkout page
-    if ( empty( $pmpro_pages['checkout'] ) || ! is_page( $pmpro_pages['checkout'] ) ) {
+    if (empty($pmpro_pages['checkout']) || ! is_page($pmpro_pages['checkout'])) {
         return;
     }
 
     // 1. EXTRACT REAL PLAN NAME FROM PMPRO DATABASE
-    $level_id = isset( $_REQUEST['level'] ) ? intval( $_REQUEST['level'] ) : 0;
+    $level_id = isset($_REQUEST['level']) ? intval($_REQUEST['level']) : 0;
     $real_plan_name = 'Membership Plan'; // Fallback
-    
-    if ( $level_id > 0 && function_exists( 'pmpro_getLevel' ) ) {
-        $level = pmpro_getLevel( $level_id );
-        if ( ! empty( $level ) ) {
+
+    if ($level_id > 0 && function_exists('pmpro_getLevel')) {
+        $level = pmpro_getLevel($level_id);
+        if (! empty($level)) {
             $real_plan_name = $level->name;
         }
     }
 
+    // Safely get the dynamic Membership Levels page URL for the "Change plan" link
+    $levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
+
     // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
     // By only using 'default', these bullets will apply to ALL payment plans uniformly.
     $dynamic_plan_details = [
-        'default' => [ 
+        'default' => [
             'account_type' => '1 Account',
             'bullets' => [
                 'Enjoy unlimited access to your selected plan features.',
@@ -574,8 +579,8 @@ function dd_influencer_style_pmpro_checkout() {
     ];
 
     // Execute your custom avatar shortcode safely
-    $avatar_html = do_shortcode( '[influencer_avatar]' );
-    ?>
+    $avatar_html = do_shortcode('[influencer_avatar]');
+?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
         #pmpro_form {
@@ -591,13 +596,33 @@ function dd_influencer_style_pmpro_checkout() {
             align-items: center;
             border-bottom: 1px solid #e5e5e5;
             padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .dd-checkout-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
             margin-bottom: 30px;
         }
 
-        .dd-influencer-header h2 {
-            font-size: 24px !important;
+        .dd-checkout-title-row h2 {
+            font-size: 32px !important;
             font-weight: 700 !important;
             margin: 0 !important;
+            color: #000;
+            letter-spacing: -0.5px;
+        }
+
+        .dd-checkout-title-row a {
+            color: #6a6a6a;
+            text-decoration: underline;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .dd-checkout-title-row a:hover {
             color: #000;
         }
 
@@ -625,7 +650,7 @@ function dd_influencer_style_pmpro_checkout() {
             margin-bottom: 30px !important;
         }
 
-        .pmpro_checkout-section h3, 
+        .pmpro_checkout-section h3,
         .pmpro_checkout-section h2 {
             font-size: 20px !important;
             font-weight: 700 !important;
@@ -636,10 +661,10 @@ function dd_influencer_style_pmpro_checkout() {
         }
 
         /* Hide unwanted default sections and specific PMPro fields */
-        #pmpro_level_cost, 
+        #pmpro_level_cost,
         #pmpropp_payment_plans,
-        #pmpro_pricing_fields, 
-        #pmpro_user_fields, 
+        #pmpro_pricing_fields,
+        #pmpro_user_fields,
         #pmpropp_select_payment_plan {
             display: none !important;
         }
@@ -812,8 +837,8 @@ function dd_influencer_style_pmpro_checkout() {
         }
 
         /* Clean up residual Account Info if logged out */
-        .dd-clean-account-info h2, 
-        .dd-clean-account-info h3, 
+        .dd-clean-account-info h2,
+        .dd-clean-account-info h3,
         .dd-clean-account-info hr,
         .dd-clean-account-info p.pmpro_logged_in_text {
             display: none !important;
@@ -827,21 +852,26 @@ function dd_influencer_style_pmpro_checkout() {
 
             // Give the Payment Plans Add-on 100ms to inject its HTML before we parse it
             setTimeout(function() {
-                
-                var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
-                var dynamicPlanMeta = <?php echo wp_json_encode( $dynamic_plan_details ); ?>;
-                var realPlanName = <?php echo wp_json_encode( $real_plan_name ); ?>;
 
-                // 1. Inject Header
+                var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
+                var dynamicPlanMeta = <?php echo wp_json_encode($dynamic_plan_details); ?>;
+                var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
+                var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
+
+                // 1. Inject Header and Title Row
                 var headerHtml = '<div class="dd-influencer-header">' +
-                                 '<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
-                                 '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
-                                 '</div>';
+                    '<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
+                    '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
+                    '</div>' +
+                    '<div class="dd-checkout-title-row">' +
+                    '<h2>Checkout</h2>' +
+                    '<a href="' + levelsUrl + '">Change plan</a>' +
+                    '</div>';
                 $('#pmpro_form').prepend(headerHtml);
 
                 // 2. Hide Native Elements Safely
                 var $paymentPlanWrapper = $('#pmpropp_payment_plans').closest('.pmpro_checkout-section');
-                if($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
+                if ($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
                 $paymentPlanWrapper.hide();
                 $paymentPlanWrapper.prev('h2, h3, hr').hide();
 
@@ -850,7 +880,7 @@ function dd_influencer_style_pmpro_checkout() {
                     var txt = $(this).text().trim();
                     if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
                         $(this).hide();
-                        if($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
+                        if ($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
                     }
                 });
 
@@ -861,7 +891,7 @@ function dd_influencer_style_pmpro_checkout() {
 
                 // 4. Extract Pricing Data for influencer Card
                 var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
-                
+
                 // Use the database plan name as the base
                 var planName = realPlanName;
 
@@ -876,26 +906,30 @@ function dd_influencer_style_pmpro_checkout() {
 
                 // Parse Initial Price
                 var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
-                if(nowMatch) nowPrice = nowMatch[1];
+                if (nowMatch) nowPrice = nowMatch[1];
 
                 // Parse Recurring Price
                 var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
-                if(recMatch) {
+                if (recMatch) {
                     recurringPrice = recMatch[1];
                     cycle = recMatch[2].toLowerCase();
                 }
 
                 // Parse Trial
                 var trialMatch = labelText.match(/(\d+)\s+day trial/i);
-                if(trialMatch) trialDays = parseInt(trialMatch[1], 10);
-                
+                if (trialMatch) trialDays = parseInt(trialMatch[1], 10);
+
                 // Fallback if no trial is detected
-                if(!nowMatch && recMatch) {
+                if (!nowMatch && recMatch) {
                     nowPrice = recurringPrice;
                 }
 
                 // Calculate Future Date
-                var options = { month: 'short', day: 'numeric', year: 'numeric' };
+                var options = {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                };
                 var today = new Date();
                 var startDateStr = "Now";
 
@@ -949,24 +983,24 @@ function dd_influencer_style_pmpro_checkout() {
                 </div>`;
 
                 // 6. Inject Summary Block and Reorder DOM
-                var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"><h2>Summary</h2></div>');
+                var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
                 $summarySection.append(influencerHtml);
-                
+
                 // Place Summary ABOVE Payment Information
                 var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
                 if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
-                
+
                 if ($paymentFields.length) {
-                    $paymentFields.before($summarySection); 
+                    $paymentFields.before($summarySection);
                 } else {
-                    $('#pmpro_form').prepend($summarySection); 
+                    $('#pmpro_form').prepend($summarySection);
                 }
 
                 // 7. Move and Clean Up Account Information
                 var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
                 if (!$accInfo.length) $accInfo = $('#pmpro_account');
                 if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
-                
+
                 if ($accInfo.length) {
                     $accInfo.addClass('dd-clean-account-info');
                     if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
@@ -976,7 +1010,7 @@ function dd_influencer_style_pmpro_checkout() {
                         $accInfo.hide();
                     }
                 }
-                
+
                 // Hide original Membership Info container as the influencer Card replaces it
                 var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
                 if ($memInfo.length) $memInfo.hide();
@@ -984,6 +1018,6 @@ function dd_influencer_style_pmpro_checkout() {
             }, 150); // Small delay ensures Payment Plans Add-on has injected the labels
         });
     </script>
-    <?php
+<?php
 }
-add_action( 'wp_footer', 'dd_influencer_style_pmpro_checkout', 50 );
+add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
