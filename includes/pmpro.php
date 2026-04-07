@@ -482,7 +482,7 @@ function dd_force_free_members_to_upgrade() {
         global $pmpro_pages;
         
         // Define critical PMPro routing pages that must be exempt from the redirect
-        $exempt_page_ids = array();
+        $exempt_page_ids = array(1010);
         
         if ( ! empty( $pmpro_pages ) ) {
             $exempt_keys = array( 'levels', 'checkout', 'cancel', 'login', 'logout' );
