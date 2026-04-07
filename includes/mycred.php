@@ -374,9 +374,9 @@ function dd_influencer_style_mycred_checkout()
             font-weight: 500;
         }
 
-        .infl-content span {
-            font-size: 14px;
-            color: #b3b3b3;
+        .infl-content.infl-content.infl-content span {
+            font-size: 14px !important
+            color: #b3b3b3 !important;
         }
 
         /* Bullet Points */
