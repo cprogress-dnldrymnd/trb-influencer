@@ -279,170 +279,186 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
 /**
  * Enqueues Select2 assets strictly on the Influencer Featured Settings page.
  * 
- * Prevents library conflicts by ensuring the CSS and JS are only loaded
- * when the specific $_GET['page'] parameter matches our custom submenu slug.
- * Includes a hardened CSS override to fix WordPress admin conflicts with Select2 heights.
+ * Includes a bulletproof CSS reset to override aggressive third-party 
+ * admin styles (e.g., page builders) that break Select2's flexible height.
  *
  * @param string $hook The current admin page hook.
  * @return void
  */
-function dd_influencer_enqueue_settings_scripts( $hook ) {
-	if ( empty( $_GET['page'] ) || 'influencer-featured-settings' !== $_GET['page'] ) {
+function dd_influencer_enqueue_settings_scripts($hook)
+{
+	if (empty($_GET['page']) || 'influencer-featured-settings' !== $_GET['page']) {
 		return;
 	}
 
-	wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0' );
-	wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
+	wp_enqueue_style('select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0');
+	wp_enqueue_script('select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0-rc.0', true);
 
-	// Advanced CSS hardening to protect Select2 from WP Core stylesheet interference
+	// Advanced Flexbox CSS Hardening
 	$custom_css = "
-		/* Force auto-height to prevent collapsing bounding box */
+		/* Bulletproof container height reset */
 		.select2-container--default .select2-selection--multiple {
 			height: auto !important;
-			min-height: 32px !important;
-			padding-bottom: 4px !important;
+			min-height: 36px !important;
+			padding-bottom: 2px !important;
 			border-color: #8c8f94 !important;
 			border-radius: 4px !important;
 		}
-		/* Native WP focus states */
-		.select2-container--default.select2-container--focus .select2-selection--multiple {
-			border-color: #2271b1 !important;
-			box-shadow: 0 0 0 1px #2271b1 !important;
+		
+		/* Force the rendered list to wrap its children */
+		.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+			display: flex !important;
+			flex-wrap: wrap !important;
+			box-sizing: border-box !important;
+			list-style: none !important;
+			margin: 0 !important;
+			padding: 0 4px !important;
+			width: 100% !important;
+			white-space: normal !important;
 		}
-		/* Fix the 'x' remove button */
+
+		/* Tag styling and spacing */
+		.select2-container--default .select2-selection--multiple .select2-selection__choice {
+			display: flex !important;
+			align-items: center !important;
+			margin-top: 4px !important;
+			margin-bottom: 4px !important;
+			margin-right: 4px !important;
+			padding: 3px 6px !important;
+			border: 1px solid #c3c4c7 !important;
+			background: #f0f0f1 !important;
+			border-radius: 3px !important;
+			color: #3c434a !important;
+			float: none !important; /* Defeat WP float rules */
+		}
+
+		/* 'x' button reset */
 		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
 			border: none !important;
 			background: transparent !important;
 			color: #999 !important;
 			cursor: pointer !important;
-			padding: 0 5px !important;
-			position: relative;
-			z-index: 99;
+			padding: 0 6px 0 0 !important;
+			font-weight: bold !important;
+			position: static !important;
 		}
 		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
 			color: #d63638 !important;
 			background: transparent !important;
 		}
-		/* Fix tag margins and match WP admin tag colors */
-		.select2-container--default .select2-selection--multiple .select2-selection__choice {
-			margin-top: 4px !important;
-			margin-bottom: 0 !important;
-			padding: 2px 5px !important;
-			border: 1px solid #c3c4c7 !important;
-			background: #f0f0f1 !important;
-			border-radius: 3px !important;
-			color: #3c434a !important;
+
+		/* Search input alignment */
+		.select2-container .select2-search--inline {
+			float: none !important;
+			display: flex !important;
+			align-items: center !important;
 		}
-		/* Align the search input field properly when tags wrap to a new line */
 		.select2-container .select2-search--inline .select2-search__field {
-			margin-top: 6px !important;
-			height: 20px !important;
-			line-height: 20px !important;
+			margin-top: 4px !important;
+			margin-bottom: 4px !important;
+			height: 24px !important;
+			line-height: 24px !important;
+			box-shadow: none !important;
+		}
+		
+		/* Native WP focus states */
+		.select2-container--default.select2-container--focus .select2-selection--multiple {
+			border-color: #2271b1 !important;
+			box-shadow: 0 0 0 1px #2271b1 !important;
 		}
 	";
-	wp_add_inline_style( 'select2-css', $custom_css );
+	wp_add_inline_style('select2-css', $custom_css);
 
-	wp_add_inline_script( 'select2-js', "
+	wp_add_inline_script('select2-js', "
 		jQuery(document).ready(function($) {
 			$('#featured_influencers').select2({
-				placeholder: '" . esc_js( __( 'Search and select influencers...', 'textdomain' ) ) . "',
+				placeholder: '" . esc_js(__('Search and select influencers...', 'textdomain')) . "',
 				width: '100%'
 			});
 		});
-	" );
+	");
 }
-add_action( 'admin_enqueue_scripts', 'dd_influencer_enqueue_settings_scripts' );
+add_action('admin_enqueue_scripts', 'dd_influencer_enqueue_settings_scripts');
 
 /**
  * Renders the HTML and handles the form submission for the Global Settings page.
- * * Implements strict memory management by utilizing 'fields' => 'ids' queries,
- * localized error suppression to prevent stream corruption, and integer casting.
- * * Updated: Integrates Select2 for an optimized multiselect user experience.
  *
  * @return void
  */
-function dd_influencer_settings_page_html() {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'textdomain' ) );
+function dd_influencer_settings_page_html()
+{
+	if (! current_user_can('manage_options')) {
+		wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'textdomain'));
 	}
 
-	// NUCLEAR OPTION: Temporarily suppress visual errors on this specific view to prevent stream corruption
-	$original_error_reporting = error_reporting();
-	error_reporting( 0 );
-	ini_set( 'display_errors', 0 );
 
-	if ( $_SERVER['REQUEST_METHOD'] === 'POST' ) {
-		if ( isset( $_POST['dd_settings_nonce'] ) && wp_verify_nonce( $_POST['dd_settings_nonce'], 'dd_save_settings' ) ) {
-			
-			$selected_featured = isset( $_POST['featured_influencers'] ) ? array_map( 'intval', $_POST['featured_influencers'] ) : array();
-			
-			// Optimize memory footprint by querying IDs only.
-			$all_influencer_ids = get_posts( array( 
-				'post_type'      => 'influencer', 
-				'posts_per_page' => 1000, 
-				'fields'         => 'ids' 
-			) );
-			
-			foreach ( $all_influencer_ids as $influencer_id ) {
-				$status = in_array( (int) $influencer_id, $selected_featured, true ) ? 'yes' : 'no';
-				update_post_meta( $influencer_id, '_is_featured_influencer', $status );
+	if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+		if (isset($_POST['dd_settings_nonce']) && wp_verify_nonce($_POST['dd_settings_nonce'], 'dd_save_settings')) {
+
+			$selected_featured = isset($_POST['featured_influencers']) ? array_map('intval', $_POST['featured_influencers']) : array();
+
+			$all_influencer_ids = get_posts(array(
+				'post_type'      => 'influencer',
+				'posts_per_page' => 1000,
+				'fields'         => 'ids'
+			));
+
+			foreach ($all_influencer_ids as $influencer_id) {
+				$status = in_array((int) $influencer_id, $selected_featured, true) ? 'yes' : 'no';
+				update_post_meta($influencer_id, '_is_featured_influencer', $status);
 			}
-			
+
 			dd_sync_global_featured_influencers();
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Featured influencers synchronized and updated globally.', 'textdomain' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Featured influencers synchronized and updated globally.', 'textdomain') . '</p></div>';
 		}
 	}
 
-	// Fetch IDs for UI Rendering (Highly memory efficient)
-	$all_influencer_ids_display = get_posts( array( 
-		'post_type'      => 'influencer', 
-		'posts_per_page' => 1000, 
-		'fields'         => 'ids' 
-	) );
-	
-	$raw_global_featured = get_option( 'global_featured_influencers', array() );
-	$global_featured     = is_array( $raw_global_featured ) ? array_map( 'intval', $raw_global_featured ) : array();
+	$all_influencer_ids_display = get_posts(array(
+		'post_type'      => 'influencer',
+		'posts_per_page' => 1000,
+		'fields'         => 'ids'
+	));
 
-	?>
+	$raw_global_featured = get_option('global_featured_influencers', array());
+	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
+
+?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Global Featured Influencers Settings', 'textdomain' ); ?></h1>
-		
+		<h1><?php esc_html_e('Global Featured Influencers Settings', 'textdomain'); ?></h1>
+
 		<form method="post" action="">
-			<?php wp_nonce_field( 'dd_save_settings', 'dd_settings_nonce' ); ?>
-			
+			<?php wp_nonce_field('dd_save_settings', 'dd_settings_nonce'); ?>
+
 			<table class="form-table">
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="featured_influencers"><?php esc_html_e( 'Featured Influencers', 'textdomain' ); ?></label>
+							<label for="featured_influencers"><?php esc_html_e('Featured Influencers', 'textdomain'); ?></label>
 						</th>
 						<td>
-							<!-- Adjusted width to 600px for a better Select2 layout -->
 							<div style="max-width: 600px;">
 								<select name="featured_influencers[]" id="featured_influencers" multiple="multiple">
-									<?php if ( ! empty( $all_influencer_ids_display ) ) : ?>
-										<?php foreach ( $all_influencer_ids_display as $influencer_id ) : ?>
-											<option value="<?php echo esc_attr( $influencer_id ); ?>" <?php selected( in_array( (int) $influencer_id, $global_featured, true ), true ); ?>>
-												<?php echo esc_html( get_the_title( $influencer_id ) ); ?>
+									<?php if (! empty($all_influencer_ids_display)) : ?>
+										<?php foreach ($all_influencer_ids_display as $influencer_id) : ?>
+											<option value="<?php echo esc_attr($influencer_id); ?>" <?php selected(in_array((int) $influencer_id, $global_featured, true), true); ?>>
+												<?php echo esc_html(get_the_title($influencer_id)); ?>
 											</option>
 										<?php endforeach; ?>
 									<?php else : ?>
-										<option value="" disabled><?php esc_html_e( 'No influencers found.', 'textdomain' ); ?></option>
+										<option value="" disabled><?php esc_html_e('No influencers found.', 'textdomain'); ?></option>
 									<?php endif; ?>
 								</select>
 							</div>
-							<p class="description"><?php esc_html_e( 'Search by name and click to add. You can drag to reorder or click the "x" to remove an influencer.', 'textdomain' ); ?></p>
+							<p class="description"><?php esc_html_e('Search by name and click to add. You can drag to reorder or click the "x" to remove an influencer.', 'textdomain'); ?></p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
-			
-			<?php submit_button( __( 'Sync and Save Changes', 'textdomain' ) ); ?>
+
+			<?php submit_button(__('Sync and Save Changes', 'textdomain')); ?>
 		</form>
 	</div>
-	<?php
-	
-	// Restore standard error reporting
-	error_reporting( $original_error_reporting );
-	ini_restore( 'display_errors' );
+<?php
+
+
 }
