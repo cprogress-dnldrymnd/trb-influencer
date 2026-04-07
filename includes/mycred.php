@@ -162,7 +162,7 @@ function dd_influencer_style_mycred_checkout()
             text-align: left !important;
         }
 
-        .mycred_buy_section_2 h2 {
+        .mycred_buy_section_2.mycred_buy_section_2.mycred_buy_section_2 h2 {
             font-size: 20px !important;
             font-weight: 700 !important;
             border: none !important;
