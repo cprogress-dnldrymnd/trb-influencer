@@ -210,6 +210,14 @@ function dd_influencer_style_mycred_checkout()
             margin: 0 !important;
             color: #000;
             letter-spacing: -0.5px;
+            font-family: Inter;
+        }
+        .checkout-order {
+            padding: 10px;
+        }
+
+        .mycred-stripe-payment-main * {
+            font-family: Inter;
         }
 
         .dd-checkout-title-row a {
