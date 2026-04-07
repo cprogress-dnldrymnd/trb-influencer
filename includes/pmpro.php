@@ -532,3 +532,170 @@ function dd_force_free_members_to_upgrade() {
     }
 }
 add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
+
+
+/**
+ * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
+ * Reorders DOM elements, securely hides the payment plan selector, builds a Summary block, 
+ * and injects the user avatar via shortcode.
+ *
+ * @return void
+ */
+function dd_spotify_style_pmpro_checkout() {
+    global $pmpro_pages;
+
+    // Abort if we are not on the explicit PMPro checkout page
+    if ( empty( $pmpro_pages['checkout'] ) || ! is_page( $pmpro_pages['checkout'] ) ) {
+        return;
+    }
+
+    // Execute your custom avatar shortcode safely
+    $avatar_html = do_shortcode( '[influencer_avatar]' );
+    ?>
+    <style>
+        /* Spotify-style CSS Overrides for PMPro */
+        #pmpro_form {
+            max-width: 650px;
+            margin: 0 auto;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .dd-spotify-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+
+        .dd-spotify-header h2 {
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+            color: #000;
+        }
+
+        .dd-avatar-wrapper {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #eee;
+            border: 1px solid #ddd;
+        }
+
+        .dd-avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Neutralize the heavy boxed styling of PMPro default sections */
+        .pmpro_checkout-section {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin-bottom: 30px !important;
+        }
+
+        .pmpro_checkout-section h3, 
+        .pmpro_checkout-section h2 {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 0 !important;
+        }
+
+        /* Style the newly injected Summary section */
+        #dd-spotify-summary {
+            border-top: 1px solid #e5e5e5 !important;
+            padding-top: 30px !important;
+            margin-top: 40px !important;
+        }
+
+        /* Submit Button (Spotify Green) */
+        #pmpro_btn-submit {
+            background-color: #1ed760 !important;
+            color: #000 !important;
+            border-radius: 500px !important;
+            padding: 16px 30px !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            width: 100% !important;
+            text-transform: none !important;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        #pmpro_btn-submit:hover {
+            background-color: #1fdf64 !important;
+            transform: scale(1.02);
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof jQuery === 'undefined') return;
+            var $ = jQuery;
+
+            // Safely pass the PHP generated shortcode HTML into JavaScript
+            var avatarHtml = <?php echo wp_json_encode( $avatar_html ); ?>;
+
+            // 1. Inject the Custom Header at the top of the form
+            var headerHtml = '<div class="dd-spotify-header">' +
+                             '<h2>Checkout</h2>' +
+                             '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
+                             '</div>';
+            $('#pmpro_form').prepend(headerHtml);
+
+            // 2. Hide Payment Plan Module (It stays in the DOM so the form submits correctly, but is invisible to the user)
+            var $paymentPlanWrapper = $('#pmpropp_payment_plans');
+            if ($paymentPlanWrapper.length) {
+                $paymentPlanWrapper.hide();
+                // Find the heading immediately preceding the radio buttons and hide it
+                $paymentPlanWrapper.prev('h2, h3, hr').hide();
+                // If it's wrapped in a standard PMPro section, hide the wrapper
+                $paymentPlanWrapper.closest('.pmpro_checkout-section').hide();
+            }
+
+            // Catch any stray headings related to Payment Plans
+            $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
+                if ($(this).text().indexOf('Payment Plan') !== -1) {
+                    $(this).hide();
+                    $(this).closest('.pmpro_checkout-section').hide();
+                }
+            });
+
+            // 3. Build the Summary Section and Reorder the DOM
+            var $summarySection = $('<div id="dd-spotify-summary" class="pmpro_checkout-section"><h3>Summary</h3></div>');
+            
+            // Locate the Payment Information block
+            var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
+            if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields'); // Fallback
+            
+            // Inject the empty Summary section directly beneath the Payment Information
+            if ($paymentFields.length) {
+                $paymentFields.after($summarySection);
+            } else {
+                $('#pmpro_form .pmpro_checkout-section').last().after($summarySection);
+            }
+
+            // Pluck the Membership Information block and drop it inside the Summary
+            var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
+            if (!$memInfo.length) $memInfo = $('#pmpro_level_cost');
+            if ($memInfo.length) $summarySection.append($memInfo);
+
+            // Pluck the Account Information block and drop it inside the Summary
+            var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
+            if (!$accInfo.length) $accInfo = $('#pmpro_account');
+            if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
+            if ($accInfo.length) $summarySection.append($accInfo);
+            
+        });
+    </script>
+    <?php
+}
+add_action( 'wp_footer', 'dd_spotify_style_pmpro_checkout', 50 );
