@@ -451,3 +451,58 @@ function dd_pmpro_checkout_stripe_trial_notice() {
     }
 }
 add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
+
+
+/**
+ * Intercepts frontend page loads and evaluates the current user's membership level.
+ * If the user holds a designated "Free" membership level, they are forcefully redirected 
+ * to the PMPro Levels page to select a paid plan. Safely ignores backend requests, 
+ * AJAX calls, and core PMPro functional pages to prevent infinite loops.
+ *
+ * @return void
+ */
+function dd_force_free_members_to_upgrade() {
+    // Abort if Paid Memberships Pro is not active to prevent fatal errors
+    if ( ! function_exists( 'pmpro_hasMembershipLevel' ) ) {
+        return;
+    }
+
+    // Abort if the user is not logged in, is accessing the WP Admin, or executing an AJAX/REST request
+    if ( ! is_user_logged_in() || is_admin() || wp_doing_ajax() || wp_is_json_request() ) {
+        return;
+    }
+
+    // Define the exact ID(s) of your Free Membership Level(s). 
+    // UPDATE THIS ARRAY WITH YOUR ACTUAL FREE LEVEL ID (e.g., array( 1 )).
+    $free_level_ids = array( 1 ); 
+
+    // Evaluate if the current user possesses the specified free level
+    if ( pmpro_hasMembershipLevel( $free_level_ids ) ) {
+        
+        global $pmpro_pages;
+        
+        // Define critical PMPro routing pages that must be exempt from the redirect
+        $exempt_page_ids = array();
+        
+        if ( ! empty( $pmpro_pages ) ) {
+            $exempt_keys = array( 'levels', 'checkout', 'cancel', 'login', 'logout' );
+            foreach ( $exempt_keys as $key ) {
+                if ( ! empty( $pmpro_pages[ $key ] ) ) {
+                    $exempt_page_ids[] = $pmpro_pages[ $key ];
+                }
+            }
+        }
+
+        // Execute the redirect ONLY if the current page is not inside the exemption array
+        if ( ! is_page( $exempt_page_ids ) ) {
+            // Retrieve the dynamic URL for the Levels page
+            $redirect_url = pmpro_url( 'levels' );
+            
+            if ( $redirect_url ) {
+                wp_safe_redirect( $redirect_url );
+                exit;
+            }
+        }
+    }
+}
+add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
