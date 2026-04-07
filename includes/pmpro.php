@@ -597,6 +597,12 @@ function dd_influencer_style_pmpro_checkout()
             margin-bottom: 20px;
         }
 
+        .dd-influencer-header  .avatar-holder.avatar-holder img,   .dd-influencer-header .influencer-avatar-fallback {
+            --size: 40px;
+            border: none;
+            font-size: 16px;
+        }
+
         .dd-checkout-title-row {
             display: flex;
             justify-content: space-between;
