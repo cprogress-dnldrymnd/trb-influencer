@@ -474,7 +474,7 @@ function dd_force_free_members_to_upgrade() {
 
     // Define the exact ID(s) of your Free Membership Level(s). 
     // UPDATE THIS ARRAY WITH YOUR ACTUAL FREE LEVEL ID (e.g., array( 1 )).
-    $free_level_ids = array( 1 ); 
+    $free_level_ids = array( 15 ); 
 
     // Evaluate if the current user possesses the specified free level
     if ( pmpro_hasMembershipLevel( $free_level_ids ) ) {
