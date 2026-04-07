@@ -597,11 +597,6 @@ function dd_influencer_style_pmpro_checkout()
             margin-bottom: 20px;
         }
 
-        .dd-influencer-header  .avatar-holder.avatar-holder img,   .dd-influencer-header .influencer-avatar-fallback {
-            --size: 40px;
-            border: none;
-            font-size: 16px;
-        }
 
         .dd-checkout-title-row {
             display: flex;
@@ -631,12 +626,12 @@ function dd_influencer_style_pmpro_checkout()
         }
 
         .dd-avatar-wrapper {
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             overflow: hidden;
             background: #eee;
-            border: 1px solid #ddd;
+            border: 2px solid #ddd;
         }
 
         .dd-avatar-wrapper img {
