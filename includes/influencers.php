@@ -281,23 +281,35 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
  * 
  * Prevents library conflicts by ensuring the CSS and JS are only loaded
  * when the specific $_GET['page'] parameter matches our custom submenu slug.
- * Includes a CSS override to fix WordPress admin conflicts with the Select2 'x' button.
+ * Includes a hardened CSS override to fix WordPress admin conflicts with Select2 heights.
  *
  * @param string $hook The current admin page hook.
  * @return void
  */
 function dd_influencer_enqueue_settings_scripts( $hook ) {
-	// Strictly limit asset loading to our custom settings page
 	if ( empty( $_GET['page'] ) || 'influencer-featured-settings' !== $_GET['page'] ) {
 		return;
 	}
 
-	// Enqueue Select2 from a reliable CDN
 	wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0-rc.0' );
 	wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0-rc.0', true );
 
-	// Inject CSS to fix the WordPress admin overriding the Select2 'x' button
+	// Advanced CSS hardening to protect Select2 from WP Core stylesheet interference
 	$custom_css = "
+		/* Force auto-height to prevent collapsing bounding box */
+		.select2-container--default .select2-selection--multiple {
+			height: auto !important;
+			min-height: 32px !important;
+			padding-bottom: 4px !important;
+			border-color: #8c8f94 !important;
+			border-radius: 4px !important;
+		}
+		/* Native WP focus states */
+		.select2-container--default.select2-container--focus .select2-selection--multiple {
+			border-color: #2271b1 !important;
+			box-shadow: 0 0 0 1px #2271b1 !important;
+		}
+		/* Fix the 'x' remove button */
 		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
 			border: none !important;
 			background: transparent !important;
@@ -308,22 +320,33 @@ function dd_influencer_enqueue_settings_scripts( $hook ) {
 			z-index: 99;
 		}
 		.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-			color: #d63638 !important; /* WP Core Red */
+			color: #d63638 !important;
 			background: transparent !important;
 		}
+		/* Fix tag margins and match WP admin tag colors */
 		.select2-container--default .select2-selection--multiple .select2-selection__choice {
-			margin-top: 5px !important;
+			margin-top: 4px !important;
+			margin-bottom: 0 !important;
 			padding: 2px 5px !important;
+			border: 1px solid #c3c4c7 !important;
+			background: #f0f0f1 !important;
+			border-radius: 3px !important;
+			color: #3c434a !important;
+		}
+		/* Align the search input field properly when tags wrap to a new line */
+		.select2-container .select2-search--inline .select2-search__field {
+			margin-top: 6px !important;
+			height: 20px !important;
+			line-height: 20px !important;
 		}
 	";
 	wp_add_inline_style( 'select2-css', $custom_css );
 
-	// Inject the initialization script inline to bind Select2 to our multiselect element
 	wp_add_inline_script( 'select2-js', "
 		jQuery(document).ready(function($) {
 			$('#featured_influencers').select2({
 				placeholder: '" . esc_js( __( 'Search and select influencers...', 'textdomain' ) ) . "',
-				width: '100%' // Forces Select2 to respect the parent container's width
+				width: '100%'
 			});
 		});
 	" );
