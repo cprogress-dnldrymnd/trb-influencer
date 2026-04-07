@@ -280,6 +280,7 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
  * Renders the HTML and handles the form submission for the Global Settings page.
  * * Implements strict memory management by utilizing 'fields' => 'ids' queries,
  * localized error suppression to prevent stream corruption, and integer casting.
+ * * Updated: Converted checkbox list to a standardized multiselect field.
  *
  * @return void
  */
@@ -336,20 +337,22 @@ function dd_influencer_settings_page_html()
 			<table class="form-table">
 				<tbody>
 					<tr>
-						<th scope="row"><?php esc_html_e('Featured Roster', 'textdomain'); ?></th>
+						<th scope="row">
+							<label for="featured_influencers"><?php esc_html_e('Featured Roster', 'textdomain'); ?></label>
+						</th>
 						<td>
-							<fieldset>
+							<select name="featured_influencers[]" id="featured_influencers" multiple="multiple" style="width: 100%; max-width: 400px; height: 300px; padding: 5px;">
 								<?php if (! empty($all_influencer_ids_display)) : ?>
 									<?php foreach ($all_influencer_ids_display as $influencer_id) : ?>
-										<label style="display:block; margin-bottom: 5px;">
-											<input type="checkbox" name="featured_influencers[]" value="<?php echo esc_attr($influencer_id); ?>" <?php checked(in_array((int) $influencer_id, $global_featured, true)); ?> />
+										<option value="<?php echo esc_attr($influencer_id); ?>" <?php selected(in_array((int) $influencer_id, $global_featured, true), true); ?>>
 											<?php echo esc_html(get_the_title($influencer_id)); ?>
-										</label>
+										</option>
 									<?php endforeach; ?>
 								<?php else : ?>
-									<p><?php esc_html_e('No influencers found.', 'textdomain'); ?></p>
+									<option value="" disabled><?php esc_html_e('No influencers found.', 'textdomain'); ?></option>
 								<?php endif; ?>
-							</fieldset>
+							</select>
+							<p class="description"><?php esc_html_e('Hold down the Ctrl (Windows) or Command (Mac) key to select multiple influencers.', 'textdomain'); ?></p>
 						</td>
 					</tr>
 				</tbody>
