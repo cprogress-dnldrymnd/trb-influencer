@@ -279,44 +279,68 @@ add_action( 'admin_menu', 'dd_influencer_register_settings_page' );
 /**
  * Renders the HTML and handles the form submission for the Global Settings page.
  * 
- * Iterates through all influencers to render checkboxes. Upon form submission,
- * it updates the `_is_featured_influencer` meta for all posts to ensure bidirectional
- * sync between the global settings interface and individual post metadata.
+ * Includes advanced state logging to diagnose silent failures during the 
+ * bidirectional synchronization process. Strictly processes POST requests
+ * to prevent false-positive saves.
  *
  * @return void
  */
 function dd_influencer_settings_page_html() {
 	if ( ! current_user_can( 'manage_options' ) ) {
-		return;
+		wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'textdomain' ) );
 	}
 
-	// Handle form save
-	if ( isset( $_POST['dd_settings_nonce'] ) && wp_verify_nonce( $_POST['dd_settings_nonce'], 'dd_save_settings' ) ) {
-		$selected_featured = isset( $_POST['featured_influencers'] ) ? array_map( 'intval', $_POST['featured_influencers'] ) : array();
-		
-		// We must update the post meta for ALL influencers to ensure bidirectional synchronization.
-		$all_influencers = get_posts( array( 'post_type' => 'influencer', 'posts_per_page' => -1, 'fields' => 'ids' ) );
-		
-		foreach ( $all_influencers as $influencer_id ) {
-			$status = in_array( $influencer_id, $selected_featured ) ? 'yes' : 'no';
-			update_post_meta( $influencer_id, '_is_featured_influencer', $status );
+	$debug_log = array();
+
+	// Handle form save with strict method checking
+	if ( $_SERVER['REQUEST_METHOD'] === 'POST' ) {
+		if ( isset( $_POST['dd_settings_nonce'] ) && wp_verify_nonce( $_POST['dd_settings_nonce'], 'dd_save_settings' ) ) {
+			
+			$selected_featured = isset( $_POST['featured_influencers'] ) ? array_map( 'intval', $_POST['featured_influencers'] ) : array();
+			$debug_log[] = sprintf( 'Captured %d selected influencers from POST payload.', count( $selected_featured ) );
+			
+			// We must update the post meta for ALL influencers to ensure bidirectional synchronization.
+			$all_influencers = get_posts( array( 'post_type' => 'influencer', 'posts_per_page' => -1, 'fields' => 'ids' ) );
+			$debug_log[] = sprintf( 'Retrieved %d total influencers from database.', count( $all_influencers ) );
+			
+			$update_count = 0;
+			foreach ( $all_influencers as $influencer_id ) {
+				$status = in_array( $influencer_id, $selected_featured, true ) ? 'yes' : 'no';
+				update_post_meta( $influencer_id, '_is_featured_influencer', $status );
+				$update_count++;
+			}
+			$debug_log[] = sprintf( 'Processed meta updates for %d influencers.', $update_count );
+			
+			// Sync the optimized global option array
+			dd_sync_global_featured_influencers();
+			$debug_log[] = 'Triggered global option synchronization successfully.';
+			
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Featured influencers synchronized and updated globally.', 'textdomain' ) . '</p></div>';
+		} else {
+			$debug_log[] = 'Nonce verification failed or nonce was missing from POST payload.';
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Security check failed. Please try again.', 'textdomain' ) . '</p></div>';
 		}
-		
-		// Sync the optimized global option array
-		dd_sync_global_featured_influencers();
-		
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Featured influencers synchronized and updated globally.', 'textdomain' ) . '</p></div>';
 	}
 
-	// Fetch data for the form
-	$all_influencers = get_posts( array( 'post_type' => 'influencer', 'posts_per_page' => -1 ) );
-	$global_featured = get_option( 'global_featured_influencers', array() );
+	// Fetch data for the form rendering
+	$all_influencers_display = get_posts( array( 'post_type' => 'influencer', 'posts_per_page' => -1 ) );
+	$global_featured         = get_option( 'global_featured_influencers', array() );
 
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Global Featured Influencers Settings', 'textdomain' ); ?></h1>
-		<p><?php esc_html_e( 'Select the influencers you want to feature. Changes made here will automatically synchronize with the individual influencer post settings.', 'textdomain' ); ?></p>
 		
+		<?php if ( ! empty( $debug_log ) && ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) : ?>
+			<div class="notice notice-warning">
+				<p><strong><?php esc_html_e( 'Diagnostic Log:', 'textdomain' ); ?></strong></p>
+				<ul style="list-style-type: disc; margin-left: 20px;">
+					<?php foreach ( $debug_log as $log_entry ) : ?>
+						<li><?php echo esc_html( $log_entry ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+		<?php endif; ?>
+
 		<form method="post" action="">
 			<?php wp_nonce_field( 'dd_save_settings', 'dd_settings_nonce' ); ?>
 			
@@ -326,10 +350,10 @@ function dd_influencer_settings_page_html() {
 						<th scope="row"><?php esc_html_e( 'Featured Roster', 'textdomain' ); ?></th>
 						<td>
 							<fieldset>
-								<?php if ( ! empty( $all_influencers ) ) : ?>
-									<?php foreach ( $all_influencers as $influencer ) : ?>
+								<?php if ( ! empty( $all_influencers_display ) ) : ?>
+									<?php foreach ( $all_influencers_display as $influencer ) : ?>
 										<label style="display:block; margin-bottom: 5px;">
-											<input type="checkbox" name="featured_influencers[]" value="<?php echo esc_attr( $influencer->ID ); ?>" <?php checked( in_array( $influencer->ID, $global_featured ) ); ?> />
+											<input type="checkbox" name="featured_influencers[]" value="<?php echo esc_attr( $influencer->ID ); ?>" <?php checked( in_array( (int) $influencer->ID, $global_featured, true ) ); ?> />
 											<?php echo esc_html( get_the_title( $influencer->ID ) ); ?>
 										</label>
 									<?php endforeach; ?>
