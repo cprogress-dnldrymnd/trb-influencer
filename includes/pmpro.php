@@ -537,7 +537,7 @@ add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 /**
  * Transforms the PMPro Checkout into a cleaner, Spotify-style layout.
  * Reorders DOM elements, securely hides the payment plan selector, builds a Spotify-style 
- * Summary block ABOVE the payment info, injects the user avatar, and populates dynamic bullet points based on the Level ID.
+ * Summary block ABOVE the payment info, injects the user avatar, and populates uniform bullet points.
  *
  * @return void
  */
@@ -560,19 +560,11 @@ function dd_spotify_style_pmpro_checkout() {
         }
     }
 
-    // 2. DEFINE YOUR DYNAMIC PLAN DETAILS HERE
-    // Map your PMPro Level IDs to their specific text and bullet points.
+    // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
+    // By only using 'default', these bullets will apply to ALL payment plans uniformly.
     $dynamic_plan_details = [
-        '8' => [ // Example: Level ID 8 (Essential)
-            'account_type' => '1 Essential Account',
-            'bullets' => [
-                'Full access to all essential tools and platform features.',
-                'From the starting date shown, you\'ll be charged for your updated subscription.',
-                'Cancel anytime online. <a href="/terms">Terms apply</a>.'
-            ]
-        ],
-        'default' => [ // Fallback if a level isn't mapped above
-            'account_type' => '1 Premium Account',
+        'default' => [ 
+            'account_type' => '1 Account',
             'bullets' => [
                 'Enjoy unlimited access to your selected plan features.',
                 'From the starting date shown, you\'ll be charged for your updated subscription.',
