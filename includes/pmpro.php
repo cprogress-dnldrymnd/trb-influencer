@@ -534,10 +534,9 @@ function dd_force_free_members_to_upgrade() {
 add_action( 'template_redirect', 'dd_force_free_members_to_upgrade' );
 
 
-
 /**
  * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
- * Reorders DOM elements, securely hides the payment plan selector, builds a influencer-style 
+ * Reorders DOM elements, securely hides the payment plan selector, builds an influencer-style 
  * Summary block ABOVE the payment info, injects the user avatar, and populates uniform bullet points.
  *
  * @return void
@@ -566,7 +565,6 @@ function dd_influencer_style_pmpro_checkout()
     $levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
 
     // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
-    // By only using 'default', these bullets will apply to ALL payment plans uniformly.
     $dynamic_plan_details = [
         'default' => [
             'account_type' => '1 Account',
@@ -816,7 +814,7 @@ function dd_influencer_style_pmpro_checkout()
             text-decoration: underline;
         }
 
-        /* Submit Button (influencer Green) */
+        /* Submit Button */
         #pmpro_btn-submit {
             background-color: #1ed760 !important;
             color: #000 !important;
@@ -850,172 +848,171 @@ function dd_influencer_style_pmpro_checkout()
             if (typeof jQuery === 'undefined') return;
             var $ = jQuery;
 
-            // Give the Payment Plans Add-on 100ms to inject its HTML before we parse it
-            setTimeout(function() {
+            var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
+            var dynamicPlanMeta = <?php echo wp_json_encode($dynamic_plan_details); ?>;
+            var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
+            var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
 
-                var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
-                var dynamicPlanMeta = <?php echo wp_json_encode($dynamic_plan_details); ?>;
-                var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
-                var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
-
-                // 1. Inject Header and Title Row
-                var headerHtml = '<div class="dd-influencer-header">' +
-                    '<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
+            // 1. Inject Header and Title Row immediately
+            var headerHtml = '<div class="dd-influencer-header">' +
+                '<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
                     '<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
                     '</div>' +
                     '<div class="dd-checkout-title-row">' +
                     '<h2>Checkout</h2>' +
                     '<a href="' + levelsUrl + '">Change plan</a>' +
                     '</div>';
-                $('#pmpro_form').prepend(headerHtml);
+            $('#pmpro_form').prepend(headerHtml);
 
-                // 2. Hide Native Elements Safely
-                var $paymentPlanWrapper = $('#pmpropp_payment_plans').closest('.pmpro_checkout-section');
-                if ($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
-                $paymentPlanWrapper.hide();
-                $paymentPlanWrapper.prev('h2, h3, hr').hide();
+            // Wait for the Payment Plans DOM to be fully injected via AJAX
+            var pollDOM = setInterval(function() {
+                var $radios = $('input[name="pmpropp_chosen_plan"]');
+                var $levelCost = $('#pmpro_level_cost');
 
-                // Hide arbitrary headings
-                $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
-                    var txt = $(this).text().trim();
-                    if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
-                        $(this).hide();
-                        if ($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
+                // Only proceed if PMPro has successfully rendered the pricing elements
+                if ($radios.length > 0 || $levelCost.length > 0) {
+                    clearInterval(pollDOM);
+
+                    // 2. Safely parse URL to enforce accurate plan selection
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var currentLevelId = urlParams.get('level') || '';
+                    var chosenPlanUrlValue = urlParams.get('pmpropp_chosen_plan');
+                    var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
+
+                    // Force PMPro to check the correct radio button based on the URL (prevents Annual defaulting bugs)
+                    if ($radios.length > 0) {
+                        if (chosenPlanUrlValue) {
+                            $radios.filter('[value="' + chosenPlanUrlValue + '"]').prop('checked', true);
+                        } else if (currentLevelId) {
+                            $radios.filter('[value="' + currentLevelId + '"]').prop('checked', true);
+                        }
                     }
-                });
 
-                // 3. Extract Level ID to load dynamic data
-                var urlParams = new URLSearchParams(window.location.search);
-                var currentLevelId = urlParams.get('level') || '';
-                var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
+                    // 3. Hide Native Elements
+                    var $paymentPlanWrapper = $('#pmpropp_payment_plans').closest('.pmpro_checkout-section');
+                    if ($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
+                    $paymentPlanWrapper.hide();
+                    $paymentPlanWrapper.prev('h2, h3, hr').hide();
 
-                // 4. Extract Pricing Data for influencer Card
-                var labelText = $('.pmpro_form_field-radio-item input:checked').siblings('label').text().trim() || $('#pmpro_level_cost').text().trim();
+                    $('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
+                        var txt = $(this).text().trim();
+                        if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
+                            $(this).hide();
+                            if ($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
+                        }
+                    });
 
-                // Use the database plan name as the base
-                var planName = realPlanName;
+                    // 4. Extract Pricing Data explicitly from the checked radio
+                    var labelText = $('input[name="pmpropp_chosen_plan"]:checked').siblings('label').text().trim() || $levelCost.text().trim();
 
-                // Determine if Annual and append to name if true
-                var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
-                if (isAnnual) planName = planName + " (Annual)";
+                    var planName = realPlanName;
+                    var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
+                    if (isAnnual) planName = planName + " (Annual)";
 
-                var nowPrice = "₱0.00";
-                var recurringPrice = "";
-                var cycle = "month";
-                var trialDays = 0;
+                    var nowPrice = "₱0.00";
+                    var recurringPrice = "";
+                    var cycle = "month";
+                    var trialDays = 0;
 
-                // Parse Initial Price
-                var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
-                if (nowMatch) nowPrice = nowMatch[1];
+                    var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
+                    if (nowMatch) nowPrice = nowMatch[1];
 
-                // Parse Recurring Price
-                var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
-                if (recMatch) {
-                    recurringPrice = recMatch[1];
-                    cycle = recMatch[2].toLowerCase();
-                }
+                    var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
+                    if (recMatch) {
+                        recurringPrice = recMatch[1];
+                        cycle = recMatch[2].toLowerCase();
+                    }
 
-                // Parse Trial
-                var trialMatch = labelText.match(/(\d+)\s+day trial/i);
-                if (trialMatch) trialDays = parseInt(trialMatch[1], 10);
+                    var trialMatch = labelText.match(/(\d+)\s+day trial/i);
+                    if (trialMatch) trialDays = parseInt(trialMatch[1], 10);
 
-                // Fallback if no trial is detected
-                if (!nowMatch && recMatch) {
-                    nowPrice = recurringPrice;
-                }
+                    if (!nowMatch && recMatch) {
+                        nowPrice = recurringPrice;
+                    }
 
-                // Calculate Future Date
-                var options = {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                };
-                var today = new Date();
-                var startDateStr = "Now";
+                    var options = { month: 'short', day: 'numeric', year: 'numeric' };
+                    var today = new Date();
+                    var startDateStr = "Now";
 
-                if (trialDays > 0) {
-                    var startDate = new Date();
-                    startDate.setDate(today.getDate() + trialDays);
-                    startDateStr = startDate.toLocaleDateString('en-US', options);
-                }
+                    if (trialDays > 0) {
+                        var startDate = new Date();
+                        startDate.setDate(today.getDate() + trialDays);
+                        startDateStr = startDate.toLocaleDateString('en-US', options);
+                    }
 
-                // Build Dynamic Bullets from Array
-                var bulletsHtml = '';
-                planDetails.bullets.forEach(function(bullet) {
-                    bulletsHtml += '<li>' + bullet + '</li>';
-                });
+                    var bulletsHtml = '';
+                    planDetails.bullets.forEach(function(bullet) {
+                        bulletsHtml += '<li>' + bullet + '</li>';
+                    });
 
-                // 5. Build influencer UI HTML
-                var influencerHtml = `
-                <div class="infl-summary-card">
-                    <div class="infl-header-row">
-                        <div class="infl-icon">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.207 15.385c-.187.31-.58.41-.892.223-2.446-1.494-5.525-1.83-9.155-1.002-.345.078-.686-.137-.765-.48-.078-.344.137-.686.48-.765 3.978-.906 7.377-.52 10.11 1.15.31.186.41.58.222.892zm.643-2.003c-.235.384-.716.51-1.1.275-2.78-1.706-7.05-2.124-10.37-1.16-.43.125-.875-.12-.998-.55-.125-.43.12-.876.55-.998 3.805-1.1 8.52-.635 11.644 1.284.384.234.51.715.275 1.1zm.68-2.074c-3.32-1.97-8.8-2.15-11.96-1.19-.505.154-1.03-.13-1.185-.635-.155-.506.13-1.032.636-1.186 3.65-1.11 9.71-.9 13.56 1.39.46.273.61 1.868.337 1.33-.274.46-.868.61-1.33.336z"></path></svg>
-                        </div>
-                        <div class="infl-plan-info">
-                            <h4>${planName}</h4>
-                            <span>${planDetails.account_type}</span>
-                        </div>
-                        <div class="infl-price-info">
-                            <h4>${recurringPrice} + tax</h4>
-                            <span>/${cycle}</span>
-                        </div>
-                    </div>
-                    <div class="infl-timeline">
-                        <div class="infl-timeline-item">
-                            <div class="infl-dot filled"></div>
-                            <div class="infl-content">
-                                <p><strong>Now:</strong> ${nowPrice}</p>
-                                <span>${realPlanName}</span>
+                    // 5. Build Summary HTML
+                    var influencerHtml = `
+                    <div class="infl-summary-card">
+                        <div class="infl-header-row">
+                            <div class="infl-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.207 15.385c-.187.31-.58.41-.892.223-2.446-1.494-5.525-1.83-9.155-1.002-.345.078-.686-.137-.765-.48-.078-.344.137-.686.48-.765 3.978-.906 7.377-.52 10.11 1.15.31.186.41.58.222.892zm.643-2.003c-.235.384-.716.51-1.1.275-2.78-1.706-7.05-2.124-10.37-1.16-.43.125-.875-.12-.998-.55-.125-.43.12-.876.55-.998 3.805-1.1 8.52-.635 11.644 1.284.384.234.51.715.275 1.1zm.68-2.074c-3.32-1.97-8.8-2.15-11.96-1.19-.505.154-1.03-.13-1.185-.635-.155-.506.13-1.032.636-1.186 3.65-1.11 9.71-.9 13.56 1.39.46.273.61 1.868.337 1.33-.274.46-.868.61-1.33.336z"></path></svg>
+                            </div>
+                            <div class="infl-plan-info">
+                                <h4>${planName}</h4>
+                                <span>${planDetails.account_type}</span>
+                            </div>
+                            <div class="infl-price-info">
+                                <h4>${recurringPrice} + tax</h4>
+                                <span>/${cycle}</span>
                             </div>
                         </div>
-                        <div class="infl-timeline-item">
-                            <div class="infl-dot hollow"></div>
-                            <div class="infl-content">
-                                <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} + tax/${cycle}</p>
-                                <span>${planName}</span>
+                        <div class="infl-timeline">
+                            <div class="infl-timeline-item">
+                                <div class="infl-dot filled"></div>
+                                <div class="infl-content">
+                                    <p><strong>Now:</strong> ${nowPrice}</p>
+                                    <span>${realPlanName}</span>
+                                </div>
+                            </div>
+                            <div class="infl-timeline-item">
+                                <div class="infl-dot hollow"></div>
+                                <div class="infl-content">
+                                    <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} + tax/${cycle}</p>
+                                    <span>${planName}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <ul class="infl-bullets">
-                        ${bulletsHtml}
-                    </ul>
-                </div>`;
+                        <ul class="infl-bullets">
+                            ${bulletsHtml}
+                        </ul>
+                    </div>`;
 
-                // 6. Inject Summary Block and Reorder DOM
-                var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
-                $summarySection.append(influencerHtml);
+                    // 6. Inject Summary Block
+                    var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
+                    $summarySection.append(influencerHtml);
 
-                // Place Summary ABOVE Payment Information
-                var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
-                if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
+                    var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
+                    if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
 
-                if ($paymentFields.length) {
-                    $paymentFields.before($summarySection);
-                } else {
-                    $('#pmpro_form').prepend($summarySection);
-                }
-
-                // 7. Move and Clean Up Account Information
-                var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
-                if (!$accInfo.length) $accInfo = $('#pmpro_account');
-                if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
-
-                if ($accInfo.length) {
-                    $accInfo.addClass('dd-clean-account-info');
-                    if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
-                        $summarySection.append($accInfo);
-                        $accInfo.show();
+                    if ($paymentFields.length) {
+                        $paymentFields.before($summarySection);
                     } else {
-                        $accInfo.hide();
+                        $('#pmpro_form').prepend($summarySection);
                     }
+
+                    // 7. Clean Up Account Information
+                    var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
+                    if (!$accInfo.length) $accInfo = $('#pmpro_account');
+                    if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
+
+                    if ($accInfo.length) {
+                        $accInfo.addClass('dd-clean-account-info');
+                        if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
+                            $summarySection.append($accInfo);
+                            $accInfo.show();
+                        } else {
+                            $accInfo.hide();
+                        }
+                    }
+
+                    if ($levelCost.length) $levelCost.hide();
                 }
-
-                // Hide original Membership Info container as the influencer Card replaces it
-                var $memInfo = $('#pmpro_level_cost').closest('.pmpro_checkout-section');
-                if ($memInfo.length) $memInfo.hide();
-
-            }, 150); // Small delay ensures Payment Plans Add-on has injected the labels
+            }, 100); // Poll every 100ms until DOM is ready
         });
     </script>
 <?php
