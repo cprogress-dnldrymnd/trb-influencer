@@ -188,6 +188,7 @@ function dd_influencer_style_mycred_checkout()
         #buycred-checkout-form {
             max-width: 600px;
             margin: 0 auto;
+            font-family: Inter;
             color: #000;
         }
 
@@ -231,7 +232,7 @@ function dd_influencer_style_mycred_checkout()
         }
 
         .dd-checkout-title-row a {
-            color: #6a6a6a;
+            color: var(--e-global-color-accent);
             text-decoration: underline;
             font-weight: 500;
             font-size: 14px;
