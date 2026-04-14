@@ -5,7 +5,7 @@
  * Description: An object-oriented, AJAX-powered myCRED points log featuring dynamic pagination and scoped styling.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
- * Version: 2.0.0
+ * Version: 2.1.0
  */
 
 // Prevent direct file access for security
@@ -16,11 +16,22 @@ if (! defined('ABSPATH')) {
 /**
  * Class Custom_MyCred_Frontend_Log
  *
- * Handles the registration, secure AJAX endpoints, styling, and rendering of the 
+ * Handles the registration, secure AJAX endpoints, styling, filtering, and rendering of the 
  * custom myCRED history shortcode using an advanced object-oriented architecture.
  */
 class Custom_MyCred_Frontend_Log
 {
+    /**
+     * @var array Maps the UI filter labels to the exact myCRED database 'ref' column values.
+     * IMPORTANT: Adjust the array keys below to match your exact myCRED reference strings.
+     */
+    private $filter_refs = array(
+        ''                    => 'All Transactions',
+        'outreach_submission' => 'Outreach Submission',
+        'purchase_content'    => 'Purchase Content',
+        'monthly_allowance'   => 'Monthly Allowance',
+        'credits_purchase'    => 'Credits Purchase',
+    );
 
     /**
      * Initializes the class, hooking the shortcode and AJAX handlers into WordPress.
@@ -46,7 +57,7 @@ class Custom_MyCred_Frontend_Log
 
     /**
      * Processes the incoming AJAX request, validates security nonces, 
-     * and returns the JSON payload containing the updated DOM nodes.
+     * applies any active filters, and returns the JSON payload containing the updated DOM nodes.
      *
      * @return void Outputs JSON and terminates execution.
      */
@@ -56,18 +67,19 @@ class Custom_MyCred_Frontend_Log
         check_ajax_referer('mycred_log_ajax_nonce', 'security');
 
         // Sanitize and strictly type cast incoming POST payload
-        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
-        $limit   = isset($_POST['limit']) ? absint($_POST['limit']) : 20;
-        $page    = isset($_POST['page']) ? absint($_POST['page']) : 1;
-        $ctype   = isset($_POST['ctype']) ? sanitize_key($_POST['ctype']) : 'mycred_default';
+        $user_id    = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+        $limit      = isset($_POST['limit']) ? absint($_POST['limit']) : 20;
+        $page       = isset($_POST['page']) ? absint($_POST['page']) : 1;
+        $ctype      = isset($_POST['ctype']) ? sanitize_key($_POST['ctype']) : 'mycred_default';
+        $filter_ref = isset($_POST['filter_ref']) ? sanitize_text_field($_POST['filter_ref']) : '';
 
         if (! $user_id) {
             wp_send_json_error('Authentication required.');
         }
 
-        // Generate the modular HTML components
-        $rows_html  = $this->get_rows_html($user_id, $limit, $page, $ctype);
-        $pagination = $this->get_pagination_html($user_id, $limit, $page, $ctype);
+        // Generate the modular HTML components passing the filter state
+        $rows_html  = $this->get_rows_html($user_id, $limit, $page, $ctype, $filter_ref);
+        $pagination = $this->get_pagination_html($user_id, $limit, $page, $ctype, $filter_ref);
 
         // Transmit successful JSON response back to the client browser
         wp_send_json_success(array(
@@ -95,13 +107,15 @@ class Custom_MyCred_Frontend_Log
     }
 
     /**
-     * Queries the database to determine the absolute total of log entries for pagination math.
+     * Queries the database to determine the absolute total of log entries for pagination math,
+     * taking active reference filters into account.
      *
-     * @param int    $user_id The ID of the user.
-     * @param string $ctype   The point type key.
-     * @return int            Total number of rows in the log for this user.
+     * @param int    $user_id    The ID of the user.
+     * @param string $ctype      The point type key.
+     * @param string $filter_ref The reference string to filter by (optional).
+     * @return int               Total number of rows in the log for this user matching criteria.
      */
-    private function get_total_entries($user_id, $ctype)
+    private function get_total_entries($user_id, $ctype, $filter_ref = '')
     {
         global $wpdb;
         $mycred = mycred($ctype);
@@ -109,12 +123,18 @@ class Custom_MyCred_Frontend_Log
         // Dynamically fetch the table name based on myCRED settings, fallback to standard
         $table = isset($mycred->log_table) ? $mycred->log_table : $wpdb->prefix . 'mycred_log';
 
+        // Prepare base query arguments
+        $query_args = array($user_id, $ctype);
+        $sql = "SELECT COUNT(id) FROM {$table} WHERE user_id = %d AND ctype = %s";
+
+        // Append conditional WHERE clause if a specific transaction filter is applied
+        if (! empty($filter_ref) && array_key_exists($filter_ref, $this->filter_refs)) {
+            $sql .= " AND ref = %s";
+            $query_args[] = $filter_ref;
+        }
+
         // Prepare and execute a direct SQL count for performance
-        $query = $wpdb->prepare(
-            "SELECT COUNT(id) FROM {$table} WHERE user_id = %d AND ctype = %s",
-            $user_id,
-            $ctype
-        );
+        $query = $wpdb->prepare($sql, ...$query_args);
 
         return (int) $wpdb->get_var($query);
     }
@@ -122,15 +142,16 @@ class Custom_MyCred_Frontend_Log
     /**
      * Generates the dynamic HTML for the pagination controls.
      *
-     * @param int    $user_id The ID of the user.
-     * @param int    $limit   The maximum items per page.
-     * @param int    $page    The current page number.
-     * @param string $ctype   The point type key.
-     * @return string         HTML markup for the pagination footer.
+     * @param int    $user_id    The ID of the user.
+     * @param int    $limit      The maximum items per page.
+     * @param int    $page       The current page number.
+     * @param string $ctype      The point type key.
+     * @param string $filter_ref The active reference filter (optional).
+     * @return string            HTML markup for the pagination footer.
      */
-    private function get_pagination_html($user_id, $limit, $page, $ctype)
+    private function get_pagination_html($user_id, $limit, $page, $ctype, $filter_ref = '')
     {
-        $total_entries = $this->get_total_entries($user_id, $ctype);
+        $total_entries = $this->get_total_entries($user_id, $ctype, $filter_ref);
         $total_pages   = ceil($total_entries / $limit);
 
         if ($total_pages <= 1) {
@@ -155,15 +176,16 @@ class Custom_MyCred_Frontend_Log
     }
 
     /**
-     * Generates the tabular data rows for a specific page of results.
+     * Generates the tabular data rows for a specific page of results applying any requested filters.
      *
-     * @param int    $user_id The ID of the user.
-     * @param int    $limit   The maximum items per page.
-     * @param int    $page    The specific offset page to query.
-     * @param string $ctype   The point type key.
-     * @return string         HTML markup containing the `<tr>` elements.
+     * @param int    $user_id    The ID of the user.
+     * @param int    $limit      The maximum items per page.
+     * @param int    $page       The specific offset page to query.
+     * @param string $ctype      The point type key.
+     * @param string $filter_ref The reference string to filter by (optional).
+     * @return string            HTML markup containing the `<tr>` elements.
      */
-    private function get_rows_html($user_id, $limit, $page, $ctype)
+    private function get_rows_html($user_id, $limit, $page, $ctype, $filter_ref = '')
     {
         $mycred = mycred($ctype);
 
@@ -174,10 +196,15 @@ class Custom_MyCred_Frontend_Log
             'ctype'   => $ctype
         );
 
+        // Inject the reference filter into the myCRED query parameters
+        if (! empty($filter_ref) && array_key_exists($filter_ref, $this->filter_refs)) {
+            $query_args['ref'] = $filter_ref;
+        }
+
         $log = new myCRED_Query_Log($query_args);
 
         if (! $log->have_entries()) {
-            return '<tr><td colspan="3" class="mycred-empty-log">No points history found for this account.</td></tr>';
+            return '<tr><td colspan="3" class="mycred-empty-log">No points history found matching your criteria.</td></tr>';
         }
 
         ob_start();
@@ -203,7 +230,30 @@ class Custom_MyCred_Frontend_Log
     }
 
     /**
-     * Outputs scoped CSS specifically for the myCRED custom table and pagination.
+     * Generates the HTML select dropdown for filtering transactions by reference type.
+     *
+     * @return string HTML markup for the filter dropdown component.
+     */
+    private function get_filter_dropdown_html()
+    {
+        ob_start();
+        ?>
+        <div class="mycred-filter-container">
+            <label for="mycred-log-filter">Filter by Transaction Type:</label>
+            <select id="mycred-log-filter" class="mycred-log-filter">
+                <?php foreach ($this->filter_refs as $ref_key => $ref_label) : ?>
+                    <option value="<?php echo esc_attr($ref_key); ?>">
+                        <?php echo esc_html($ref_label); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Outputs scoped CSS specifically for the myCRED custom table, filter, and pagination.
      *
      * @return void
      */
@@ -215,9 +265,41 @@ class Custom_MyCred_Frontend_Log
                 position: relative;
             }
 
+            /* Filter Styles */
+            .mycred-filter-container {
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .mycred-filter-container label {
+                font-weight: 600;
+                color: #334155;
+                font-size: 0.9rem;
+            }
+
+            .mycred-log-filter {
+                padding: 8px 12px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                background-color: #ffffff;
+                color: #334155;
+                font-size: 0.95rem;
+                min-width: 220px;
+                cursor: pointer;
+            }
+
+            .mycred-log-filter:focus {
+                outline: none;
+                border-color: #94a3b8;
+                box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
+            }
+
+            /* Table Styles */
             .mycred-table-responsive-wrapper {
                 overflow-x: auto;
-                margin: 20px 0;
+                margin: 0 0 20px 0;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                 border-radius: 8px;
             }
@@ -311,7 +393,8 @@ class Custom_MyCred_Frontend_Log
     }
 
     /**
-     * Outputs the vanilla JavaScript module required to process the AJAX fetch requests.
+     * Outputs the vanilla JavaScript module required to process the AJAX fetch requests
+     * for both pagination clicks and filter selection changes.
      *
      * @return void
      */
@@ -325,6 +408,59 @@ class Custom_MyCred_Frontend_Log
                 const wrappers = document.querySelectorAll('.mycred-ajax-wrapper');
 
                 wrappers.forEach(wrapper => {
+                    
+                    /**
+                     * Centralized function to execute the AJAX POST request.
+                     * * @param {number} targetPage The page number to retrieve.
+                     */
+                    const fetchLogData = (targetPage) => {
+                        const userId = wrapper.getAttribute('data-user-id');
+                        const limit = wrapper.getAttribute('data-limit');
+                        const ctype = wrapper.getAttribute('data-ctype');
+                        
+                        // Retrieve the currently active filter, if the element exists
+                        const filterDropdown = wrapper.querySelector('.mycred-log-filter');
+                        const filterRef = filterDropdown ? filterDropdown.value : '';
+
+                        // Trigger visual loading state
+                        wrapper.classList.add('is-loading');
+
+                        // Construct payload URLSearchParams for native fetch API
+                        const payload = new URLSearchParams();
+                        payload.append('action', 'mycred_load_log_page');
+                        payload.append('security', '<?php echo esc_js($nonce); ?>');
+                        payload.append('page', targetPage);
+                        payload.append('user_id', userId);
+                        payload.append('limit', limit);
+                        payload.append('ctype', ctype);
+                        payload.append('filter_ref', filterRef);
+
+                        // Execute asynchronous POST request
+                        fetch('<?php echo esc_url($ajax_url); ?>', {
+                                method: 'POST',
+                                body: payload,
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(res => {
+                                if (res.success) {
+                                    // Mutate DOM with fresh data
+                                    wrapper.querySelector('tbody').innerHTML = res.data.rows;
+                                    wrapper.querySelector('.mycred-pagination-container').innerHTML = res.data.pagination;
+                                } else {
+                                    console.error('myCRED AJAX Error:', res.data);
+                                }
+                            })
+                            .catch(error => console.error('Fetch Error:', error))
+                            .finally(() => {
+                                // Terminate loading state
+                                wrapper.classList.remove('is-loading');
+                            });
+                    };
+
+                    // Event Listener: Pagination Clicks
                     wrapper.addEventListener('click', function(e) {
                         if (e.target.classList.contains('mycred-btn-paginate')) {
                             e.preventDefault();
@@ -333,48 +469,18 @@ class Custom_MyCred_Frontend_Log
                             // Prevent execution if button is naturally disabled
                             if (btn.hasAttribute('disabled')) return;
 
-                            const targetPage = btn.getAttribute('data-target-page');
-                            const userId = wrapper.getAttribute('data-user-id');
-                            const limit = wrapper.getAttribute('data-limit');
-                            const ctype = wrapper.getAttribute('data-ctype');
-
-                            // Trigger visual loading state
-                            wrapper.classList.add('is-loading');
-
-                            // Construct payload URLSearchParams for native fetch API
-                            const payload = new URLSearchParams();
-                            payload.append('action', 'mycred_load_log_page');
-                            payload.append('security', '<?php echo esc_js($nonce); ?>');
-                            payload.append('page', targetPage);
-                            payload.append('user_id', userId);
-                            payload.append('limit', limit);
-                            payload.append('ctype', ctype);
-
-                            // Execute asynchronous POST request
-                            fetch('<?php echo esc_url($ajax_url); ?>', {
-                                    method: 'POST',
-                                    body: payload,
-                                    headers: {
-                                        'Content-Type': 'application/x-www-form-urlencoded'
-                                    }
-                                })
-                                .then(response => response.json())
-                                .then(res => {
-                                    if (res.success) {
-                                        // Mutate DOM with fresh data
-                                        wrapper.querySelector('tbody').innerHTML = res.data.rows;
-                                        wrapper.querySelector('.mycred-pagination-container').innerHTML = res.data.pagination;
-                                    } else {
-                                        console.error('myCRED AJAX Error:', res.data);
-                                    }
-                                })
-                                .catch(error => console.error('Fetch Error:', error))
-                                .finally(() => {
-                                    // Terminate loading state
-                                    wrapper.classList.remove('is-loading');
-                                });
+                            fetchLogData(btn.getAttribute('data-target-page'));
                         }
                     });
+
+                    // Event Listener: Dropdown Filter Change
+                    const filterSelectElement = wrapper.querySelector('.mycred-log-filter');
+                    if (filterSelectElement) {
+                        filterSelectElement.addEventListener('change', function() {
+                            // Automatically revert to Page 1 when a new filter is applied
+                            fetchLogData(1);
+                        });
+                    }
                 });
             });
         </script>
@@ -382,7 +488,7 @@ class Custom_MyCred_Frontend_Log
     }
 
     /**
-     * Assembles the root layout HTML, including styles, data attributes for JS, and the initial table rows.
+     * Assembles the root layout HTML, including styles, filters, data attributes for JS, and the initial table rows.
      *
      * @param int    $user_id The ID of the user.
      * @param int    $limit   The limit of rows per page.
@@ -411,6 +517,9 @@ class Custom_MyCred_Frontend_Log
     ?>
 
         <div class="mycred-ajax-wrapper" data-user-id="<?php echo esc_attr($user_id); ?>" data-limit="<?php echo esc_attr($limit); ?>" data-ctype="<?php echo esc_attr($ctype); ?>">
+            
+            <?php echo $this->get_filter_dropdown_html(); // Inject Filter UI Dropdown ?>
+
             <div class="mycred-table-responsive-wrapper">
                 <table class="mycred-custom-log-table">
                     <thead>
@@ -421,15 +530,13 @@ class Custom_MyCred_Frontend_Log
                         </tr>
                     </thead>
                     <tbody>
-                        <?php echo $this->get_rows_html($user_id, $limit, 1, $ctype); // Load Page 1 initially 
-                        ?>
+                        <?php echo $this->get_rows_html($user_id, $limit, 1, $ctype); // Load Page 1 initially ?>
                     </tbody>
                 </table>
             </div>
 
             <div class="mycred-pagination-container">
-                <?php echo $this->get_pagination_html($user_id, $limit, 1, $ctype); // Load Pagination for Page 1 
-                ?>
+                <?php echo $this->get_pagination_html($user_id, $limit, 1, $ctype); // Load Pagination for Page 1 ?>
             </div>
         </div>
 
