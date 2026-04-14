@@ -2,8 +2,8 @@
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode with AJAX user search.
- * Version:     1.6.1
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode with manual AJAX trigger.
+ * Version:     1.7.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -49,19 +49,17 @@ class DD_PMPro_Rewards_Manager
         add_action('pmpro_after_checkout', array($this, 'award_registration_points'), 10, 2);
         add_action('dd_pmpro_daily_rewards_check', array($this, 'process_monthly_points'));
 
-        // Point consumption tracking (Prioritizes spending allowance before permanent points)
-        add_action('mycred_update_user_balance', array($this, 'track_allowance_spending'), 10, 4);
+        // Point consumption tracking natively hooked to the WP Meta API
+        add_action('update_user_meta', array($this, 'track_meta_balance_changes'), 10, 4);
 
         // Theme-compatible CRON scheduling hooks
         add_filter('cron_schedules', array($this, 'register_custom_cron_intervals'));
-        add_action('init', array($this, 'ensure_cron_is_scheduled'));
         add_action('switch_theme', array($this, 'unschedule_cron'));
-        
-        // Reschedule immediately when options are saved to apply test mode instantly
-        add_action('update_option_' . $this->general_option, array($this, 'handle_settings_update'), 10, 2);
+        add_action('update_option_' . $this->general_option, array($this, 'ensure_cron_is_scheduled'), 10, 0);
 
-        // AJAX Handler for User Search
+        // AJAX Handlers
         add_action('wp_ajax_dd_search_pmpro_users', array($this, 'ajax_search_users'));
+        add_action('wp_ajax_dd_force_cron_run', array($this, 'ajax_force_cron_run'));
     }
 
     /**
@@ -80,7 +78,7 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * Ensures the CRON event is dynamically scheduled based on Test Mode status.
-     * Transitions between 'daily' and 'dd_one_minute' schedules safely.
+     * Triggered safely only upon settings update to prevent WP-Cron race conditions.
      * @return void
      */
     public function ensure_cron_is_scheduled()
@@ -91,7 +89,6 @@ class DD_PMPro_Rewards_Manager
 
         $current_schedule = wp_get_schedule('dd_pmpro_daily_rewards_check');
 
-        // If the schedule doesn't match the required state, clear and recreate it
         if ($current_schedule !== $target_schedule) {
             wp_clear_scheduled_hook('dd_pmpro_daily_rewards_check');
             wp_schedule_event(time(), $target_schedule, 'dd_pmpro_daily_rewards_check');
@@ -99,20 +96,7 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * Hook listener for when settings are saved.
-     * Forces a re-evaluation of the CRON schedule so test mode activates immediately.
-     * @param mixed $old_value The old option value.
-     * @param mixed $value The new option value.
-     * @return void
-     */
-    public function handle_settings_update($old_value, $value)
-    {
-        $this->ensure_cron_is_scheduled();
-    }
-
-    /**
      * Unschedules the daily CRON event cleanly to prevent orphan tasks.
-     * Hooked to 'switch_theme' to remove the event if the active theme changes.
      * @return void
      */
     public function unschedule_cron()
@@ -144,7 +128,6 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * Enqueues necessary admin scripts, styles, and localizes AJAX parameters for the UI.
-     * Loads jQuery UI Autocomplete for the user search functionality.
      * @param string $hook The current admin page hook.
      * @return void
      */
@@ -155,10 +138,9 @@ class DD_PMPro_Rewards_Manager
         wp_enqueue_script('jquery-ui-sortable');
         wp_enqueue_script('jquery-ui-autocomplete');
         
-        // Pass AJAX URL and Security Nonce to JS
         wp_localize_script('jquery-ui-autocomplete', 'dd_pmpro_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => wp_create_nonce('dd_user_search_nonce')
+            'nonce'    => wp_create_nonce('dd_admin_actions_nonce')
         ));
 
         wp_enqueue_style('dd-pmpro-admin-css', false);
@@ -175,17 +157,28 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
+     * Handles the AJAX request to force process the monthly point logic.
+     * @return void
+     */
+    public function ajax_force_cron_run()
+    {
+        check_ajax_referer('dd_admin_actions_nonce', 'security');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $this->process_monthly_points();
+        wp_send_json_success('Process triggered successfully. Check your server/debug.log for allocation details.');
+    }
+
+    /**
      * Handles the AJAX request to search WordPress users by login, email, or display name.
-     * Returns a JSON payload compatible with jQuery UI Autocomplete.
      * @return void
      */
     public function ajax_search_users()
     {
-        check_ajax_referer('dd_user_search_nonce', 'security');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized');
-        }
+        check_ajax_referer('dd_admin_actions_nonce', 'security');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
 
         $term = isset($_GET['term']) ? sanitize_text_field($_GET['term']) : '';
         
@@ -209,39 +202,49 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * LOGIC: Track Allowance Spending
-     * Intercepts myCred balance updates. If points are deducted (spent), it subtracts them 
-     * from the user's active monthly allowance tracker first. This ensures expiring 
-     * allowance points are consumed before permanent 'buycred' points.
+     * LOGIC: Database-Level Spending Interception
+     * Directly intercepts when myCred updates the user meta balance. Evaluates the differential. 
+     * If negative (points spent), it deducts from the allowance tracker first.
      *
-     * @param int    $user_id         The ID of the user.
-     * @param mixed  $current_balance The balance before the update.
-     * @param float  $amount          The amount being added or subtracted.
-     * @param string $type            The point type key.
+     * @param int    $meta_id     The ID of the meta row.
+     * @param int    $object_id   The user ID.
+     * @param string $meta_key    The meta key being updated.
+     * @param mixed  $_meta_value The new value being saved.
      * @return void
      */
-    public function track_allowance_spending($user_id, $current_balance, $amount, $type)
+    public function track_meta_balance_changes($meta_id, $object_id, $meta_key, $_meta_value)
     {
-        if ($type !== $this->point_type) return;
+        if ($meta_key !== $this->point_type) return;
 
-        // We only care about point deductions (spending)
+        $user_id     = $object_id;
+        $new_balance = floatval($_meta_value);
+        
+        // Fetch the existing balance BEFORE it gets overwritten
+        $old_balance = get_user_meta($user_id, $this->point_type, true);
+        $old_balance = !empty($old_balance) ? floatval($old_balance) : 0;
+
+        $amount = $new_balance - $old_balance;
+
+        // If the differential is negative, the user is spending points
         if ($amount < 0) {
             $allowance_balance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
             $allowance_balance = ! empty($allowance_balance) ? floatval($allowance_balance) : 0;
 
             if ($allowance_balance > 0) {
-                // Deduct from the allowance tracker first, clamping at 0
+                // Deduct spent points from allowance tracker, clamping at 0
                 $new_allowance = max(0, $allowance_balance - abs($amount));
+                
+                // Save updated allowance tracker
+                // (Note: Since we are updating a different meta key, this won't trigger an infinite loop)
                 update_user_meta($user_id, '_dd_current_allowance_balance', $new_allowance);
+                error_log("PMPro Rewards: User ID {$user_id} spent " . abs($amount) . " points. Allowance tracker updated from {$allowance_balance} to {$new_allowance}.");
             }
         }
     }
 
     /**
      * LOGIC: Award Registration Points & Anti-Farming Protocol
-     * Triggers post-checkout to allocate initial points. Utilizes a strict user meta flag 
-     * to prevent duplicate points if a user hops between plans. It also resets the monthly 
-     * timer to prevent monthly double-dipping during the switch.
+     * Triggers post-checkout to allocate initial points and instantiate the allowance tracker.
      *
      * @param int    $user_id The ID of the user checking out.
      * @param object $morder  The membership order object.
@@ -251,17 +254,14 @@ class DD_PMPro_Rewards_Manager
     {
         if (! function_exists('mycred_add')) return;
 
-        // Reset the monthly timer immediately on any plan switch/checkout to prevent monthly double-dipping
         update_user_meta($user_id, '_dd_last_monthly_point_date', current_time('timestamp'));
 
-        // Anti-Farming Protocol: Check if this user has EVER received registration points
         $already_awarded = get_user_meta($user_id, '_dd_registration_points_awarded', true);
         if ($already_awarded) {
-            error_log("PMPro Rewards: Blocked duplicate registration points for User ID {$user_id} (Anti-Farming active).");
+            error_log("PMPro Rewards: Blocked duplicate registration points for User ID {$user_id}.");
             return;
         }
 
-        // 1. Get Level ID and initialize Level Name
         $level_id = 0;
         $level_name = '';
 
@@ -269,7 +269,6 @@ class DD_PMPro_Rewards_Manager
             $level_id = intval($morder->membership_id);
         }
 
-        // Fallback if order object is missing
         if (! $level_id && function_exists('pmpro_getMembershipLevelForUser')) {
             $level_obj = pmpro_getMembershipLevelForUser($user_id);
             if ($level_obj) {
@@ -280,7 +279,6 @@ class DD_PMPro_Rewards_Manager
 
         if (! $level_id) return;
 
-        // 2. Fetch Level Name if not already captured
         if (empty($level_name) && function_exists('pmpro_getLevel')) {
             $level = pmpro_getLevel($level_id);
             if ($level) {
@@ -288,20 +286,16 @@ class DD_PMPro_Rewards_Manager
             }
         }
 
-        if (empty($level_name)) {
-            $level_name = 'Membership Level ' . $level_id;
-        }
-
+        $level_name = empty($level_name) ? 'Membership Level ' . $level_id : $level_name;
         $config = $this->get_rewards_config();
 
         foreach ($config as $row) {
             if (isset($row['level_id']) && intval($row['level_id']) == $level_id) {
 
-                $reg_points = intval($row['reg_points']);
+                $reg_points     = intval($row['reg_points']);
+                $monthly_points = intval($row['monthly_points']);
 
                 if ($reg_points > 0) {
-                    error_log("PMPro Rewards: Awarding {$reg_points} ({$this->point_type}) to User ID {$user_id} for joining {$level_name}");
-
                     mycred_add(
                         'pmpro_registration',
                         $user_id,
@@ -311,10 +305,14 @@ class DD_PMPro_Rewards_Manager
                         '',
                         $this->point_type
                     );
-
-                    // Lock the account from receiving future registration points across any plan
                     update_user_meta($user_id, '_dd_registration_points_awarded', 1);
                 }
+
+                // Initialize the allowance tracking bucket so points can be properly deducted immediately
+                if ($monthly_points > 0) {
+                    update_user_meta($user_id, '_dd_current_allowance_balance', $monthly_points);
+                }
+
                 break;
             }
         }
@@ -322,9 +320,7 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * LOGIC: Process Monthly Recurring Points (Allowance Top-Up)
-     * Executed via WP-Cron. Evaluates the user's unspent allowance and ONLY tops up 
-     * the exact difference required to reach their monthly cap. Integrates dynamic Test Mode 
-     * threshold bypassing for isolated user debugging.
+     * Evaluates the user's unspent allowance and ONLY tops up the exact difference required.
      * @return void
      */
     public function process_monthly_points()
@@ -337,7 +333,7 @@ class DD_PMPro_Rewards_Manager
         $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
         
         $now              = current_time('timestamp');
-        $base_seconds     = 2592000; // 30 days mathematical equivalent
+        $base_seconds     = 2592000; // 30 days
 
         foreach ($config as $row) {
             $level_id = intval($row['level_id']);
@@ -350,33 +346,31 @@ class DD_PMPro_Rewards_Manager
                 if (! empty($active_users)) {
                     foreach ($active_users as $user_id) {
                         
-                        // FIX: Ensure absolute integer parity for string-based DB returns
                         $current_user_id = intval($user_id);
                         $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
 
-                        // If user has no history, set their timer and grant them their first full allowance
                         if (empty($last_awarded)) {
                             update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
+                            update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
                             continue;
                         }
 
-                        // Determine strict threshold: Default to 30 days, unless Test Mode is active FOR THIS USER (60 seconds)
                         $required_threshold = $base_seconds;
                         if ($is_test_mode && $current_user_id === $test_user_id) {
-                            $required_threshold = 60;
+                            $required_threshold = 60; // 60 seconds
                         }
 
                         if (($now - $last_awarded) >= $required_threshold) {
                             
                             $current_allowance = get_user_meta($current_user_id, '_dd_current_allowance_balance', true);
-                            $current_allowance = ! empty($current_allowance) ? floatval($current_allowance) : 0;
+                            $current_allowance = !empty($current_allowance) ? floatval($current_allowance) : 0;
 
-                            // Calculate the required top-up to reach the monthly allowance cap
                             $points_to_add = max(0, $monthly_points - $current_allowance);
 
+                            $log_context = ($is_test_mode && $current_user_id === $test_user_id) ? '[TEST MODE ACTIVE]' : '';
+
                             if ($points_to_add > 0) {
-                                $log_context = ($is_test_mode && $current_user_id === $test_user_id) ? '[TEST MODE]' : '';
-                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$current_user_id} to reach allowance cap of {$monthly_points}.");
+                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$current_user_id} (Allowance Target: {$monthly_points}, Remaining: {$current_allowance}).");
 
                                 mycred_add(
                                     'pmpro_monthly_recurring',
@@ -388,10 +382,10 @@ class DD_PMPro_Rewards_Manager
                                     $this->point_type
                                 );
                             } else {
-                                error_log("PMPro Rewards: User ID {$current_user_id} is already at or above their allowance cap. Skipping top-up.");
+                                error_log("PMPro Rewards {$log_context}: User ID {$current_user_id} is at allowance cap. Skipping top-up.");
                             }
 
-                            // Always reset the allowance tracker to the full limit for the new cycle
+                            // Reset metrics for the next cycle
                             update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
                             update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
                         }
@@ -404,7 +398,6 @@ class DD_PMPro_Rewards_Manager
     /**
      * UI: Render Admin Page
      * Compiles the HTML for the backend settings page utilizing a tabbed interface.
-     * Includes dedicated fields for enabling Test Mode and AJAX User searching.
      * @return void
      */
     public function render_admin_page()
@@ -417,7 +410,6 @@ class DD_PMPro_Rewards_Manager
         $test_user_id = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : '';
         $current_cron = wp_get_schedule('dd_pmpro_daily_rewards_check');
 
-        // Pre-fetch the display name of the currently saved test user for the UI
         $test_user_display = '';
         if ($test_user_id) {
             $u_data = get_userdata($test_user_id);
@@ -479,7 +471,7 @@ class DD_PMPro_Rewards_Manager
                     <hr style="margin: 30px 0;">
 
                     <h3>Sandbox / Test Mode</h3>
-                    <p class="description">Activate test mode to accelerate the CRON task to run every minute and bypass the 30-day requirement (reducing it to 60 seconds) for a specific user. This allows you to test point spending and allowance top-ups rapidly without affecting live users.</p>
+                    <p class="description">Activate test mode to lower the mathematical requirement for the specific user down to 60 seconds instead of 30 days. You can use the instant trigger button below to bypass WP-Cron waiting completely.</p>
                     <table class="form-table">
                         <tr>
                             <th>Enable Test Mode</th>
@@ -492,7 +484,15 @@ class DD_PMPro_Rewards_Manager
                             <td>
                                 <input type="text" id="dd_user_search" class="regular-text" placeholder="Search by name, login, or email..." value="<?php echo $test_user_display; ?>">
                                 <input type="hidden" name="<?php echo $this->general_option; ?>[test_user_id]" id="dd_test_user_id" value="<?php echo esc_attr($test_user_id); ?>">
-                                <p class="description">Start typing to search. The actual User ID will be saved securely in the background.</p>
+                                <p class="description">Select the account to isolate during testing.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Manual Execution</th>
+                            <td>
+                                <button type="button" class="button button-primary" id="dd-force-cron">Force Run Allowance CRON</button>
+                                <span id="dd-cron-spinner" class="spinner"></span>
+                                <p class="description">Clicking this will instantly evaluate all users and process top-ups. (Ignores WP-Cron queue schedule).</p>
                             </td>
                         </tr>
                     </table>
@@ -504,32 +504,10 @@ class DD_PMPro_Rewards_Manager
         </div>
 
         <style>
-            .dd-repeater-row {
-                background: #fff;
-                border: 1px solid #ccd0d4;
-                margin-bottom: 10px;
-                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-            }
-            .dd-row-header {
-                padding: 10px 15px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #ccd0d4;
-                cursor: move;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .dd-row-header h3 {
-                margin: 0;
-                font-size: 14px;
-                font-weight: 600;
-            }
-            .dd-row-body {
-                padding: 15px;
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 20px;
-            }
+            .dd-repeater-row { background: #fff; border: 1px solid #ccd0d4; margin-bottom: 10px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04); }
+            .dd-row-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #ccd0d4; cursor: move; display: flex; justify-content: space-between; align-items: center; }
+            .dd-row-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+            .dd-row-body { padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
             .dd-row-actions { display: flex; gap: 10px; }
             .dd-remove-row { color: #b32d2e; text-decoration: none; font-size: 12px; }
             .dd-toggle-row { cursor: pointer; }
@@ -537,32 +515,13 @@ class DD_PMPro_Rewards_Manager
             .dd-tab-content { margin-top: 20px; }
             .dd-collapsed .dd-row-body { display: none; }
             
-            /* Autocomplete Styling Fixes for WP Admin */
-            ul.ui-autocomplete {
-                background: #fff;
-                border: 1px solid #8c8f94;
-                box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-                max-width: 400px;
-                max-height: 250px;
-                overflow-y: auto;
-                z-index: 99999 !important;
-            }
-            ul.ui-autocomplete .ui-menu-item {
-                padding: 8px 12px;
-                cursor: pointer;
-                font-size: 13px;
-                border-bottom: 1px solid #f0f0f1;
-            }
-            ul.ui-autocomplete .ui-menu-item:hover,
-            ul.ui-autocomplete .ui-state-active {
-                background: #f0f6fc;
-                color: #2271b1;
-            }
+            ul.ui-autocomplete { background: #fff; border: 1px solid #8c8f94; box-shadow: 0 3px 6px rgba(0,0,0,0.1); max-width: 400px; max-height: 250px; overflow-y: auto; z-index: 99999 !important; }
+            ul.ui-autocomplete .ui-menu-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f0f1; }
+            ul.ui-autocomplete .ui-menu-item:hover, ul.ui-autocomplete .ui-state-active { background: #f0f6fc; color: #2271b1; }
         </style>
 
         <script>
             jQuery(document).ready(function($) {
-                // Tab Navigation
                 $('.nav-tab').click(function(e) {
                     e.preventDefault();
                     $('.nav-tab').removeClass('nav-tab-active');
@@ -571,15 +530,9 @@ class DD_PMPro_Rewards_Manager
                     $($(this).attr('href')).show();
                 });
 
-                // Repeater Functionality
-                $('#dd-repeater-container').sortable({
-                    handle: '.dd-row-header',
-                    update: function() { reindex_rows(); }
-                });
-
+                $('#dd-repeater-container').sortable({ handle: '.dd-row-header', update: function() { reindex_rows(); } });
                 $('#dd-add-row').click(function() {
-                    var template = $('#dd-row-template').html();
-                    var $newRow = $(template);
+                    var $newRow = $($('#dd-row-template').html());
                     $newRow.find('select, input').removeAttr('disabled').prop('disabled', false);
                     $('#dd-repeater-container').append($newRow);
                     reindex_rows();
@@ -587,10 +540,7 @@ class DD_PMPro_Rewards_Manager
 
                 $(document).on('click', '.dd-remove-row', function(e) {
                     e.preventDefault();
-                    if (confirm('Remove this rule?')) {
-                        $(this).closest('.dd-repeater-row').remove();
-                        reindex_rows();
-                    }
+                    if (confirm('Remove this rule?')) { $(this).closest('.dd-repeater-row').remove(); reindex_rows(); }
                 });
 
                 $(document).on('click', '.dd-toggle-row', function() {
@@ -601,11 +551,9 @@ class DD_PMPro_Rewards_Manager
 
                 $(document).on('click', '.dd-duplicate-row', function(e) {
                     e.preventDefault();
-                    var $row = $(this).closest('.dd-repeater-row');
-                    var $clone = $row.clone();
+                    var $row = $(this).closest('.dd-repeater-row'), $clone = $row.clone();
                     $clone.find('select, input').removeAttr('disabled').prop('disabled', false);
-                    $row.after($clone);
-                    reindex_rows();
+                    $row.after($clone); reindex_rows();
                 });
 
                 function reindex_rows() {
@@ -613,43 +561,36 @@ class DD_PMPro_Rewards_Manager
                         $(this).find('.row-index').text(index + 1);
                         $(this).find('select, input').each(function() {
                             var name = $(this).attr('name');
-                            if (name) {
-                                name = name.replace(/\[\d+\]/, '[' + index + ']');
-                                $(this).attr('name', name);
-                            }
+                            if (name) { $(this).attr('name', name.replace(/\[\d+\]/, '[' + index + ']')); }
                         });
                     });
                 }
 
-                // User Search Autocomplete Logic
                 if (typeof dd_pmpro_ajax !== 'undefined') {
                     $('#dd_user_search').autocomplete({
                         source: function(request, response) {
-                            $.ajax({
-                                url: dd_pmpro_ajax.ajax_url,
-                                dataType: 'json',
-                                data: {
-                                    action: 'dd_search_pmpro_users',
-                                    security: dd_pmpro_ajax.nonce,
-                                    term: request.term
-                                },
-                                success: function(data) {
-                                    response(data);
-                                }
-                            });
+                            $.ajax({ url: dd_pmpro_ajax.ajax_url, dataType: 'json', data: { action: 'dd_search_pmpro_users', security: dd_pmpro_ajax.nonce, term: request.term }, success: function(data) { response(data); } });
                         },
                         minLength: 3,
                         select: function(event, ui) {
-                            // When user is selected, display name in text field, put ID in hidden field
                             $('#dd_user_search').val(ui.item.label);
                             $('#dd_test_user_id').val(ui.item.id);
-                            return false; // Prevent default jQuery UI value setting
+                            return false; 
                         }
-                    }).on('input', function() {
-                        // If they clear the field, wipe the hidden ID to prevent accidental saves
-                        if ($(this).val() === '') {
-                            $('#dd_test_user_id').val('');
-                        }
+                    }).on('input', function() { if ($(this).val() === '') $('#dd_test_user_id').val(''); });
+
+                    $('#dd-force-cron').click(function(e) {
+                        e.preventDefault();
+                        $('#dd-cron-spinner').addClass('is-active');
+                        $.ajax({
+                            url: dd_pmpro_ajax.ajax_url,
+                            type: 'POST',
+                            data: { action: 'dd_force_cron_run', security: dd_pmpro_ajax.nonce },
+                            success: function(res) {
+                                $('#dd-cron-spinner').removeClass('is-active');
+                                alert(res.data || 'Action Complete.');
+                            }
+                        });
                     });
                 }
             });
@@ -675,9 +616,7 @@ class DD_PMPro_Rewards_Manager
         <div class="dd-repeater-row">
             <div class="dd-row-header dd-toggle-row">
                 <h3>Membership Rule #<span class="row-index"><?php echo $index + 1; ?></span></h3>
-                <div class="dd-row-actions">
-                    <span class="dashicons dashicons-arrow-up"></span>
-                </div>
+                <div class="dd-row-actions"><span class="dashicons dashicons-arrow-up"></span></div>
             </div>
             <div class="dd-row-body">
                 <div>
@@ -685,9 +624,7 @@ class DD_PMPro_Rewards_Manager
                     <select name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][level_id]" class="widefat" <?php echo $disabled; ?>>
                         <option value="">-- Select Level --</option>
                         <?php foreach ($levels as $level) : ?>
-                            <option value="<?php echo esc_attr($level->id); ?>" <?php selected($level_id, $level->id); ?>>
-                                <?php echo esc_html($level->name); ?>
-                            </option>
+                            <option value="<?php echo esc_attr($level->id); ?>" <?php selected($level_id, $level->id); ?>><?php echo esc_html($level->name); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
