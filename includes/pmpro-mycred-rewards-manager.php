@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
@@ -44,17 +45,17 @@ class DD_PMPro_Rewards_Manager
         add_action('pmpro_after_checkout', array($this, 'award_registration_points'), 10, 2);
         add_action('dd_pmpro_daily_rewards_check', array($this, 'process_monthly_points'));
 
-        // Activation hooks for CRON
-        register_activation_hook(__FILE__, array($this, 'activate_plugin'));
-        register_deactivation_hook(__FILE__, array($this, 'deactivate_plugin'));
+        // Theme-compatible CRON scheduling hooks
+        add_action('init', array($this, 'ensure_cron_is_scheduled'));
+        add_action('switch_theme', array($this, 'unschedule_cron'));
     }
 
     /**
-     * Plugin Activation Routine.
-     * Schedules the daily CRON event for processing monthly recurring rewards.
+     * Ensures the daily CRON event is scheduled within a theme context.
+     * Hooked to 'init' to verify the schedule exists on page load.
      * @return void
      */
-    public function activate_plugin()
+    public function ensure_cron_is_scheduled()
     {
         if (! wp_next_scheduled('dd_pmpro_daily_rewards_check')) {
             wp_schedule_event(time(), 'daily', 'dd_pmpro_daily_rewards_check');
@@ -62,11 +63,11 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * Plugin Deactivation Routine.
      * Unschedules the daily CRON event cleanly to prevent orphan tasks.
+     * Hooked to 'switch_theme' to remove the event if the active theme changes.
      * @return void
      */
-    public function deactivate_plugin()
+    public function unschedule_cron()
     {
         $timestamp = wp_next_scheduled('dd_pmpro_daily_rewards_check');
         if ($timestamp) {
@@ -135,7 +136,7 @@ class DD_PMPro_Rewards_Manager
         $already_awarded = get_user_meta($user_id, '_dd_registration_points_awarded', true);
         if ($already_awarded) {
             error_log("PMPro Rewards: Blocked duplicate registration points for User ID {$user_id} (Anti-Farming active).");
-            return; 
+            return;
         }
 
         // 1. Get Level ID and initialize Level Name
@@ -151,7 +152,7 @@ class DD_PMPro_Rewards_Manager
             $level_obj = pmpro_getMembershipLevelForUser($user_id);
             if ($level_obj) {
                 $level_id = intval($level_obj->id);
-                $level_name = $level_obj->name; 
+                $level_name = $level_obj->name;
             }
         }
 
@@ -183,10 +184,10 @@ class DD_PMPro_Rewards_Manager
                         'pmpro_registration',
                         $user_id,
                         $reg_points,
-                        sprintf('Credits gained by joining %s Membership', $level_name), 
-                        $level_id,          
-                        '',                 
-                        $this->point_type   
+                        sprintf('Credits gained by joining %s Membership', $level_name),
+                        $level_id,
+                        '',
+                        $this->point_type
                     );
 
                     // Lock the account from receiving future registration points across any plan
@@ -238,7 +239,7 @@ class DD_PMPro_Rewards_Manager
                                 sprintf('Monthly Loyalty: Membership Level %d', $level_id),
                                 $level_id,
                                 '',
-                                $this->point_type 
+                                $this->point_type
                             );
                             update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                         }
@@ -309,16 +310,62 @@ class DD_PMPro_Rewards_Manager
         </div>
 
         <style>
-            .dd-repeater-row { background: #fff; border: 1px solid #ccd0d4; margin-bottom: 10px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04); }
-            .dd-row-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #ccd0d4; cursor: move; display: flex; justify-content: space-between; align-items: center; }
-            .dd-row-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-            .dd-row-body { padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-            .dd-row-actions { display: flex; gap: 10px; }
-            .dd-remove-row { color: #b32d2e; text-decoration: none; font-size: 12px; }
-            .dd-toggle-row { cursor: pointer; }
-            .dd-actions { margin-top: 15px; }
-            .dd-tab-content { margin-top: 20px; }
-            .dd-collapsed .dd-row-body { display: none; }
+            .dd-repeater-row {
+                background: #fff;
+                border: 1px solid #ccd0d4;
+                margin-bottom: 10px;
+                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+            }
+
+            .dd-row-header {
+                padding: 10px 15px;
+                background: #f8f9fa;
+                border-bottom: 1px solid #ccd0d4;
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .dd-row-header h3 {
+                margin: 0;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            .dd-row-body {
+                padding: 15px;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 20px;
+            }
+
+            .dd-row-actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .dd-remove-row {
+                color: #b32d2e;
+                text-decoration: none;
+                font-size: 12px;
+            }
+
+            .dd-toggle-row {
+                cursor: pointer;
+            }
+
+            .dd-actions {
+                margin-top: 15px;
+            }
+
+            .dd-tab-content {
+                margin-top: 20px;
+            }
+
+            .dd-collapsed .dd-row-body {
+                display: none;
+            }
         </style>
 
         <script>
@@ -333,13 +380,15 @@ class DD_PMPro_Rewards_Manager
 
                 $('#dd-repeater-container').sortable({
                     handle: '.dd-row-header',
-                    update: function() { reindex_rows(); }
+                    update: function() {
+                        reindex_rows();
+                    }
                 });
 
                 $('#dd-add-row').click(function() {
                     var template = $('#dd-row-template').html();
                     var $newRow = $(template);
-                    $newRow.find('select, input').removeAttr('disabled').prop('disabled', false); 
+                    $newRow.find('select, input').removeAttr('disabled').prop('disabled', false);
                     $('#dd-repeater-container').append($newRow);
                     reindex_rows();
                 });
