@@ -3,7 +3,7 @@
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes isolated Live and Test logging environments.
- * Version:     1.8.0
+ * Version:     1.8.1
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -111,7 +111,7 @@ class DD_PMPro_Rewards_Manager
     /**
      * System Helper: Appends an entry to the isolated circular log buffer.
      * Automatically routes to 'test' or 'live' based on the event's target user and current configuration.
-     * @param int    $user_id The targeted User ID.
+     * @param int    $user_id The targeted User ID (Use 0 for SYSTEM level logs).
      * @param string $message The log entry description.
      * @return void
      */
@@ -121,14 +121,27 @@ class DD_PMPro_Rewards_Manager
         $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
         $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
         
-        $log_type   = ($is_test_mode && $user_id === $test_user_id) ? 'test' : 'live';
+        // System logs (User ID 0) follow global test mode, User logs are strictly evaluated.
+        if ($user_id === 0) {
+            $log_type = $is_test_mode ? 'test' : 'live';
+        } else {
+            $log_type = ($is_test_mode && $user_id === $test_user_id) ? 'test' : 'live';
+        }
+        
         $option_key = 'dd_pmpro_logs_' . $log_type;
         
         $logs = get_option($option_key, array());
         if (!is_array($logs)) $logs = array();
 
-        $timestamp = current_time('Y-m-d H:i:s');
-        $entry     = sprintf('<span style="color:#569cd6;">[%s]</span> <span style="color:#4ec9b0;">User ID %d</span>: %s', $timestamp, $user_id, esc_html($message));
+        $timestamp    = current_time('Y-m-d H:i:s');
+        $user_display = $user_id === 0 ? 'SYSTEM' : 'User ID ' . $user_id;
+        
+        $entry = sprintf(
+            '<span style="color:#569cd6;">[%s]</span> <span style="color:#4ec9b0;">%s</span>: %s', 
+            $timestamp, 
+            $user_display, 
+            esc_html($message)
+        );
         
         array_unshift($logs, $entry);
         $logs = array_slice($logs, 0, 100); // Maintain a rolling buffer of 100 entries max
@@ -194,8 +207,10 @@ class DD_PMPro_Rewards_Manager
         check_ajax_referer('dd_admin_actions_nonce', 'security');
         if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
 
+        $this->insert_log(0, "Manual Process execution triggered via UI.");
         $this->process_monthly_points();
-        wp_send_json_success('Process triggered successfully. Check the Live/Test Log tabs for allocation details.');
+        
+        wp_send_json_success('Process triggered successfully. Logs updated.');
     }
 
     /**
@@ -365,19 +380,31 @@ class DD_PMPro_Rewards_Manager
     /**
      * LOGIC: Process Monthly Recurring Points (Allowance Top-Up)
      * Evaluates the user's unspent allowance and ONLY tops up the exact difference required.
+     * Incorporates comprehensive Trace Logging.
      * @return void
      */
     public function process_monthly_points()
     {
-        if (! function_exists('mycred_add') || ! function_exists('pmpro_getMembershipUsers')) return;
+        if (! function_exists('mycred_add') || ! function_exists('pmpro_getMembershipUsers')) {
+            $this->insert_log(0, "Process aborted: Required dependencies (myCred/PMPro) missing.");
+            return;
+        }
 
-        $config           = $this->get_rewards_config();
+        $config = $this->get_rewards_config();
+        
+        if (empty($config)) {
+            $this->insert_log(0, "Process aborted: No reward levels configured.");
+            return;
+        }
+
         $general_settings = get_option($this->general_option, array());
         $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
         $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
         
         $now              = current_time('timestamp');
         $base_seconds     = 2592000; // 30 days
+
+        $this->insert_log(0, "Evaluating user allowances based on " . count($config) . " rule(s).");
 
         foreach ($config as $row) {
             $level_id = intval($row['level_id']);
@@ -387,51 +414,58 @@ class DD_PMPro_Rewards_Manager
 
                 $active_users = pmpro_getMembershipUsers($level_id);
 
-                if (! empty($active_users)) {
-                    foreach ($active_users as $user_id) {
+                if (empty($active_users)) {
+                    $this->insert_log(0, "Level {$level_id}: No active members to evaluate.");
+                    continue;
+                }
+
+                foreach ($active_users as $user_id) {
+                    
+                    $current_user_id = intval($user_id);
+                    $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
+
+                    if (empty($last_awarded)) {
+                        update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
+                        update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
+                        $this->insert_log($current_user_id, "Monthly cycle newly initialized. Tracker set to: {$monthly_points}.");
+                        continue;
+                    }
+
+                    $required_threshold = $base_seconds;
+                    if ($is_test_mode && $current_user_id === $test_user_id) {
+                        $required_threshold = 60; // 60 seconds bypass
+                    }
+
+                    if (($now - $last_awarded) >= $required_threshold) {
                         
-                        $current_user_id = intval($user_id);
-                        $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
+                        $current_allowance = get_user_meta($current_user_id, '_dd_current_allowance_balance', true);
+                        $current_allowance = !empty($current_allowance) ? floatval($current_allowance) : 0;
 
-                        if (empty($last_awarded)) {
-                            update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
-                            update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
-                            $this->insert_log($current_user_id, "Monthly cycle initialized. Allowance set to: {$monthly_points}");
-                            continue;
+                        $points_to_add = max(0, $monthly_points - $current_allowance);
+
+                        if ($points_to_add > 0) {
+                            $this->insert_log($current_user_id, "Top-up Authorized: Adding {$points_to_add} points (Target Cap: {$monthly_points}, Remaining: {$current_allowance}).");
+
+                            mycred_add(
+                                'pmpro_monthly_recurring',
+                                $current_user_id,
+                                $points_to_add,
+                                sprintf('Monthly Allowance Top-up: Membership Level %d', $level_id),
+                                $level_id,
+                                '',
+                                $this->point_type
+                            );
+                        } else {
+                            $this->insert_log($current_user_id, "Evaluation Complete: User is at or above allowance cap ({$current_allowance}). Skipping top-up.");
                         }
 
-                        $required_threshold = $base_seconds;
-                        if ($is_test_mode && $current_user_id === $test_user_id) {
-                            $required_threshold = 60; // 60 seconds
-                        }
-
-                        if (($now - $last_awarded) >= $required_threshold) {
-                            
-                            $current_allowance = get_user_meta($current_user_id, '_dd_current_allowance_balance', true);
-                            $current_allowance = !empty($current_allowance) ? floatval($current_allowance) : 0;
-
-                            $points_to_add = max(0, $monthly_points - $current_allowance);
-
-                            if ($points_to_add > 0) {
-                                $this->insert_log($current_user_id, "Monthly CRON Processed: Topping up {$points_to_add} points (Target Cap: {$monthly_points}, Remaining: {$current_allowance}).");
-
-                                mycred_add(
-                                    'pmpro_monthly_recurring',
-                                    $current_user_id,
-                                    $points_to_add,
-                                    sprintf('Monthly Allowance Top-up: Membership Level %d', $level_id),
-                                    $level_id,
-                                    '',
-                                    $this->point_type
-                                );
-                            } else {
-                                $this->insert_log($current_user_id, "Monthly CRON Processed: Skipped top-up (Allowance is at or above cap).");
-                            }
-
-                            // Reset metrics for the next cycle
-                            update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
-                            update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
-                        }
+                        // Reset metrics for the next cycle
+                        update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
+                        update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
+                    } else {
+                        // Trace logging for Skipped evaluations
+                        $remaining = $required_threshold - ($now - $last_awarded);
+                        $this->insert_log($current_user_id, "Skipped: Threshold not met. {$remaining} seconds remaining until next evaluation.");
                     }
                 }
             }
@@ -560,7 +594,7 @@ class DD_PMPro_Rewards_Manager
                         <div class="dd-log-entry">No live logs recorded yet.</div>
                     <?php else: ?>
                         <?php foreach ($live_logs as $log): ?>
-                            <div class="dd-log-entry"><?php echo wp_kses_post($log); ?></div>
+                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class ?></div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -573,10 +607,10 @@ class DD_PMPro_Rewards_Manager
                 </div>
                 <div class="dd-log-window">
                     <?php if (empty($test_logs)): ?>
-                        <div class="dd-log-entry">No test logs recorded yet. Verify test mode is active and the test user is interacting with points.</div>
+                        <div class="dd-log-entry">No test logs recorded yet.</div>
                     <?php else: ?>
                         <?php foreach ($test_logs as $log): ?>
-                            <div class="dd-log-entry"><?php echo wp_kses_post($log); ?></div>
+                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class ?></div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
