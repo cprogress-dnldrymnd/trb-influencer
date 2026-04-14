@@ -1595,6 +1595,7 @@ body:not(.page-id-4144) {
             z-index: 2;
             position: relative;
             width: 100%;
+            margin: 0;
         }
         &:before {
             content: "Upgrade plan";
@@ -1608,6 +1609,9 @@ body:not(.page-id-4144) {
             border: none !important;
             border-radius: 5px 5px 5px 5px;
             padding: 23px 30px 23px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         &:hover {
             &:before {
