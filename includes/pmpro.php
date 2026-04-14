@@ -761,10 +761,6 @@ function dd_influencer_style_pmpro_checkout()
             width: 100%;
         }
 
-        body:not(.page-id-4144) span#pmpro_submit_span:before {
-            position: static !important;
-            display: block !important;
-        }
 
         .pmpro_form_submit {
             flex-direction: column;
