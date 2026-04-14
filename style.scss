@@ -1803,6 +1803,7 @@ body:not(.page-id-4144) {
         width: 100%;
         .btn {
             width: 100%;
+            padding: clamp(10px, 1.042vw, 20px);
             &:not(:hover) {
                 background-color: var(--e-global-color-accent);
                 border-color: var(--e-global-color-accent);
