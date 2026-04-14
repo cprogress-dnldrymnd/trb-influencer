@@ -277,6 +277,7 @@ class Custom_MyCred_Frontend_Log
                 font-weight: 600;
                 color: #334155;
                 font-size: 0.9rem;
+                font-family: "Work Sans", sans-serif;
             }
 
             .mycred-log-filter {
