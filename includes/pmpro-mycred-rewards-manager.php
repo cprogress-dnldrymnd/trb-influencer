@@ -2,8 +2,8 @@
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode.
- * Version:     1.5.0
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode with AJAX user search.
+ * Version:     1.6.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Rewards_Manager
- * Handles the registration of the admin interface, processing of myCred points, transaction tracking, and dynamic CRON scheduling.
+ * Handles the registration of the admin interface, processing of myCred points, transaction tracking, dynamic CRON scheduling, and AJAX endpoints.
  */
 class DD_PMPro_Rewards_Manager
 {
@@ -36,7 +36,7 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * Constructor.
-     * Initializes WP hooks, admin menus, background CRON jobs, and transaction tracking.
+     * Initializes WP hooks, admin menus, background CRON jobs, transaction tracking, and AJAX routes.
      */
     public function __construct()
     {
@@ -59,6 +59,9 @@ class DD_PMPro_Rewards_Manager
         
         // Reschedule immediately when options are saved to apply test mode instantly
         add_action('update_option_' . $this->general_option, array($this, 'handle_settings_update'), 10, 2);
+
+        // AJAX Handler for User Search
+        add_action('wp_ajax_dd_search_pmpro_users', array($this, 'ajax_search_users'));
     }
 
     /**
@@ -140,14 +143,24 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * Enqueues necessary admin scripts and styles for the repeater UI.
+     * Enqueues necessary admin scripts, styles, and localizes AJAX parameters for the UI.
+     * Loads jQuery UI Autocomplete for the user search functionality.
      * @param string $hook The current admin page hook.
      * @return void
      */
     public function enqueue_admin_scripts($hook)
     {
         if ('settings_page_dd-pmpro-rewards' !== $hook) return;
+        
         wp_enqueue_script('jquery-ui-sortable');
+        wp_enqueue_script('jquery-ui-autocomplete');
+        
+        // Pass AJAX URL and Security Nonce to JS
+        wp_localize_script('jquery-ui-autocomplete', 'dd_pmpro_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce'    => wp_create_nonce('dd_user_search_nonce')
+        ));
+
         wp_enqueue_style('dd-pmpro-admin-css', false);
     }
 
@@ -159,6 +172,40 @@ class DD_PMPro_Rewards_Manager
     {
         $options = get_option($this->option_name);
         return ! empty($options) && is_array($options) ? $options : array();
+    }
+
+    /**
+     * Handles the AJAX request to search WordPress users by login, email, or display name.
+     * Returns a JSON payload compatible with jQuery UI Autocomplete.
+     * @return void
+     */
+    public function ajax_search_users()
+    {
+        check_ajax_referer('dd_user_search_nonce', 'security');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $term = isset($_GET['term']) ? sanitize_text_field($_GET['term']) : '';
+        
+        $users_query = new WP_User_Query(array(
+            'search'         => '*' . esc_attr($term) . '*',
+            'search_columns' => array('user_login', 'user_email', 'display_name'),
+            'number'         => 15,
+            'fields'         => array('ID', 'display_name', 'user_email')
+        ));
+
+        $results = array();
+        foreach ($users_query->get_results() as $user) {
+            $results[] = array(
+                'id'    => $user->ID,
+                'label' => esc_html($user->display_name . ' (' . $user->user_email . ')'),
+                'value' => esc_html($user->display_name . ' (' . $user->user_email . ')')
+            );
+        }
+
+        wp_send_json($results);
     }
 
     /**
@@ -354,7 +401,7 @@ class DD_PMPro_Rewards_Manager
     /**
      * UI: Render Admin Page
      * Compiles the HTML for the backend settings page utilizing a tabbed interface.
-     * Includes dedicated fields for enabling and configuring Test Mode.
+     * Includes dedicated fields for enabling Test Mode and AJAX User searching.
      * @return void
      */
     public function render_admin_page()
@@ -364,8 +411,17 @@ class DD_PMPro_Rewards_Manager
         $pmpro_levels     = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels(true, true) : array();
         
         $is_test_mode = !empty($general_settings['test_mode']) ? 1 : 0;
-        $test_user_id = !empty($general_settings['test_user_id']) ? esc_attr($general_settings['test_user_id']) : '';
+        $test_user_id = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : '';
         $current_cron = wp_get_schedule('dd_pmpro_daily_rewards_check');
+
+        // Pre-fetch the display name of the currently saved test user for the UI
+        $test_user_display = '';
+        if ($test_user_id) {
+            $u_data = get_userdata($test_user_id);
+            if ($u_data) {
+                $test_user_display = esc_attr($u_data->display_name . ' (' . $u_data->user_email . ')');
+            }
+        }
 ?>
         <div class="wrap">
             <h1>PMPro myCred Rewards Manager</h1>
@@ -429,10 +485,11 @@ class DD_PMPro_Rewards_Manager
                             </td>
                         </tr>
                         <tr>
-                            <th>Target Test User ID</th>
+                            <th>Target Test User</th>
                             <td>
-                                <input type="number" name="<?php echo $this->general_option; ?>[test_user_id]" value="<?php echo $test_user_id; ?>" class="regular-text" placeholder="e.g., 1">
-                                <p class="description">The ID of the user account you will be testing with.</p>
+                                <input type="text" id="dd_user_search" class="regular-text" placeholder="Search by name, login, or email..." value="<?php echo $test_user_display; ?>">
+                                <input type="hidden" name="<?php echo $this->general_option; ?>[test_user_id]" id="dd_test_user_id" value="<?php echo esc_attr($test_user_id); ?>">
+                                <p class="description">Start typing to search. The actual User ID will be saved securely in the background.</p>
                             </td>
                         </tr>
                     </table>
@@ -450,7 +507,6 @@ class DD_PMPro_Rewards_Manager
                 margin-bottom: 10px;
                 box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
             }
-
             .dd-row-header {
                 padding: 10px 15px;
                 background: #f8f9fa;
@@ -460,50 +516,50 @@ class DD_PMPro_Rewards_Manager
                 justify-content: space-between;
                 align-items: center;
             }
-
             .dd-row-header h3 {
                 margin: 0;
                 font-size: 14px;
                 font-weight: 600;
             }
-
             .dd-row-body {
                 padding: 15px;
                 display: grid;
                 grid-template-columns: 1fr 1fr 1fr;
                 gap: 20px;
             }
-
-            .dd-row-actions {
-                display: flex;
-                gap: 10px;
+            .dd-row-actions { display: flex; gap: 10px; }
+            .dd-remove-row { color: #b32d2e; text-decoration: none; font-size: 12px; }
+            .dd-toggle-row { cursor: pointer; }
+            .dd-actions { margin-top: 15px; }
+            .dd-tab-content { margin-top: 20px; }
+            .dd-collapsed .dd-row-body { display: none; }
+            
+            /* Autocomplete Styling Fixes for WP Admin */
+            ul.ui-autocomplete {
+                background: #fff;
+                border: 1px solid #8c8f94;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+                max-width: 400px;
+                max-height: 250px;
+                overflow-y: auto;
+                z-index: 99999 !important;
             }
-
-            .dd-remove-row {
-                color: #b32d2e;
-                text-decoration: none;
-                font-size: 12px;
-            }
-
-            .dd-toggle-row {
+            ul.ui-autocomplete .ui-menu-item {
+                padding: 8px 12px;
                 cursor: pointer;
+                font-size: 13px;
+                border-bottom: 1px solid #f0f0f1;
             }
-
-            .dd-actions {
-                margin-top: 15px;
-            }
-
-            .dd-tab-content {
-                margin-top: 20px;
-            }
-
-            .dd-collapsed .dd-row-body {
-                display: none;
+            ul.ui-autocomplete .ui-menu-item:hover,
+            ul.ui-autocomplete .ui-state-active {
+                background: #f0f6fc;
+                color: #2271b1;
             }
         </style>
 
         <script>
             jQuery(document).ready(function($) {
+                // Tab Navigation
                 $('.nav-tab').click(function(e) {
                     e.preventDefault();
                     $('.nav-tab').removeClass('nav-tab-active');
@@ -512,11 +568,10 @@ class DD_PMPro_Rewards_Manager
                     $($(this).attr('href')).show();
                 });
 
+                // Repeater Functionality
                 $('#dd-repeater-container').sortable({
                     handle: '.dd-row-header',
-                    update: function() {
-                        reindex_rows();
-                    }
+                    update: function() { reindex_rows(); }
                 });
 
                 $('#dd-add-row').click(function() {
@@ -560,6 +615,38 @@ class DD_PMPro_Rewards_Manager
                                 $(this).attr('name', name);
                             }
                         });
+                    });
+                }
+
+                // User Search Autocomplete Logic
+                if (typeof dd_pmpro_ajax !== 'undefined') {
+                    $('#dd_user_search').autocomplete({
+                        source: function(request, response) {
+                            $.ajax({
+                                url: dd_pmpro_ajax.ajax_url,
+                                dataType: 'json',
+                                data: {
+                                    action: 'dd_search_pmpro_users',
+                                    security: dd_pmpro_ajax.nonce,
+                                    term: request.term
+                                },
+                                success: function(data) {
+                                    response(data);
+                                }
+                            });
+                        },
+                        minLength: 3,
+                        select: function(event, ui) {
+                            // When user is selected, display name in text field, put ID in hidden field
+                            $('#dd_user_search').val(ui.item.label);
+                            $('#dd_test_user_id').val(ui.item.id);
+                            return false; // Prevent default jQuery UI value setting
+                        }
+                    }).on('input', function() {
+                        // If they clear the field, wipe the hidden ID to prevent accidental saves
+                        if ($(this).val() === '') {
+                            $('#dd_test_user_id').val('');
+                        }
                     });
                 }
             });
