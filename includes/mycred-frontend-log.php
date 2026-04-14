@@ -213,7 +213,6 @@ class Custom_MyCred_Frontend_Log {
                 border-collapse: collapse;
                 text-align: left;
                 background-color: #ffffff;
-                font-family: system-ui, sans-serif;
             }
             .mycred-custom-log-table th, .mycred-custom-log-table td {
                 padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
@@ -230,7 +229,6 @@ class Custom_MyCred_Frontend_Log {
             /* Pagination & States */
             .mycred-pagination-controls {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 15px 0; font-family: system-ui, sans-serif;
             }
             .mycred-btn-paginate {
                 background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155;
