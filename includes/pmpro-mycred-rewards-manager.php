@@ -2,8 +2,8 @@
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes isolated Live and Test logging environments.
- * Version:     1.8.2
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture. Includes isolated Live and Test logging environments.
+ * Version:     1.8.3
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -433,12 +433,21 @@ class DD_PMPro_Rewards_Manager
             $monthly_points = intval($row['monthly_points']);
 
             if ($level_id > 0 && $monthly_points > 0) {
+                
+                // Fetch the actual Level Name for dynamic logging
+                $level_name = 'Membership Level ' . $level_id;
+                if (function_exists('pmpro_getLevel')) {
+                    $level_obj = pmpro_getLevel($level_id);
+                    if ($level_obj && !empty($level_obj->name)) {
+                        $level_name = $level_obj->name;
+                    }
+                }
 
                 // Call the engineered DB helper rather than a hallucinated PMPro function
                 $active_users = $this->get_active_pmpro_users_by_level($level_id);
 
                 if (empty($active_users)) {
-                    $this->insert_log(0, "Level {$level_id}: No active members to evaluate.");
+                    $this->insert_log(0, "Level {$level_id} ({$level_name}): No active members to evaluate.");
                     continue;
                 }
 
@@ -473,7 +482,7 @@ class DD_PMPro_Rewards_Manager
                                 'pmpro_monthly_recurring',
                                 $current_user_id,
                                 $points_to_add,
-                                sprintf('Monthly Allowance Top-up: Membership Level %d', $level_id),
+                                sprintf('Monthly Allowance Top-up: %s', $level_name),
                                 $level_id,
                                 '',
                                 $this->point_type
