@@ -3,8 +3,8 @@
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Includes strict anti-farming mechanisms to prevent duplicate allocations on plan switches.
- * Version:     1.3.1
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points.
+ * Version:     1.4.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -32,7 +32,7 @@ class DD_PMPro_Rewards_Manager
 
     /**
      * Constructor.
-     * Initializes WP hooks, admin menus, and the background CRON jobs.
+     * Initializes WP hooks, admin menus, background CRON jobs, and transaction tracking.
      */
     public function __construct()
     {
@@ -44,6 +44,9 @@ class DD_PMPro_Rewards_Manager
         // Point allocation logic
         add_action('pmpro_after_checkout', array($this, 'award_registration_points'), 10, 2);
         add_action('dd_pmpro_daily_rewards_check', array($this, 'process_monthly_points'));
+
+        // Point consumption tracking (Prioritizes spending allowance before permanent points)
+        add_action('mycred_update_user_balance', array($this, 'track_allowance_spending'), 10, 4);
 
         // Theme-compatible CRON scheduling hooks
         add_action('init', array($this, 'ensure_cron_is_scheduled'));
@@ -113,6 +116,35 @@ class DD_PMPro_Rewards_Manager
     {
         $options = get_option($this->option_name);
         return ! empty($options) && is_array($options) ? $options : array();
+    }
+
+    /**
+     * LOGIC: Track Allowance Spending
+     * Intercepts myCred balance updates. If points are deducted (spent), it subtracts them 
+     * from the user's active monthly allowance tracker first. This ensures expiring 
+     * allowance points are consumed before permanent 'buycred' points.
+     *
+     * @param int    $user_id         The ID of the user.
+     * @param mixed  $current_balance The balance before the update.
+     * @param float  $amount          The amount being added or subtracted.
+     * @param string $type            The point type key.
+     * @return void
+     */
+    public function track_allowance_spending($user_id, $current_balance, $amount, $type)
+    {
+        if ($type !== $this->point_type) return;
+
+        // We only care about point deductions (spending)
+        if ($amount < 0) {
+            $allowance_balance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
+            $allowance_balance = ! empty($allowance_balance) ? floatval($allowance_balance) : 0;
+
+            if ($allowance_balance > 0) {
+                // Deduct from the allowance tracker first, clamping at 0
+                $new_allowance = max(0, $allowance_balance - abs($amount));
+                update_user_meta($user_id, '_dd_current_allowance_balance', $new_allowance);
+            }
+        }
     }
 
     /**
@@ -199,9 +231,10 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * LOGIC: Process Monthly Recurring Points
-     * Executed via WP-Cron. Iterates over configured levels, interrogates active users, 
-     * and allocates points if 30 days have elapsed since their last payout.
+     * LOGIC: Process Monthly Recurring Points (Allowance Top-Up)
+     * Executed via WP-Cron. Evaluates the user's unspent allowance and ONLY tops up 
+     * the exact difference required to reach their monthly cap. Prevents infinite 
+     * accumulation while completely ignoring permanent bought points.
      * @return void
      */
     public function process_monthly_points()
@@ -224,23 +257,38 @@ class DD_PMPro_Rewards_Manager
                     foreach ($active_users as $user_id) {
                         $last_awarded = get_user_meta($user_id, '_dd_last_monthly_point_date', true);
 
+                        // If user has no history, set their timer and grant them their first full allowance
                         if (empty($last_awarded)) {
                             update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                             continue;
                         }
 
                         if (($now - $last_awarded) >= $month_seconds) {
-                            error_log("PMPro Rewards: Awarding Monthly {$monthly_points} ({$this->point_type}) to User ID {$user_id}");
 
-                            mycred_add(
-                                'pmpro_monthly_recurring',
-                                $user_id,
-                                $monthly_points,
-                                sprintf('Monthly Loyalty: Membership Level %d', $level_id),
-                                $level_id,
-                                '',
-                                $this->point_type
-                            );
+                            $current_allowance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
+                            $current_allowance = ! empty($current_allowance) ? floatval($current_allowance) : 0;
+
+                            // Calculate the required top-up to reach the monthly allowance cap
+                            $points_to_add = max(0, $monthly_points - $current_allowance);
+
+                            if ($points_to_add > 0) {
+                                error_log("PMPro Rewards: Topping up {$points_to_add} ({$this->point_type}) to User ID {$user_id} to reach allowance cap of {$monthly_points}.");
+
+                                mycred_add(
+                                    'pmpro_monthly_recurring',
+                                    $user_id,
+                                    $points_to_add,
+                                    sprintf('Monthly Allowance Top-up: Membership Level %d', $level_id),
+                                    $level_id,
+                                    '',
+                                    $this->point_type
+                                );
+                            } else {
+                                error_log("PMPro Rewards: User ID {$user_id} is already at or above their allowance cap. Skipping top-up.");
+                            }
+
+                            // Always reset the allowance tracker to the full monthly limit for the new cycle
+                            update_user_meta($user_id, '_dd_current_allowance_balance', $monthly_points);
                             update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                         }
                     }
@@ -472,7 +520,7 @@ class DD_PMPro_Rewards_Manager
                     <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][reg_points]" value="<?php echo esc_attr($reg_points); ?>" class="widefat" placeholder="e.g., 100" <?php echo $disabled; ?>>
                 </div>
                 <div>
-                    <label><strong>Monthly Recurring Points</strong></label><br>
+                    <label><strong>Monthly Recurring Cap</strong></label><br>
                     <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][monthly_points]" value="<?php echo esc_attr($monthly_points); ?>" class="widefat" placeholder="e.g., 50" <?php echo $disabled; ?>>
                 </div>
             </div>
