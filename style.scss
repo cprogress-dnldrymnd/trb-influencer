@@ -1095,7 +1095,13 @@ input:checked + .slider:before {
         height: var(--size, 188px);
     }
     .influencer-avatar-fallback {
-        font-size: 40px;
+        @media (min-width: 1200px) {
+            font-size: clamp(20px, 7vw, 100px);
+        }
+
+        @media (max-width: 1199px) {
+            font-size: 40px;
+        }
         @media (max-width: 767px) {
             --size: 100px;
         }
@@ -1106,16 +1112,6 @@ input:checked + .slider:before {
     --size: 152px;
     .influencer-avatar-fallback {
         font-size: clamp(20px, 3vw, 60px);
-    }
-}
-
-.influencer-avatar-fallback {
-    @media (min-width: 1200px) {
-        font-size: clamp(20px, 7vw, 100px);
-    }
-
-    @media (max-width: 1199px) {
-        font-size: 40px;
     }
 }
 
