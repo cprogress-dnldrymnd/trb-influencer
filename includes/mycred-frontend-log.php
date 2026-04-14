@@ -248,7 +248,7 @@ class Custom_MyCred_Frontend_Log
                 <?php endforeach; ?>
             </select>
         </div>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
@@ -259,7 +259,7 @@ class Custom_MyCred_Frontend_Log
      */
     private function render_table_styles()
     {
-        ?>
+    ?>
         <style>
             .mycred-ajax-wrapper {
                 position: relative;
@@ -316,6 +316,10 @@ class Custom_MyCred_Frontend_Log
             .mycred-custom-log-table td {
                 padding: 16px 20px;
                 border-bottom: 1px solid #e2e8f0;
+            }
+
+            .mycred-custom-log-table td {
+                font-size: clamp(12px, 0.938vw, 18px);
             }
 
             .mycred-custom-log-table th {
@@ -409,7 +413,7 @@ class Custom_MyCred_Frontend_Log
                 const wrappers = document.querySelectorAll('.mycred-ajax-wrapper');
 
                 wrappers.forEach(wrapper => {
-                    
+
                     /**
                      * Centralized function to execute the AJAX POST request.
                      * * @param {number} targetPage The page number to retrieve.
@@ -418,7 +422,7 @@ class Custom_MyCred_Frontend_Log
                         const userId = wrapper.getAttribute('data-user-id');
                         const limit = wrapper.getAttribute('data-limit');
                         const ctype = wrapper.getAttribute('data-ctype');
-                        
+
                         // Retrieve the currently active filter, if the element exists
                         const filterDropdown = wrapper.querySelector('.mycred-log-filter');
                         const filterRef = filterDropdown ? filterDropdown.value : '';
@@ -518,8 +522,9 @@ class Custom_MyCred_Frontend_Log
     ?>
 
         <div class="mycred-ajax-wrapper" data-user-id="<?php echo esc_attr($user_id); ?>" data-limit="<?php echo esc_attr($limit); ?>" data-ctype="<?php echo esc_attr($ctype); ?>">
-            
-            <?php echo $this->get_filter_dropdown_html(); // Inject Filter UI Dropdown ?>
+
+            <?php echo $this->get_filter_dropdown_html(); // Inject Filter UI Dropdown 
+            ?>
 
             <div class="mycred-table-responsive-wrapper">
                 <table class="mycred-custom-log-table">
@@ -531,13 +536,15 @@ class Custom_MyCred_Frontend_Log
                         </tr>
                     </thead>
                     <tbody>
-                        <?php echo $this->get_rows_html($user_id, $limit, 1, $ctype); // Load Page 1 initially ?>
+                        <?php echo $this->get_rows_html($user_id, $limit, 1, $ctype); // Load Page 1 initially 
+                        ?>
                     </tbody>
                 </table>
             </div>
 
             <div class="mycred-pagination-container">
-                <?php echo $this->get_pagination_html($user_id, $limit, 1, $ctype); // Load Pagination for Page 1 ?>
+                <?php echo $this->get_pagination_html($user_id, $limit, 1, $ctype); // Load Pagination for Page 1 
+                ?>
             </div>
         </div>
 
