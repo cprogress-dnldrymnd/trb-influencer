@@ -1,10 +1,9 @@
 <?php
-
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points.
- * Version:     1.4.0
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode.
+ * Version:     1.5.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -16,7 +15,7 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Rewards_Manager
- * Handles the registration of the admin interface, processing of myCred points, and CRON scheduling.
+ * Handles the registration of the admin interface, processing of myCred points, transaction tracking, and dynamic CRON scheduling.
  */
 class DD_PMPro_Rewards_Manager
 {
@@ -24,6 +23,11 @@ class DD_PMPro_Rewards_Manager
      * @var string The option key for storing rewards configuration.
      */
     private $option_name = 'dd_pmpro_rewards_settings';
+
+    /**
+     * @var string The option key for general settings (including test mode).
+     */
+    private $general_option = 'dd_pmpro_rewards_general';
 
     /**
      * @var string The target myCred Point Type key.
@@ -49,20 +53,58 @@ class DD_PMPro_Rewards_Manager
         add_action('mycred_update_user_balance', array($this, 'track_allowance_spending'), 10, 4);
 
         // Theme-compatible CRON scheduling hooks
+        add_filter('cron_schedules', array($this, 'register_custom_cron_intervals'));
         add_action('init', array($this, 'ensure_cron_is_scheduled'));
         add_action('switch_theme', array($this, 'unschedule_cron'));
+        
+        // Reschedule immediately when options are saved to apply test mode instantly
+        add_action('update_option_' . $this->general_option, array($this, 'handle_settings_update'), 10, 2);
     }
 
     /**
-     * Ensures the daily CRON event is scheduled within a theme context.
-     * Hooked to 'init' to verify the schedule exists on page load.
+     * Registers custom cron intervals for Test Mode.
+     * @param array $schedules Existing WP cron schedules.
+     * @return array Modified WP cron schedules.
+     */
+    public function register_custom_cron_intervals($schedules)
+    {
+        $schedules['dd_one_minute'] = array(
+            'interval' => 60,
+            'display'  => esc_html__('Every Minute (DD Testing)', 'dd-pmpro-rewards'),
+        );
+        return $schedules;
+    }
+
+    /**
+     * Ensures the CRON event is dynamically scheduled based on Test Mode status.
+     * Transitions between 'daily' and 'dd_one_minute' schedules safely.
      * @return void
      */
     public function ensure_cron_is_scheduled()
     {
-        if (! wp_next_scheduled('dd_pmpro_daily_rewards_check')) {
-            wp_schedule_event(time(), 'daily', 'dd_pmpro_daily_rewards_check');
+        $general_settings = get_option($this->general_option, array());
+        $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
+        $target_schedule  = $is_test_mode ? 'dd_one_minute' : 'daily';
+
+        $current_schedule = wp_get_schedule('dd_pmpro_daily_rewards_check');
+
+        // If the schedule doesn't match the required state, clear and recreate it
+        if ($current_schedule !== $target_schedule) {
+            wp_clear_scheduled_hook('dd_pmpro_daily_rewards_check');
+            wp_schedule_event(time(), $target_schedule, 'dd_pmpro_daily_rewards_check');
         }
+    }
+
+    /**
+     * Hook listener for when settings are saved.
+     * Forces a re-evaluation of the CRON schedule so test mode activates immediately.
+     * @param mixed $old_value The old option value.
+     * @param mixed $value The new option value.
+     * @return void
+     */
+    public function handle_settings_update($old_value, $value)
+    {
+        $this->ensure_cron_is_scheduled();
     }
 
     /**
@@ -88,12 +130,13 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * Registers the plugin settings array with the WP Options API.
+     * Registers the plugin settings arrays with the WP Options API.
      * @return void
      */
     public function register_settings()
     {
         register_setting('dd_pmpro_rewards_group', $this->option_name);
+        register_setting('dd_pmpro_rewards_group', $this->general_option);
     }
 
     /**
@@ -233,17 +276,21 @@ class DD_PMPro_Rewards_Manager
     /**
      * LOGIC: Process Monthly Recurring Points (Allowance Top-Up)
      * Executed via WP-Cron. Evaluates the user's unspent allowance and ONLY tops up 
-     * the exact difference required to reach their monthly cap. Prevents infinite 
-     * accumulation while completely ignoring permanent bought points.
+     * the exact difference required to reach their monthly cap. Integrates dynamic Test Mode 
+     * threshold bypassing for isolated user debugging.
      * @return void
      */
     public function process_monthly_points()
     {
         if (! function_exists('mycred_add') || ! function_exists('pmpro_getMembershipUsers')) return;
 
-        $config = $this->get_rewards_config();
-        $now    = current_time('timestamp');
-        $month_seconds = 2592000; // 30 days mathematical equivalent
+        $config           = $this->get_rewards_config();
+        $general_settings = get_option($this->general_option, array());
+        $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
+        $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
+        
+        $now              = current_time('timestamp');
+        $base_seconds     = 2592000; // 30 days mathematical equivalent
 
         foreach ($config as $row) {
             $level_id = intval($row['level_id']);
@@ -263,8 +310,14 @@ class DD_PMPro_Rewards_Manager
                             continue;
                         }
 
-                        if (($now - $last_awarded) >= $month_seconds) {
+                        // Determine strict threshold: Default to 30 days, unless Test Mode is active FOR THIS USER (60 seconds)
+                        $required_threshold = $base_seconds;
+                        if ($is_test_mode && $user_id === $test_user_id) {
+                            $required_threshold = 60;
+                        }
 
+                        if (($now - $last_awarded) >= $required_threshold) {
+                            
                             $current_allowance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
                             $current_allowance = ! empty($current_allowance) ? floatval($current_allowance) : 0;
 
@@ -272,7 +325,8 @@ class DD_PMPro_Rewards_Manager
                             $points_to_add = max(0, $monthly_points - $current_allowance);
 
                             if ($points_to_add > 0) {
-                                error_log("PMPro Rewards: Topping up {$points_to_add} ({$this->point_type}) to User ID {$user_id} to reach allowance cap of {$monthly_points}.");
+                                $log_context = ($is_test_mode && $user_id === $test_user_id) ? '[TEST MODE]' : '';
+                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$user_id} to reach allowance cap of {$monthly_points}.");
 
                                 mycred_add(
                                     'pmpro_monthly_recurring',
@@ -287,7 +341,7 @@ class DD_PMPro_Rewards_Manager
                                 error_log("PMPro Rewards: User ID {$user_id} is already at or above their allowance cap. Skipping top-up.");
                             }
 
-                            // Always reset the allowance tracker to the full monthly limit for the new cycle
+                            // Always reset the allowance tracker to the full limit for the new cycle
                             update_user_meta($user_id, '_dd_current_allowance_balance', $monthly_points);
                             update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
                         }
@@ -300,12 +354,18 @@ class DD_PMPro_Rewards_Manager
     /**
      * UI: Render Admin Page
      * Compiles the HTML for the backend settings page utilizing a tabbed interface.
+     * Includes dedicated fields for enabling and configuring Test Mode.
      * @return void
      */
     public function render_admin_page()
     {
-        $rewards = $this->get_rewards_config();
-        $pmpro_levels = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels(true, true) : array();
+        $rewards          = $this->get_rewards_config();
+        $general_settings = get_option($this->general_option, array());
+        $pmpro_levels     = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels(true, true) : array();
+        
+        $is_test_mode = !empty($general_settings['test_mode']) ? 1 : 0;
+        $test_user_id = !empty($general_settings['test_user_id']) ? esc_attr($general_settings['test_user_id']) : '';
+        $current_cron = wp_get_schedule('dd_pmpro_daily_rewards_check');
 ?>
         <div class="wrap">
             <h1>PMPro myCred Rewards Manager</h1>
@@ -341,16 +401,42 @@ class DD_PMPro_Rewards_Manager
                 </div>
 
                 <div id="tab-settings" class="dd-tab-content" style="display:none;">
+                    
+                    <h3>Environment Configuration</h3>
                     <table class="form-table">
                         <tr>
-                            <th>Cron Status</th>
-                            <td><?php echo wp_next_scheduled('dd_pmpro_daily_rewards_check') ? 'Active' : 'Inactive'; ?></td>
+                            <th>Active Cron Interval</th>
+                            <td>
+                                <code><?php echo $current_cron ? esc_html($current_cron) : 'Not Scheduled'; ?></code>
+                                <?php if ($current_cron === 'dd_one_minute') echo '<span style="color: #b32d2e; font-weight: bold;">(Test Mode Active)</span>'; ?>
+                            </td>
                         </tr>
                         <tr>
                             <th>Target Point Type</th>
                             <td><code><?php echo esc_html($this->point_type); ?></code></td>
                         </tr>
                     </table>
+
+                    <hr style="margin: 30px 0;">
+
+                    <h3>Sandbox / Test Mode</h3>
+                    <p class="description">Activate test mode to accelerate the CRON task to run every minute and bypass the 30-day requirement (reducing it to 60 seconds) for a specific user. This allows you to test point spending and allowance top-ups rapidly without affecting live users.</p>
+                    <table class="form-table">
+                        <tr>
+                            <th>Enable Test Mode</th>
+                            <td>
+                                <input type="checkbox" name="<?php echo $this->general_option; ?>[test_mode]" value="1" <?php checked($is_test_mode, 1); ?>>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Target Test User ID</th>
+                            <td>
+                                <input type="number" name="<?php echo $this->general_option; ?>[test_user_id]" value="<?php echo $test_user_id; ?>" class="regular-text" placeholder="e.g., 1">
+                                <p class="description">The ID of the user account you will be testing with.</p>
+                            </td>
+                        </tr>
+                    </table>
+
                 </div>
 
                 <?php submit_button(); ?>
