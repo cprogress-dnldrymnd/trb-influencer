@@ -3,7 +3,7 @@
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes isolated Live and Test logging environments.
- * Version:     1.8.1
+ * Version:     1.8.2
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -259,6 +259,27 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
+     * Database Helper: Retrieves an array of User IDs currently active in a specific PMPro level.
+     * Directly queries the PMPro DB table to avoid dependencies on non-standard or missing API functions.
+     * @param int $level_id The PMPro membership level ID.
+     * @return array Array of active User IDs.
+     */
+    private function get_active_pmpro_users_by_level($level_id)
+    {
+        global $wpdb;
+        $level_id = intval($level_id);
+        if ($level_id <= 0) return array();
+
+        $table = isset($wpdb->pmpro_memberships_users) ? $wpdb->pmpro_memberships_users : $wpdb->prefix . 'pmpro_memberships_users';
+        
+        // Securely prepare and execute the query targeting only active memberships
+        $query = $wpdb->prepare("SELECT user_id FROM {$table} WHERE membership_id = %d AND status = 'active'", $level_id);
+        $users = $wpdb->get_col($query);
+        
+        return is_array($users) ? $users : array();
+    }
+
+    /**
      * LOGIC: Database-Level Spending Interception
      * Directly intercepts when myCred updates the user meta balance. Evaluates the differential. 
      * If negative (points spent), it deducts from the allowance tracker first.
@@ -380,13 +401,14 @@ class DD_PMPro_Rewards_Manager
     /**
      * LOGIC: Process Monthly Recurring Points (Allowance Top-Up)
      * Evaluates the user's unspent allowance and ONLY tops up the exact difference required.
-     * Incorporates comprehensive Trace Logging.
+     * Incorporates comprehensive Trace Logging and custom DB lookups.
      * @return void
      */
     public function process_monthly_points()
     {
-        if (! function_exists('mycred_add') || ! function_exists('pmpro_getMembershipUsers')) {
-            $this->insert_log(0, "Process aborted: Required dependencies (myCred/PMPro) missing.");
+        // Validates critical dependencies before running the core logic loop
+        if (! function_exists('mycred_add') || ! defined('PMPRO_VERSION')) {
+            $this->insert_log(0, "Process aborted: Required dependencies (myCred or PMPro) missing. Please ensure both plugins are active.");
             return;
         }
 
@@ -412,7 +434,8 @@ class DD_PMPro_Rewards_Manager
 
             if ($level_id > 0 && $monthly_points > 0) {
 
-                $active_users = pmpro_getMembershipUsers($level_id);
+                // Call the engineered DB helper rather than a hallucinated PMPro function
+                $active_users = $this->get_active_pmpro_users_by_level($level_id);
 
                 if (empty($active_users)) {
                     $this->insert_log(0, "Level {$level_id}: No active members to evaluate.");
