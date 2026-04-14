@@ -2,8 +2,8 @@
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode with manual AJAX trigger.
- * Version:     1.7.0
+ * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes isolated Live and Test logging environments.
+ * Version:     1.8.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Rewards_Manager
- * Handles the registration of the admin interface, processing of myCred points, transaction tracking, dynamic CRON scheduling, and AJAX endpoints.
+ * Handles the registration of the admin interface, processing of myCred points, transaction tracking, dynamic CRON scheduling, and isolated logging environments.
  */
 class DD_PMPro_Rewards_Manager
 {
@@ -60,6 +60,7 @@ class DD_PMPro_Rewards_Manager
         // AJAX Handlers
         add_action('wp_ajax_dd_search_pmpro_users', array($this, 'ajax_search_users'));
         add_action('wp_ajax_dd_force_cron_run', array($this, 'ajax_force_cron_run'));
+        add_action('wp_ajax_dd_clear_logs', array($this, 'ajax_clear_logs'));
     }
 
     /**
@@ -105,6 +106,34 @@ class DD_PMPro_Rewards_Manager
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'dd_pmpro_daily_rewards_check');
         }
+    }
+
+    /**
+     * System Helper: Appends an entry to the isolated circular log buffer.
+     * Automatically routes to 'test' or 'live' based on the event's target user and current configuration.
+     * @param int    $user_id The targeted User ID.
+     * @param string $message The log entry description.
+     * @return void
+     */
+    private function insert_log($user_id, $message)
+    {
+        $general_settings = get_option($this->general_option, array());
+        $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
+        $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
+        
+        $log_type   = ($is_test_mode && $user_id === $test_user_id) ? 'test' : 'live';
+        $option_key = 'dd_pmpro_logs_' . $log_type;
+        
+        $logs = get_option($option_key, array());
+        if (!is_array($logs)) $logs = array();
+
+        $timestamp = current_time('Y-m-d H:i:s');
+        $entry     = sprintf('<span style="color:#569cd6;">[%s]</span> <span style="color:#4ec9b0;">User ID %d</span>: %s', $timestamp, $user_id, esc_html($message));
+        
+        array_unshift($logs, $entry);
+        $logs = array_slice($logs, 0, 100); // Maintain a rolling buffer of 100 entries max
+
+        update_option($option_key, $logs);
     }
 
     /**
@@ -163,12 +192,25 @@ class DD_PMPro_Rewards_Manager
     public function ajax_force_cron_run()
     {
         check_ajax_referer('dd_admin_actions_nonce', 'security');
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Unauthorized');
-        }
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
 
         $this->process_monthly_points();
-        wp_send_json_success('Process triggered successfully. Check your server/debug.log for allocation details.');
+        wp_send_json_success('Process triggered successfully. Check the Live/Test Log tabs for allocation details.');
+    }
+
+    /**
+     * Handles the AJAX request to clear log buffers.
+     * @return void
+     */
+    public function ajax_clear_logs()
+    {
+        check_ajax_referer('dd_admin_actions_nonce', 'security');
+        if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
+
+        $type = isset($_POST['log_type']) && $_POST['log_type'] === 'test' ? 'test' : 'live';
+        delete_option('dd_pmpro_logs_' . $type);
+        
+        wp_send_json_success(ucfirst($type) . ' logs have been successfully flushed.');
     }
 
     /**
@@ -216,7 +258,7 @@ class DD_PMPro_Rewards_Manager
     {
         if ($meta_key !== $this->point_type) return;
 
-        $user_id     = $object_id;
+        $user_id     = intval($object_id);
         $new_balance = floatval($_meta_value);
         
         // Fetch the existing balance BEFORE it gets overwritten
@@ -235,9 +277,8 @@ class DD_PMPro_Rewards_Manager
                 $new_allowance = max(0, $allowance_balance - abs($amount));
                 
                 // Save updated allowance tracker
-                // (Note: Since we are updating a different meta key, this won't trigger an infinite loop)
                 update_user_meta($user_id, '_dd_current_allowance_balance', $new_allowance);
-                error_log("PMPro Rewards: User ID {$user_id} spent " . abs($amount) . " points. Allowance tracker updated from {$allowance_balance} to {$new_allowance}.");
+                $this->insert_log($user_id, "Points Spent: " . abs($amount) . ". Allowance Tracker updated: {$allowance_balance} -> {$new_allowance}");
             }
         }
     }
@@ -254,11 +295,12 @@ class DD_PMPro_Rewards_Manager
     {
         if (! function_exists('mycred_add')) return;
 
+        $user_id = intval($user_id);
         update_user_meta($user_id, '_dd_last_monthly_point_date', current_time('timestamp'));
 
         $already_awarded = get_user_meta($user_id, '_dd_registration_points_awarded', true);
         if ($already_awarded) {
-            error_log("PMPro Rewards: Blocked duplicate registration points for User ID {$user_id}.");
+            $this->insert_log($user_id, "Registration points blocked (Anti-Farming Protocol Active).");
             return;
         }
 
@@ -296,6 +338,7 @@ class DD_PMPro_Rewards_Manager
                 $monthly_points = intval($row['monthly_points']);
 
                 if ($reg_points > 0) {
+                    $this->insert_log($user_id, "Awarded {$reg_points} points for joining {$level_name}");
                     mycred_add(
                         'pmpro_registration',
                         $user_id,
@@ -311,6 +354,7 @@ class DD_PMPro_Rewards_Manager
                 // Initialize the allowance tracking bucket so points can be properly deducted immediately
                 if ($monthly_points > 0) {
                     update_user_meta($user_id, '_dd_current_allowance_balance', $monthly_points);
+                    $this->insert_log($user_id, "Allowance tracker initialized to cap: {$monthly_points}");
                 }
 
                 break;
@@ -352,6 +396,7 @@ class DD_PMPro_Rewards_Manager
                         if (empty($last_awarded)) {
                             update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
                             update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
+                            $this->insert_log($current_user_id, "Monthly cycle initialized. Allowance set to: {$monthly_points}");
                             continue;
                         }
 
@@ -367,10 +412,8 @@ class DD_PMPro_Rewards_Manager
 
                             $points_to_add = max(0, $monthly_points - $current_allowance);
 
-                            $log_context = ($is_test_mode && $current_user_id === $test_user_id) ? '[TEST MODE ACTIVE]' : '';
-
                             if ($points_to_add > 0) {
-                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$current_user_id} (Allowance Target: {$monthly_points}, Remaining: {$current_allowance}).");
+                                $this->insert_log($current_user_id, "Monthly CRON Processed: Topping up {$points_to_add} points (Target Cap: {$monthly_points}, Remaining: {$current_allowance}).");
 
                                 mycred_add(
                                     'pmpro_monthly_recurring',
@@ -382,7 +425,7 @@ class DD_PMPro_Rewards_Manager
                                     $this->point_type
                                 );
                             } else {
-                                error_log("PMPro Rewards {$log_context}: User ID {$current_user_id} is at allowance cap. Skipping top-up.");
+                                $this->insert_log($current_user_id, "Monthly CRON Processed: Skipped top-up (Allowance is at or above cap).");
                             }
 
                             // Reset metrics for the next cycle
@@ -417,13 +460,19 @@ class DD_PMPro_Rewards_Manager
                 $test_user_display = esc_attr($u_data->display_name . ' (' . $u_data->user_email . ')');
             }
         }
+
+        // Fetch Logs
+        $live_logs = get_option('dd_pmpro_logs_live', array());
+        $test_logs = get_option('dd_pmpro_logs_test', array());
 ?>
         <div class="wrap">
             <h1>PMPro myCred Rewards Manager</h1>
 
             <h2 class="nav-tab-wrapper">
                 <a href="#tab-builder" class="nav-tab nav-tab-active">Reward Builder</a>
-                <a href="#tab-settings" class="nav-tab">Settings & Logs</a>
+                <a href="#tab-settings" class="nav-tab">Settings</a>
+                <a href="#tab-logs-live" class="nav-tab">Live Logs</a>
+                <a href="#tab-logs-test" class="nav-tab">Test Logs</a>
             </h2>
 
             <form method="post" action="options.php">
@@ -496,11 +545,43 @@ class DD_PMPro_Rewards_Manager
                             </td>
                         </tr>
                     </table>
-
                 </div>
 
                 <?php submit_button(); ?>
             </form>
+
+            <div id="tab-logs-live" class="dd-tab-content" style="display:none;">
+                <div class="dd-log-header">
+                    <h3>Live Environment Logs</h3>
+                    <button type="button" class="button dd-clear-log-btn" data-type="live">Clear Live Logs</button>
+                </div>
+                <div class="dd-log-window">
+                    <?php if (empty($live_logs)): ?>
+                        <div class="dd-log-entry">No live logs recorded yet.</div>
+                    <?php else: ?>
+                        <?php foreach ($live_logs as $log): ?>
+                            <div class="dd-log-entry"><?php echo wp_kses_post($log); ?></div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div id="tab-logs-test" class="dd-tab-content" style="display:none;">
+                <div class="dd-log-header">
+                    <h3>Test Environment Logs</h3>
+                    <button type="button" class="button dd-clear-log-btn" data-type="test">Clear Test Logs</button>
+                </div>
+                <div class="dd-log-window">
+                    <?php if (empty($test_logs)): ?>
+                        <div class="dd-log-entry">No test logs recorded yet. Verify test mode is active and the test user is interacting with points.</div>
+                    <?php else: ?>
+                        <?php foreach ($test_logs as $log): ?>
+                            <div class="dd-log-entry"><?php echo wp_kses_post($log); ?></div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </div>
 
         <style>
@@ -518,18 +599,36 @@ class DD_PMPro_Rewards_Manager
             ul.ui-autocomplete { background: #fff; border: 1px solid #8c8f94; box-shadow: 0 3px 6px rgba(0,0,0,0.1); max-width: 400px; max-height: 250px; overflow-y: auto; z-index: 99999 !important; }
             ul.ui-autocomplete .ui-menu-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f0f1; }
             ul.ui-autocomplete .ui-menu-item:hover, ul.ui-autocomplete .ui-state-active { background: #f0f6fc; color: #2271b1; }
+
+            /* Log Viewer Styling */
+            .dd-log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+            .dd-log-header h3 { margin: 0; }
+            .dd-log-window { background: #1e1e1e; color: #d4d4d4; font-family: Consolas, Monaco, monospace; font-size: 13px; padding: 15px; height: 500px; overflow-y: scroll; border-radius: 4px; border: 1px solid #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+            .dd-log-entry { margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 6px; line-height: 1.5; }
+            .dd-log-entry:last-child { border-bottom: none; }
         </style>
 
         <script>
             jQuery(document).ready(function($) {
+                // Tab Logic
                 $('.nav-tab').click(function(e) {
                     e.preventDefault();
                     $('.nav-tab').removeClass('nav-tab-active');
                     $(this).addClass('nav-tab-active');
                     $('.dd-tab-content').hide();
-                    $($(this).attr('href')).show();
+                    
+                    var targetId = $(this).attr('href');
+                    $(targetId).show();
+
+                    // Hide the main form save button when on log tabs
+                    if(targetId === '#tab-logs-live' || targetId === '#tab-logs-test') {
+                        $('#submit').hide();
+                    } else {
+                        $('#submit').show();
+                    }
                 });
 
+                // Repeater Functions
                 $('#dd-repeater-container').sortable({ handle: '.dd-row-header', update: function() { reindex_rows(); } });
                 $('#dd-add-row').click(function() {
                     var $newRow = $($('#dd-row-template').html());
@@ -567,6 +666,7 @@ class DD_PMPro_Rewards_Manager
                 }
 
                 if (typeof dd_pmpro_ajax !== 'undefined') {
+                    // Autocomplete
                     $('#dd_user_search').autocomplete({
                         source: function(request, response) {
                             $.ajax({ url: dd_pmpro_ajax.ajax_url, dataType: 'json', data: { action: 'dd_search_pmpro_users', security: dd_pmpro_ajax.nonce, term: request.term }, success: function(data) { response(data); } });
@@ -579,6 +679,7 @@ class DD_PMPro_Rewards_Manager
                         }
                     }).on('input', function() { if ($(this).val() === '') $('#dd_test_user_id').val(''); });
 
+                    // Manual Cron Exec
                     $('#dd-force-cron').click(function(e) {
                         e.preventDefault();
                         $('#dd-cron-spinner').addClass('is-active');
@@ -589,8 +690,26 @@ class DD_PMPro_Rewards_Manager
                             success: function(res) {
                                 $('#dd-cron-spinner').removeClass('is-active');
                                 alert(res.data || 'Action Complete.');
+                                location.reload(); // Reload to refresh logs
                             }
                         });
+                    });
+
+                    // Clear Logs Exec
+                    $('.dd-clear-log-btn').click(function(e) {
+                        e.preventDefault();
+                        var logType = $(this).data('type');
+                        if (confirm('Are you sure you want to permanently clear the ' + logType + ' logs?')) {
+                            $.ajax({
+                                url: dd_pmpro_ajax.ajax_url,
+                                type: 'POST',
+                                data: { action: 'dd_clear_logs', log_type: logType, security: dd_pmpro_ajax.nonce },
+                                success: function(res) {
+                                    alert(res.data);
+                                    location.reload();
+                                }
+                            });
+                        }
                     });
                 }
             });
