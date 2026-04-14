@@ -3,7 +3,7 @@
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Assigns myCred points for PMPro registration and recurring monthly membership loyalty via a custom admin dashboard. Implements a strict "Top-Up" allowance architecture to prevent infinite point stacking while protecting purchased points. Includes a targeted Test Mode with AJAX user search.
- * Version:     1.6.0
+ * Version:     1.6.1
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-rewards
@@ -349,35 +349,38 @@ class DD_PMPro_Rewards_Manager
 
                 if (! empty($active_users)) {
                     foreach ($active_users as $user_id) {
-                        $last_awarded = get_user_meta($user_id, '_dd_last_monthly_point_date', true);
+                        
+                        // FIX: Ensure absolute integer parity for string-based DB returns
+                        $current_user_id = intval($user_id);
+                        $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
 
                         // If user has no history, set their timer and grant them their first full allowance
                         if (empty($last_awarded)) {
-                            update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
+                            update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
                             continue;
                         }
 
                         // Determine strict threshold: Default to 30 days, unless Test Mode is active FOR THIS USER (60 seconds)
                         $required_threshold = $base_seconds;
-                        if ($is_test_mode && $user_id === $test_user_id) {
+                        if ($is_test_mode && $current_user_id === $test_user_id) {
                             $required_threshold = 60;
                         }
 
                         if (($now - $last_awarded) >= $required_threshold) {
                             
-                            $current_allowance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
+                            $current_allowance = get_user_meta($current_user_id, '_dd_current_allowance_balance', true);
                             $current_allowance = ! empty($current_allowance) ? floatval($current_allowance) : 0;
 
                             // Calculate the required top-up to reach the monthly allowance cap
                             $points_to_add = max(0, $monthly_points - $current_allowance);
 
                             if ($points_to_add > 0) {
-                                $log_context = ($is_test_mode && $user_id === $test_user_id) ? '[TEST MODE]' : '';
-                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$user_id} to reach allowance cap of {$monthly_points}.");
+                                $log_context = ($is_test_mode && $current_user_id === $test_user_id) ? '[TEST MODE]' : '';
+                                error_log("PMPro Rewards {$log_context}: Topping up {$points_to_add} ({$this->point_type}) to User ID {$current_user_id} to reach allowance cap of {$monthly_points}.");
 
                                 mycred_add(
                                     'pmpro_monthly_recurring',
-                                    $user_id,
+                                    $current_user_id,
                                     $points_to_add,
                                     sprintf('Monthly Allowance Top-up: Membership Level %d', $level_id),
                                     $level_id,
@@ -385,12 +388,12 @@ class DD_PMPro_Rewards_Manager
                                     $this->point_type
                                 );
                             } else {
-                                error_log("PMPro Rewards: User ID {$user_id} is already at or above their allowance cap. Skipping top-up.");
+                                error_log("PMPro Rewards: User ID {$current_user_id} is already at or above their allowance cap. Skipping top-up.");
                             }
 
                             // Always reset the allowance tracker to the full limit for the new cycle
-                            update_user_meta($user_id, '_dd_current_allowance_balance', $monthly_points);
-                            update_user_meta($user_id, '_dd_last_monthly_point_date', $now);
+                            update_user_meta($current_user_id, '_dd_current_allowance_balance', $monthly_points);
+                            update_user_meta($current_user_id, '_dd_last_monthly_point_date', $now);
                         }
                     }
                 }
