@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: Custom myCRED Frontend Log
- * Description: An object-oriented approach to rendering a highly customizable myCRED points log via shortcode.
+ * Description: An object-oriented approach to rendering a highly customizable and styled myCRED points log via shortcode.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 
 // Prevent direct file access
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class Custom_MyCred_Frontend_Log
  *
- * Handles the registration and rendering of the custom myCRED history shortcode
+ * Handles the registration, styling, and rendering of the custom myCRED history shortcode
  * using a modular, object-oriented architecture.
  */
 class Custom_MyCred_Frontend_Log {
@@ -56,12 +56,82 @@ class Custom_MyCred_Frontend_Log {
     }
 
     /**
+     * Outputs scoped CSS specifically for the myCRED custom table.
+     * * By rendering this directly within the shortcode output buffer, we ensure
+     * the CSS is strictly conditionally loaded only when required by the DOM.
+     *
+     * @return void
+     */
+    private function render_table_styles() {
+        ?>
+        <style>
+            .mycred-table-responsive-wrapper {
+                overflow-x: auto;
+                margin: 20px 0;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border-radius: 8px;
+            }
+            .mycred-custom-log-table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+                background-color: #ffffff;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            .mycred-custom-log-table th,
+            .mycred-custom-log-table td {
+                padding: 16px 20px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .mycred-custom-log-table th {
+                background-color: #f8fafc;
+                font-weight: 600;
+                color: #334155;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+                letter-spacing: 0.05em;
+            }
+            .mycred-custom-log-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+            .mycred-custom-log-table tbody tr:hover {
+                background-color: #f1f5f9;
+                transition: background-color 0.2s ease-in-out;
+            }
+            .mycred-custom-log-table td.positive-points {
+                color: #15803d;
+                font-weight: 600;
+            }
+            .mycred-custom-log-table td.negative-points {
+                color: #b91c1c;
+                font-weight: 600;
+            }
+            .mycred-empty-log {
+                padding: 20px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                color: #64748b;
+                text-align: center;
+            }
+            .error, .auth-required {
+                padding: 15px;
+                background-color: #fee2e2;
+                color: #991b1b;
+                border-left: 4px solid #ef4444;
+                border-radius: 4px;
+            }
+        </style>
+        <?php
+    }
+
+    /**
      * Retrieves, parses, and formats the myCRED points history table.
      *
      * @param int    $user_id The ID of the user to query.
      * @param int    $limit   The maximum number of log entries to retrieve.
      * @param string $ctype   The specific point type key to query.
-     * @return string         HTML markup containing the custom points log table.
+     * @return string         HTML markup containing the styled custom points log table.
      */
     private function get_log_html( $user_id, $limit, $ctype ) {
         
@@ -97,44 +167,50 @@ class Custom_MyCred_Frontend_Log {
 
         // Buffer the output for clean shortcode returning
         ob_start();
+        
+        // Inject table styles
+        $this->render_table_styles();
         ?>
         
-        <table class="mycred-custom-log-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Transaction Details</th>
-                    <th>Points Impact</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                // Iterate through the retrieved log objects
-                foreach ( $log->results as $entry ) : 
-                ?>
+        <div class="mycred-table-responsive-wrapper">
+            <table class="mycred-custom-log-table">
+                <thead>
                     <tr>
-                        <td>
-                            <?php 
-                            // Format the Unix timestamp into the site's localized date format
-                            echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry->time ) ); 
-                            ?>
-                        </td>
-                        <td>
-                            <?php 
-                            // Parse any dynamic template tags (like %user_profile_link%) inside the log entry text
-                            echo wp_kses_post( $mycred->parse_template_tags( $entry->entry, $entry ) ); 
-                            ?>
-                        </td>
-                        <td class="<?php echo ( $entry->creds > 0 ) ? 'positive-points' : 'negative-points'; ?>">
-                            <?php 
-                            // Format the numerical value according to myCRED point prefix/suffix settings
-                            echo esc_html( $mycred->format_creds( $entry->creds ) ); 
-                            ?>
-                        </td>
+                        <th>Date</th>
+                        <th>Transaction Details</th>
+                        <th>Points Impact</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php 
+                    // Iterate through the retrieved log objects
+                    foreach ( $log->results as $entry ) : 
+                    ?>
+                        <tr>
+                            <td>
+                                <?php 
+                                // Format the Unix timestamp into the site's localized date format
+                                echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry->time ) ); 
+                                ?>
+                            </td>
+                            <td>
+                                <?php 
+                                // Parse any dynamic template tags (like %user_profile_link%) inside the log entry text
+                                echo wp_kses_post( $mycred->parse_template_tags( $entry->entry, $entry ) ); 
+                                ?>
+                            </td>
+                            <td class="<?php echo ( $entry->creds > 0 ) ? 'positive-points' : 'negative-points'; ?>">
+                                <?php 
+                                // Prefix positive numbers with a '+' symbol for clarity, format according to myCRED settings
+                                $prefix = ( $entry->creds > 0 ) ? '+' : '';
+                                echo esc_html( $prefix . $mycred->format_creds( $entry->creds ) ); 
+                                ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
 
         <?php
         return ob_get_clean();
