@@ -883,6 +883,8 @@ input:checked + .slider:before {
 
 .avatar-holder.avatar-holder.avatar-holder-featured {
   --size: 152px; }
+  .avatar-holder.avatar-holder.avatar-holder-featured .influencer-avatar-fallback {
+    font-size: clamp(20px, 3vw, 60px); }
 
 @media (min-width: 1200px) {
   .influencer-avatar-fallback {

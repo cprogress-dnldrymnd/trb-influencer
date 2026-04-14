@@ -1104,6 +1104,9 @@ input:checked + .slider:before {
 
 .avatar-holder.avatar-holder.avatar-holder-featured {
     --size: 152px;
+    .influencer-avatar-fallback {
+        font-size: clamp(20px, 3vw, 60px);
+    }
 }
 
 .influencer-avatar-fallback {
@@ -1115,7 +1118,6 @@ input:checked + .slider:before {
         font-size: 40px;
     }
 }
-
 
 .medium-avatar {
     .avatar-holder.avatar-holder img,
