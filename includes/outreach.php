@@ -1612,7 +1612,7 @@ class DD_Outreach_Manager
             $this->send_outreach_email($data, $current_user_id);
 
             // Deduct Dynamic Points/Credits
-            if (function_exists('deduct_points_from_current_user')) {
+            if (function_exists('mycred_subtract')) {
                 $credit_cost = (int) get_option('dd_outreach_credit_cost', 1);
 
                 if ($credit_cost > 0) {
@@ -1630,7 +1630,22 @@ class DD_Outreach_Manager
                         $target_post_title
                     );
 
-                    deduct_points_from_current_user($credit_cost, wp_kses_post($dynamic_log_message));
+                    /**
+                     * Executes point deduction utilizing the native myCred API.
+                     * Explicitly sets the reference to 'outreach_submission'.
+                     * * @param string $reference  The unique transaction reference.
+                     * @param int    $user_id    The ID of the user losing points.
+                     * @param float  $amount     The number of points to deduct.
+                     * @param string $entry      The log entry message.
+                     * @param int    $ref_id     (Optional) The related post ID for reference tracking.
+                     */
+                    mycred_subtract(
+                        'outreach_submission',
+                        $current_user_id,
+                        $credit_cost,
+                        wp_kses_post($dynamic_log_message),
+                        $target_post_id
+                    );
                 }
             }
 
