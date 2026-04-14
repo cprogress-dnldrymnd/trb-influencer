@@ -1068,3 +1068,74 @@ function dd_influencer_style_pmpro_checkout()
 <?php
 }
 add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
+
+/**
+ * Renders the First Name and Last Name input fields on the PMPro checkout form.
+ * Hooks into 'pmpro_checkout_after_password' to insert the fields directly 
+ * within the user account credential section.
+ *
+ * @return void
+ */
+function dd_pmpro_add_name_fields_to_checkout() {
+    // Check for existing request data to repopulate the fields if the form reloads (e.g., due to an error).
+    $first_name = isset( $_REQUEST['first_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['first_name'] ) ) : '';
+    $last_name  = isset( $_REQUEST['last_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['last_name'] ) ) : '';
+    ?>
+    <div class="pmpro_checkout-fields">
+        <div class="pmpro_checkout-field pmpro_checkout-field-first_name">
+            <label for="first_name"><?php esc_html_e( 'First Name', 'pmpro' ); ?></label>
+            <input id="first_name" name="first_name" type="text" class="input pmpro_required" size="30" value="<?php echo esc_attr( $first_name ); ?>" required />
+        </div>
+        <div class="pmpro_checkout-field pmpro_checkout-field-last_name">
+            <label for="last_name"><?php esc_html_e( 'Last Name', 'pmpro' ); ?></label>
+            <input id="last_name" name="last_name" type="text" class="input pmpro_required" size="30" value="<?php echo esc_attr( $last_name ); ?>" required />
+        </div>
+    </div>
+    <?php
+}
+add_action( 'pmpro_checkout_after_password', 'dd_pmpro_add_name_fields_to_checkout' );
+
+/**
+ * Validates the custom checkout fields on form submission.
+ * Ensures that both First Name and Last Name are populated before PMPro 
+ * processes the user creation or payment gateway charge.
+ *
+ * @param bool $pmpro_continue_registration Current boolean state of the PMPro registration validation.
+ * @return bool Returns true if custom validation passes, or false if an error is registered.
+ */
+function dd_pmpro_require_name_fields( $pmpro_continue_registration ) {
+    // Only process our validation if upstream validation hasn't already failed.
+    if ( $pmpro_continue_registration ) {
+        if ( empty( $_REQUEST['first_name'] ) ) {
+            pmpro_setMessage( __( 'Please enter your First Name.', 'pmpro' ), 'pmpro_error' );
+            return false;
+        }
+        if ( empty( $_REQUEST['last_name'] ) ) {
+            pmpro_setMessage( __( 'Please enter your Last Name.', 'pmpro' ), 'pmpro_error' );
+            return false;
+        }
+    }
+    return $pmpro_continue_registration;
+}
+add_filter( 'pmpro_registration_checks', 'dd_pmpro_require_name_fields' );
+
+/**
+ * Writes the captured custom field data to the wp_usermeta table.
+ * Executes after PMPro has successfully processed the checkout and created/updated the user.
+ *
+ * @param int    $user_id The integer ID of the user who successfully completed checkout.
+ * @param object $morder  The PMPro membership order object.
+ * @return void
+ */
+function dd_pmpro_save_name_fields_to_usermeta( $user_id, $morder ) {
+    // Save First Name if present in the validated request.
+    if ( isset( $_REQUEST['first_name'] ) && ! empty( $_REQUEST['first_name'] ) ) {
+        update_user_meta( $user_id, 'first_name', sanitize_text_field( wp_unslash( $_REQUEST['first_name'] ) ) );
+    }
+    
+    // Save Last Name if present in the validated request.
+    if ( isset( $_REQUEST['last_name'] ) && ! empty( $_REQUEST['last_name'] ) ) {
+        update_user_meta( $user_id, 'last_name', sanitize_text_field( wp_unslash( $_REQUEST['last_name'] ) ) );
+    }
+}
+add_action( 'pmpro_after_checkout', 'dd_pmpro_save_name_fields_to_usermeta', 10, 2 );
