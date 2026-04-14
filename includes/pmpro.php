@@ -1082,11 +1082,11 @@ function dd_pmpro_add_name_fields_to_checkout() {
     $last_name  = isset( $_REQUEST['last_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['last_name'] ) ) : '';
     ?>
     <div class="pmpro_checkout-fields">
-        <div class="pmpro_checkout-field pmpro_checkout-field-first_name">
+        <div class="pmpro_form_field pmpro_form_field-text pmpro_checkout-field-first_name">
             <label for="first_name" class="pmpro_form_label"><?php esc_html_e( 'First Name', 'pmpro' ); ?></label>
             <input id="first_name" name="first_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr( $first_name ); ?>" required />
         </div>
-        <div class="pmpro_checkout-field pmpro_checkout-field-last_name">
+        <div class="pmpro_form_field pmpro_form_field-text pmpro_checkout-field-last_name">
             <label for="last_name" class="pmpro_form_label"><?php esc_html_e( 'Last Name', 'pmpro' ); ?></label>
             <input id="last_name" name="last_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr( $last_name ); ?>" required />
         </div>
