@@ -37,7 +37,7 @@ class DD_Outreach_Manager
         // New Master-Detail Dashboard Functionality
         add_shortcode('dd_outreach_list', [$this, 'render_list_shortcode']);
         add_shortcode('dd_outreach_view', [$this, 'render_view_shortcode']);
-        
+
         // New Shortcode for Dynamic Credit Cost
         add_shortcode('dd_outreach_credit_cost', [$this, 'render_credit_cost_shortcode']);
 
@@ -1543,6 +1543,7 @@ class DD_Outreach_Manager
                     padding: 0;
                     border: none;
                 }
+
                 .dd-item-list {
                     max-height: 100%;
                 }
@@ -1613,9 +1614,23 @@ class DD_Outreach_Manager
             // Deduct Dynamic Points/Credits
             if (function_exists('deduct_points_from_current_user')) {
                 $credit_cost = (int) get_option('dd_outreach_credit_cost', 1);
-                
+
                 if ($credit_cost > 0) {
-                    deduct_points_from_current_user($credit_cost, 'Outreach Form Submission');
+                    /**
+                     * Retrieve the targeted post's title and permalink utilizing the influencer_id.
+                     * Formats the log entry as an HTML-linked string for point deduction tracking.
+                     */
+                    $target_post_id    = absint($data['influencer_id']);
+                    $target_post_title = esc_html(get_the_title($target_post_id));
+                    $target_post_url   = esc_url(get_permalink($target_post_id));
+
+                    $dynamic_log_message = sprintf(
+                        'Outreach form submission for "<a href="%s" target="_blank">%s</a>"',
+                        $target_post_url,
+                        $target_post_title
+                    );
+
+                    deduct_points_from_current_user($credit_cost, wp_kses_post($dynamic_log_message));
                 }
             }
 
@@ -1625,7 +1640,7 @@ class DD_Outreach_Manager
                 // Also pass the cost back to the frontend logic so it updates UI accurately
                 $ajax_handler->add_response_data('deducted_points', get_option('dd_outreach_credit_cost', 1));
             }
-            
+
             $sent_date = get_the_date('g:i A, F jS Y', $post_id);
         } else {
             $sent_date = date_i18n(get_option('date_format'));
@@ -2035,7 +2050,7 @@ class DD_Outreach_Manager
     <?php
         return ob_get_clean();
     }
-    
+
     /**
      * Renders the dynamic credit cost via shortcode [dd_outreach_credit_cost].
      */
