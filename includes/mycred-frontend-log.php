@@ -27,7 +27,7 @@ class Custom_MyCred_Frontend_Log
      */
     private $filter_refs = array(
         ''                    => 'All Transactions',
-        'custom_deduction' => 'Outreach Submission',
+        'outreach_submission' => 'Outreach Submission',
         'buy_content'    => 'Purchase Content',
         'pmpro_monthly_recurring'   => 'Monthly Allowance',
         'buy_creds_with_stripe'    => 'Credits Purchase',
