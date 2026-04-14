@@ -1274,7 +1274,8 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     opacity: 0;
     z-index: 2;
     position: relative;
-    width: 100%; }
+    width: 100%;
+    margin: 0 !important; }
   body:not(.page-id-4144) span#pmpro_submit_span:before {
     content: "Upgrade plan";
     position: absolute;
@@ -1286,7 +1287,10 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     color: var(--e-global-color-2ba2932);
     border: none !important;
     border-radius: 5px 5px 5px 5px;
-    padding: 23px 30px 23px 30px; }
+    padding: 23px 30px 23px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center; }
   body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
     background-color: var(--e-global-color-secondary); }
 
