@@ -54,6 +54,7 @@ require $dir . '/includes/hooks.php';
 require $dir . '/includes/custom-functions.php';
 require $dir . '/includes/brief-parser.php';
 require $dir . '/includes/mycred.php';
+require $dir . '/includes/mycred-frontend-log.php';
 require $dir . '/includes/pmpro.php';
 require $dir . '/includes/pmpro-mycred-rewards-manager.php';
 require $dir . '/includes/email-template-manager.php';
