@@ -459,6 +459,4 @@ function dd_influencer_settings_page_html()
 		</form>
 	</div>
 <?php
-
-
 }
