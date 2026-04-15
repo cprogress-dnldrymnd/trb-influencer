@@ -118,8 +118,7 @@ function dd_influencer_style_mycred_checkout()
 ?>
     <style>
         /* Broadened selector to catch non-Stripe gateways */
-        .mycred-stripe-payment-main.mycred-stripe-payment-main *,
-        #buycred-checkout-form * {
+        .mycred-stripe-payment-main.mycred-stripe-payment-main {
             font-family: Inter !important;
             color: inherit !important;
             text-align: left;
