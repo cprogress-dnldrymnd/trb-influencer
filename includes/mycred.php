@@ -133,9 +133,8 @@ function dd_influencer_style_mycred_checkout()
 
         #checkout-action-button {
             color: #fff !important;
-            border-color: var(--e-global-color-primary) !important;
+            border-color: var( --e-global-color-primary ) !important;
         }
-
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
@@ -555,43 +554,27 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 
 /**
- * Enables standard WordPress shortcode processing within myCred's gateway instruction fields.
- * * myCred does not natively execute do_shortcode() on the raw text retrieved from 
- * gateway settings (e.g., Bank Account Information). This function hooks into myCred's 
- * internal instruction filters, as well as applying a late-priority catch on the_content,
- * ensuring nested shortcodes like [bank_transfer_text] are fully evaluated before rendering.
+ * Recursively parses shortcodes embedded within the myCred Buy Form output.
+ * * When page builders or direct shortcode widgets execute [mycred_buy_form], 
+ * the standard 'the_content' filters are often bypassed. This function intercepts 
+ * the raw HTML output of the myCred shortcode immediately after execution and forces 
+ * a secondary pass of do_shortcode() to evaluate nested shortcodes 
+ * (like [bank_transfer_text]) stored in the myCred manual gateway settings.
  *
- *
- * @param string $content The unparsed content/instructions.
- * @return string The parsed content with evaluated shortcodes.
+ * @param string $output The fully rendered HTML output of the shortcode.
+ * @param string $tag    The specific shortcode tag name being executed.
+ * @param array  $attr   The parsed shortcode attributes.
+ * @param array  $m      The regular expression match array.
+ * @return string        The recursively parsed HTML output.
  */
-function dd_enable_mycred_gateway_shortcodes($content)
+function dd_force_mycred_nested_shortcodes($output, $tag, $attr, $m)
 {
-    // Prevent unnecessary processing on empty strings or non-string values
-    if (empty($content) || !is_string($content)) {
-        return $content;
+    // Restrict processing strictly to the myCred Buy Form shortcode to conserve resources
+    if ($tag === 'mycred_buy_form') {
+        // Execute a secondary do_shortcode pass on the generated payload
+        return do_shortcode($output);
     }
 
-    // Execute standard WordPress shortcode parsing
-    return do_shortcode($content);
+    return $output;
 }
-
-// 1. Target specific myCred gateway and pending message filters directly at the source
-add_filter('mycred_buycred_manual_instructions', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
-add_filter('mycred_buycred_pending_msg', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
-add_filter('mycred_buycred_message', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
-
-/**
- * Fallback: Late-priority content filter to catch shortcodes rendered inside the parent myCred form.
- * Executes at priority 99 (well after the default WordPress shortcode priority of 11).
- *
- * @author Digitally Disruptive - Donald Raymundo
- * @link https://digitallydisruptive.co.uk/
- */
-add_filter('the_content', function ($content) {
-    // Only process on the designated checkout page (ID: 4191) to conserve server resources
-    if (is_page(4191) && strpos($content, '[') !== false) {
-        $content = do_shortcode($content);
-    }
-    return $content;
-}, 99);
+add_filter('do_shortcode_tag', 'dd_force_mycred_nested_shortcodes', 10, 4);
