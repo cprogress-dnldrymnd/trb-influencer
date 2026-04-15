@@ -131,6 +131,10 @@ function dd_influencer_style_mycred_checkout()
             display: none;
         }
 
+        #checkout-action-button {
+            color: #fff !important;
+            border-color: var( --e-global-color-primary ) !important;
+        }
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
