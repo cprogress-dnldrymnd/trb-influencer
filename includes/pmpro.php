@@ -675,10 +675,24 @@ function dd_influencer_style_pmpro_checkout()
         #pmpro_level_cost,
         #pmpropp_payment_plans,
         #pmpro_pricing_fields,
-        #pmpro_user_fields {
+        #pmpro_user_fields,
+        #pmpropp_select_payment_plan {
             display: none !important;
         }
 
+
+        .pmpro_form_field-radio-items {
+            flex-direction: column;
+        }
+
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label {
+            font-size: 1rem;
+            color: #000;
+        }
+
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input {
+            width: auto;
+        }
 
         #pmpro_payment_information_fields .pmpro_card {
             border-radius: 0;
