@@ -133,8 +133,9 @@ function dd_influencer_style_mycred_checkout()
 
         #checkout-action-button {
             color: #fff !important;
-            border-color: var( --e-global-color-primary ) !important;
+            border-color: var(--e-global-color-primary) !important;
         }
+
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
@@ -551,3 +552,46 @@ function dd_influencer_style_mycred_checkout()
 <?php
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
+
+
+/**
+ * Enables standard WordPress shortcode processing within myCred's gateway instruction fields.
+ * * myCred does not natively execute do_shortcode() on the raw text retrieved from 
+ * gateway settings (e.g., Bank Account Information). This function hooks into myCred's 
+ * internal instruction filters, as well as applying a late-priority catch on the_content,
+ * ensuring nested shortcodes like [bank_transfer_text] are fully evaluated before rendering.
+ *
+ *
+ * @param string $content The unparsed content/instructions.
+ * @return string The parsed content with evaluated shortcodes.
+ */
+function dd_enable_mycred_gateway_shortcodes($content)
+{
+    // Prevent unnecessary processing on empty strings or non-string values
+    if (empty($content) || !is_string($content)) {
+        return $content;
+    }
+
+    // Execute standard WordPress shortcode parsing
+    return do_shortcode($content);
+}
+
+// 1. Target specific myCred gateway and pending message filters directly at the source
+add_filter('mycred_buycred_manual_instructions', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
+add_filter('mycred_buycred_pending_msg', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
+add_filter('mycred_buycred_message', 'dd_enable_mycred_gateway_shortcodes', 10, 1);
+
+/**
+ * Fallback: Late-priority content filter to catch shortcodes rendered inside the parent myCred form.
+ * Executes at priority 99 (well after the default WordPress shortcode priority of 11).
+ *
+ * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ */
+add_filter('the_content', function ($content) {
+    // Only process on the designated checkout page (ID: 4191) to conserve server resources
+    if (is_page(4191) && strpos($content, '[') !== false) {
+        $content = do_shortcode($content);
+    }
+    return $content;
+}, 99);
