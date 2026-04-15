@@ -699,14 +699,16 @@ function dd_influencer_style_pmpro_checkout()
             width: auto;
         }
 
-        #pmpro_payment_information_fields .pmpro_card {
+        #pmpro_payment_information_fields .pmpro_card,
+        #pmpro_payment_method .pmpro_card {
             border-radius: 0;
             margin: 0;
             border: none;
             box-shadow: none;
         }
 
-        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content {
+        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content,
+        #pmpro_payment_method .pmpro_card .pmpro_card_content {
             padding: 0;
         }
 
