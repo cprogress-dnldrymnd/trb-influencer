@@ -2245,7 +2245,7 @@ add_shortcode('current_year', 'dd_current_year_shortcode');
 function bank_transfer_text()
 {
     ob_start();
-?>
+?>s
     <p>Please make a bank transfer using the details below:</p>
     <p><b>Account Name:</b> [Your Company Name]<br />
         <b>Bank Name:</b> [Your Bank Name]<br />
