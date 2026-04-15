@@ -117,8 +117,18 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
+        #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
+        #buycred-checkout-page h2.gateway-title {
+            font-size: 1.5rem;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            font-family: 'Inter';
+        }
+
         /* Broadened selector to catch non-Stripe gateways */
-        .mycred-stripe-payment-main.mycred-stripe-payment-main *{
+        .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
             color: inherit !important;
             text-align: left;
