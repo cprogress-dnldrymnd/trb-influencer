@@ -133,7 +133,7 @@ function dd_influencer_style_mycred_checkout()
 
         #checkout-action-button {
             color: #fff !important;
-            border-color: var( --e-global-color-primary ) !important;
+            border-color: var( --e-global-color-primary );
         }
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
@@ -551,34 +551,3 @@ function dd_influencer_style_mycred_checkout()
 <?php
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
-
-
-/**
- * Intercepts the final page output on the myCred checkout to evaluate orphaned shortcodes.
- *
- * myCred's Bank Transfer (Manual) gateway injects the 'Bank Account Information' string
- * directly into the DOM on the 'Pending Payment' screen, entirely bypassing WordPress's 
- * standard content filters (like 'the_content') and shortcode execution chains. 
- * This function utilizes Output Buffering (OB) to capture the raw HTML payload right 
- * before it is sent to the browser, safely executing do_shortcode() on the output.
- *
- * @author Digitally Disruptive - Donald Raymundo
- * @link https://digitallydisruptive.co.uk/
- *
- * @return void
- */
-function dd_force_mycred_pending_gateway_shortcodes()
-{
-    // Restrict the buffer strictly to the checkout page (ID 4191) to prevent global performance overhead.
-    if (is_page(4191)) {
-        ob_start(function ($buffer) {
-            // Verify if an unparsed shortcode string exists in the DOM before running the expensive do_shortcode parser.
-            if (strpos($buffer, '[') !== false) {
-                $buffer = do_shortcode($buffer);
-            }
-            return $buffer;
-        });
-    }
-}
-// Hooking into template_redirect at priority 1 ensures the buffer starts before any theme/plugin HTML output begins.
-add_action('template_redirect', 'dd_force_mycred_pending_gateway_shortcodes', 1);

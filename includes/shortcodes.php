@@ -2240,25 +2240,3 @@ function dd_current_year_shortcode()
 
 // Register the shortcode with WordPress
 add_shortcode('current_year', 'dd_current_year_shortcode');
-
-
-function bank_transfer_text()
-{
-    ob_start();
-?>
-    <p>Please make a bank transfer using the details below:</p>
-    <p>
-        <b>Bank Name:</b> Tide <br />
-        <b>Account Name:</b> Influencer Collective Limited <br />
-        <b>Sort Code:</b> 04-06-05 <br />
-        <b>Account Number: </b> 30613879
-    </p>
-    <p>Please use your Order ID as the payment reference.<br />
-        Your order will be processed once payment has been received (typically within 1-2 working days).</p>
-    <p>If you have any questions, please contact us at [your email] or [phone number].</p>
-
-<?php
-    return ob_get_clean();
-}
-
-add_shortcode('bank_transfer_text', 'bank_transfer_text');
