@@ -707,6 +707,10 @@ function dd_influencer_style_pmpro_checkout()
             box-shadow: none;
         }
 
+        #pmpro_payment_method .pmpro_card {
+            margin-bottom: 30px;
+        }
+
         #pmpro_payment_information_fields .pmpro_card .pmpro_card_content,
         #pmpro_payment_method .pmpro_card .pmpro_card_content {
             padding: 0;
