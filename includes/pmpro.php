@@ -675,8 +675,7 @@ function dd_influencer_style_pmpro_checkout()
         #pmpro_level_cost,
         #pmpropp_payment_plans,
         #pmpro_pricing_fields,
-        #pmpro_user_fields,
-        #pmpropp_select_payment_plan {
+        #pmpro_user_fields {
             display: none !important;
         }
 
@@ -1032,10 +1031,22 @@ function dd_influencer_style_pmpro_checkout()
                     var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
                     $summarySection.append(influencerHtml);
 
+                    // Map potential insertion anchors
+                    var $paymentPlanSelector = $('#pmpropp_select_payment_plan').closest('.pmpro_checkout-section');
+                    if (!$paymentPlanSelector.length) $paymentPlanSelector = $('#pmpropp_select_payment_plan');
+
+                    var $paymentMethodSelector = $('#pmpro_payment_method').closest('.pmpro_checkout-section');
+                    if (!$paymentMethodSelector.length) $paymentMethodSelector = $('#pmpro_payment_method');
+
                     var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
                     if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
 
-                    if ($paymentFields.length) {
+                    // Prioritize layout injection hierarchy 
+                    if ($paymentPlanSelector.length) {
+                        $paymentPlanSelector.before($summarySection);
+                    } else if ($paymentMethodSelector.length) {
+                        $paymentMethodSelector.before($summarySection);
+                    } else if ($paymentFields.length) {
                         $paymentFields.before($summarySection);
                     } else {
                         $('#pmpro_form').prepend($summarySection);
