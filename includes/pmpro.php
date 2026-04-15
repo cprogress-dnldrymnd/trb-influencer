@@ -684,6 +684,7 @@ function dd_influencer_style_pmpro_checkout()
 
         .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items {
             flex-direction: column;
+            gap: 0;
         }
 
         .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item {
