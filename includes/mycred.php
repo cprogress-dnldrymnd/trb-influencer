@@ -100,9 +100,10 @@ function get_current_user_remaining_mycred_balance($point_type_key = 'mycred_def
 }
 
 /**
- * Transforms the myCred Buy Credits Stripe Checkout into the clean, influencer-style layout.
+ * Transforms the myCred Buy Credits checkout into the clean, influencer-style layout.
  * Parses the dynamic credits/cost table, securely hides it, builds the Summary block ABOVE 
  * the payment info, injects the user avatar, and neutralizes all default myCred CSS bloat.
+ * Updated to support both Stripe and standard Bank Transfer/Manual gateways.
  *
  * @return void
  */
@@ -116,24 +117,28 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
-        .mycred-stripe-payment-main.mycred-stripe-payment-main * {
+        /* Broadened selector to catch non-Stripe gateways */
+        .mycred-stripe-payment-main.mycred-stripe-payment-main *,
+        #buycred-checkout-form * {
             font-family: Inter !important;
             color: inherit !important;
             text-align: left;
             font-size: inherit !important;
         }
 
-        .mycred-stripe-payment-main + hr {
+        .mycred-stripe-payment-main+hr,
+        #buycred-checkout-form+hr {
             display: none !important;
         }
 
-        /* Nuke all myCred default boxed styling */
+        /* Nuke all myCred default boxed styling, including standard checkout bodies */
         #buycred-checkout-page,
         #buycred-checkout-page .checkout-body,
         .mycred-stripe-payment-main,
         .mycred-stripe-payment-wrapper,
         .mycred_buy_form_stripe,
-        .mycred-stripe-payment-form {
+        .mycred-stripe-payment-form,
+        #buycred-checkout-form {
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
@@ -154,7 +159,8 @@ function dd_influencer_style_mycred_checkout()
         }
 
         /* Format myCred's Payment Info section to match PMPro */
-        .mycred_buy_section_2 {
+        .mycred_buy_section_2,
+        .mycred-bank-transfer-instructions {
             background: transparent !important;
             border: none !important;
             padding: 0 !important;
@@ -162,7 +168,8 @@ function dd_influencer_style_mycred_checkout()
             text-align: left !important;
         }
 
-        .mycred_buy_section_2.mycred_buy_section_2.mycred_buy_section_2 h2 {
+        .mycred_buy_section_2.mycred_buy_section_2.mycred_buy_section_2 h2,
+        #buycred-checkout-form h2 {
             font-size: 20px !important;
             font-weight: 700 !important;
             border: none !important;
@@ -209,8 +216,8 @@ function dd_influencer_style_mycred_checkout()
             padding: 20px 10px;
         }
 
-
-        .mycred-stripe-payment-form p {
+        .mycred-stripe-payment-form p,
+        #buycred-checkout-form p {
             text-align: left !important;
         }
 
@@ -380,8 +387,9 @@ function dd_influencer_style_mycred_checkout()
             color: #6a6a6a;
         }
 
-        /* Submit Button Overlay */
-        .mycred-stripe-buy-button.mycred-stripe-buy-button.mycred-stripe-buy-button {
+        /* Submit Button Overlay (Expanded for generic inputs) */
+        .mycred-stripe-buy-button.mycred-stripe-buy-button.mycred-stripe-buy-button,
+        #buycred-checkout-form input[type="submit"] {
             background-color: var(--e-global-color-primary) !important;
             color: #fff !important;
             border-radius: 5px 5px 5px 5px !important;
@@ -397,14 +405,17 @@ function dd_influencer_style_mycred_checkout()
             text-align: center !important;
             height: auto !important;
             min-height: 65px;
+            display: block !important;
         }
 
-        .mycred-stripe-buy-button:hover {
+        .mycred-stripe-buy-button:hover,
+        #buycred-checkout-form input[type="submit"]:hover {
             background-color: #1fdf64 !important;
             transform: scale(1.02);
         }
 
-        .mycred-stripe-payment-main section {
+        .mycred-stripe-payment-main section,
+        #buycred-checkout-form section {
             margin-top: 0 !important;
         }
 
@@ -422,10 +433,9 @@ function dd_influencer_style_mycred_checkout()
             // Use an interval to wait for the myCred form to finish loading in the DOM
             var pollDOM = setInterval(function() {
                 var $form = $('#buycred-checkout-form');
-                var $stripeForm = $('.mycred-stripe-payment-form');
 
-                // Only proceed once myCred's primary wrappers exist
-                if ($form.length > 0 && $stripeForm.length > 0) {
+                // Only proceed once the core wrapper exists (Removed strict Stripe requirement)
+                if ($form.length > 0) {
                     clearInterval(pollDOM);
 
                     // 1. Clear out any existing custom headers to prevent duplication
@@ -496,22 +506,26 @@ function dd_influencer_style_mycred_checkout()
                         </div>
                     </div>`;
 
-                    // 6. Prevent Validation Errors & Inject Summary Block right above the user inputs (Section 1)
+                    // 6. Prevent Validation Errors & Inject Summary Block securely
                     var $section1 = $form.find('.mycred_buy_section_1');
                     if ($section1.length > 0) {
-                        // Crucial: Strip "required" attributes so the invisible form can still submit
                         $section1.find('input').removeAttr('required');
-                        
                         $section1.before(summaryHtml);
                     } else {
-                        // Fallback
-                        $stripeForm.prepend(summaryHtml);
+                        // Gateway-agnostic fallback: Append right after the newly injected header
+                        $form.find('.dd-checkout-title-row').after(summaryHtml);
                     }
 
-                    // 7. Update Button Text
-                    var $btn = $form.find('.mycred-stripe-buy-button');
+                    // 7. Update Button Text for both Button tags (Stripe) and Input tags (Bank Transfer)
+                    var $btn = $form.find('.mycred-stripe-buy-button, input[type="submit"]');
                     if ($btn.length) {
-                        $btn.text('Pay ' + costAmount);
+                        var btnText = 'Pay ' + costAmount;
+                        // Input elements use .val(), generic buttons use .text()
+                        if ($btn.is('input')) {
+                            $btn.val(btnText);
+                        } else {
+                            $btn.text(btnText);
+                        }
                     }
                 }
             }, 100);
