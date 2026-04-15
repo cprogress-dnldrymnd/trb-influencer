@@ -2247,10 +2247,11 @@ function bank_transfer_text()
     ob_start();
 ?>
     <p>Please make a bank transfer using the details below:</p>
-    <p><b>Account Name:</b> [Your Company Name]<br />
-        <b>Bank Name:</b> [Your Bank Name]<br />
-        <b>Sort Code:</b> [XX-XX-XX]<br />
-        <b>Account Number: </b> [XXXXXXXX]
+    <p>
+        <b>Bank Name:</b> Tide <br />
+        <b>Account Name:</b> Influencer Collective Limited <br />
+        <b>Sort Code:</b> 04-06-05 <br />
+        <b>Account Number: </b> 30613879
     </p>
     <p>Please use your Order ID as the payment reference.<br />
         Your order will be processed once payment has been received (typically within 1-2 working days).</p>
