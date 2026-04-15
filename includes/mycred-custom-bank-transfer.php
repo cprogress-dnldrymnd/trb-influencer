@@ -99,7 +99,7 @@ function dd_init_custom_bank_transfer_class()
                     </p>
                 </div>
             </div>
-<?php
+        <?php
         }
 
         /**
@@ -119,21 +119,39 @@ function dd_init_custom_bank_transfer_class()
 
         /**
          * Renders the checkout form or instructions for the user when purchasing points.
-         * * Displays the transaction instructions on the front-end prior to finalizing the order.
-         *
-         * @return void
          */
         public function buy()
         {
-            if (! $this->core->can_edit_creds()) {
-                wp_die(__('You do not have permission to use this gateway.', 'mycred'));
-            }
+            // 1. Log this purchase attempt as a 'Pending Payment' in the myCRED backend
+            $this->log_request($this->buyer_id, $this->amount, $this->cost, $this->currency, $this->point_type);
 
-            echo '<div class="mycred-bank-transfer-instructions">';
-            echo '<h3>' . esc_html__('Bank Transfer Instructions', 'mycred') . '</h3>';
-            echo '<p>' . nl2br(esc_html($this->prefs['bank_details'])) . '</p>';
-            echo '<p><strong>' . esc_html__('Note: Your points will be credited manually by an administrator once funds clear.', 'mycred') . '</strong></p>';
-            echo '</div>';
+            // 2. Load your theme's header and the myCRED checkout wrapper
+            $this->get_page_header(__('Bank Transfer Instructions', 'mycred'));
+
+            // 3. Display the formatted instructions
+        ?>
+            <div class="mycred-bank-transfer-instructions" style="text-align: center; padding: 40px 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 40px auto;">
+                <h3 style="margin-top: 0; color: #333; font-size: 24px;"><?php esc_html_e('Complete Your Payment', 'mycred'); ?></h3>
+                <p style="font-size: 16px; color: #666; margin-bottom: 20px;">
+                    <?php esc_html_e('To complete your purchase, please transfer the funds using the details below.', 'mycred'); ?>
+                </p>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 6px; text-align: left; font-family: monospace; font-size: 16px; color: #333; margin-bottom: 20px; border: 1px solid #eee;">
+                    <?php echo nl2br(esc_html($this->prefs['bank_details'])); ?>
+                </div>
+
+                <p style="font-size: 14px; color: #e67e22; font-weight: bold; background: #fff3cd; padding: 10px; border-radius: 4px;">
+                    <?php esc_html_e('Note: Your points will be credited manually by an administrator once the funds have cleared in our account.', 'mycred'); ?>
+                </p>
+
+                <a href="<?php echo esc_url(home_url()); ?>" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #0073aa; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                    <?php esc_html_e('Return to Homepage', 'mycred'); ?>
+                </a>
+            </div>
+<?php
+
+            // 4. Load your theme's footer
+            $this->get_page_footer();
         }
 
         /**
