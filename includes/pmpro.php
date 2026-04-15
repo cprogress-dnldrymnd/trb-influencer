@@ -700,6 +700,20 @@ function dd_influencer_style_pmpro_checkout()
             width: auto;
         }
 
+        .pmpro_check_instructions {
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+        }
+
+        .pmpro_check_instructions .pmpro_card_title {
+            padding: 0;
+        }
+
+        .pmpro_check_instructions .pmpro_card_content {
+            padding: 0;
+        }
+
         #pmpro_payment_information_fields .pmpro_card,
         #pmpro_payment_method .pmpro_card {
             border-radius: 0;
