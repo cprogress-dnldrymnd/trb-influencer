@@ -519,4 +519,4 @@ function dd_influencer_style_mycred_checkout()
     </script>
 <?php
 }
-add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
+//add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
