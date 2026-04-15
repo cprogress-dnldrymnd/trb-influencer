@@ -127,6 +127,10 @@ function dd_influencer_style_mycred_checkout()
             font-family: 'Inter';
         }
 
+        #buycred-checkout-step1 hr {
+            display: none;
+        }
+
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
