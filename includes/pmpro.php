@@ -700,17 +700,17 @@ function dd_influencer_style_pmpro_checkout()
             width: auto;
         }
 
-        .pmpro_check_instructions {
+        .pmpro_check_instructions.pmpro_check_instructions {
             box-shadow: none;
             border: none;
             border-radius: 0;
         }
 
-        .pmpro_check_instructions .pmpro_card_title {
+        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title {
             padding: 0;
         }
 
-        .pmpro_check_instructions .pmpro_card_content {
+        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content {
             padding: 0;
         }
 
