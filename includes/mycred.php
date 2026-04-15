@@ -554,27 +554,31 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 
 /**
- * Recursively parses shortcodes embedded within the myCred Buy Form output.
- * * When page builders or direct shortcode widgets execute [mycred_buy_form], 
- * the standard 'the_content' filters are often bypassed. This function intercepts 
- * the raw HTML output of the myCred shortcode immediately after execution and forces 
- * a secondary pass of do_shortcode() to evaluate nested shortcodes 
- * (like [bank_transfer_text]) stored in the myCred manual gateway settings.
+ * Intercepts the final page output on the myCred checkout to evaluate orphaned shortcodes.
  *
- * @param string $output The fully rendered HTML output of the shortcode.
- * @param string $tag    The specific shortcode tag name being executed.
- * @param array  $attr   The parsed shortcode attributes.
- * @param array  $m      The regular expression match array.
- * @return string        The recursively parsed HTML output.
+ * myCred's Bank Transfer (Manual) gateway injects the 'Bank Account Information' string
+ * directly into the DOM on the 'Pending Payment' screen, entirely bypassing WordPress's 
+ * standard content filters (like 'the_content') and shortcode execution chains. 
+ * This function utilizes Output Buffering (OB) to capture the raw HTML payload right 
+ * before it is sent to the browser, safely executing do_shortcode() on the output.
+ *
+ * @author Digitally Disruptive - Donald Raymundo
+ * @link https://digitallydisruptive.co.uk/
+ *
+ * @return void
  */
-function dd_force_mycred_nested_shortcodes($output, $tag, $attr, $m)
+function dd_force_mycred_pending_gateway_shortcodes()
 {
-    // Restrict processing strictly to the myCred Buy Form shortcode to conserve resources
-    if ($tag === 'mycred_buy_form') {
-        // Execute a secondary do_shortcode pass on the generated payload
-        return do_shortcode($output);
+    // Restrict the buffer strictly to the checkout page (ID 4191) to prevent global performance overhead.
+    if (is_page(4191)) {
+        ob_start(function ($buffer) {
+            // Verify if an unparsed shortcode string exists in the DOM before running the expensive do_shortcode parser.
+            if (strpos($buffer, '[') !== false) {
+                $buffer = do_shortcode($buffer);
+            }
+            return $buffer;
+        });
     }
-
-    return $output;
 }
-add_filter('do_shortcode_tag', 'dd_force_mycred_nested_shortcodes', 10, 4);
+// Hooking into template_redirect at priority 1 ensures the buffer starts before any theme/plugin HTML output begins.
+add_action('template_redirect', 'dd_force_mycred_pending_gateway_shortcodes', 1);
