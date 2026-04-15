@@ -1120,15 +1120,18 @@ add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 /**
  * Renders the First Name and Last Name input fields on the PMPro checkout form.
  * Hooks into 'pmpro_checkout_after_password' to insert the fields directly 
- * within the user account credential section.
+ * within the user account credential section. Automatically pre-populates 
+ * data for authenticated users to prevent data entry redundancy.
  *
  * @return void
  */
 function dd_pmpro_add_name_fields_to_checkout()
 {
-    // Check for existing request data to repopulate the fields if the form reloads (e.g., due to an error).
-    $first_name = isset($_REQUEST['first_name']) ? sanitize_text_field(wp_unslash($_REQUEST['first_name'])) : '';
-    $last_name  = isset($_REQUEST['last_name']) ? sanitize_text_field(wp_unslash($_REQUEST['last_name'])) : '';
+    $current_user_id = get_current_user_id();
+
+    // Prioritize active POST request data for repopulation, fallback to existing user meta if authenticated.
+    $first_name = isset($_REQUEST['first_name']) ? sanitize_text_field(wp_unslash($_REQUEST['first_name'])) : ($current_user_id ? get_user_meta($current_user_id, 'first_name', true) : '');
+    $last_name  = isset($_REQUEST['last_name']) ? sanitize_text_field(wp_unslash($_REQUEST['last_name'])) : ($current_user_id ? get_user_meta($current_user_id, 'last_name', true) : '');
 ?>
     <div class="pmpro_checkout-fields">
         <div class="pmpro_form_field pmpro_form_field-text pmpro_checkout-field-first_name">
@@ -1150,21 +1153,27 @@ add_action('pmpro_checkout_after_password', 'dd_pmpro_add_name_fields_to_checkou
 
 /**
  * Validates the custom checkout fields on form submission.
- * Ensures that both First Name and Last Name are populated before PMPro 
- * processes the user creation or payment gateway charge.
+ * Verifies that the First Name and Last Name exist either in the incoming 
+ * request payload or are already saved in the database for existing users.
  *
  * @param bool $pmpro_continue_registration Current boolean state of the PMPro registration validation.
  * @return bool Returns true if custom validation passes, or false if an error is registered.
  */
 function dd_pmpro_require_name_fields($pmpro_continue_registration)
 {
-    // Only process our validation if upstream validation hasn't already failed.
+    // Execute custom validation strictly if upstream PMPro core checks pass.
     if ($pmpro_continue_registration) {
-        if (empty($_REQUEST['first_name'])) {
+        $user_id = get_current_user_id();
+
+        // Check request payload first; if empty and user is logged in, attempt retrieval from user meta.
+        $first_name = !empty($_REQUEST['first_name']) ? $_REQUEST['first_name'] : ($user_id ? get_user_meta($user_id, 'first_name', true) : '');
+        $last_name  = !empty($_REQUEST['last_name']) ? $_REQUEST['last_name'] : ($user_id ? get_user_meta($user_id, 'last_name', true) : '');
+
+        if (empty($first_name)) {
             pmpro_setMessage(__('Please enter your First Name.', 'pmpro'), 'pmpro_error');
             return false;
         }
-        if (empty($_REQUEST['last_name'])) {
+        if (empty($last_name)) {
             pmpro_setMessage(__('Please enter your Last Name.', 'pmpro'), 'pmpro_error');
             return false;
         }
@@ -1175,7 +1184,8 @@ add_filter('pmpro_registration_checks', 'dd_pmpro_require_name_fields');
 
 /**
  * Writes the captured custom field data to the wp_usermeta table.
- * Executes after PMPro has successfully processed the checkout and created/updated the user.
+ * Executes strictly after PMPro completes the checkout transaction to prevent 
+ * overwriting existing meta with blank values from omitted DOM elements.
  *
  * @param int    $user_id The integer ID of the user who successfully completed checkout.
  * @param object $morder  The PMPro membership order object.
@@ -1183,13 +1193,13 @@ add_filter('pmpro_registration_checks', 'dd_pmpro_require_name_fields');
  */
 function dd_pmpro_save_name_fields_to_usermeta($user_id, $morder)
 {
-    // Save First Name if present in the validated request.
-    if (isset($_REQUEST['first_name']) && ! empty($_REQUEST['first_name'])) {
+    // Write First Name strictly if explicitly passed in the validated POST request.
+    if (!empty($_REQUEST['first_name'])) {
         update_user_meta($user_id, 'first_name', sanitize_text_field(wp_unslash($_REQUEST['first_name'])));
     }
 
-    // Save Last Name if present in the validated request.
-    if (isset($_REQUEST['last_name']) && ! empty($_REQUEST['last_name'])) {
+    // Write Last Name strictly if explicitly passed in the validated POST request.
+    if (!empty($_REQUEST['last_name'])) {
         update_user_meta($user_id, 'last_name', sanitize_text_field(wp_unslash($_REQUEST['last_name'])));
     }
 }
