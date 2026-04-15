@@ -704,6 +704,7 @@ function dd_influencer_style_pmpro_checkout()
             box-shadow: none;
             border: none;
             border-radius: 0;
+            margin-top: 0;
         }
 
         .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title {
