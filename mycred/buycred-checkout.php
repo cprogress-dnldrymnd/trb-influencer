@@ -13,7 +13,7 @@ get_header();
 		<?php buycred_checkout_title(); ?>
 
 	</div>
-	<div class="checkout-order">
+	<div class="checkout-order xx2">
 
 		<?php 
 		/**
