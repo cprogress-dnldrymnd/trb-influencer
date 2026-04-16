@@ -193,7 +193,15 @@ class Saves_Manager
                 <div class="inf-group-card" id="card-<?php echo esc_attr($list['id']); ?>">
 
                     <div class="inf-card-header">
-                        <h4 class="inf-group-title" data-field="name"><?php echo esc_html($list['name']); ?></h4>
+                        <div class="inf-group-header-left">
+                            <h4 class="inf-group-title" data-field="name"><?php echo esc_html($list['name']); ?></h4>
+                            <?php if (!empty($list['desc'])) : ?>
+                                <div class="inf-group-desc" data-field="desc"><?php echo esc_html($list['desc']); ?></div>
+                            <?php else : ?>
+                                <div class="inf-group-desc" data-field="desc" style="display:none;"></div>
+                            <?php endif; ?>
+                        </div>
+
                         <div class="inf-card-actions">
                             <button class="inf-btn-icon inf-trigger-edit-group" data-id="<?php echo esc_attr($list['id']); ?>" data-name="<?php echo esc_attr($list['name']); ?>" data-desc="<?php echo esc_attr($list['desc']); ?>" title="Edit Group">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -638,11 +646,33 @@ class Saves_Manager
                 padding: 20px 20px 0 20px;
             }
 
+            .inf-group-header-left {
+                flex: 1;
+                padding-right: 12px;
+                overflow: hidden;
+            }
+
             .inf-group-title {
                 margin: 0;
                 font-size: 15px;
                 color: var(--e-global-color-primary);
                 font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .inf-group-desc {
+                margin: 6px 0 0 0;
+                font-size: 13px;
+                color: #666;
+                line-height: 1.4;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-family: 'Work Sans', sans-serif;
             }
 
             .inf-card-actions {
@@ -1207,6 +1237,15 @@ class Saves_Manager
                                     let $card = $('#card-' + newGrp.id);
                                     if ($card.length) {
                                         $card.find('.inf-group-title').text(newGrp.name);
+                                        
+                                        // Update the Description DOM element properly
+                                        let $desc = $card.find('.inf-group-desc');
+                                        if(newGrp.desc) {
+                                            $desc.text(newGrp.desc).show();
+                                        } else {
+                                            $desc.hide();
+                                        }
+                                        
                                         $card.find('.inf-trigger-edit-group').attr('data-name', newGrp.name).attr('data-desc', newGrp.desc);
                                         $card.find('.view-group-influencers-trigger').attr('data-group-name', newGrp.name);
                                     } else {
