@@ -1473,7 +1473,8 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: center; }
+  justify-content: center;
+  font-weight: bold; }
 
 /*responsive*/
 @media (min-width: 1025px) {
