@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.16
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), and cleans up broken Payment Plan injections on non-checkout pages.
+ * Version: 1.0.17
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -20,7 +20,7 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Constructor.
-	 * Initializes the shortcode registration, admin menu hooks, and frontend footer scripts during the WordPress lifecycle.
+	 * Initializes the shortcode registration, admin menu hooks, frontend footer scripts, and page redirects during the WordPress lifecycle.
 	 */
 	public function __construct()
 	{
@@ -28,6 +28,7 @@ class DD_PMPro_Frontend_Pricing
 		add_action('admin_menu', [$this, 'register_admin_menu']);
 		add_action('admin_init', [$this, 'register_plugin_settings']);
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
+		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
 	}
 
 	/**
@@ -220,6 +221,42 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		return false;
+	}
+
+	/**
+	 * Intercepts page requests to the Checkout page.
+	 * If the user is on a free trial, they are forcefully redirected to their account page with an error message.
+	 * @return void
+	 */
+	public function prevent_checkout_during_trial()
+	{
+		global $pmpro_pages;
+
+		// Ensure PMPro is active and we are physically on the checkout page
+		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		
+		// If they aren't logged in, let PMPro handle standard guest workflows
+		if (!$user_id) {
+			return; 
+		}
+
+		// Perform server-side trial check
+		if ($this->is_user_on_free_trial($user_id)) {
+			
+			// Display a WordPress/PMPro notice explaining the redirect
+			if (function_exists('pmpro_setMessage')) {
+				pmpro_setMessage('Plan changes are disabled during your free trial period. Please wait until your first payment is processed.', 'pmpro_error');
+			}
+			
+			// Bounce them back to the member account dashboard (or homepage fallback)
+			$redirect_url = function_exists('pmpro_url') ? pmpro_url('account') : home_url();
+			wp_redirect($redirect_url);
+			exit;
+		}
 	}
 
 	/**
