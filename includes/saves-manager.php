@@ -925,7 +925,7 @@ class Saves_Manager
                 overflow-y: auto;
                 padding: 10px 0;
                 width: 100%;
-                padding: 24px 0;
+                padding: 0 24px;
             }
 
             .inf-loop-item-row {
