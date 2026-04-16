@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.15
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials, and cleans up broken Payment Plan injections on non-checkout pages.
+ * Version: 1.0.16
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -177,6 +177,52 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
+	 * Checks if the user is currently on a free trial.
+	 * Evaluates if the user holds an active paid membership but has exactly 0 payments > $0.00 since starting it.
+	 * @param int $user_id The WordPress User ID.
+	 * @return bool True if active on a trial, false otherwise.
+	 */
+	private function is_user_on_free_trial($user_id)
+	{
+		if (!$user_id || !function_exists('pmpro_getMembershipLevelsForUser')) {
+			return false;
+		}
+
+		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
+		if (empty($user_levels)) {
+			return false;
+		}
+
+		global $wpdb;
+
+		foreach ($user_levels as $level) {
+			// Ensure the plan is meant to be paid (has a billing amount or initial payment > 0)
+			if ((float)$level->billing_amount > 0 || (float)$level->initial_payment > 0) {
+				
+				// Safely parse startdate (PMPro often returns it as a UNIX timestamp natively)
+				$startdate_str = is_numeric($level->startdate) ? gmdate('Y-m-d H:i:s', $level->startdate) : $level->startdate;
+
+				// Verify if they have ANY successful order > $0 since they started this membership
+				$paid_orders_count = $wpdb->get_var($wpdb->prepare("
+					SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_membership_orders 
+					WHERE user_id = %d 
+					AND membership_id = %d 
+					AND status IN ('success', 'pending') 
+					AND total > 0
+					AND timestamp >= %s
+				", $user_id, $level->id, $startdate_str));
+
+				// If they haven't paid anything > $0 yet but have a paid plan active, they are currently on a free trial.
+				if ($paid_orders_count == 0) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Injects a robust MutationObserver script on the PMPro Checkout page.
 	 * Acts as a global DOM cleaner to remove broken Payment Plan injections on non-checkout pages (like the signup shortcode).
 	 * Handles DOM parsing securely to prevent duplicate trial-text appending and ensures the current active plan remains locked out during plan transitions.
@@ -225,16 +271,43 @@ class DD_PMPro_Frontend_Pricing
 
 		// Retrieve the precise radio button value the user currently owns (returns false if guest/unowned)
 		$owned_plan_value = $this->get_user_active_plan_value($user_id, $level_id);
+		$is_on_free_trial = $this->is_user_on_free_trial($user_id);
 
 		?>
 		<script>
 			document.addEventListener('DOMContentLoaded', function() {
 				
 				const ownedValue = "<?php echo esc_js($owned_plan_value); ?>";
+				const isOnTrial = <?php echo $is_on_free_trial ? 'true' : 'false'; ?>;
 				
 				const processCheckoutDOM = function() {
+
+					// Feature 0: If currently on a trial, entirely lock down the checkout logic
+					if (isOnTrial) {
+						const allRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
+						allRadios.forEach(radio => {
+							radio.disabled = true;
+							const label = document.querySelector('label[for="' + radio.id + '"]');
+							if (label && !label.classList.contains('dd-plan-disabled')) {
+								label.classList.add('dd-plan-disabled');
+								label.style.opacity = '0.5';
+								label.style.cursor = 'not-allowed';
+								if (ownedValue && radio.value === ownedValue) {
+									label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Trial Active)</span>';
+								}
+							}
+						});
+						
+						const submitBtn = document.getElementById('pmpro_btn-submit');
+						if (submitBtn && !submitBtn.disabled) {
+							submitBtn.disabled = true;
+							submitBtn.value = 'Plan Changes Disabled During Free Trial';
+							submitBtn.style.opacity = '0.5';
+							submitBtn.style.cursor = 'not-allowed';
+						}
+					}
 					// Feature 1: Disable Current Plan Logic resilient against plan switches
-					if (ownedValue) {
+					else if (ownedValue) {
 						const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
 						if (radioBtn && !radioBtn.disabled) {
 							radioBtn.disabled = true;
@@ -484,9 +557,10 @@ class DD_PMPro_Frontend_Pricing
 	 * @param string $description The custom description text.
 	 * @param int $level_id The primary PMPro Level ID (Default/Monthly).
 	 * @param array $annual_plan Array containing the Payment Plan ID, formatted price, and raw price.
+	 * @param bool $is_on_free_trial Dictates if the user is locked out due to a trial state.
 	 * @return string The generated HTML markup.
 	 */
-	private function build_pricing_card($name, $description, $level_id, $annual_plan)
+	private function build_pricing_card($name, $description, $level_id, $annual_plan, $is_on_free_trial = false)
 	{
 		$monthly_data = $this->get_level_data($level_id);
 
@@ -536,10 +610,20 @@ class DD_PMPro_Frontend_Pricing
 			$action_verb = 'UPGRADE PLAN';
 		}
 
-		// If they own the current view, disable it. If they own the inverse view, offer a switch. Otherwise, contextual upgrade/downgrade.
-		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : $action_verb);
-		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
-		$current_url       = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
+		// Implement robust lock out if user is on a free trial phase
+		if ($is_on_free_trial) {
+			if ($owns_current_view) {
+				$btn_text = 'CURRENT PLAN (TRIAL)';
+			} else {
+				$btn_text = 'LOCKED DURING TRIAL';
+			}
+			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
+			$current_url = '';
+		} else {
+			$btn_text    = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : $action_verb);
+			$btn_class   = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
+			$current_url = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
+		}
 
 		ob_start();
 	?>
@@ -550,7 +634,8 @@ class DD_PMPro_Frontend_Pricing
 			data-price-annual="<?php echo esc_attr($annual_data['price']); ?>"
 			data-url-annual="<?php echo esc_url($annual_data['url']); ?>"
 			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
-			data-action-verb="<?php echo esc_attr($action_verb); ?>">
+			data-action-verb="<?php echo esc_attr($action_verb); ?>"
+			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -577,6 +662,10 @@ class DD_PMPro_Frontend_Pricing
 		if (! defined('PMPRO_VERSION')) {
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
+
+		// Calculate global trial state for the active user once
+		$current_user_id = get_current_user_id();
+		$is_on_free_trial = $current_user_id ? $this->is_user_on_free_trial($current_user_id) : false;
 
 		ob_start();
 	?>
@@ -758,7 +847,7 @@ class DD_PMPro_Frontend_Pricing
 				foreach ($pairs as $pair) {
 					$default_desc = 'Discover features included in the ' . esc_html($pair['name']) . ' plan.';
 					$description  = get_option($pair['option_key'], $default_desc);
-					echo $this->build_pricing_card($pair['name'], $description, $pair['monthly_id'], $pair['annual_plan']);
+					echo $this->build_pricing_card($pair['name'], $description, $pair['monthly_id'], $pair['annual_plan'], $is_on_free_trial);
 				}
 			}
 
@@ -795,6 +884,7 @@ class DD_PMPro_Frontend_Pricing
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 							const actionVerb = card.getAttribute('data-action-verb') || 'UPGRADE PLAN';
+							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
@@ -802,12 +892,20 @@ class DD_PMPro_Frontend_Pricing
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
 							const userOwnsOtherView    = isYearly ? ownsMonthly : ownsAnnual;
 
-							// Evaluate button state based on explicit ownership
-							if (userOwnsSelectedView) {
+							// If the user is on a free trial, strictly evaluate the button lockdown
+							if (isOnTrial) {
+								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
+								btnEl.classList.add('dd-btn-disabled');
+								btnEl.removeAttribute('href');
+							} 
+							// Evaluate standard button state based on explicit ownership
+							else if (userOwnsSelectedView) {
 								btnEl.textContent = 'CURRENT PLAN';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
-							} else {
+							} 
+							// Evaluate valid plan switch
+							else {
 								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade verb
 								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : actionVerb;
 								btnEl.classList.remove('dd-btn-disabled');
