@@ -12,39 +12,12 @@
         share_profile();
         dashboardLogoHeightVar();
 
-
         $(window).on('resize', function () {
             dashboardLogoHeightVar();
         });
-        /*
-        updateMembersHeaderHeightVar();
-
-        // Re-calculate the height dynamically whenever the browser window is resized
-        $(window).on('resize', function () {
-            updateMembersHeaderHeightVar();
-        });*/
     });
 
 
-
-    /**
- * Calculates the outer height of the #members-area-header element 
- * and sets it as a custom CSS property (--members-area-header-height) on the body tag.
- * Allows CSS layout calculations (like calc) to dynamically adjust to the header's size.
- */
-    function updateMembersHeaderHeightVar() {
-        // Cache the DOM element to optimize performance
-        var $header = $('#members-area-header');
-
-        // Verify the element exists before attempting calculations
-        if ($header.length) {
-            // Retrieve the full rendered height, including padding and borders
-            var headerHeight = $header.outerHeight();
-
-            // Inject the calculated height as a CSS variable into the body element
-            $('body').css('--members-area-header-height', headerHeight + 'px');
-        }
-    }
 
 
     function dashboardLogoHeightVar() {
