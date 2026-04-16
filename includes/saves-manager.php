@@ -4,7 +4,8 @@
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Description: Pro-level manager for handling saved searches and advanced influencer list grouping.
- * * Class Saves_Manager
+ *
+ * Class Saves_Manager
  * Handles server-side AJAX operations, custom shortcodes, user meta list tracking, 
  * and client-side modal scripts for saving searches and influencers.
  */
@@ -27,6 +28,7 @@ class Saves_Manager {
 
         // Shortcodes
         add_shortcode( 'my_saved_groups', [ $this, 'render_saved_groups_shortcode' ] );
+        add_shortcode( 'add_to_groups_btn', [ $this, 'render_add_to_groups_shortcode' ] );
 
         // Frontend hooks for injecting variables, styles, and scripts
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_ajax_variables' ] );
@@ -35,7 +37,6 @@ class Saves_Manager {
 
     /**
      * Enqueues AJAX localized variables.
-     * Registers an empty script specifically to localize variables.
      *
      * @return void
      */
@@ -51,8 +52,6 @@ class Saves_Manager {
 
     /**
      * Data Normalization Helper: Get User Groups
-     * Retrieves the user's groups. Upgrades legacy strings to the new 
-     * associative array format ensuring 'id', 'name', 'desc', and 'date' exist.
      *
      * @param int $user_id The user ID.
      * @return array Array of group objects.
@@ -70,11 +69,10 @@ class Saves_Manager {
                     'id'   => $id,
                     'name' => $val,
                     'desc' => '',
-                    'date' => wp_date('Y-m-d H:iA') // Assign current date to legacy items
+                    'date' => wp_date('Y-m-d H:iA')
                 ];
                 $changed = true;
             } else {
-                // Ensure existing arrays have a date
                 if ( !isset($val['date']) ) {
                     $val['date'] = wp_date('Y-m-d H:iA');
                     $changed = true;
@@ -88,6 +86,39 @@ class Saves_Manager {
         }
 
         return $normalized;
+    }
+
+    /**
+     * Shortcode: Add to Groups Button
+     * Outputs the requested Elementor markup, hooking natively into the modal trigger.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_add_to_groups_shortcode( $atts ) {
+        if ( ! is_user_logged_in() ) {
+            return ''; // Hide button if not logged in
+        }
+
+        $influencer_id = get_the_ID();
+        if ( ! $influencer_id ) {
+            return '';
+        }
+
+        ob_start();
+        ?>
+        <div class="elementor-button-wrapper add-to-groups save-influencer-trigger" influencer-id="<?php echo esc_attr( $influencer_id ); ?>" style="cursor: pointer;">
+            <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon">
+                        <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>
+                    </span>
+                    <span class="elementor-button-text">ADD TO GROUPS</span>
+                </span>
+            </button>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     /**
@@ -144,7 +175,6 @@ class Saves_Manager {
                         
                         <div class="inf-group-avatars">
                             <?php
-                            // Query for up to 5 influencers in this specific group to show avatars
                             $saved_posts = get_posts([
                                 'post_type'      => 'saved-influencer',
                                 'author'         => $user_id,
@@ -158,7 +188,6 @@ class Saves_Manager {
                                 foreach ( $saved_posts as $saved_post ) {
                                     $influencer_id = get_post_meta( $saved_post->ID, 'influencer_id', true );
                                     if ( $influencer_id ) {
-                                        // Temporarily hijack the global $post to ensure the shortcode outputs the correct avatar
                                         $post = get_post( $influencer_id );
                                         setup_postdata( $post );
                                         
@@ -177,7 +206,6 @@ class Saves_Manager {
         </div>
         <?php
 
-        // Restore original post data globally
         $post = $original_post;
         if ( $post ) setup_postdata( $post );
 
@@ -186,13 +214,11 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Save User Search
-     * Handles the server-side logic when the "Save Search" button is clicked.
      *
      * @return void Sends a JSON response.
      */
     public function handle_save_search_ajax() {
         check_ajax_referer('save_search_nonce', 'security');
-
         if (!is_user_logged_in()) wp_send_json_error(['message' => 'Please login to save searches.']);
 
         $user_id = get_current_user_id();
@@ -232,7 +258,6 @@ class Saves_Manager {
 
     /**
      * Helper: Get Saved Influencer Post ID
-     * Queries the database to find if the current user already has a saved entry.
      *
      * @param int $influencer_id The ID of the influencer.
      * @param int $user_id The User ID.
@@ -252,7 +277,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Get Modal Data
-     * Retrieves custom lists and normalizes data structures dynamically.
      *
      * @return void Sends a JSON response.
      */
@@ -286,7 +310,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Save Influencer to Lists
-     * Overwrites the CPT list bindings using Group IDs.
      *
      * @return void Sends a JSON response.
      */
@@ -328,8 +351,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Upsert (Create/Update) Group
-     * Creates a new group or updates an existing one's name and description.
-     * Records the creation date.
      *
      * @return void Sends a JSON response.
      */
@@ -350,7 +371,6 @@ class Saves_Manager {
             $group_id = uniqid('grp_');
             $date = wp_date('Y-m-d H:iA');
         } else {
-            // Preserve existing date if updating
             $date = isset($user_lists[$group_id]['date']) ? $user_lists[$group_id]['date'] : wp_date('Y-m-d H:iA');
         }
 
@@ -367,7 +387,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Delete Group
-     * Deletes the group and unassigns it from all relevant influencer saves.
      *
      * @return void Sends a JSON response.
      */
@@ -412,7 +431,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Get Group Influencers
-     * Fetches all influencers assigned to a specific group using Group ID.
      *
      * @return void Sends a JSON response.
      */
@@ -459,8 +477,6 @@ class Saves_Manager {
 
     /**
      * Renders Inline JavaScript, CSS, and HTML for the Modals & Shortcode.
-     * Handles the complex DOM interactions for the custom dropdowns, modal views, 
-     * and asynchronous saving. Includes strict CSS resets to block Elementor.
      *
      * @return void Outputs directly to wp_footer.
      */
@@ -469,7 +485,6 @@ class Saves_Manager {
         <style>
             /* =========================================================================
                BULLETPROOF ELEMENTOR CSS RESETS
-               We forcefully strip Elementor's global button styles to protect our UI
                ========================================================================= */
             #inf-groups-shortcode-grid button.inf-btn-icon,
             #inf-modal-overlay button.inf-btn-icon,
@@ -549,7 +564,7 @@ class Saves_Manager {
             }
             #inf-groups-shortcode-grid button.inf-dropdown-item:hover { background-color: #f8f9fa !important; color: #dc3545 !important; }
 
-            /* Card Body (Clickable Area) */
+            /* Card Body */
             .inf-card-body { padding: 0 20px 20px 20px; cursor: pointer; flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; }
             .inf-group-date { font-size: 12px; color: #999; margin-bottom: 12px; }
             
@@ -665,7 +680,6 @@ class Saves_Manager {
                 // Global State
                 let state = { influencerId: null, triggerBtn: null, groups: [], activeIds: [], entryPoint: '' };
 
-                // Navigation Helper
                 function switchModalView(viewId) {
                     $('.inf-modal-content').removeClass('active-view');
                     $('#' + viewId).addClass('active-view');
@@ -674,7 +688,6 @@ class Saves_Manager {
                 $('.inf-close-modal').on('click', function() { $('#inf-modal-overlay').hide(); });
                 $('#inf-modal-overlay').on('click', function(e) { if (e.target === this) $(this).hide(); });
 
-                // Render Checkboxes
                 function renderGroupsList() {
                     let html = '';
                     if(state.groups.length === 0) {
@@ -707,7 +720,7 @@ class Saves_Manager {
                     
                     let $btnText = state.triggerBtn.find('.elementor-button-text');
                     let ogText = $btnText.text();
-                    $btnText.text('Loading...'); state.triggerBtn.prop('disabled', true);
+                    $btnText.text('Loading...'); state.triggerBtn.css('pointer-events', 'none');
 
                     $.ajax({
                         url: ajax_vars.ajax_url, type: 'POST',
@@ -719,7 +732,7 @@ class Saves_Manager {
                                 renderGroupsList();
                                 switchModalView('inf-view-manage');
                             } else { alert('Error: ' + res.data.message); }
-                            $btnText.text(ogText); state.triggerBtn.prop('disabled', false);
+                            $btnText.text(ogText); state.triggerBtn.css('pointer-events', 'auto');
                         }
                     });
                 });
@@ -753,7 +766,7 @@ class Saves_Manager {
                 });
 
                 $(document).on('click', '.inf-trigger-edit-group', function(e) {
-                    e.stopPropagation(); // Prevent triggering card body click
+                    e.stopPropagation(); 
                     $('#inf-edit-id').val($(this).attr('data-id'));
                     $('#inf-edit-name').val($(this).attr('data-name'));
                     $('#inf-edit-desc').val($(this).attr('data-desc'));
@@ -799,18 +812,16 @@ class Saves_Manager {
                     });
                 });
 
-                // 3. Shortcode Interactions (Dropdown, View, Delete)
+                // 3. Shortcode Interactions
                 $('.inf-groups-grid').on('click', '.inf-trigger-edit-group', function() { state.entryPoint = 'shortcode'; });
 
-                // Toggle 3-dot dropdown menu
                 $(document).on('click', '.inf-trigger-dropdown', function(e) {
                     e.stopPropagation();
-                    $('.inf-dropdown-wrapper').removeClass('active'); // Close others
+                    $('.inf-dropdown-wrapper').removeClass('active'); 
                     $(this).closest('.inf-dropdown-wrapper').toggleClass('active');
                 });
                 $(document).click(function() { $('.inf-dropdown-wrapper').removeClass('active'); });
 
-                // View Creators
                 $(document).on('click', '.view-group-influencers-trigger', function() {
                     let id = $(this).attr('data-group-id');
                     let name = $(this).attr('data-group-name');
@@ -828,7 +839,6 @@ class Saves_Manager {
                     });
                 });
 
-                // Delete Group
                 $(document).on('click', '.inf-trigger-delete-group', function(e) {
                     e.stopPropagation();
                     $('.inf-dropdown-wrapper').removeClass('active');
@@ -848,7 +858,7 @@ class Saves_Manager {
                     });
                 });
 
-                // 4. Search Form Saving (Unchanged)
+                // 4. Search Form Saving
                 $('.save-search-trigger').on('click', function (e) {
                     e.preventDefault();
                     let $btn = $(this); let ogText = $btn.text(); $btn.text('Saving...');
@@ -874,5 +884,4 @@ class Saves_Manager {
     }
 }
 
-// Initialize the class
 new Saves_Manager();
