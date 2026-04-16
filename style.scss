@@ -1814,7 +1814,7 @@ body:not(.page-id-4144) {
     .myCRED-buy-form {
         display: flex;
         align-items: center;
-        gap: 0;
+        gap: 10px;
     }
     .myCRED-buy-form .mycred-point-type {
         font-family: "Inter";
@@ -1835,7 +1835,7 @@ body:not(.page-id-4144) {
         color: var(--e-global-color-primary);
         font-size: 20px;
         border: 1px solid;
-        border-radius: 10px 10px 0 0;
+        border-radius: 10px ;
         padding: 10px;
         min-height: 62px;
         font-size: clamp(12px, 0.938vw, 18px) !important;
