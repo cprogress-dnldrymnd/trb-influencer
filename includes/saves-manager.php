@@ -5,14 +5,16 @@
  * Author URI: https://digitallydisruptive.co.uk/
  * Description: Pro-level manager for handling saved searches and advanced influencer list grouping.
  * * Class Saves_Manager
- * * Handles server-side AJAX operations, custom shortcodes, user meta list tracking, 
+ * Handles server-side AJAX operations, custom shortcodes, user meta list tracking, 
  * and client-side modal scripts for saving searches and influencers.
  */
 class Saves_Manager {
 
     /**
      * Constructor: Initialize hooks, actions, and shortcodes.
-     * * Binds all necessary AJAX actions, shortcodes, and script enqueues.
+     * Binds all necessary AJAX actions, shortcodes, and script enqueues.
+     *
+     * @return void
      */
     public function __construct() {
         // AJAX hooks for logged-in users
@@ -33,7 +35,9 @@ class Saves_Manager {
 
     /**
      * Enqueues AJAX localized variables.
-     * * @return void
+     * Registers an empty script specifically to localize variables.
+     *
+     * @return void
      */
     public function enqueue_ajax_variables() {
         wp_register_script( 'theme-saves-handler', false );
@@ -47,9 +51,10 @@ class Saves_Manager {
 
     /**
      * Data Normalization Helper: Get User Groups
-     * * Retrieves the user's groups. If the groups are stored in the legacy 
-     * flat string format, it dynamically upgrades them to the new associative array format.
-     * * @param int $user_id The user ID.
+     * Retrieves the user's groups. Upgrades legacy strings to the new 
+     * associative array format ensuring 'id', 'name', 'desc', and 'date' exist.
+     *
+     * @param int $user_id The user ID.
      * @return array Array of group objects.
      */
     private function get_normalized_groups( $user_id ) {
@@ -60,15 +65,20 @@ class Saves_Manager {
 
         foreach ( $groups as $key => $val ) {
             if ( is_string( $val ) ) {
-                // Legacy migration: convert string to structured array
                 $id = 'grp_' . md5( $val );
                 $normalized[$id] = [
                     'id'   => $id,
                     'name' => $val,
-                    'desc' => ''
+                    'desc' => '',
+                    'date' => wp_date('Y-m-d H:iA') // Assign current date to legacy items
                 ];
                 $changed = true;
             } else {
+                // Ensure existing arrays have a date
+                if ( !isset($val['date']) ) {
+                    $val['date'] = wp_date('Y-m-d H:iA');
+                    $changed = true;
+                }
                 $normalized[$key] = $val;
             }
         }
@@ -82,8 +92,10 @@ class Saves_Manager {
 
     /**
      * Shortcode: Render user's custom saved groups.
-     * * Displays a UI grid of the user's custom lists, including Edit/Delete controls.
-     * * @param array $atts Shortcode attributes.
+     * Displays a UI grid matching the video spec, complete with 3-dot menus,
+     * dates, and dynamically loaded influencer avatars.
+     *
+     * @param array $atts Shortcode attributes.
      * @return string HTML output.
      */
     public function render_saved_groups_shortcode( $atts ) {
@@ -98,46 +110,90 @@ class Saves_Manager {
             return '<div class="inf-alert">You have not created any custom groups yet.</div>';
         }
 
+        global $post;
+        $original_post = $post; // Cache original post to restore later
+
         ob_start();
         ?>
         <div class="inf-groups-grid" id="inf-groups-shortcode-grid">
             <?php foreach ( $user_lists as $list ) : ?>
                 <div class="inf-group-card" id="card-<?php echo esc_attr( $list['id'] ); ?>">
-                    <h4 class="inf-group-title" data-field="name"><?php echo esc_html( $list['name'] ); ?></h4>
-                    <?php if ( ! empty( $list['desc'] ) ) : ?>
-                        <p class="inf-group-desc" data-field="desc"><?php echo esc_html( $list['desc'] ); ?></p>
-                    <?php else : ?>
-                        <p class="inf-group-desc" data-field="desc" style="display:none;"></p>
-                    <?php endif; ?>
                     
-                    <div class="inf-card-actions">
-                        <button class="inf-btn-icon view-group-influencers-trigger" data-group-id="<?php echo esc_attr( $list['id'] ); ?>" data-group-name="<?php echo esc_attr( $list['name'] ); ?>" title="View Creators">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        </button>
-                        <button class="inf-btn-icon inf-trigger-edit-group" data-id="<?php echo esc_attr( $list['id'] ); ?>" data-name="<?php echo esc_attr( $list['name'] ); ?>" data-desc="<?php echo esc_attr( $list['desc'] ); ?>" title="Edit Group">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                        </button>
-                        <button class="inf-btn-icon inf-trigger-delete-group" data-id="<?php echo esc_attr( $list['id'] ); ?>" title="Delete Group">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
+                    <div class="inf-card-header">
+                        <h4 class="inf-group-title" data-field="name"><?php echo esc_html( $list['name'] ); ?></h4>
+                        <div class="inf-card-actions">
+                            <button class="inf-btn-icon inf-trigger-edit-group" data-id="<?php echo esc_attr( $list['id'] ); ?>" data-name="<?php echo esc_attr( $list['name'] ); ?>" data-desc="<?php echo esc_attr( $list['desc'] ); ?>" title="Edit Group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            </button>
+                            <div class="inf-dropdown-wrapper">
+                                <button class="inf-btn-icon inf-trigger-dropdown" title="Options">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                                </button>
+                                <div class="inf-dropdown-menu">
+                                    <button class="inf-dropdown-item inf-trigger-delete-group" data-id="<?php echo esc_attr( $list['id'] ); ?>">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        Delete group
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="inf-card-body view-group-influencers-trigger" data-group-id="<?php echo esc_attr( $list['id'] ); ?>" data-group-name="<?php echo esc_attr( $list['name'] ); ?>">
+                        <div class="inf-group-date"><?php echo esc_html( $list['date'] ?? wp_date('Y-m-d H:iA') ); ?></div>
+                        
+                        <div class="inf-group-avatars">
+                            <?php
+                            // Query for up to 5 influencers in this specific group to show avatars
+                            $saved_posts = get_posts([
+                                'post_type'      => 'saved-influencer',
+                                'author'         => $user_id,
+                                'posts_per_page' => 5,
+                                'meta_query'     => [
+                                    [ 'key' => 'saved_in_lists', 'value' => '"' . $list['id'] . '"', 'compare' => 'LIKE' ]
+                                ]
+                            ]);
+
+                            if ( ! empty( $saved_posts ) ) {
+                                foreach ( $saved_posts as $saved_post ) {
+                                    $influencer_id = get_post_meta( $saved_post->ID, 'influencer_id', true );
+                                    if ( $influencer_id ) {
+                                        // Temporarily hijack the global $post to ensure the shortcode outputs the correct avatar
+                                        $post = get_post( $influencer_id );
+                                        setup_postdata( $post );
+                                        
+                                        echo '<div class="inf-avatar-wrapper">';
+                                        echo do_shortcode( '[influencer_avatar]' );
+                                        echo '</div>';
+                                    }
+                                }
+                            }
+                            ?>
+                        </div>
+                    </div>
+
                 </div>
             <?php endforeach; ?>
         </div>
         <?php
+
+        // Restore original post data globally
+        $post = $original_post;
+        if ( $post ) setup_postdata( $post );
+
         return ob_get_clean();
     }
 
     /**
      * AJAX Handler: Save User Search
-     * * @return void
+     * Handles the server-side logic when the "Save Search" button is clicked.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_save_search_ajax() {
         check_ajax_referer('save_search_nonce', 'security');
 
-        if (!is_user_logged_in()) {
-            wp_send_json_error(['message' => 'Please login to save searches.']);
-        }
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Please login to save searches.']);
 
         $user_id = get_current_user_id();
         $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
@@ -168,9 +224,7 @@ class Saves_Manager {
 
         $post_id = wp_insert_post($post_args);
 
-        if (is_wp_error($post_id)) {
-            wp_send_json_error(['message' => 'Error creating save file.']);
-        }
+        if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Error creating save file.']);
 
         update_post_meta($post_id, 'search_query', $final_string);
         wp_send_json_success(['message' => 'Search saved successfully!']);
@@ -178,7 +232,9 @@ class Saves_Manager {
 
     /**
      * Helper: Get Saved Influencer Post ID
-     * * @param int $influencer_id The ID of the influencer.
+     * Queries the database to find if the current user already has a saved entry.
+     *
+     * @param int $influencer_id The ID of the influencer.
      * @param int $user_id The User ID.
      * @return int|bool The Post ID if found, false otherwise.
      */
@@ -196,8 +252,9 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Get Modal Data
-     * * Retrieves custom lists and normalizes data structures dynamically.
-     * * @return void
+     * Retrieves custom lists and normalizes data structures dynamically.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_get_modal_data_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -213,18 +270,14 @@ class Saves_Manager {
         if ($post_id) {
             $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
             if (is_array($saved_in)) {
-                // Ensure active lists reflect new ID format if they are legacy strings
                 foreach ($saved_in as $idx => $val) {
-                    if (!str_starts_with($val, 'grp_')) {
-                        $saved_in[$idx] = 'grp_' . md5($val);
-                    }
+                    if (!str_starts_with($val, 'grp_')) $saved_in[$idx] = 'grp_' . md5($val);
                 }
-                update_post_meta($post_id, 'saved_in_lists', $saved_in); // Persist normalization
+                update_post_meta($post_id, 'saved_in_lists', $saved_in); 
                 $active_lists = $saved_in;
             }
         }
 
-        // Re-index user_lists for cleaner JS handling
         wp_send_json_success([
             'all_groups'   => array_values($user_lists),
             'active_lists' => $active_lists
@@ -233,8 +286,9 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Save Influencer to Lists
-     * * Overwrites the CPT list bindings using Group IDs.
-     * * @return void
+     * Overwrites the CPT list bindings using Group IDs.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_save_influencer_lists_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -274,8 +328,10 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Upsert (Create/Update) Group
-     * * Creates a new group or updates an existing one's name and description.
-     * * @return void
+     * Creates a new group or updates an existing one's name and description.
+     * Records the creation date.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_upsert_group_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -292,12 +348,17 @@ class Saves_Manager {
 
         if (empty($group_id)) {
             $group_id = uniqid('grp_');
+            $date = wp_date('Y-m-d H:iA');
+        } else {
+            // Preserve existing date if updating
+            $date = isset($user_lists[$group_id]['date']) ? $user_lists[$group_id]['date'] : wp_date('Y-m-d H:iA');
         }
 
         $user_lists[$group_id] = [
             'id'   => $group_id,
             'name' => $name,
-            'desc' => $desc
+            'desc' => $desc,
+            'date' => $date
         ];
 
         update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
@@ -306,8 +367,9 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Delete Group
-     * * Deletes the group and unassigns it from all relevant influencer saves.
-     * * @return void
+     * Deletes the group and unassigns it from all relevant influencer saves.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_delete_group_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -318,14 +380,12 @@ class Saves_Manager {
 
         if (empty($group_id)) wp_send_json_error(['message' => 'Group ID missing.']);
 
-        // 1. Remove from User Meta
         $user_lists = $this->get_normalized_groups($user_id);
         if (isset($user_lists[$group_id])) {
             unset($user_lists[$group_id]);
             update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
         }
 
-        // 2. Clean up CPTs
         $saved_posts = get_posts([
             'post_type'      => 'saved-influencer',
             'author'         => $user_id,
@@ -340,7 +400,7 @@ class Saves_Manager {
             if (is_array($lists)) {
                 $lists = array_diff($lists, [$group_id]);
                 if (empty($lists)) {
-                    wp_delete_post($post->ID, true); // Trash post if no groups remain
+                    wp_delete_post($post->ID, true);
                 } else {
                     update_post_meta($post->ID, 'saved_in_lists', $lists);
                 }
@@ -352,8 +412,9 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Get Group Influencers
-     * * Fetches all influencers assigned to a specific group using Group ID.
-     * * @return void
+     * Fetches all influencers assigned to a specific group using Group ID.
+     *
+     * @return void Sends a JSON response.
      */
     public function handle_get_group_influencers_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -398,44 +459,67 @@ class Saves_Manager {
 
     /**
      * Renders Inline JavaScript, CSS, and HTML for the Modals & Shortcode.
-     * * Utilizes a multi-view modal architecture to toggle between list views and edit screens.
-     * * @return void
+     * Handles the complex DOM interactions for the custom dropdowns, modal views, 
+     * and asynchronous saving.
+     *
+     * @return void Outputs directly to wp_footer.
      */
     public function render_inline_assets() {
         ?>
         <style>
-            /* Shortcode Grid Styling */
-            .inf-groups-grid {
-                display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin: 20px 0;
-            }
+            /* Shortcode Grid Styling (Updated to Match Video) */
+            .inf-groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
             .inf-group-card {
-                background: #f4f4f5; padding: 20px; border-radius: 8px; border: 1px solid #e1e1e3;
-                display: flex; flex-direction: column; justify-content: space-between; transition: 0.2s;
+                background: #fdfdfd; border-radius: 8px; border: 1px solid #e2e4e7;
+                display: flex; flex-direction: column; transition: 0.2s; position: relative;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.04); height: 160px;
             }
-            .inf-group-card:hover { border-color: #5034c4; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-            .inf-group-title { margin: 0 0 6px 0; font-size: 16px; color: #222; font-weight: 600; }
-            .inf-group-desc { margin: 0 0 16px 0; font-size: 13px; color: #666; line-height: 1.4; flex-grow: 1; }
-            .inf-card-actions { display: flex; gap: 8px; border-top: 1px solid #ddd; padding-top: 12px; }
+            .inf-group-card:hover { border-color: #d0d3d8; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+            
+            /* Card Header & Actions */
+            .inf-card-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 0 20px; }
+            .inf-group-title { margin: 0; font-size: 15px; color: #333; font-weight: 500; }
+            .inf-card-actions { display: flex; gap: 4px; position: relative; z-index: 10; }
             .inf-btn-icon {
-                background: transparent; border: none; cursor: pointer; color: #666; padding: 6px; 
+                background: transparent; border: none; cursor: pointer; color: #888; padding: 6px; 
                 border-radius: 4px; display: flex; align-items: center; justify-content: center;
             }
-            .inf-btn-icon:hover { background: #eaeaec; color: #5034c4; }
-            .inf-trigger-delete-group:hover { color: #dc3545; }
+            .inf-btn-icon:hover { background: #f0f2f5; color: #333; }
+            
+            /* Dropdown Menu */
+            .inf-dropdown-wrapper { position: relative; }
+            .inf-dropdown-menu {
+                position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #eee;
+                border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 140px;
+                display: none; z-index: 20; padding: 6px; margin-top: 4px;
+            }
+            .inf-dropdown-wrapper.active .inf-dropdown-menu { display: block; }
+            .inf-dropdown-item {
+                display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
+                border: none; background: transparent; text-align: left; cursor: pointer;
+                font-size: 13px; color: #444; border-radius: 4px; font-family: inherit;
+            }
+            .inf-dropdown-item:hover { background: #f8f9fa; color: #dc3545; }
+
+            /* Card Body (Clickable Area) */
+            .inf-card-body { padding: 0 20px 20px 20px; cursor: pointer; flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+            .inf-group-date { font-size: 12px; color: #999; margin-bottom: 12px; }
+            
+            /* Avatars */
+            .inf-group-avatars { display: flex; align-items: center; }
+            .inf-avatar-wrapper { 
+                width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; 
+                margin-left: -8px; overflow: hidden; background: #eee;
+            }
+            .inf-avatar-wrapper:first-child { margin-left: 0; }
+            .inf-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
             .inf-alert { padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; }
 
             /* Modal Framework */
-            .inf-modal-overlay {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); 
-                z-index: 99999; display: none; align-items: center; justify-content: center; font-family: inherit;
-            }
-            .inf-modal-content {
-                background: #f4f4f5; padding: 24px; border-radius: 12px; width: 100%; max-width: 420px; 
-                box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; display: none;
-            }
+            .inf-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 99999; display: none; align-items: center; justify-content: center; font-family: inherit; }
+            .inf-modal-content { background: #fdfdfd; padding: 24px; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; display: none; }
             .inf-modal-content.active-view { display: block; }
-            
-            /* Modal Typography & Inputs */
             .inf-modal-header { display: flex; align-items: center; margin-bottom: 20px; }
             .inf-modal-header h3 { margin: 0; font-size: 18px; color: #333; font-weight: 500; }
             .inf-btn-back { background: transparent; border: none; cursor: pointer; color: #666; padding: 0 10px 0 0; display: flex; align-items: center; gap: 4px; font-size:14px; }
@@ -445,30 +529,20 @@ class Saves_Manager {
             .inf-input-group label span { color: #dc3545; }
             .inf-input, .inf-textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
             .inf-textarea { resize: vertical; min-height: 80px; }
-
-            /* List View Elements */
             .inf-lists-container { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
             .inf-list-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; border-radius: 6px; }
-            .inf-list-item:hover { background: #ebebec; }
+            .inf-list-item:hover { background: #f5f5f5; }
             .inf-list-item-left { display: flex; align-items: center; flex-grow: 1; cursor: pointer; }
             .inf-list-item-left input { margin-right: 12px; cursor: pointer; }
             .inf-list-item-left label { cursor: pointer; font-size: 14px; color: #444; user-select: none; }
-            
-            .inf-create-btn {
-                background: none; border: none; color: #666; font-size: 14px; cursor: pointer; 
-                padding: 10px 4px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; width: 100%;
-            }
+            .inf-create-btn { background: none; border: none; color: #666; font-size: 14px; cursor: pointer; padding: 10px 4px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; width: 100%; }
             .inf-create-btn:hover { color: #5034c4; }
-            
-            /* Buttons */
             .inf-modal-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
-            .inf-btn { flex: 1; padding: 12px; border-radius: 8px; font-weight: 500; cursor: pointer; text-align: center; border: none; transition: 0.2s; font-size: 14px;}
+            .inf-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 500; cursor: pointer; text-align: center; border: none; transition: 0.2s; font-size: 14px;}
             .inf-btn-cancel { background: transparent; color: #555; border: 1px solid #ddd; }
             .inf-btn-cancel:hover { background: #eaeaea; }
             .inf-btn-save { background: #5034c4; color: #fff; }
             .inf-btn-save:hover { background: #40299e; }
-
-            /* Group View Specific Styles */
             .inf-group-creators-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
             .inf-group-creators-list li { padding: 12px 20px; border-bottom: 1px solid #eaeaea; }
             .inf-group-creators-list li:last-child { border-bottom: none; }
@@ -535,13 +609,7 @@ class Saves_Manager {
                 }
 
                 // Global State
-                let state = {
-                    influencerId: null,
-                    triggerBtn: null,
-                    groups: [],      // Array of objects {id, name, desc}
-                    activeIds: [],   // Array of strings (group_ids)
-                    entryPoint: ''   // 'influencer' or 'shortcode'
-                };
+                let state = { influencerId: null, triggerBtn: null, groups: [], activeIds: [], entryPoint: '' };
 
                 // Navigation Helper
                 function switchModalView(viewId) {
@@ -576,9 +644,7 @@ class Saves_Manager {
                     $('#inf-lists-wrapper').html(html);
                 }
 
-                // ==========================================
                 // 1. Influencer Saving Flow
-                // ==========================================
                 $(document).on('click', '.save-influencer-trigger', function (e) {
                     e.preventDefault();
                     state.triggerBtn = $(this);
@@ -604,7 +670,6 @@ class Saves_Manager {
                     });
                 });
 
-                // Save Influencer Selection
                 $('#inf-modal-save-influencer').on('click', function() {
                     let selected = [];
                     $('.inf-list-checkbox:checked').each(function() { selected.push($(this).val()); });
@@ -626,38 +691,31 @@ class Saves_Manager {
                     });
                 });
 
-                // ==========================================
                 // 2. Group Edit / Create Flow
-                // ==========================================
                 $('#inf-btn-go-create').on('click', function() {
                     $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
-                    $('#inf-btn-back-manage').show(); // Show back button
+                    $('#inf-btn-back-manage').show();
                     switchModalView('inf-view-edit');
                 });
 
-                $(document).on('click', '.inf-trigger-edit-group', function() {
+                $(document).on('click', '.inf-trigger-edit-group', function(e) {
+                    e.stopPropagation(); // Prevent triggering card body click
                     $('#inf-edit-id').val($(this).attr('data-id'));
                     $('#inf-edit-name').val($(this).attr('data-name'));
                     $('#inf-edit-desc').val($(this).attr('data-desc'));
                     
-                    if (state.entryPoint === 'influencer') {
-                        $('#inf-btn-back-manage').show();
-                    } else {
-                        $('#inf-btn-back-manage').hide(); // Hide back button if opened from shortcode
-                    }
+                    if (state.entryPoint === 'influencer') { $('#inf-btn-back-manage').show(); } 
+                    else { $('#inf-btn-back-manage').hide(); }
+                    
                     switchModalView('inf-view-edit');
                 });
 
-                $('#inf-btn-back-manage').on('click', function() {
-                    switchModalView('inf-view-manage');
-                });
+                $('#inf-btn-back-manage').on('click', function() { switchModalView('inf-view-manage'); });
 
-                // Save Group
                 $('#inf-modal-save-group').on('click', function() {
                     let id = $('#inf-edit-id').val();
                     let name = $('#inf-edit-name').val().trim();
                     let desc = $('#inf-edit-desc').val().trim();
-                    
                     if (!name) { alert("Group name is required."); return; }
                     let $btn = $(this); $btn.text('Saving...').prop('disabled', true);
 
@@ -668,23 +726,17 @@ class Saves_Manager {
                             if (res.success) {
                                 let newGrp = res.data.group;
                                 if (state.entryPoint === 'influencer') {
-                                    // Update local state and return to manage view
                                     let idx = state.groups.findIndex(g => g.id === newGrp.id);
                                     if (idx > -1) state.groups[idx] = newGrp; else { state.groups.push(newGrp); state.activeIds.push(newGrp.id); }
                                     renderGroupsList();
                                     switchModalView('inf-view-manage');
                                 } else {
-                                    // Update Shortcode DOM directly
                                     let $card = $('#card-' + newGrp.id);
                                     if($card.length) {
-                                        $card.find('[data-field="name"]').text(newGrp.name);
-                                        let $desc = $card.find('[data-field="desc"]');
-                                        if(newGrp.desc) { $desc.text(newGrp.desc).show(); } else { $desc.hide(); }
-                                        // Update edit button dataset
+                                        $card.find('.inf-group-title').text(newGrp.name);
                                         $card.find('.inf-trigger-edit-group').attr('data-name', newGrp.name).attr('data-desc', newGrp.desc);
-                                    } else {
-                                        location.reload(); // Fallback if created outside flow
-                                    }
+                                        $card.find('.view-group-influencers-trigger').attr('data-group-name', newGrp.name);
+                                    } else { location.reload(); }
                                     $('#inf-modal-overlay').hide();
                                 }
                             } else { alert(res.data.message); }
@@ -693,13 +745,18 @@ class Saves_Manager {
                     });
                 });
 
-                // ==========================================
-                // 3. Shortcode Interactions (View / Delete)
-                // ==========================================
-                $('.inf-groups-grid').on('click', '.inf-trigger-edit-group', function() {
-                    state.entryPoint = 'shortcode'; // Bypass "Back" button functionality
-                });
+                // 3. Shortcode Interactions (Dropdown, View, Delete)
+                $('.inf-groups-grid').on('click', '.inf-trigger-edit-group', function() { state.entryPoint = 'shortcode'; });
 
+                // Toggle 3-dot dropdown menu
+                $(document).on('click', '.inf-trigger-dropdown', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active'); // Close others
+                    $(this).closest('.inf-dropdown-wrapper').toggleClass('active');
+                });
+                $(document).click(function() { $('.inf-dropdown-wrapper').removeClass('active'); });
+
+                // View Creators
                 $(document).on('click', '.view-group-influencers-trigger', function() {
                     let id = $(this).attr('data-group-id');
                     let name = $(this).attr('data-group-name');
@@ -717,8 +774,12 @@ class Saves_Manager {
                     });
                 });
 
-                $(document).on('click', '.inf-trigger-delete-group', function() {
+                // Delete Group
+                $(document).on('click', '.inf-trigger-delete-group', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active');
                     if(!confirm("Are you sure you want to delete this group? This will remove the group from all saved creators.")) return;
+                    
                     let id = $(this).attr('data-id');
                     let $card = $('#card-' + id);
                     $card.css('opacity', '0.5');
@@ -733,19 +794,15 @@ class Saves_Manager {
                     });
                 });
 
-                // ==========================================
                 // 4. Search Form Saving (Unchanged)
-                // ==========================================
                 $('.save-search-trigger').on('click', function (e) {
                     e.preventDefault();
                     let $btn = $(this); let ogText = $btn.text(); $btn.text('Saving...');
                     let getChecked = (name) => { let v=[]; $('input[name^="'+name+'"]:checked').each(function(){v.push($(this).val());}); return v; };
 
                     let searchData = {
-                        'niche': getChecked('niche'), 'platform': getChecked('platform'),
-                        'followers': getChecked('followers'), 'country': getChecked('country'),
-                        'lang': getChecked('lang'), 'gender': getChecked('gender'),
-                        'score': $('input[name="score"]').val()
+                        'niche': getChecked('niche'), 'platform': getChecked('platform'), 'followers': getChecked('followers'), 
+                        'country': getChecked('country'), 'lang': getChecked('lang'), 'gender': getChecked('gender'), 'score': $('input[name="score"]').val()
                     };
 
                     $.ajax({
