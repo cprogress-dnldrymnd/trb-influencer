@@ -37,8 +37,9 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
          * Initializes the class and registers WordPress hooks.
          *
          * The constructor binds the required actions to their respective
-         * WordPress lifecycle hooks to inject inline scripts into the footer,
-         * register PMPro user fields, and enforce strict server-side validation upon instantiation.
+         * WordPress lifecycle hooks. The acceptance field registration is delayed
+         * to the 'wp' hook to allow for conditional page context checks before
+         * PMPro processes form submissions.
          *
          * @return void
          */
@@ -46,7 +47,12 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
-            add_action('init', array($this, 'add_acceptance_field'));
+            
+            // Shift the acceptance field to the 'wp' hook at priority 0.
+            // This delays execution until the main query is parsed, allowing us to accurately 
+            // use is_page() for conditional rendering, while executing just before PMPro 
+            // processes the checkout logic (which runs at priority 1).
+            add_action('wp', array($this, 'add_acceptance_field'), 0);
             
             // Hook early into checkout validation to prevent ghost user creation.
             add_filter('pmpro_registration_checks', array($this, 'validate_acceptance_field'));
@@ -73,7 +79,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 <script type="text/javascript">
                     /**
                      * PMPro AJAX Signup Form Handler
-                     * Intercepts the checkout submission, processses the POST request silently,
+                     * Intercepts the checkout submission, processes the POST request silently,
                      * and dynamically injects validation errors back into the shortcode UI 
                      * without allowing the browser to redirect to the main checkout page.
                      */
@@ -105,6 +111,11 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                             if (!formData.has('submit-checkout')) {
                                 formData.append('submit-checkout', '1');
                             }
+
+                            // Inject a context identifier into the payload.
+                            // This allows the server-side logic to enforce required field validation 
+                            // specifically for this custom AJAX flow, distinguishing it from the native checkout.
+                            formData.append('is_custom_ajax_signup', '1');
 
                             // Target the form's native action URL (typically /membership-checkout/)
                             const fetchUrl = form.action || window.location.href;
@@ -204,12 +215,11 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         }
 
         /**
-         * Adds a required acceptance checkbox field to the PMPro signup form.
+         * Adds a required acceptance checkbox field conditionally based on context.
          *
-         * Fetches the native WordPress Privacy Policy URL and the specific 
-         * Terms of Use page URL (via ID) to generate an HTML string for the checkbox option.
-         * Uses the 'text' parameter for single-checkbox inline rendering.
-         * Enforces strict frontend validation by setting the field to required.
+         * Uses an explicit contextual check to ensure the field is ONLY injected 
+         * on the custom signup page (4144) or during its associated AJAX POST submission, 
+         * thereby keeping the native membership-checkout page visually clean.
          *
          * @return void
          */
@@ -217,6 +227,14 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         {
             if (! function_exists('pmpro_add_user_field')) {
                 return;
+            }
+
+            // Strict contextual check to isolate the field from the standard checkout page.
+            $is_custom_page = is_page(4144);
+            $is_ajax_post   = isset($_POST['is_custom_ajax_signup']);
+
+            if (! $is_custom_page && ! $is_ajax_post) {
+                return; // Hide field on native membership-checkout instances
             }
 
             // Retrieve the dynamic URLs for the policy pages
@@ -247,12 +265,11 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         }
 
         /**
-         * Validates the acceptance field during the PMPro pre-registration checks.
+         * Validates the acceptance field conditionally during the PMPro pre-registration checks.
          *
-         * This method acts as a strict server-side gatekeeper. PMPro occasionally processes
-         * user creation before fully resolving custom field validation errors. Hooking into
-         * 'pmpro_registration_checks' ensures the checkout process is entirely halted—preventing
-         * ghost user creation and subsequent nonce failures—if the terms are not explicitly accepted.
+         * Acts as a strict server-side gatekeeper, but scopes its execution exclusively 
+         * to the custom AJAX signup process. This prevents validation blockers on the 
+         * standard membership-checkout page where the field is intentionally hidden.
          *
          * @param bool $continue_registration Current boolean state of registration checks.
          * @return bool Returns false if validation fails, halting checkout; otherwise returns the original boolean state.
@@ -262,6 +279,14 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             // Bypass if previous checks have already halted registration.
             if (! $continue_registration) {
                 return $continue_registration;
+            }
+
+            // Contextual bypass: Do not enforce validation on the native checkout page.
+            $is_custom_page = is_page(4144);
+            $is_ajax_post   = isset($_POST['is_custom_ajax_signup']);
+
+            if (! $is_custom_page && ! $is_ajax_post) {
+                return $continue_registration; // Safely ignore this check for standard checkouts
             }
 
             // Verify the specific field payload in the POST request lifecycle.
