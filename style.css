@@ -1277,7 +1277,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     width: 100%;
     margin: 0 !important; }
   body:not(.page-id-4144) span#pmpro_submit_span:before {
-    content: "Submit";
+    content: "Upgrade plan";
     position: absolute;
     left: 0;
     top: 0;
@@ -1432,6 +1432,31 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     .custom-buy-credit.custom-buy-credit.custom-buy-credit .form-group .btn:not(:hover) {
       background-color: var(--e-global-color-accent);
       border-color: var(--e-global-color-accent); }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .myCRED-buy-form {
+  display: flex;
+  align-items: center;
+  gap: 0; }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .myCRED-buy-form .mycred-point-type {
+  font-family: "Inter";
+  color: #000;
+  display: none; }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .myCRED-buy-form label {
+  font-size: clamp(12px, 0.938vw, 18px);
+  color: #000;
+  font-family: inherit;
+  margin-bottom: 10px;
+  display: block; }
+.custom-buy-credit.custom-buy-credit.custom-buy-credit .myCRED-buy-form.myCRED-buy-form.myCRED-buy-form.myCRED-buy-form .form-control {
+  font-family: "Inter";
+  color: var(--e-global-color-primary);
+  font-size: 20px;
+  border: 1px solid;
+  border-radius: 10px 10px 0 0;
+  padding: 10px;
+  min-height: 62px;
+  font-size: clamp(12px, 0.938vw, 18px) !important;
+  width: 100%;
+  min-height: unset; }
 
 #pmpropp_payment_plans .pmpro_form_field-radio-item .pmpro_form_input {
   width: auto; }

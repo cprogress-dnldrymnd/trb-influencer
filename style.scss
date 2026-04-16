@@ -1810,6 +1810,38 @@ body:not(.page-id-4144) {
             }
         }
     }
+
+    .myCRED-buy-form {
+        display: flex;
+        align-items: center;
+        gap: 0;
+    }
+    .myCRED-buy-form .mycred-point-type {
+        font-family: "Inter";
+        color: #000;
+        display: none;
+    }
+
+    .myCRED-buy-form label {
+        font-size: clamp(12px, 0.938vw, 18px);
+        color: #000;
+        font-family: inherit;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .myCRED-buy-form.myCRED-buy-form.myCRED-buy-form.myCRED-buy-form .form-control {
+        font-family: "Inter";
+        color: var(--e-global-color-primary);
+        font-size: 20px;
+        border: 1px solid;
+        border-radius: 10px 10px 0 0;
+        padding: 10px;
+        min-height: 62px;
+        font-size: clamp(12px, 0.938vw, 18px) !important;
+        width: 100%;
+        min-height: unset;
+    }
 }
 #pmpropp_payment_plans {
     .pmpro_form_field-radio-item {
