@@ -1,27 +1,31 @@
 <?php
-
 /**
- * Class Saves_Manager
- * * Handles all server-side AJAX operations and client-side scripts 
- * for saving searches and influencers within the theme.
+ * Plugin Name: Saves Manager
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ * Description: Pro-level manager for handling saved searches and advanced influencer list grouping.
+ * * Class Saves_Manager
+ * * Handles all server-side AJAX operations, user meta list tracking, 
+ * and client-side modal scripts for saving searches and influencers.
  */
-class Saves_Manager
-{
+class Saves_Manager {
 
     /**
      * Constructor: Initialize hooks and actions.
      * * Binds the necessary WordPress hooks for AJAX processing and 
-     * front-end script rendering.
+     * front-end script/modal rendering.
      */
-    public function __construct()
-    {
+    public function __construct() {
         // AJAX hooks for logged-in users
-        add_action('wp_ajax_save_user_search', [$this, 'handle_save_search_ajax']);
-        add_action('wp_ajax_save_influencer', [$this, 'handle_save_influencer_ajax']);
+        add_action( 'wp_ajax_save_user_search', [ $this, 'handle_save_search_ajax' ] );
+        
+        // New hooks for the advanced modal list system
+        add_action( 'wp_ajax_get_influencer_modal_data', [ $this, 'handle_get_modal_data_ajax' ] );
+        add_action( 'wp_ajax_save_influencer_to_lists', [ $this, 'handle_save_influencer_lists_ajax' ] );
 
-        // Frontend hooks for injecting variables and scripts
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_ajax_variables']);
-        add_action('wp_footer', [$this, 'render_inline_javascript'], 100);
+        // Frontend hooks for injecting variables, styles, and scripts
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_ajax_variables' ] );
+        add_action( 'wp_footer', [ $this, 'render_inline_assets' ], 100 );
     }
 
     /**
@@ -30,15 +34,14 @@ class Saves_Manager
      * containing our nonces and the admin-ajax URL required by the JS.
      * * @return void
      */
-    public function enqueue_ajax_variables()
-    {
-        wp_register_script('theme-saves-handler', false);
-        wp_enqueue_script('theme-saves-handler');
-        wp_localize_script('theme-saves-handler', 'ajax_vars', [
-            'ajax_url'              => admin_url('admin-ajax.php'),
-            'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
-            'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
-        ]);
+    public function enqueue_ajax_variables() {
+        wp_register_script( 'theme-saves-handler', false );
+        wp_enqueue_script( 'theme-saves-handler' );
+        wp_localize_script( 'theme-saves-handler', 'ajax_vars', [
+            'ajax_url'              => admin_url( 'admin-ajax.php' ),
+            'save_search_nonce'     => wp_create_nonce( 'save_search_nonce' ),
+            'save_influencer_nonce' => wp_create_nonce( 'save_influencer_nonce' ),
+        ] );
     }
 
     /**
@@ -48,8 +51,7 @@ class Saves_Manager
      * and saves the filter inputs as post meta data.
      * * @return void Sends a JSON response.
      */
-    public function handle_save_search_ajax()
-    {
+    public function handle_save_search_ajax() {
         // 1. Security Check
         check_ajax_referer('save_search_nonce', 'security');
 
@@ -78,11 +80,9 @@ class Saves_Manager
         }
 
         // 3. Build Query String
-        // http_build_query creates the string: niche%5B0%5D=artist&niche%5B1%5D=beauty...
         $query_string = http_build_query($clean_data);
 
-        // 4. Format Adjustment (Optional but requested)
-        // PHP adds indices [0], [1] by default. Your request used [] (%5B%5D).
+        // 4. Format Adjustment 
         // This regex replaces %5B0%5D, %5B1%5D, etc. with just %5B%5D
         $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
 
@@ -110,231 +110,362 @@ class Saves_Manager
     }
 
     /**
-     * AJAX Handler: Save Influencer
-     * * Processes the save/unsave action for an influencer, updates the 'saved-influencer' 
-     * custom post type, and passes the notification HTML back to the client via JSON.
+     * Helper: Get Saved Influencer Post ID
+     * * Queries the database to find if the current user already has a 
+     * 'saved-influencer' CPT entry for a specific influencer.
+     * * @param int $influencer_id The ID of the influencer.
+     * @param int $user_id The User ID.
+     * @return int|bool The Post ID if found, false otherwise.
+     */
+    private function get_existing_influencer_save_id( $influencer_id, $user_id ) {
+        $existing = get_posts([
+            'post_type'      => 'saved-influencer',
+            'author'         => $user_id,
+            'meta_key'       => 'influencer_id',
+            'meta_value'     => $influencer_id,
+            'posts_per_page' => 1,
+            'fields'         => 'ids'
+        ]);
+        return !empty($existing) ? $existing[0] : false;
+    }
+
+    /**
+     * AJAX Handler: Get Modal Data
+     * * Retrieves the user's custom lists and checks which lists the 
+     * current influencer is already a part of to populate the modal UI.
      * * @return void Sends a JSON response.
      */
-    public function handle_save_influencer_ajax()
-    {
-        // Security check
+    public function handle_get_modal_data_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
 
-        // Check if user is logged in
         if (!is_user_logged_in()) {
-            wp_send_json_error(array('message' => 'You must be logged in to save.'));
+            wp_send_json_error(['message' => 'You must be logged in.']);
         }
 
-        // Get the data
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
-        $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'save';
+        $user_id = get_current_user_id();
+
+        // Retrieve user's custom lists from user meta
+        $user_lists = get_user_meta($user_id, 'custom_influencer_lists', true);
+        if (!is_array($user_lists)) {
+            $user_lists = ['Favorites']; // Default fallback list
+        }
+
+        // Check active lists for this specific influencer
+        $active_lists = [];
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+        
+        if ($post_id) {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($saved_in)) {
+                $active_lists = $saved_in;
+            }
+        }
+
+        wp_send_json_success([
+            'all_lists'    => array_unique($user_lists),
+            'active_lists' => $active_lists
+        ]);
+    }
+
+    /**
+     * AJAX Handler: Save Influencer to Lists
+     * * Processes the modal submission. Creates/updates the user's custom lists, 
+     * updates the 'saved-influencer' CPT, and assigns the list metadata.
+     * * @return void Sends a JSON response.
+     */
+    public function handle_save_influencer_lists_ajax() {
+        check_ajax_referer('save_influencer_nonce', 'security');
+
+        if (!is_user_logged_in()) {
+            wp_send_json_error(['message' => 'You must be logged in to save.']);
+        }
+
+        $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+        $selected_lists = isset($_POST['lists']) ? array_map('sanitize_text_field', (array)$_POST['lists']) : [];
+        $new_list_name = isset($_POST['new_list_name']) ? sanitize_text_field($_POST['new_list_name']) : '';
+        $user_id = get_current_user_id();
 
         if (empty($influencer_id)) {
-            wp_send_json_error(array('message' => 'No Influencer ID provided.'));
+            wp_send_json_error(['message' => 'No Influencer ID provided.']);
         }
 
-        // Establish current user ID
-        $current_user_id = get_current_user_id();
+        // 1. Manage User Lists (Create new list if requested)
+        $user_lists = get_user_meta($user_id, 'custom_influencer_lists', true);
+        $user_lists = is_array($user_lists) ? $user_lists : ['Favorites'];
 
-        if ($type == 'save') {
-            // Format: Jan 4, 2026 @ 8:57 pm
-            // Note: current_time gets the time based on your WP timezone settings
-            $post_title = 'Influencer saved on ' . current_time('M j, Y @ g:i a');
-
-            // Prepare Post Data
-            $new_post = array(
-                'post_title'    => $post_title,
-                'post_type'     => 'saved-influencer', // Ensure this Post Type is registered
-                'post_status'   => 'publish',
-                'post_author'   => $current_user_id,
-            );
-
-            // Insert the Post
-            $post_id = wp_insert_post($new_post);
-
-            if (is_wp_error($post_id)) {
-                wp_send_json_error(array('message' => 'Could not create post.'));
-            } else {
-                // Update Meta Data
-                update_post_meta($post_id, 'influencer_id', $influencer_id);
-
-                // Construct the notification HTML
-                $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully saved</h4><p>This creator has been saved within your Saved Lists</p></div>');
-
-                // Return the HTML directly in the success payload
-                wp_send_json_success(array(
-                    'message'     => 'Saved successfully!',
-                    'id'          => $post_id,
-                    'notice_html' => $message
-                ));
+        if (!empty($new_list_name)) {
+            if (!in_array($new_list_name, $user_lists)) {
+                $user_lists[] = $new_list_name;
+                update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
             }
+            if (!in_array($new_list_name, $selected_lists)) {
+                $selected_lists[] = $new_list_name; // Automatically select the newly created list
+            }
+        }
+
+        // 2. Manage the CPT Data
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+        if (empty($selected_lists)) {
+            // If all lists are unchecked, delete the save entirely to maintain clean DB
+            if ($post_id) {
+                wp_delete_post($post_id, true);
+            }
+            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
+            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved']);
         } else {
-            // Note: Assumes `is_influencer_saved()` is defined elsewhere in your environment
-            $saved_id = is_influencer_saved($influencer_id);
-            if ($saved_id) {
-                wp_delete_post($saved_id, true);
-
-                // Construct the notification HTML
-                $message = sprintf('<div class="my-cred-notice-text"><h4>Creator succesfully unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
-
-                // Return the HTML directly in the success payload
-                wp_send_json_success(array(
-                    'message'     => 'Unsaved successfully!',
-                    'id'          => $saved_id,
-                    'notice_html' => $message
-                ));
+            // Update or Create Post
+            if (!$post_id) {
+                $post_args = [
+                    'post_title'  => 'Influencer saved on ' . current_time('M j, Y @ g:i a'),
+                    'post_type'   => 'saved-influencer',
+                    'post_status' => 'publish',
+                    'post_author' => $user_id,
+                ];
+                $post_id = wp_insert_post($post_args);
+                
+                if (is_wp_error($post_id)) {
+                    wp_send_json_error(['message' => 'Could not create post.']);
+                }
+                update_post_meta($post_id, 'influencer_id', $influencer_id);
             }
+
+            // Sync the lists this influencer belongs to
+            update_post_meta($post_id, 'saved_in_lists', $selected_lists);
+
+            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>');
+            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved']);
         }
     }
 
     /**
-     * Renders Inline JavaScript.
-     * * Injects the contents of saves.js directly into the DOM footer 
-     * to fulfill the requirement of keeping everything in a single PHP file.
+     * Renders Inline JavaScript, CSS, and HTML for the Modal.
+     * * Keeps the entire logic encapsulated in one file while providing 
+     * an elegant UI mirroring the requested CreatorDB design.
      * * @return void
      */
-    public function render_inline_javascript()
-    {
-?>
+    public function render_inline_assets() {
+        ?>
+        <style>
+            /* Influencer Save Modal Styling */
+            .inf-modal-overlay {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.4); z-index: 99999;
+                display: none; align-items: center; justify-content: center;
+                font-family: inherit;
+            }
+            .inf-modal-content {
+                background: #f4f4f5; padding: 24px; border-radius: 12px;
+                width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            }
+            .inf-modal-content h3 {
+                margin: 0 0 16px 0; font-size: 18px; color: #333; font-weight: 500;
+            }
+            .inf-lists-container {
+                max-height: 200px; overflow-y: auto; margin-bottom: 12px;
+            }
+            .inf-list-item {
+                display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;
+            }
+            .inf-list-item input { margin-right: 10px; cursor: pointer; }
+            .inf-list-item label { cursor: pointer; font-size: 14px; color: #444; }
+            
+            .inf-create-btn {
+                background: none; border: none; color: #888; font-size: 14px; 
+                cursor: pointer; padding: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
+            }
+            .inf-create-btn:hover { color: #5034c4; }
+            
+            .inf-new-group-input {
+                width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;
+                margin-bottom: 16px; display: none; font-size: 14px;
+            }
+            
+            .inf-modal-actions {
+                display: flex; justify-content: space-between; gap: 12px;
+            }
+            .inf-btn {
+                flex: 1; padding: 10px; border-radius: 8px; font-weight: 500;
+                cursor: pointer; text-align: center; border: none; transition: 0.2s;
+            }
+            .inf-btn-cancel {
+                background: transparent; color: #555; border: 1px solid #ddd;
+            }
+            .inf-btn-cancel:hover { background: #eaeaea; }
+            .inf-btn-save {
+                background: #5034c4; color: #fff;
+            }
+            .inf-btn-save:hover { background: #40299e; }
+        </style>
+
+        <div id="inf-save-modal" class="inf-modal-overlay">
+            <div class="inf-modal-content">
+                <h3>Manage groups</h3>
+                <div class="inf-lists-container" id="inf-lists-wrapper">
+                    </div>
+                
+                <button type="button" class="inf-create-btn" id="inf-trigger-new-group">
+                    <span>+</span> Create new group
+                </button>
+                <input type="text" id="inf-new-group-name" class="inf-new-group-input" placeholder="Enter group name...">
+                
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel" id="inf-modal-cancel">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-modal-save">Save</button>
+                </div>
+            </div>
+        </div>
+
         <script type="text/javascript">
             jQuery(document).ready(function($) {
 
                 /**
                  * Renders a dynamic notification popup mimicking myCred's native transient notices.
-                 *
-                 * @param {string} htmlContent The HTML payload returned from the AJAX response.
-                 * @return {void}
                  */
                 function display_dynamic_mycred_notice(htmlContent) {
-                    // Construct the wrapper element. Adjust inline styles as needed to match your theme.
                     var $notice = $('<div class="notice-wrap"> <div class="notice-item-wrapper"> <div class="notice-item succes" >' + htmlContent + '</div></div></div>');
-
-                    // Append to DOM
                     $('body').append($notice);
-
-                    // Animate in
                     $notice.fadeIn(300);
-
-                    // Auto-remove after 4 seconds to keep the DOM clean
-                    setTimeout(function() {
-                        $notice.fadeOut(300, function() {
-                            $(this).remove();
-                        });
+                    setTimeout(function () {
+                        $notice.fadeOut(300, function () { $(this).remove(); });
                     }, 4000);
                 }
 
+                // Global variables for modal state
+                let currentInfluencerId = null;
+                let $currentTriggerBtn = null;
+
                 /**
-                 * Initializes the influencer save/unsave trigger logic.
-                 * * @return {void}
+                 * Influencer Modal & Save Logic
                  */
-                function saved_influencer_trigger() {
-                    // Listen for click on .save-influencer-trigger
-                    $(document).on('click', '.save-influencer-trigger', function(e) {
+                function init_influencer_list_system() {
+                    
+                    // 1. Open Modal and Fetch Data
+                    $(document).on('click', '.save-influencer-trigger', function (e) {
                         e.preventDefault();
+                        $currentTriggerBtn = $(this);
+                        currentInfluencerId = $currentTriggerBtn.attr('influencer-id');
+                        
+                        let $btnText = $currentTriggerBtn.find('.elementor-button-text');
+                        let originalText = $btnText.text();
+                        $btnText.text('Loading...');
+                        $currentTriggerBtn.prop('disabled', true);
 
-                        var $button = $(this);
-
-                        // Get the ID from the attribute
-                        var influencerId = $button.attr('influencer-id');
-                        var $buttonText = $(this).find('.elementor-button-text');
-
-                        // Scope variables properly
-                        var type, buttonupdated, buttonupdating;
-
-                        // (Optional) Visual feedback: Change button text or disable it
-                        if ($button.hasClass('delete-save')) {
-                            type = 'delete';
-                            buttonupdated = 'SAVED';
-                            buttonupdating = 'UNSAVING...';
-                        } else {
-                            type = 'save';
-                            buttonupdated = 'UNSAVE';
-                            buttonupdating = 'SAVING...';
-                        }
-                        $buttonText.text(buttonupdating).prop('disabled', true);
-                        $button.prop('disabled', true);
-
+                        // Fetch user lists
                         $.ajax({
-                            url: ajax_vars.ajax_url, // From wp_localize_script
+                            url: ajax_vars.ajax_url,
                             type: 'POST',
                             data: {
-                                action: 'save_influencer', // Must match the wp_ajax_ hook
+                                action: 'get_influencer_modal_data',
                                 security: ajax_vars.save_influencer_nonce,
-                                influencer_id: influencerId,
-                                type: type
+                                influencer_id: currentInfluencerId
                             },
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.success) {
+                                    populate_modal_lists(response.data.all_lists, response.data.active_lists);
+                                    $('#inf-save-modal').css('display', 'flex');
+                                } else {
+                                    alert('Error: ' + response.data.message);
+                                }
+                                $btnText.text(originalText);
+                                $currentTriggerBtn.prop('disabled', false);
+                            }
+                        });
+                    });
 
-                                    // Render the dynamic HTML notice passed from PHP, replacing the native alert()
+                    // 2. Populate Checkboxes Helper
+                    function populate_modal_lists(all_lists, active_lists) {
+                        let html = '';
+                        all_lists.forEach(function(listName) {
+                            let isChecked = active_lists.includes(listName) ? 'checked' : '';
+                            html += `
+                                <div class="inf-list-item">
+                                    <input type="checkbox" id="list_${listName}" value="${listName}" class="inf-list-checkbox" ${isChecked}>
+                                    <label for="list_${listName}">${listName}</label>
+                                </div>
+                            `;
+                        });
+                        $('#inf-lists-wrapper').html(html);
+                        $('#inf-new-group-name').val('').hide();
+                        $('#inf-trigger-new-group').show();
+                    }
+
+                    // 3. UI Interactions inside Modal
+                    $('#inf-trigger-new-group').on('click', function() {
+                        $(this).hide();
+                        $('#inf-new-group-name').show().focus();
+                    });
+
+                    $('#inf-modal-cancel').on('click', function() {
+                        $('#inf-save-modal').hide();
+                    });
+
+                    // 4. Save Submission Action
+                    $('#inf-modal-save').on('click', function() {
+                        let selectedLists = [];
+                        $('.inf-list-checkbox:checked').each(function() {
+                            selectedLists.push($(this).val());
+                        });
+                        
+                        let newListName = $('#inf-new-group-name').is(':visible') ? $('#inf-new-group-name').val().trim() : '';
+                        let $saveBtn = $(this);
+                        $saveBtn.text('Saving...').prop('disabled', true);
+
+                        $.ajax({
+                            url: ajax_vars.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'save_influencer_to_lists',
+                                security: ajax_vars.save_influencer_nonce,
+                                influencer_id: currentInfluencerId,
+                                lists: selectedLists,
+                                new_list_name: newListName
+                            },
+                            success: function (response) {
+                                if (response.success) {
                                     if (response.data.notice_html) {
                                         display_dynamic_mycred_notice(response.data.notice_html);
                                     }
-
-                                    $buttonText.text(buttonupdated);
-
-                                    if (type == 'delete') {
-                                        $button.removeClass('delete-save');
+                                    
+                                    // Update visual state of original trigger button
+                                    let $btnText = $currentTriggerBtn.find('.elementor-button-text');
+                                    if(response.data.status === 'saved') {
+                                        $btnText.text('SAVED');
+                                        $currentTriggerBtn.addClass('delete-save');
                                     } else {
-                                        $button.addClass('delete-save');
+                                        $btnText.text('UNSAVE');
+                                        $currentTriggerBtn.removeClass('delete-save');
                                     }
-
-                                    $button.prop('disabled', false);
-
+                                    
+                                    $('#inf-save-modal').hide();
                                 } else {
                                     alert('Error: ' + response.data.message);
-                                    $buttonText.text('Save Influencer').prop('disabled', false);
                                 }
-                            },
-                            error: function() {
-                                alert('An unexpected error occurred.');
-                                $buttonText.text('Save Influencer').prop('disabled', false);
+                                $saveBtn.text('Save').prop('disabled', false);
                             }
                         });
                     });
                 }
 
                 /**
-                 * Initializes the search parameters saving logic.
-                 * * @return {void}
+                 * Initializes the search parameters saving logic. (Unchanged functionality)
                  */
-                function saved_search_trigger() {
-                    /**
-                     * Helper Function: Get Checked Values
-                     * * Iterates through all checkboxes that share a specific "name" attribute
-                     * (e.g., name="niche" or name="niche[]") and returns an array of their values.
-                     * * @param {string} name - The name attribute of the input field.
-                     * @returns {Array} - An array of values from checked boxes.
-                     */
+                function init_saved_search_trigger() {
                     function getCheckedValues(name) {
                         var values = [];
-                        // Selector explanation:
-                        // input[name^="..."] selects inputs where the name STARTS with the string provided.
-                        // This handles cases where the name might be "niche" or "niche[]".
-                        jQuery('input[name^="' + name + '"]:checked').each(function() {
+                        jQuery('input[name^="' + name + '"]:checked').each(function () {
                             values.push(jQuery(this).val());
                         });
                         return values;
                     }
 
-                    /**
-                     * Event Listener: Save Button Click
-                     * * Listens for a click on any element with class '.save-search-trigger'.
-                     * Gathers data and sends it to the server.
-                     */
-                    jQuery('.save-search-trigger').on('click', function(e) {
-
-                        // Prevent the link from jumping to the top of the page or reloading.
+                    jQuery('.save-search-trigger').on('click', function (e) {
                         e.preventDefault();
-
                         var $btn = jQuery(this);
                         var originalText = $btn.text();
-
-                        // UX: Change button text to indicate processing.
                         $btn.text('Saving...');
 
-                        // 1. Collect Data Object
-                        // We use our helper function for checkboxes and standard .val() for the range slider.
                         var searchData = {
                             'niche': getCheckedValues('niche'),
                             'platform': getCheckedValues('platform'),
@@ -342,39 +473,28 @@ class Saves_Manager
                             'country': getCheckedValues('country'),
                             'lang': getCheckedValues('lang'),
                             'gender': getCheckedValues('gender'),
-                            'score': jQuery('input[name="score"]').val() // Range slider usually has a single value
+                            'score': jQuery('input[name="score"]').val()
                         };
 
-                        // 2. AJAX Request
-                        // Sends the collected data to the PHP function 'handle_save_search_ajax'.
                         jQuery.ajax({
-                            url: ajax_vars.ajax_url, // URL passed from PHP via wp_localize_script
+                            url: ajax_vars.ajax_url, 
                             type: 'POST',
                             data: {
-                                action: 'save_user_search', // Must match the wp_ajax_{action} hook in PHP
-                                security: ajax_vars.save_search_nonce, // Security token passed from PHP
-                                search_data: searchData // The object containing our form values
+                                action: 'save_user_search', 
+                                security: ajax_vars.save_search_nonce,  
+                                search_data: searchData          
                             },
-
-                            // 3. Handle Success
-                            success: function(response) {
+                            success: function (response) {
                                 if (response.success) {
                                     $btn.text('Saved!');
-                                    // Optional: Revert text back to original after 2 seconds
-                                    setTimeout(function() {
-                                        $btn.text(originalText);
-                                    }, 2000);
+                                    setTimeout(function () { $btn.text(originalText); }, 2000);
                                 } else {
-                                    // If PHP sent wp_send_json_error()
                                     alert(response.data.message);
                                     $btn.text(originalText);
                                 }
                             },
-
-                            // 4. Handle Server/Network Errors
-                            error: function(response) {
+                            error: function (response) {
                                 alert('Server error. Please try again.');
-                                console.log(response);
                                 $btn.text(originalText);
                             }
                         });
@@ -382,12 +502,12 @@ class Saves_Manager
                 }
 
                 // Execute the trigger initializations on Document Ready
-                saved_influencer_trigger();
-                saved_search_trigger();
+                init_influencer_list_system();
+                init_saved_search_trigger();
 
             });
         </script>
-<?php
+        <?php
     }
 }
 
