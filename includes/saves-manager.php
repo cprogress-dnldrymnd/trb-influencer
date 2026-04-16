@@ -903,7 +903,7 @@ class Saves_Manager
 
             #inf-modal-overlay button.inf-btn-cancel {
                 background-color: transparent !important;
-                color: #555 !important;
+                color: var(--e-global-color-primary) !important;
                 border: 1px solid #ddd !important;
             }
 
