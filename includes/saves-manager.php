@@ -926,6 +926,7 @@ class Saves_Manager
                 padding: 10px 0;
                 width: 100%;
                 padding: 0 24px;
+                box-sizing: border-box;
             }
 
             .inf-loop-item-row {
