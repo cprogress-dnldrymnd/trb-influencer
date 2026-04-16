@@ -1358,6 +1358,9 @@ input:checked + .slider:before {
 }
 .pmpro-login.pmpro-login,
 .page-id-4144.page-id-4144 {
+    #pmpro_payment_method {
+        display: none !important;
+    }
     .pmpro_card {
         background-color: transparent;
         border-radius: 0;
@@ -1836,7 +1839,7 @@ body:not(.page-id-4144) {
         color: var(--e-global-color-primary);
         font-size: 20px;
         border: 1px solid;
-        border-radius: 10px ;
+        border-radius: 10px;
         padding: 10px;
         min-height: 62px;
         font-size: clamp(12px, 0.938vw, 18px) !important;
