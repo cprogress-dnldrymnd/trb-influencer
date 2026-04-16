@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.17
+ * Version: 1.0.18
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -644,7 +644,7 @@ class DD_PMPro_Frontend_Pricing
 		if ($user_max_base_price > 0) {
 			$action_verb = ($card_base_price < $user_max_base_price) ? 'DOWNGRADE PLAN' : 'UPGRADE PLAN';
 		} else {
-			$action_verb = 'UPGRADE PLAN';
+			$action_verb = 'SELECT PLAN';
 		}
 
 		// Implement robust lock out if user is on a free trial phase
@@ -920,7 +920,7 @@ class DD_PMPro_Frontend_Pricing
 							
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
-							const actionVerb = card.getAttribute('data-action-verb') || 'UPGRADE PLAN';
+							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
 							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
 
 							// Update visual price based on toggle state
@@ -943,7 +943,7 @@ class DD_PMPro_Frontend_Pricing
 							} 
 							// Evaluate valid plan switch
 							else {
-								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade verb
+								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade/select verb
 								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : actionVerb;
 								btnEl.classList.remove('dd-btn-disabled');
 								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
