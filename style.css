@@ -1084,9 +1084,9 @@ input:checked + .slider:before {
 .pmpro_section:has(#loginform) .pmpro_card_content:not(.widget .pmpro_section:has(#loginform) .pmpro_card_content) {
   padding: 0; }
 
-.pmpro-login.pmpro-login #pmpro_payment_method,
 .page-id-4144.page-id-4144 #pmpro_payment_method {
   display: none !important; }
+
 .pmpro-login.pmpro-login .pmpro_card,
 .page-id-4144.page-id-4144 .pmpro_card {
   background-color: transparent;
