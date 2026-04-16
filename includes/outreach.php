@@ -62,9 +62,6 @@ class DD_Outreach_Manager
 
         // Backend Meta Boxes
         add_action('add_meta_boxes', [$this, 'add_note_meta_box']);
-
-        // Cache Invalidation for Elementor Form Sync
-        add_action('elementor/document/save/after', [$this, 'flush_elementor_form_options_cache']);
     }
 
     /**
