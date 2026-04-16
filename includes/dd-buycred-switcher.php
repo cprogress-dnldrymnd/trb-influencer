@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: buyCRED Inline Gateway Switcher
+ * Plugin Name: buyCRED PMPro-Style Gateway Switcher
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Deploys a global MutationObserver to inject a dynamic gateway reset mechanism into the myCred inline AJAX checkout form.
- * Version:     1.0.2
+ * Description: Implements an inline, radio-button style payment gateway switcher directly on the checkout screen via asynchronous AJAX state handling.
+ * Version:     2.0.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
- * Text Domain: dd-inline-switcher
+ * Text Domain: dd-pmpro-switcher
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,103 +14,205 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class DD_BuyCred_Inline_Switcher
- * * Handles the logic for observing buyCRED AJAX DOM mutations at the body level
- * and injecting a UI mechanism to reset the gateway selection state.
+ * Class DD_BuyCred_PMPro_Switcher
+ * * Core architecture for replacing standard myCred flow with an inline 
+ * PMPro-style radio button gateway selection.
  */
-class DD_BuyCred_Inline_Switcher {
+class DD_BuyCred_PMPro_Switcher {
 
 	/**
 	 * Constructor function.
-	 * * Initializes necessary WordPress hooks. We hook into wp_footer to ensure
-	 * our vanilla JavaScript is loaded after the DOM is fully constructed.
+	 * * Initializes all necessary hooks. Binds the JS injector to the footer 
+	 * and registers the asynchronous AJAX endpoints for authenticated and 
+	 * non-authenticated users.
 	 */
 	public function __construct() {
-		add_action( 'wp_footer', array( $this, 'inject_global_observer_script' ), 99 );
+		add_action( 'wp_footer', array( $this, 'inject_switcher_script' ), 99 );
+		add_action( 'wp_ajax_dd_switch_gateway', array( $this, 'handle_ajax_switch' ) );
+		add_action( 'wp_ajax_nopriv_dd_switch_gateway', array( $this, 'handle_ajax_switch' ) );
 	}
 
 	/**
-	 * Injects the global JavaScript MutationObserver logic into the footer.
-	 * * This script monitors the entire document body for DOM node insertions.
-	 * When the `#buycred-checkout-page` UI is detected (injected via AJAX or POST), 
-	 * it prepends a reset action button to clear the state via a clean GET request.
+	 * Injects the JavaScript application into the footer.
+	 * * Parses available gateways and constructs a localized JS environment.
+	 * Utilizes a MutationObserver to detect the injected checkout DOM, 
+	 * renders the PMPro-style radio UI, and binds the AJAX mutation events.
 	 * * @return void
 	 */
-	public function inject_global_observer_script() {
-		// Verify if we are on a page containing the specific shortcode to prevent unnecessary JS execution.
+	public function inject_switcher_script() {
 		global $post;
+		
+		// Abort execution if the necessary shortcode architecture is absent.
 		if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'mycred_buy_form' ) ) {
 			return;
 		}
+
+		$gateways = mycred_get_buycred_gateways();
+		if ( empty( $gateways ) ) {
+			return;
+		}
+
+		// Attempt to extract the state context from the request lifecycle.
+		$payment_id      = isset( $_REQUEST['payment_id'] ) ? absint( $_REQUEST['payment_id'] ) : 0;
+		$current_gateway = $payment_id ? get_post_meta( $payment_id, 'gateway', true ) : '';
+
 		?>
 		<script type="text/javascript">
-			/**
-			 * Event listener for DOMContentLoaded to ensure the script runs after the initial HTML document has been completely loaded and parsed.
-			 */
 			document.addEventListener('DOMContentLoaded', function() {
-				
-				// Attach the observer to the document body to catch all AJAX replacements, 
-				// preventing issues where the target node itself is destroyed by myCred.
-				const targetNode = document.body;
-				
-				// Configure the observer to watch for deep child modifications across the entire body.
-				const config = { childList: true, subtree: true };
+				// Localize PHP variables for JS scope.
+				const ddGateways       = <?php echo json_encode( $gateways ); ?>;
+				const ddAjaxUrl        = "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>";
+				const ddNonce          = "<?php echo esc_js( wp_create_nonce( 'dd_gateway_nonce' ) ); ?>";
+				let ddCurrentGateway   = "<?php echo esc_js( $current_gateway ); ?>";
+				let ddPaymentId        = <?php echo intval( $payment_id ); ?>;
 
 				/**
-				 * Callback function executed when DOM mutations are observed.
-				 * * @param {MutationRecord[]} mutationsList - Array of MutationRecord objects.
-				 * @param {MutationObserver} observer - The MutationObserver instance.
+				 * Defines the observer callback to manipulate the DOM once myCred renders.
 				 */
-				const callback = function( mutationsList, observer ) {
-					// We rely on the known ID from your template file override: 'buycred-checkout-page'
+				const observer = new MutationObserver(function(mutations) {
 					const checkoutPage = document.getElementById('buycred-checkout-page');
 					
-					if ( checkoutPage ) {
-						// Check if our reset button is already injected to prevent infinite loop duplication.
-						const switcherExists = document.getElementById('dd-gateway-reset-btn');
-						
-						if ( ! switcherExists ) {
-							// Target the inner wrapper where the form elements reside.
-							const checkoutOrderDiv = checkoutPage.querySelector('.checkout-order');
-							
-							if ( checkoutOrderDiv ) {
-								// Construct the reset UI element.
-								const resetBtn = document.createElement('a');
-								resetBtn.id = "dd-gateway-reset-btn";
-								resetBtn.href = "javascript:void(0);";
-								resetBtn.innerHTML = "&larr; Change Payment Method";
-								
-								// Apply inline styling to match the UI environment.
-								resetBtn.style.cssText = "display: inline-block; margin-bottom: 20px; padding: 10px 15px; font-weight: 600; color: #fff; background-color: #d9534f; border-radius: 4px; text-decoration: none; cursor: pointer; transition: background-color 0.2s ease;";
-								
-								// Add hover effects dynamically.
-								resetBtn.onmouseover = function() { this.style.backgroundColor = '#c9302c'; };
-								resetBtn.onmouseout = function() { this.style.backgroundColor = '#d9534f'; };
-								
-								/**
-								 * Action: Force a clean GET request to the current URL structure.
-								 * This strips the browser of the POST payload that myCred uses to trigger
-								 * the checkout phase, effectively resetting the shortcode.
-								 */
-								resetBtn.onclick = function() {
-									window.location.href = window.location.origin + window.location.pathname;
-								};
+					// Ensure we are targeting the checkout form and haven't already injected the UI.
+					if (checkoutPage && !document.getElementById('dd-pmpro-gateways-wrapper')) {
 
-								// Inject the button directly at the top of the checkout order section.
-								checkoutOrderDiv.insertBefore(resetBtn, checkoutOrderDiv.firstChild);
+						// Fallback: Extract Payment ID directly from the DOM if PHP request state was empty.
+						if (!ddPaymentId) {
+							const pidInput = document.querySelector('input[name="payment_id"]');
+							if (pidInput) ddPaymentId = pidInput.value;
+						}
+
+						if (!ddPaymentId) return; // Halt if context cannot be established.
+
+						// Construct the primary UI wrapper.
+						const wrapper = document.createElement('div');
+						wrapper.id = 'dd-pmpro-gateways-wrapper';
+						wrapper.style.cssText = 'margin-bottom: 30px; padding: 25px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;';
+
+						// Construct Header.
+						const title = document.createElement('h3');
+						title.innerText = 'Choose Your Payment Method';
+						title.style.cssText = 'margin-top: 0; margin-bottom: 20px; font-size: 1.3em; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;';
+						wrapper.appendChild(title);
+
+						// Construct loading state UI.
+						const loader = document.createElement('div');
+						loader.id = 'dd-gateway-loader';
+						loader.style.cssText = 'display: none; color: #0f766e; font-weight: 500; font-style: italic; margin-top: 15px; padding: 10px; background: #ccfbf1; border-radius: 4px;';
+						loader.innerText = 'Updating payment method... Please wait.';
+
+						// Render Radio Buttons dynamically.
+						for (const [gId, gTitle] of Object.entries(ddGateways)) {
+							const label = document.createElement('label');
+							label.style.cssText = 'display: flex; align-items: center; margin-bottom: 12px; cursor: pointer; font-size: 16px; font-weight: 500; color: #334155;';
+
+							const radio = document.createElement('input');
+							radio.type = 'radio';
+							radio.name = 'dd_selected_gateway';
+							radio.value = gId;
+							radio.style.cssText = 'margin-right: 12px; width: 18px; height: 18px; cursor: pointer;';
+
+							// Validate against current DB state to set the active selection.
+							if (ddCurrentGateway === gId) {
+								radio.checked = true;
 							}
+
+							/**
+							 * Bind the change event to handle asynchronous DB updates.
+							 */
+							radio.addEventListener('change', function() {
+								if (this.checked && this.value !== ddCurrentGateway) {
+									// Trigger UI loading state and lock inputs.
+									loader.style.display = 'block';
+									document.querySelectorAll('input[name="dd_selected_gateway"]').forEach(r => r.disabled = true);
+
+									// Construct XHR payload.
+									const formData = new FormData();
+									formData.append('action', 'dd_switch_gateway');
+									formData.append('security', ddNonce);
+									formData.append('payment_id', ddPaymentId);
+									formData.append('gateway', this.value);
+									formData.append('current_url', window.location.href.split('?')[0]); // Strip existing queries
+
+									// Execute AJAX request.
+									fetch(ddAjaxUrl, {
+										method: 'POST',
+										body: formData
+									})
+									.then(response => response.json())
+									.then(data => {
+										if (data.success && data.data.redirect) {
+											// Perform a clean GET redirect to load the new gateway.
+											window.location.href = data.data.redirect;
+										} else {
+											alert('Validation error. Please refresh the page.');
+											window.location.reload();
+										}
+									})
+									.catch(err => {
+										console.error('AJAX Failure:', err);
+										alert('Server communication error. Please refresh.');
+										window.location.reload();
+									});
+								}
+							});
+
+							label.appendChild(radio);
+							label.appendChild(document.createTextNode(gTitle));
+							wrapper.appendChild(label);
+						}
+
+						wrapper.appendChild(loader);
+
+						// Inject the constructed interface sequentially above the checkout data.
+						const checkoutOrderDiv = checkoutPage.querySelector('.checkout-order');
+						if (checkoutOrderDiv) {
+							checkoutOrderDiv.insertBefore(wrapper, checkoutOrderDiv.firstChild);
 						}
 					}
-				};
+				});
 
-				// Instantiate and execute the global observer.
-				const observer = new MutationObserver( callback );
-				observer.observe( targetNode, config );
+				// Initialize a global observer to catch AJAX modifications.
+				observer.observe(document.body, { childList: true, subtree: true });
 			});
 		</script>
 		<?php
 	}
+
+	/**
+	 * Headless AJAX handler to execute the database mutation.
+	 * * Validates the security nonce, authenticates the payment ID, updates 
+	 * the corresponding CPT meta to the new gateway, and constructs a clean 
+	 * GET redirect URL for the frontend to process.
+	 * * @return void Outputs JSON response and terminates execution.
+	 */
+	public function handle_ajax_switch() {
+		check_ajax_referer( 'dd_gateway_nonce', 'security' );
+
+		// Sanitize variables passed from JS application.
+		$payment_id = isset( $_POST['payment_id'] ) ? absint( $_POST['payment_id'] ) : 0;
+		$gateway    = isset( $_POST['gateway'] ) ? sanitize_text_field( $_POST['gateway'] ) : '';
+		$base_url   = isset( $_POST['current_url'] ) ? esc_url_raw( $_POST['current_url'] ) : '';
+
+		if ( ! $payment_id || empty( $gateway ) || empty( $base_url ) ) {
+			wp_send_json_error( 'Invalid payload.' );
+		}
+
+		// Verify the targeted transaction is a legitimate buyCRED pending payment.
+		if ( get_post_type( $payment_id ) !== 'buycred_payment' ) {
+			wp_send_json_error( 'Invalid transaction architecture.' );
+		}
+
+		// Execute state mutation.
+		update_post_meta( $payment_id, 'gateway', $gateway );
+
+		// Construct a clean GET URL that bypasses browser POST loops.
+		$clean_redirect = add_query_arg( 'payment_id', $payment_id, $base_url );
+
+		wp_send_json_success( array(
+			'redirect' => $clean_redirect
+		) );
+	}
 }
 
 // Instantiate the architecture.
-new DD_BuyCred_Inline_Switcher();
+new DD_BuyCred_PMPro_Switcher();
