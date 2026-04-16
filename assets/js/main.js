@@ -18,8 +18,6 @@
     });
 
 
-
-
     function dashboardLogoHeightVar() {
         // Cache the DOM element to optimize performance
         var $dashboardLogo = $('#dashboard-sidebar-logo');
@@ -33,8 +31,6 @@
             $('body').css('--dashboard-sidebar-logo-height', dashboardLogoHeight + 'px');
         }
     }
-
-
 
     function share_profile() {
 
@@ -353,176 +349,5 @@
                 }
             });
         }
-    }
-
-    /**
-  * Renders a dynamic notification popup mimicking myCred's native transient notices.
-  *
-  * @param {string} htmlContent The HTML payload returned from the AJAX response.
-  * @return {void}
-  */
-    function display_dynamic_mycred_notice(htmlContent) {
-        // Construct the wrapper element. Adjust inline styles as needed to match your theme.
-        var $notice = $('<div class="notice-wrap"> <div class="notice-item-wrapper"> <div class="notice-item succes" >' + htmlContent + '</div></div></div>');
-
-        // Append to DOM
-        $('body').append($notice);
-
-        // Animate in
-        $notice.fadeIn(300);
-
-        // Auto-remove after 4 seconds to keep the DOM clean
-        setTimeout(function () {
-            $notice.fadeOut(300, function () {
-                $(this).remove();
-            });
-        }, 4000);
-    }
-
-    function saved_influencer_trigger() {
-        // Listen for click on .save-influencer-trigger
-        $(document).on('click', '.save-influencer-trigger', function (e) {
-            e.preventDefault();
-
-            var $button = $(this);
-
-            // Get the ID from the attribute
-            var influencerId = $button.attr('influencer-id');
-            var $buttonText = $(this).find('.elementor-button-text');
-
-            // Scope variables properly
-            var type, buttonupdated, buttonupdating;
-
-            // (Optional) Visual feedback: Change button text or disable it
-            if ($button.hasClass('delete-save')) {
-                type = 'delete';
-                buttonupdated = 'SAVED';
-                buttonupdating = 'UNSAVING...';
-            } else {
-                type = 'save';
-                buttonupdated = 'UNSAVE';
-                buttonupdating = 'SAVING...';
-            }
-            $buttonText.text(buttonupdating).prop('disabled', true);
-            $button.prop('disabled', true);
-
-            $.ajax({
-                url: ajax_vars.ajax_url, // From wp_localize_script
-                type: 'POST',
-                data: {
-                    action: 'save_influencer', // Must match the wp_ajax_ hook
-                    security: ajax_vars.save_influencer_nonce,
-                    influencer_id: influencerId,
-                    type: type
-                },
-                success: function (response) {
-                    if (response.success) {
-
-                        // Render the dynamic HTML notice passed from PHP, replacing the native alert()
-                        if (response.data.notice_html) {
-                            display_dynamic_mycred_notice(response.data.notice_html);
-                        }
-
-                        $buttonText.text(buttonupdated);
-
-                        if (type == 'delete') {
-                            $button.removeClass('delete-save');
-                        } else {
-                            $button.addClass('delete-save');
-                        }
-
-                        $button.prop('disabled', false);
-
-                    } else {
-                        alert('Error: ' + response.data.message);
-                        $buttonText.text('Save Influencer').prop('disabled', false);
-                    }
-                },
-                error: function () {
-                    alert('An unexpected error occurred.');
-                    $buttonText.text('Save Influencer').prop('disabled', false);
-                }
-            });
-        });
-    }
-    function saved_search_trigger() {
-        /**
-         * Helper Function: Get Checked Values
-         * * Iterates through all checkboxes that share a specific "name" attribute
-         * (e.g., name="niche" or name="niche[]") and returns an array of their values.
-         * * @param {string} name - The name attribute of the input field.
-         * @returns {Array} - An array of values from checked boxes.
-         */
-        function getCheckedValues(name) {
-            var values = [];
-            // Selector explanation:
-            // input[name^="..."] selects inputs where the name STARTS with the string provided.
-            // This handles cases where the name might be "niche" or "niche[]".
-            jQuery('input[name^="' + name + '"]:checked').each(function () {
-                values.push(jQuery(this).val());
-            });
-            return values;
-        }
-
-        /**
-         * Event Listener: Save Button Click
-         * * Listens for a click on any element with class '.save-search-trigger'.
-         * Gathers data and sends it to the server.
-         */
-        jQuery('.save-search-trigger').on('click', function (e) {
-
-            // Prevent the link from jumping to the top of the page or reloading.
-            e.preventDefault();
-
-            var $btn = jQuery(this);
-            var originalText = $btn.text();
-
-            // UX: Change button text to indicate processing.
-            $btn.text('Saving...');
-
-            // 1. Collect Data Object
-            // We use our helper function for checkboxes and standard .val() for the range slider.
-            var searchData = {
-                'niche': getCheckedValues('niche'),
-                'platform': getCheckedValues('platform'),
-                'followers': getCheckedValues('followers'),
-                'country': getCheckedValues('country'),
-                'lang': getCheckedValues('lang'),
-                'gender': getCheckedValues('gender'),
-                'score': jQuery('input[name="score"]').val() // Range slider usually has a single value
-            };
-
-            // 2. AJAX Request
-            // Sends the collected data to the PHP function 'handle_save_search_ajax'.
-            jQuery.ajax({
-                url: ajax_vars.ajax_url, // URL passed from PHP via wp_localize_script
-                type: 'POST',
-                data: {
-                    action: 'save_user_search', // Must match the wp_ajax_{action} hook in PHP
-                    security: ajax_vars.save_search_nonce,  // Security token passed from PHP
-                    search_data: searchData          // The object containing our form values
-                },
-
-                // 3. Handle Success
-                success: function (response) {
-                    if (response.success) {
-                        $btn.text('Saved!');
-                        // Optional: Revert text back to original after 2 seconds
-                        setTimeout(function () { $btn.text(originalText); }, 2000);
-                    } else {
-                        // If PHP sent wp_send_json_error()
-                        alert(response.data.message);
-                        $btn.text(originalText);
-                    }
-                },
-
-                // 4. Handle Server/Network Errors
-                error: function (response) {
-                    alert('Server error. Please try again.');
-                    console.log(response);
-                    $btn.text(originalText);
-                }
-            });
-        });
     }
 })(jQuery);
