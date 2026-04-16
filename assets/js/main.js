@@ -6,8 +6,6 @@
         nicheToggle();
         influencer_select_filters();
         influencer_search_trigger();
-        saved_search_trigger();
-        saved_influencer_trigger();
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
