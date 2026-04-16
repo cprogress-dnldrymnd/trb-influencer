@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.14
+ * Version: 1.0.15
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -422,6 +422,7 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Data retrieval and standard card rendering logic
+	 * Includes raw_price for tier hierarchy evaluation.
 	 */
 	private function get_level_data($level_id)
 	{
@@ -437,10 +438,42 @@ class DD_PMPro_Frontend_Pricing
 		$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
 
 		return [
-			'id'    => $level->id, 
-			'price' => pmpro_formatPrice((float)$price), 
-			'url'   => pmpro_url('checkout', '?level=' . $level->id)
+			'id'        => $level->id, 
+			'price'     => pmpro_formatPrice((float)$price), 
+			'raw_price' => (float)$price,
+			'url'       => pmpro_url('checkout', '?level=' . $level->id)
 		];
+	}
+
+	/**
+	 * Determines the user's highest active tier based on the base (Monthly) price.
+	 * Used to establish hierarchy and dynamically output "Upgrade" or "Downgrade" buttons.
+	 *
+	 * @param int $user_id The WordPress User ID.
+	 * @return float The highest raw base price among the user's active levels.
+	 */
+	private function get_user_max_tier_base_price($user_id)
+	{
+		if (!function_exists('pmpro_getMembershipLevelsForUser') || !$user_id) {
+			return 0.00;
+		}
+
+		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
+		$max_base_price = 0.00;
+		
+		if (!empty($user_levels)) {
+			foreach ($user_levels as $l) {
+				$base_level = pmpro_getLevel($l->id);
+				if ($base_level) {
+					$price = (float)$base_level->initial_payment > 0 ? (float)$base_level->initial_payment : (float)$base_level->billing_amount;
+					if ($price > $max_base_price) {
+						$max_base_price = $price;
+					}
+				}
+			}
+		}
+		
+		return $max_base_price;
 	}
 
 	/**
@@ -493,8 +526,18 @@ class DD_PMPro_Frontend_Pricing
 		$owns_current_view = $show_annual_default ? $owns_annual : $owns_monthly;
 		$owns_other_view   = $show_annual_default ? $owns_monthly : $owns_annual;
 		
-		// If they own the current view, disable it. If they own the inverse view, offer a switch. Otherwise, standard upgrade.
-		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : 'UPGRADE PLAN');
+		// Determine Upgrade vs Downgrade based on tier hierarchy
+		$user_max_base_price = $this->get_user_max_tier_base_price($current_user_id);
+		$card_base_price     = $monthly_data['raw_price'];
+		
+		if ($user_max_base_price > 0) {
+			$action_verb = ($card_base_price < $user_max_base_price) ? 'DOWNGRADE PLAN' : 'UPGRADE PLAN';
+		} else {
+			$action_verb = 'UPGRADE PLAN';
+		}
+
+		// If they own the current view, disable it. If they own the inverse view, offer a switch. Otherwise, contextual upgrade/downgrade.
+		$btn_text          = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : $action_verb);
 		$btn_class         = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
 		$current_url       = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
 
@@ -506,7 +549,8 @@ class DD_PMPro_Frontend_Pricing
 			data-owns-monthly="<?php echo $owns_monthly ? 'true' : 'false'; ?>"
 			data-price-annual="<?php echo esc_attr($annual_data['price']); ?>"
 			data-url-annual="<?php echo esc_url($annual_data['url']); ?>"
-			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>">
+			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
+			data-action-verb="<?php echo esc_attr($action_verb); ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -750,6 +794,7 @@ class DD_PMPro_Frontend_Pricing
 							
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
+							const actionVerb = card.getAttribute('data-action-verb') || 'UPGRADE PLAN';
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
@@ -763,8 +808,8 @@ class DD_PMPro_Frontend_Pricing
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							} else {
-								// Trigger 'SWITCH PLAN' if moving within same level but different term, else 'UPGRADE PLAN'
-								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : 'UPGRADE PLAN';
+								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade verb
+								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : actionVerb;
 								btnEl.classList.remove('dd-btn-disabled');
 								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
 							}
