@@ -999,10 +999,10 @@ class Saves_Manager
 
             <div id="inf-view-influencers" class="inf-modal-content inf-modal-wide" style="padding:0; padding-bottom: 12px;">
                 <div class="inf-modal-header" style="padding: 24px 24px 0 24px;">
-                    <h3 id="inf-view-group-title">Loading...</h3>
+                    <h3 id="inf-view-group-title">LOADING...</h3>
                 </div>
                 <div id="inf-view-group-body">
-                    <div style="text-align:center; padding:20px;">Loading creators...</div>
+                    <div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>
                 </div>
                 <div style="padding: 0 24px;">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal" style="width: 100%;">Close</button>
@@ -1240,7 +1240,7 @@ class Saves_Manager
                     let id = $(this).attr('data-group-id');
                     let name = $(this).attr('data-group-name');
                     $('#inf-view-group-title').text(name);
-                    $('#inf-view-group-body').html('<div style="text-align:center; padding:20px;">Loading creators...</div>');
+                    $('#inf-view-group-body').html('<div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>');
                     switchModalView('inf-view-influencers');
 
                     $.ajax({
