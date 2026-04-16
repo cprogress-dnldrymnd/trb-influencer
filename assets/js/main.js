@@ -123,7 +123,7 @@
 
         // 3. Gather values
         var filter_niche = get_filter_values('niche[]');
-        var filter_platform = get_filter_values('platform[]');
+        //var filter_platform = get_filter_values('platform[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
         var filter_followers = get_filter_values('followers');
@@ -140,7 +140,7 @@
             data: {
                 action: 'my_custom_loop_filter',
                 niche: filter_niche,
-                platform: filter_platform,
+                //platform: filter_platform,
                 country: filter_country,
                 lang: filter_lang,
                 followers: filter_followers,

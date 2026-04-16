@@ -21,7 +21,7 @@ function my_custom_loop_filter_handler()
     // 1. GATHER INPUTS (explicit form values)
     $explicit = [
         'niche'        => isset($_POST['niche']) ? $_POST['niche'] : [],
-        'platform'     => isset($_POST['platform']) ? $_POST['platform'] : [],
+        //'platform'     => isset($_POST['platform']) ? $_POST['platform'] : [],
         'country'      => isset($_POST['country']) ? $_POST['country'] : [],
         'lang'         => isset($_POST['lang']) ? $_POST['lang'] : [],
         'followers'    => isset($_POST['followers']) ? $_POST['followers'] : [],
@@ -45,7 +45,7 @@ function my_custom_loop_filter_handler()
     }
 
     $niche        = $explicit['niche'];
-    $platform     = $explicit['platform'];
+   // $platform     = $explicit['platform'];
     $country      = $explicit['country'];
     $lang         = $explicit['lang'];
     $followers    = $explicit['followers'];
@@ -98,14 +98,14 @@ function my_custom_loop_filter_handler()
     } elseif (count($content_taxonomies) === 1) {
         $tax_query[] = $content_taxonomies[0];
     }
-
+    /*
     if (!empty($platform)) {
         $tax_query[] = [
             'taxonomy' => 'platform',
             'field'    => 'slug',
             'terms'    => $platform,
         ];
-    }
+    }*/
 
     if (!empty($tax_query)) {
         if (count($tax_query) > 1) {
