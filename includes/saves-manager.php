@@ -460,6 +460,7 @@ class Saves_Manager
 
     /**
      * AJAX Handler: Get Group Influencers
+     * Now renders Elementor Loop Item 14897 per influencer to achieve the 1-per-row layout.
      */
     public function handle_get_group_influencers_ajax()
     {
@@ -484,21 +485,28 @@ class Saves_Manager
             wp_send_json_success(['html' => '<div class="inf-alert" style="margin:20px;">No creators found in this group.</div>']);
         }
 
-        $html = '<ul class="inf-group-creators-list">';
-        foreach ($saved_posts as $post) {
-            $influencer_id = get_post_meta($post->ID, 'influencer_id', true);
-            $influencer_title = get_the_title($influencer_id);
-            $influencer_url = get_permalink($influencer_id);
+        global $post;
+        $original_post = $post;
 
-            $html .= sprintf(
-                '<li>
-                    <a href="%s" target="_blank">%s</a>
-                </li>',
-                esc_url($influencer_url),
-                esc_html($influencer_title ?: 'Unknown Creator')
-            );
+        $html = '<div class="inf-group-creators-loop">';
+        foreach ($saved_posts as $saved_post) {
+            $influencer_id = get_post_meta($saved_post->ID, 'influencer_id', true);
+            
+            if ($influencer_id) {
+                // Temporarily hijack the global $post so the Elementor Loop item populates correctly
+                $post = get_post($influencer_id);
+                setup_postdata($post);
+
+                $html .= '<div class="inf-loop-item-row">';
+                $html .= do_shortcode('[elementor-template id="14897"]');
+                $html .= '</div>';
+            }
         }
-        $html .= '</ul>';
+        $html .= '</div>';
+
+        // Restore global state to prevent interference with other plugins
+        $post = $original_post;
+        if ($post) setup_postdata($post);
 
         wp_send_json_success(['html' => $html]);
     }
@@ -771,6 +779,12 @@ class Saves_Manager
                 display: none;
             }
 
+            /* 1000px Wide Modal Modifier specifically for the list view */
+            .inf-modal-content.inf-modal-wide {
+                max-width: 1000px !important;
+                width: 95% !important;
+            }
+
             .inf-modal-content.active-view {
                 display: block;
             }
@@ -901,31 +915,19 @@ class Saves_Manager
                 color: #fff !important;
             }
 
-            .inf-group-creators-list {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-                max-height: 300px;
+            /* Enhanced Group Creators Loop Grid */
+            .inf-group-creators-loop {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                max-height: 65vh;
                 overflow-y: auto;
+                padding: 10px 0;
+                width: 100%;
             }
 
-            .inf-group-creators-list li {
-                padding: 12px 20px;
-                border-bottom: 1px solid #eaeaea;
-            }
-
-            .inf-group-creators-list li:last-child {
-                border-bottom: none;
-            }
-
-            .inf-group-creators-list a {
-                color: #333;
-                text-decoration: none;
-                font-weight: 500;
-            }
-
-            .inf-group-creators-list a:hover {
-                color: var(--e-global-color-secondary);
+            .inf-loop-item-row {
+                width: 100%;
             }
 
             .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button {
@@ -987,7 +989,7 @@ class Saves_Manager
                 </div>
             </div>
 
-            <div id="inf-view-influencers" class="inf-modal-content" style="padding:0; padding-bottom: 12px;">
+            <div id="inf-view-influencers" class="inf-modal-content inf-modal-wide" style="padding:0; padding-bottom: 12px;">
                 <div class="inf-modal-header" style="padding: 24px 24px 0 24px;">
                     <h3 id="inf-view-group-title">Loading...</h3>
                 </div>
