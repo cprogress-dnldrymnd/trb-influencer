@@ -13,8 +13,8 @@ get_header();
 		<?php buycred_checkout_title(); ?>
 
 	</div>
-	<div class="checkout-order xx2">
-
+	<div class="checkout-order">
+<h1>DEBUG: Template is loading</h1>
 		<?php 
 		/**
 		 * INJECTION POINT: Gateway Switcher
