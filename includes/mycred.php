@@ -117,6 +117,14 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
+        .dd-avatar-wrapper .avatar-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
         #buycred-checkout-page h2.gateway-title {
             font-size: 1.5rem;
@@ -133,8 +141,9 @@ function dd_influencer_style_mycred_checkout()
 
         #checkout-action-button {
             color: #fff !important;
-            border-color: var( --e-global-color-primary );
+            border-color: var(--e-global-color-primary);
         }
+
         /* Broadened selector to catch non-Stripe gateways */
         .mycred-stripe-payment-main.mycred-stripe-payment-main * {
             font-family: Inter !important;
