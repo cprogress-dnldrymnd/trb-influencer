@@ -460,14 +460,64 @@ class Saves_Manager {
     /**
      * Renders Inline JavaScript, CSS, and HTML for the Modals & Shortcode.
      * Handles the complex DOM interactions for the custom dropdowns, modal views, 
-     * and asynchronous saving.
+     * and asynchronous saving. Includes strict CSS resets to block Elementor.
      *
      * @return void Outputs directly to wp_footer.
      */
     public function render_inline_assets() {
         ?>
         <style>
-            /* Shortcode Grid Styling (Updated to Match Video) */
+            /* =========================================================================
+               BULLETPROOF ELEMENTOR CSS RESETS
+               We forcefully strip Elementor's global button styles to protect our UI
+               ========================================================================= */
+            #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn,
+            #inf-modal-overlay button.inf-btn-back,
+            #inf-modal-overlay button.inf-create-btn,
+            #inf-groups-shortcode-grid button.inf-dropdown-item {
+                background-image: none !important;
+                letter-spacing: normal !important;
+                text-transform: none !important;
+                box-shadow: none !important;
+                text-decoration: none !important;
+                font-family: inherit !important;
+            }
+
+            #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn-icon {
+                background-color: transparent !important;
+                border: none !important;
+                cursor: pointer !important;
+                color: #888 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border-radius: 4px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                width: 28px !important; 
+                height: 28px !important;
+                line-height: 1 !important;
+            }
+            #inf-groups-shortcode-grid button.inf-btn-icon:hover,
+            #inf-modal-overlay button.inf-btn-icon:hover {
+                background-color: #f0f2f5 !important;
+                color: #333 !important;
+            }
+            #inf-groups-shortcode-grid button.inf-btn-icon svg,
+            #inf-modal-overlay button.inf-btn-icon svg {
+                width: 16px !important;
+                height: 16px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                fill: none !important;
+            }
+
+            /* Shortcode Grid Styling */
             .inf-groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
             .inf-group-card {
                 background: #fdfdfd; border-radius: 8px; border: 1px solid #e2e4e7;
@@ -480,11 +530,6 @@ class Saves_Manager {
             .inf-card-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 0 20px; }
             .inf-group-title { margin: 0; font-size: 15px; color: #333; font-weight: 500; }
             .inf-card-actions { display: flex; gap: 4px; position: relative; z-index: 10; }
-            .inf-btn-icon {
-                background: transparent; border: none; cursor: pointer; color: #888; padding: 6px; 
-                border-radius: 4px; display: flex; align-items: center; justify-content: center;
-            }
-            .inf-btn-icon:hover { background: #f0f2f5; color: #333; }
             
             /* Dropdown Menu */
             .inf-dropdown-wrapper { position: relative; }
@@ -494,12 +539,15 @@ class Saves_Manager {
                 display: none; z-index: 20; padding: 6px; margin-top: 4px;
             }
             .inf-dropdown-wrapper.active .inf-dropdown-menu { display: block; }
-            .inf-dropdown-item {
-                display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
-                border: none; background: transparent; text-align: left; cursor: pointer;
-                font-size: 13px; color: #444; border-radius: 4px; font-family: inherit;
+            
+            #inf-groups-shortcode-grid button.inf-dropdown-item {
+                display: flex !important; align-items: center !important; gap: 8px !important; 
+                width: 100% !important; padding: 8px 10px !important; margin: 0 !important;
+                border: none !important; background-color: transparent !important; text-align: left !important; 
+                cursor: pointer !important; font-size: 13px !important; color: #444 !important; 
+                border-radius: 4px !important;
             }
-            .inf-dropdown-item:hover { background: #f8f9fa; color: #dc3545; }
+            #inf-groups-shortcode-grid button.inf-dropdown-item:hover { background-color: #f8f9fa !important; color: #dc3545 !important; }
 
             /* Card Body (Clickable Area) */
             .inf-card-body { padding: 0 20px 20px 20px; cursor: pointer; flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; }
@@ -512,7 +560,7 @@ class Saves_Manager {
                 margin-left: -8px; overflow: hidden; background: #eee;
             }
             .inf-avatar-wrapper:first-child { margin-left: 0; }
-            .inf-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+            .inf-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
             .inf-alert { padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; }
 
@@ -522,8 +570,10 @@ class Saves_Manager {
             .inf-modal-content.active-view { display: block; }
             .inf-modal-header { display: flex; align-items: center; margin-bottom: 20px; }
             .inf-modal-header h3 { margin: 0; font-size: 18px; color: #333; font-weight: 500; }
-            .inf-btn-back { background: transparent; border: none; cursor: pointer; color: #666; padding: 0 10px 0 0; display: flex; align-items: center; gap: 4px; font-size:14px; }
-            .inf-btn-back:hover { color: #333; }
+            
+            #inf-modal-overlay button.inf-btn-back { background-color: transparent !important; border: none !important; cursor: pointer !important; color: #666 !important; padding: 0 10px 0 0 !important; margin: 0 !important; display: flex !important; align-items: center !important; gap: 4px !important; font-size:14px !important; }
+            #inf-modal-overlay button.inf-btn-back:hover { color: #333 !important; }
+            
             .inf-input-group { margin-bottom: 16px; }
             .inf-input-group label { display: block; margin-bottom: 6px; font-size: 13px; color: #444; font-weight: 500;}
             .inf-input-group label span { color: #dc3545; }
@@ -535,14 +585,18 @@ class Saves_Manager {
             .inf-list-item-left { display: flex; align-items: center; flex-grow: 1; cursor: pointer; }
             .inf-list-item-left input { margin-right: 12px; cursor: pointer; }
             .inf-list-item-left label { cursor: pointer; font-size: 14px; color: #444; user-select: none; }
-            .inf-create-btn { background: none; border: none; color: #666; font-size: 14px; cursor: pointer; padding: 10px 4px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; width: 100%; }
-            .inf-create-btn:hover { color: #5034c4; }
+            
+            #inf-modal-overlay button.inf-create-btn { background-color: transparent !important; border: none !important; color: #666 !important; font-size: 14px !important; cursor: pointer !important; padding: 10px 4px !important; margin: 0 0 16px 0 !important; display: flex !important; align-items: center !important; gap: 8px !important; width: 100% !important; justify-content: flex-start !important; }
+            #inf-modal-overlay button.inf-create-btn:hover { color: #5034c4 !important; }
+            
             .inf-modal-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
-            .inf-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 500; cursor: pointer; text-align: center; border: none; transition: 0.2s; font-size: 14px;}
-            .inf-btn-cancel { background: transparent; color: #555; border: 1px solid #ddd; }
-            .inf-btn-cancel:hover { background: #eaeaea; }
-            .inf-btn-save { background: #5034c4; color: #fff; }
-            .inf-btn-save:hover { background: #40299e; }
+            
+            #inf-modal-overlay button.inf-btn { flex: 1 !important; padding: 10px !important; margin: 0 !important; border-radius: 8px !important; font-weight: 500 !important; cursor: pointer !important; text-align: center !important; transition: 0.2s !important; font-size: 14px !important; border: none !important;}
+            #inf-modal-overlay button.inf-btn-cancel { background-color: transparent !important; color: #555 !important; border: 1px solid #ddd !important; }
+            #inf-modal-overlay button.inf-btn-cancel:hover { background-color: #eaeaea !important; }
+            #inf-modal-overlay button.inf-btn-save { background-color: #5034c4 !important; color: #fff !important; }
+            #inf-modal-overlay button.inf-btn-save:hover { background-color: #40299e !important; }
+            
             .inf-group-creators-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
             .inf-group-creators-list li { padding: 12px 20px; border-bottom: 1px solid #eaeaea; }
             .inf-group-creators-list li:last-child { border-bottom: none; }
