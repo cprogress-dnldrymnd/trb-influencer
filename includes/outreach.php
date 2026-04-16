@@ -34,6 +34,9 @@ class DD_Outreach_Manager
         add_action('elementor_pro/forms/new_record', [$this, 'process_elementor_form_response'], 10, 2);
         add_action('wp_footer', [$this, 'inject_elementor_success_scripts']);
 
+        // Dynamic Elementor Form Option Injection
+        add_filter('elementor_pro/forms/render/item', [$this, 'inject_elementor_form_options'], 10, 3);
+
         // New Master-Detail Dashboard Functionality
         add_shortcode('dd_outreach_list', [$this, 'render_list_shortcode']);
         add_shortcode('dd_outreach_view', [$this, 'render_view_shortcode']);
@@ -85,7 +88,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Registers the settings and database options for the Email Builder array and General Settings.
+     * Registers the settings and database options for the Email Builder array, General Settings, and Form Builder options.
      *
      * @return void
      */
@@ -97,6 +100,38 @@ class DD_Outreach_Manager
             'default' => 1,
             'sanitize_callback' => 'absint'
         ]);
+        
+        // Dynamic Elementor Form Options
+        register_setting('dd_outreach_settings_group', 'dd_outreach_project_types');
+        register_setting('dd_outreach_settings_group', 'dd_outreach_project_lengths');
+    }
+
+    /**
+     * Intercepts Elementor form rendering to dynamically inject dropdown options.
+     * Targets specific field IDs ('project_type' and 'project_length') and replaces their predefined options.
+     *
+     * @param array  $item       The Elementor form field array.
+     * @param int    $item_index The index position of the field.
+     * @param object $form       The Elementor form instance.
+     * @return array Modified field array containing backend-defined options.
+     */
+    public function inject_elementor_form_options($item, $item_index, $form)
+    {
+        if (isset($item['custom_id'])) {
+            if ('project_type' === $item['custom_id']) {
+                $dynamic_types = get_option('dd_outreach_project_types', '');
+                if (!empty($dynamic_types)) {
+                    $item['field_options'] = $dynamic_types;
+                }
+            } elseif ('project_length' === $item['custom_id']) {
+                $dynamic_lengths = get_option('dd_outreach_project_lengths', '');
+                if (!empty($dynamic_lengths)) {
+                    $item['field_options'] = $dynamic_lengths;
+                }
+            }
+        }
+
+        return $item;
     }
 
     /**
@@ -608,7 +643,7 @@ class DD_Outreach_Manager
 
     /**
      * Renders the Backend Settings Page HTML.
-     * Contains the tabbed logic and the Repeater Email Builder.
+     * Contains the tabbed logic, Form Builder inputs, and the Repeater Email Builder.
      *
      * @return void
      */
@@ -701,13 +736,13 @@ class DD_Outreach_Manager
 
             <h2 class="nav-tab-wrapper">
                 <a href="#tab-general" class="nav-tab nav-tab-active">General Settings</a>
+                <a href="#tab-form-builder" class="nav-tab">Form Builder</a>
                 <a href="#tab-email-builder" class="nav-tab">Email Builder</a>
             </h2>
 
             <form method="post" action="options.php">
                 <?php settings_fields('dd_outreach_settings_group'); ?>
 
-                <!-- GENERAL SETTINGS TAB -->
                 <div id="tab-general" class="dd-tab-content" style="margin-top:20px;">
                     <table class="form-table">
                         <tr>
@@ -721,7 +756,26 @@ class DD_Outreach_Manager
                     <?php submit_button('Save Settings'); ?>
                 </div>
 
-                <!-- EMAIL BUILDER TAB -->
+                <div id="tab-form-builder" class="dd-tab-content" style="margin-top:20px; display:none;">
+                    <h3>Dynamic Form Options</h3>
+                    <p>Define the options that will be dynamically injected into your Elementor forms and frontend filters. Enter one option per line. You may utilize Elementor's <code>value|Label</code> syntax.</p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="dd_outreach_project_types">Project Types Options</label></th>
+                            <td>
+                                <textarea name="dd_outreach_project_types" id="dd_outreach_project_types" rows="5" class="large-text"><?php echo esc_textarea(get_option('dd_outreach_project_types', '')); ?></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="dd_outreach_project_lengths">Project Lengths Options</label></th>
+                            <td>
+                                <textarea name="dd_outreach_project_lengths" id="dd_outreach_project_lengths" rows="5" class="large-text"><?php echo esc_textarea(get_option('dd_outreach_project_lengths', '')); ?></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                    <?php submit_button('Save Settings'); ?>
+                </div>
+
                 <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px; display:none;">
                     <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
 
@@ -2023,6 +2077,7 @@ class DD_Outreach_Manager
 
     /**
      * Renders the left-side panel (list and filters) via shortcode [dd_outreach_list].
+     * Integrates dynamic dropdown options native to the plugin backend state.
      */
     public function render_list_shortcode($atts)
     {
@@ -2033,6 +2088,15 @@ class DD_Outreach_Manager
         $raw_fields = get_query_var('influencer_outreach_fields');
         $influencer_outreach_fields = is_array($raw_fields) ? $raw_fields : [];
 
+        // Fetch dynamic filter options explicitly
+        $types_raw = get_option('dd_outreach_project_types', '');
+        $types_arr = array_filter(array_map('trim', explode("\n", $types_raw)));
+        $current_type = $influencer_outreach_fields['project_type'] ?? '';
+
+        $lengths_raw = get_option('dd_outreach_project_lengths', '');
+        $lengths_arr = array_filter(array_map('trim', explode("\n", $lengths_raw)));
+        $current_length = $influencer_outreach_fields['project_length'] ?? '';
+
         ob_start();
     ?>
         <div class="dd-dashboard-list-container">
@@ -2041,19 +2105,31 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
+                    
                     <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
-                            echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
-                        }
-                        ?>
+                        <select name="project_type" class="dd-filter-select">
+                            <option value="">Filter by project type</option>
+                            <?php foreach ($types_arr as $type) : ?>
+                                <?php 
+                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                ?>
+                                <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+
                     <div class="influencer-search-item">
-                        <?php
-                        if (function_exists('select_filter')) {
-                            echo select_filter('project_length', 'Project length', 'Filter by project length', $influencer_outreach_fields['project_length'] ?? '');
-                        }
-                        ?>
+                        <select name="project_length" class="dd-filter-select">
+                            <option value="">Filter by project length</option>
+                            <?php foreach ($lengths_arr as $length) : ?>
+                                <?php 
+                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                ?>
+                                <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
             </div>
