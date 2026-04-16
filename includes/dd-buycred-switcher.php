@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: buyCRED Checkout Gateway Switcher
+ * Plugin Name: buyCRED Inline Gateway Switcher
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Injects a dynamic payment gateway selection dropdown directly into the native buyCRED checkout screen.
+ * Description: Deploys a MutationObserver to inject a dynamic gateway reset mechanism into the myCred inline AJAX checkout form.
  * Version:     1.0.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
- * Text Domain: dd-buycred-switcher
+ * Text Domain: dd-inline-switcher
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,106 +14,89 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class DD_BuyCred_Gateway_Switcher
- * * Manages the functionality to switch payment gateways dynamically on the buyCRED checkout page.
- * It handles both the UI rendering via shortcode and the backend data mutation.
+ * Class DD_BuyCred_Inline_Switcher
+ * * Handles the logic for observing buyCRED AJAX DOM mutations and injecting
+ * a UI mechanism to reset the gateway selection state.
  */
-class DD_BuyCred_Gateway_Switcher {
+class DD_BuyCred_Inline_Switcher {
 
 	/**
 	 * Constructor function.
-	 * * Initializes all necessary WordPress hooks for the plugin. Registers the 
-	 * shortcode for UI placement and the template_redirect action for processing state changes.
+	 * * Initializes necessary WordPress hooks. We hook into wp_footer to ensure
+	 * our vanilla JavaScript is loaded after the DOM and myCred's wrapper exist.
 	 */
 	public function __construct() {
-		add_shortcode( 'dd_buycred_gateway_switcher', array( $this, 'render_switcher' ) );
-		add_action( 'template_redirect', array( $this, 'process_gateway_switch' ), 9 );
+		add_action( 'wp_footer', array( $this, 'inject_observer_script' ), 99 );
 	}
 
 	/**
-	 * Renders the gateway selection dropdown UI.
-	 * * This function retrieves the active buyCRED gateways, identifies the current
-	 * pending payment ID from the request, checks its active gateway state, and 
-	 * generates an HTML form to allow the user to select an alternative.
-	 * * @return string HTML output containing the switcher form, or an empty string on failure.
-	 */
-	public function render_switcher() {
-		// Ensure core buyCRED dependencies are loaded before execution.
-		if ( ! function_exists( 'mycred_get_buycred_gateways' ) ) {
-			return '';
-		}
-
-		// Retrieve and sanitize the pending payment ID standard to buyCRED checkouts.
-		$payment_id = isset( $_REQUEST['payment_id'] ) ? absint( $_REQUEST['payment_id'] ) : 0;
-		if ( ! $payment_id ) {
-			return '';
-		}
-
-		// Fetch all globally active buyCRED gateways.
-		$gateways = mycred_get_buycred_gateways();
-		if ( empty( $gateways ) ) {
-			return '';
-		}
-
-		// Retrieve the currently active gateway bound to this specific transaction.
-		$current_gateway = get_post_meta( $payment_id, 'gateway', true );
-
-		ob_start();
-		?>
-		<div class="dd-gateway-switcher" style="margin: 20px 0; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
-			<form method="post" action="">
-				<?php wp_nonce_field( 'dd_switch_gateway_nonce', 'dd_gateway_nonce' ); ?>
-				<input type="hidden" name="dd_payment_id" value="<?php echo esc_attr( $payment_id ); ?>" />
-				
-				<label for="dd_new_gateway" style="display: block; margin-bottom: 8px; font-weight: 600; color: #0f172a;">
-					<?php esc_html_e( 'Change Payment Method:', 'dd-buycred-switcher' ); ?>
-				</label>
-				
-				<select name="dd_new_gateway" id="dd_new_gateway" onchange="this.form.submit()" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;">
-					<option value=""><?php esc_html_e( '-- Select Gateway --', 'dd-buycred-switcher' ); ?></option>
-					<?php foreach ( $gateways as $gateway_id => $gateway_title ) : ?>
-						<option value="<?php echo esc_attr( $gateway_id ); ?>" <?php selected( $current_gateway, $gateway_id ); ?>>
-							<?php echo esc_html( $gateway_title ); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
-			</form>
-		</div>
-		<?php
-		return ob_get_clean();
-	}
-
-	/**
-	 * Processes the gateway switch request and updates the database.
-	 * * This function hooks into `template_redirect` to listen for the form submission.
-	 * It verifies the security nonce, sanitizes the new gateway input, mutates the 
-	 * 'gateway' post meta for the pending payment CPT, and triggers a page reload 
-	 * to instantiate the new payment processor's UI environment.
+	 * Injects the JavaScript MutationObserver logic into the footer.
+	 * * This script isolates the myCred wrapper and listens for DOM node insertions.
+	 * When the gateway checkout UI is detected, it prepends a reset action button.
 	 * * @return void
 	 */
-	public function process_gateway_switch() {
-		// Listen for our specific POST payload.
-		if ( isset( $_POST['dd_new_gateway'], $_POST['dd_payment_id'], $_POST['dd_gateway_nonce'] ) ) {
-			
-			// Validate security nonce to prevent CSRF attacks.
-			if ( ! wp_verify_nonce( $_POST['dd_gateway_nonce'], 'dd_switch_gateway_nonce' ) ) {
-				wp_die( esc_html__( 'Security check failed. Unauthorized request.', 'dd-buycred-switcher' ) );
-			}
-
-			$payment_id  = absint( $_POST['dd_payment_id'] );
-			$new_gateway = sanitize_text_field( $_POST['dd_new_gateway'] );
-
-			// Execute the database mutation if variables are valid.
-			if ( $payment_id && ! empty( $new_gateway ) ) {
-				update_post_meta( $payment_id, 'gateway', $new_gateway );
-
-				// Strip POST data and refresh the view to construct the new gateway.
-				wp_safe_redirect( remove_query_arg( 'dd_new_gateway' ) );
-				exit;
-			}
+	public function inject_observer_script() {
+		// Verify if we are on a page containing the specific shortcode to prevent unnecessary JS execution.
+		global $post;
+		if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'mycred_buy_form' ) ) {
+			return;
 		}
+		?>
+		<script type="text/javascript">
+			document.addEventListener('DOMContentLoaded', function() {
+				
+				// Identify the wrapper myCred uses for its AJAX DOM replacement.
+				// We target common classes/IDs generated by the [mycred_buy_form] shortcode.
+				const targetNode = document.querySelector('.mycred-buy-form-wrapper, .mycred-buy-form');
+				if ( ! targetNode ) return;
+
+				// Configure the observer to watch for direct child modifications.
+				const config = { childList: true, subtree: true };
+
+				// Callback function to execute when mutations are observed.
+				const callback = function( mutationsList, observer ) {
+					for ( let mutation of mutationsList ) {
+						if ( mutation.type === 'childList' ) {
+							
+							// Check if the inline checkout form has successfully rendered in the DOM.
+							const isCheckoutActive = targetNode.querySelector('.mycred-buycred-gateway-form, form[action*="gateway"]');
+							const switcherExists   = targetNode.querySelector('.dd-gateway-reset-btn');
+
+							// If the checkout is active and our button hasn't been injected yet.
+							if ( isCheckoutActive && ! switcherExists ) {
+								
+								// Construct the reset UI element.
+								const resetBtn = document.createElement('a');
+								resetBtn.href = "javascript:void(0);";
+								resetBtn.className = "dd-gateway-reset-btn";
+								resetBtn.innerHTML = "&larr; Change Payment Method";
+								
+								// Apply inline styling (can be moved to external CSS if preferred).
+								resetBtn.style.cssText = "display: inline-block; margin-bottom: 20px; font-weight: 600; color: #d9534f; text-decoration: none; cursor: pointer; transition: opacity 0.2s ease;";
+								resetBtn.onmouseover = function() { this.style.opacity = '0.7'; };
+								resetBtn.onmouseout = function() { this.style.opacity = '1'; };
+								
+								// Action: Force a page reload to clear the temporary AJAX transaction state
+								// and return the user to the initial gateway selection UI.
+								resetBtn.onclick = function() {
+									window.location.reload();
+								};
+
+								// Inject the button directly above the gateway payment form.
+								isCheckoutActive.parentNode.insertBefore(resetBtn, isCheckoutActive);
+							}
+						}
+					}
+				};
+
+				// Instantiate and execute the observer.
+				const observer = new MutationObserver( callback );
+				observer.observe( targetNode, config );
+			});
+		</script>
+		<?php
 	}
 }
 
 // Instantiate the architecture.
-new DD_BuyCred_Gateway_Switcher();
+new DD_BuyCred_Inline_Switcher();
