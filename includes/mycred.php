@@ -117,13 +117,7 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
-        .dd-avatar-wrapper .avatar-fallback {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        
 
         #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
         #buycred-checkout-page h2.gateway-title {

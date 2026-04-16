@@ -593,6 +593,8 @@ function dd_influencer_style_pmpro_checkout()
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
+      
+
         #pmpro_form {
             max-width: 600px;
             margin: 0 auto;
