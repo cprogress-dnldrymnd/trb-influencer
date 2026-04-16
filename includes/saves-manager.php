@@ -721,6 +721,12 @@ class Saves_Manager
                 background: #eee;
             }
 
+            .inf-avatar-wrapper.inf-avatar-wrapper.inf-avatar-wrapper .influencer-avatar-fallback {
+                width: 100%;
+                height: 100%;
+                font-size: 8px;
+            }
+
             .inf-avatar-wrapper:first-child {
                 margin-left: 0;
             }
