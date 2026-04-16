@@ -2,8 +2,8 @@
 /**
  * Plugin Name: buyCRED PMPro-Style Gateway Switcher
  * Plugin URI:  https://digitallydisruptive.co.uk/
- * Description: Implements an inline, radio-button style payment gateway switcher directly on the checkout screen via asynchronous AJAX state handling.
- * Version:     2.0.0
+ * Description: Implements an inline, radio-button style payment gateway switcher directly on the checkout screen using resilient DOM traversal.
+ * Version:     3.0.0
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-switcher
@@ -15,16 +15,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class DD_BuyCred_PMPro_Switcher
- * * Core architecture for replacing standard myCred flow with an inline 
+ * Core architecture for replacing standard myCred flow with an inline 
  * PMPro-style radio button gateway selection.
  */
 class DD_BuyCred_PMPro_Switcher {
 
 	/**
 	 * Constructor function.
-	 * * Initializes all necessary hooks. Binds the JS injector to the footer 
-	 * and registers the asynchronous AJAX endpoints for authenticated and 
-	 * non-authenticated users.
+	 * Initializes all necessary hooks. Binds the JS injector to the footer 
+	 * and registers the asynchronous AJAX endpoints.
 	 */
 	public function __construct() {
 		add_action( 'wp_footer', array( $this, 'inject_switcher_script' ), 99 );
@@ -34,10 +33,10 @@ class DD_BuyCred_PMPro_Switcher {
 
 	/**
 	 * Injects the JavaScript application into the footer.
-	 * * Parses available gateways and constructs a localized JS environment.
-	 * Utilizes a MutationObserver to detect the injected checkout DOM, 
+	 * Utilizes a MutationObserver to detect the injected checkout DOM via hidden inputs, 
 	 * renders the PMPro-style radio UI, and binds the AJAX mutation events.
-	 * * @return void
+	 *
+	 * @return void
 	 */
 	public function inject_switcher_script() {
 		global $post;
@@ -52,36 +51,53 @@ class DD_BuyCred_PMPro_Switcher {
 			return;
 		}
 
-		// Attempt to extract the state context from the request lifecycle.
-		$payment_id      = isset( $_REQUEST['payment_id'] ) ? absint( $_REQUEST['payment_id'] ) : 0;
-		$current_gateway = $payment_id ? get_post_meta( $payment_id, 'gateway', true ) : '';
+		// Attempt to extract the state context from an HTTP GET/POST payload if present.
+		$request_payment_id = isset( $_REQUEST['payment_id'] ) ? absint( $_REQUEST['payment_id'] ) : 0;
+		$current_gateway    = $request_payment_id ? get_post_meta( $request_payment_id, 'gateway', true ) : '';
 
 		?>
 		<script type="text/javascript">
 			document.addEventListener('DOMContentLoaded', function() {
 				// Localize PHP variables for JS scope.
-				const ddGateways       = <?php echo json_encode( $gateways ); ?>;
-				const ddAjaxUrl        = "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>";
-				const ddNonce          = "<?php echo esc_js( wp_create_nonce( 'dd_gateway_nonce' ) ); ?>";
-				let ddCurrentGateway   = "<?php echo esc_js( $current_gateway ); ?>";
-				let ddPaymentId        = <?php echo intval( $payment_id ); ?>;
+				const ddGateways = <?php echo json_encode( $gateways ); ?>;
+				const ddAjaxUrl  = "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>";
+				const ddNonce    = "<?php echo esc_js( wp_create_nonce( 'dd_gateway_nonce' ) ); ?>";
+				let ddCurrentGateway = "<?php echo esc_js( $current_gateway ); ?>";
 
 				/**
-				 * Defines the observer callback to manipulate the DOM once myCred renders.
+				 * Event Listener to capture the selected dropdown value *before* the AJAX request fires.
+				 * This ensures we know which gateway to pre-check in the radio array.
+				 */
+				document.body.addEventListener('click', function(e) {
+					// Target clicks on standard form submission buttons
+					const btn = e.target.closest('button[type="submit"], input[type="submit"]');
+					if (btn) {
+						const form = btn.closest('form');
+						if (form) {
+							const gatewaySelect = form.querySelector('select[name="gateway"]');
+							if (gatewaySelect) {
+								ddCurrentGateway = gatewaySelect.value;
+							}
+						}
+					}
+				});
+
+				/**
+				 * Observer callback to manipulate the DOM once myCred renders the checkout.
 				 */
 				const observer = new MutationObserver(function(mutations) {
-					const checkoutPage = document.getElementById('buycred-checkout-page');
+					// UNIVERSAL TARGET: Hunt for the transaction ID input required by all myCred gateways.
+					const paymentIdInput = document.querySelector('input[name="payment_id"]');
 					
-					// Ensure we are targeting the checkout form and haven't already injected the UI.
-					if (checkoutPage && !document.getElementById('dd-pmpro-gateways-wrapper')) {
+					// Ensure we found the input and haven't already injected the UI.
+					if (paymentIdInput && !document.getElementById('dd-pmpro-gateways-wrapper')) {
 
-						// Fallback: Extract Payment ID directly from the DOM if PHP request state was empty.
-						if (!ddPaymentId) {
-							const pidInput = document.querySelector('input[name="payment_id"]');
-							if (pidInput) ddPaymentId = pidInput.value;
-						}
-
+						const ddPaymentId = paymentIdInput.value;
 						if (!ddPaymentId) return; // Halt if context cannot be established.
+
+						// Traverse up to find the active gateway form container.
+						const gatewayForm = paymentIdInput.closest('form');
+						if (!gatewayForm) return;
 
 						// Construct the primary UI wrapper.
 						const wrapper = document.createElement('div');
@@ -111,7 +127,7 @@ class DD_BuyCred_PMPro_Switcher {
 							radio.value = gId;
 							radio.style.cssText = 'margin-right: 12px; width: 18px; height: 18px; cursor: pointer;';
 
-							// Validate against current DB state to set the active selection.
+							// Validate against current state to set the active selection.
 							if (ddCurrentGateway === gId) {
 								radio.checked = true;
 							}
@@ -120,8 +136,8 @@ class DD_BuyCred_PMPro_Switcher {
 							 * Bind the change event to handle asynchronous DB updates.
 							 */
 							radio.addEventListener('change', function() {
-								if (this.checked && this.value !== ddCurrentGateway) {
-									// Trigger UI loading state and lock inputs.
+								if (this.checked) {
+									// Trigger UI loading state and lock inputs to prevent spam clicks.
 									loader.style.display = 'block';
 									document.querySelectorAll('input[name="dd_selected_gateway"]').forEach(r => r.disabled = true);
 
@@ -131,7 +147,9 @@ class DD_BuyCred_PMPro_Switcher {
 									formData.append('security', ddNonce);
 									formData.append('payment_id', ddPaymentId);
 									formData.append('gateway', this.value);
-									formData.append('current_url', window.location.href.split('?')[0]); // Strip existing queries
+									
+									// Capture base URL, stripping queries to prevent POST/GET loops.
+									formData.append('current_url', window.location.href.split('?')[0]); 
 
 									// Execute AJAX request.
 									fetch(ddAjaxUrl, {
@@ -163,11 +181,8 @@ class DD_BuyCred_PMPro_Switcher {
 
 						wrapper.appendChild(loader);
 
-						// Inject the constructed interface sequentially above the checkout data.
-						const checkoutOrderDiv = checkoutPage.querySelector('.checkout-order');
-						if (checkoutOrderDiv) {
-							checkoutOrderDiv.insertBefore(wrapper, checkoutOrderDiv.firstChild);
-						}
+						// Inject the constructed interface sequentially above the gateway form.
+						gatewayForm.parentNode.insertBefore(wrapper, gatewayForm);
 					}
 				});
 
@@ -180,10 +195,11 @@ class DD_BuyCred_PMPro_Switcher {
 
 	/**
 	 * Headless AJAX handler to execute the database mutation.
-	 * * Validates the security nonce, authenticates the payment ID, updates 
+	 * Validates the security nonce, authenticates the payment ID, updates 
 	 * the corresponding CPT meta to the new gateway, and constructs a clean 
 	 * GET redirect URL for the frontend to process.
-	 * * @return void Outputs JSON response and terminates execution.
+	 *
+	 * @return void Outputs JSON response and terminates execution.
 	 */
 	public function handle_ajax_switch() {
 		check_ajax_referer( 'dd_gateway_nonce', 'security' );
@@ -202,7 +218,7 @@ class DD_BuyCred_PMPro_Switcher {
 			wp_send_json_error( 'Invalid transaction architecture.' );
 		}
 
-		// Execute state mutation.
+		// Execute state mutation in the database.
 		update_post_meta( $payment_id, 'gateway', $gateway );
 
 		// Construct a clean GET URL that bypasses browser POST loops.
