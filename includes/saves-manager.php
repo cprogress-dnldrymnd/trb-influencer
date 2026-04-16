@@ -566,7 +566,7 @@ class Saves_Manager
                 display: block !important;
                 margin-bottom: 6px !important;
                 font-size: 13px !important;
-                color: #444 !important;
+                color: #000 !important;
                 font-weight: 500 !important;
                 font-family: 'Work Sans', sans-serif !important;
                 line-height: 1.5 !important;
@@ -680,7 +680,7 @@ class Saves_Manager
                 text-align: left !important;
                 cursor: pointer !important;
                 font-size: 13px !important;
-                color: #444 !important;
+                color: #000 !important;
                 border-radius: 4px !important;
             }
 
@@ -836,8 +836,9 @@ class Saves_Manager
             .inf-list-item-left label {
                 cursor: pointer;
                 font-size: 14px;
-                color: #444;
+                color: #000;
                 user-select: none;
+                font-family: Work Sans, sans-serif;
             }
 
             #inf-modal-overlay button.inf-create-btn {
