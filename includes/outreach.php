@@ -2043,7 +2043,20 @@ class DD_Outreach_Manager
                     </div>
                     <div class="influencer-search-item">
                         <?php
-                        if (function_exists('select_filter')) {
+                        // Dynamically pull options directly from the Elementor form settings
+                        $project_type_options = $this->get_elementor_form_field_options('outreach_form', 'project_type');
+
+                        if (!empty($project_type_options)) {
+                            $current_val = $influencer_outreach_fields['project_type'] ?? '';
+                            echo '<select name="project_type" class="dd-filter-select">';
+                            echo '<option value="">Filter by project type</option>';
+                            foreach ($project_type_options as $val => $label) {
+                                $selected = selected($current_val, $val, false);
+                                echo '<option value="' . esc_attr($val) . '" ' . $selected . '>' . esc_html($label) . '</option>';
+                            }
+                            echo '</select>';
+                        } elseif (function_exists('select_filter')) {
+                            // Fallback to original filter if form data extraction fails
                             echo select_filter('project_type', 'Project type', 'Filter by project type', $influencer_outreach_fields['project_type'] ?? '');
                         }
                         ?>
@@ -2560,6 +2573,97 @@ class DD_Outreach_Manager
         $name = isset($country_names[$country_code]) ? $country_names[$country_code] : esc_html($country_code);
 
         return $flag . ' ' . $name;
+    }
+
+    /**
+     * Recursively traverses an Elementor data array to locate a specific form widget by its configured form ID/name.
+     * * @param array  $elements The Elementor page/section/column elements array to search.
+     * @param string $form_id  The Elementor form name/ID to locate (e.g., 'outreach_form').
+     * @return array|false     Returns the form widget configuration array if found, false otherwise.
+     */
+    private function find_elementor_widget_by_form_id($elements, $form_id)
+    {
+        foreach ($elements as $element) {
+            if (isset($element['widgetType']) && $element['widgetType'] === 'form') {
+                if (
+                    (isset($element['settings']['form_name']) && $element['settings']['form_name'] === $form_id) ||
+                    (isset($element['settings']['form_id']) && $element['settings']['form_id'] === $form_id)
+                ) {
+                    return $element;
+                }
+            }
+            if (!empty($element['elements'])) {
+                $found = $this->find_elementor_widget_by_form_id($element['elements'], $form_id);
+                if ($found) {
+                    return $found;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Dynamically extracts dropdown options from an Elementor form field configuration stored in the database.
+     * Utilizes transients to cache the heavy JSON parsing and database queries for performance.
+     * * @param string $form_id  The target Elementor form name/ID (e.g., 'outreach_form').
+     * @param string $field_id The specific field custom ID to target (e.g., 'project_type').
+     * @return array           An associative array of field options [value => label].
+     */
+    private function get_elementor_form_field_options($form_id, $field_id)
+    {
+        $cache_key = 'dd_elem_opts_' . md5($form_id . $field_id);
+        $cached_options = get_transient($cache_key);
+
+        if (false !== $cached_options) {
+            return $cached_options;
+        }
+
+        global $wpdb;
+
+        // Query posts containing Elementor data that mention our target form name.
+        $results = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_elementor_data' AND meta_value LIKE %s",
+                '%"' . $wpdb->esc_like($form_id) . '"%'
+            )
+        );
+
+        $options = [];
+
+        foreach ($results as $json_data) {
+            $data = json_decode($json_data, true);
+            if (!is_array($data)) continue;
+
+            $form_widget = $this->find_elementor_widget_by_form_id($data, $form_id);
+
+            if ($form_widget && isset($form_widget['settings']['form_fields'])) {
+                foreach ($form_widget['settings']['form_fields'] as $field) {
+                    if (isset($field['custom_id']) && $field['custom_id'] === $field_id && !empty($field['field_options'])) {
+                        $raw_options = explode("\n", $field['field_options']);
+                        foreach ($raw_options as $opt) {
+                            $opt = trim($opt);
+                            if (!empty($opt)) {
+                                // Support Elementor's native 'value|label' formatting
+                                if (strpos($opt, '|') !== false) {
+                                    $parts = explode('|', $opt);
+                                    $options[trim($parts[0])] = trim($parts[1]);
+                                } else {
+                                    $options[$opt] = $opt;
+                                }
+                            }
+                        }
+                        break 2; // Break out of both the fields loop and the database results loop
+                    }
+                }
+            }
+        }
+
+        // Cache the extracted options for 1 hour to prevent repetitive meta scans.
+        if (!empty($options)) {
+            set_transient($cache_key, $options, HOUR_IN_SECONDS);
+        }
+
+        return $options;
     }
 }
 
