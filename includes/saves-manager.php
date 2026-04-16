@@ -557,7 +557,7 @@ class Saves_Manager
             #inf-groups-shortcode-grid button.inf-btn-icon:hover,
             #inf-modal-overlay button.inf-btn-icon:hover {
                 background-color: #f0f2f5 !important;
-                color: #333 !important;
+                color: var(--e-global-color-primary) !important;
             }
 
             #inf-groups-shortcode-grid button.inf-btn-icon svg,
@@ -589,7 +589,7 @@ class Saves_Manager
                 font-size: 14px !important;
                 box-sizing: border-box !important;
                 font-family: 'Work Sans', sans-serif !important;
-                color: #333 !important;
+                color: var(--e-global-color-primary) !important;
                 background-color: #fff !important;
                 line-height: 1.5 !important;
                 box-shadow: none !important;
@@ -641,7 +641,7 @@ class Saves_Manager
             .inf-group-title {
                 margin: 0;
                 font-size: 15px;
-                color: #333;
+                color: var(--e-global-color-primary);
                 font-weight: 500;
             }
 
@@ -798,8 +798,9 @@ class Saves_Manager
             .inf-modal-header h3 {
                 margin: 0;
                 font-size: 18px;
-                color: #333;
+                color: var(--e-global-color-primary);
                 font-weight: 500;
+                font-family: Work Sans, sans-serif;
             }
 
             #inf-modal-overlay button.inf-btn-back {
@@ -816,7 +817,7 @@ class Saves_Manager
             }
 
             #inf-modal-overlay button.inf-btn-back:hover {
-                color: #333 !important;
+                color: var(--e-global-color-primary) !important;
             }
 
             .inf-input-group label span {
