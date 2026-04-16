@@ -491,7 +491,7 @@ class Saves_Manager
         $html = '<div class="inf-group-creators-loop">';
         foreach ($saved_posts as $saved_post) {
             $influencer_id = get_post_meta($saved_post->ID, 'influencer_id', true);
-            
+
             if ($influencer_id) {
                 // Temporarily hijack the global $post so the Elementor Loop item populates correctly
                 $post = get_post($influencer_id);
@@ -944,6 +944,11 @@ class Saves_Manager
             .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger:not(.delete-save) button {
                 background-color: transparent;
                 color: var(--e-global-color-accent);
+            }
+
+            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger.delete-save button {
+                background-color: var(--e-global-color-accent);
+                color: #fff;
             }
         </style>
 
