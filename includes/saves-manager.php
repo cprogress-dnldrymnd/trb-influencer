@@ -89,15 +89,34 @@ class Saves_Manager {
     }
 
     /**
+     * Helper: Get Saved Influencer Post ID
+     *
+     * @param int $influencer_id The ID of the influencer.
+     * @param int $user_id The User ID.
+     * @return int|bool The Post ID if found, false otherwise.
+     */
+    private function get_existing_influencer_save_id( $influencer_id, $user_id ) {
+        $existing = get_posts([
+            'post_type'      => 'saved-influencer',
+            'author'         => $user_id,
+            'meta_key'       => 'influencer_id',
+            'meta_value'     => $influencer_id,
+            'posts_per_page' => 1,
+            'fields'         => 'ids'
+        ]);
+        return !empty($existing) ? $existing[0] : false;
+    }
+
+    /**
      * Shortcode: Add to Groups Button
-     * Outputs the requested Elementor markup, hooking natively into the modal trigger.
+     * Checks database on load to determine text: "SAVE" or "SAVED(X)".
      *
      * @param array $atts Shortcode attributes.
      * @return string HTML output.
      */
     public function render_add_to_groups_shortcode( $atts ) {
         if ( ! is_user_logged_in() ) {
-            return ''; // Hide button if not logged in
+            return '';
         }
 
         $influencer_id = get_the_ID();
@@ -105,15 +124,30 @@ class Saves_Manager {
             return '';
         }
 
+        $user_id = get_current_user_id();
+        $post_id = $this->get_existing_influencer_save_id( $influencer_id, $user_id );
+        
+        $button_text = 'SAVE';
+        $extra_class = '';
+        
+        if ( $post_id ) {
+            $saved_in = get_post_meta( $post_id, 'saved_in_lists', true );
+            if ( is_array( $saved_in ) && count( $saved_in ) > 0 ) {
+                $count = count( $saved_in );
+                $button_text = "SAVED({$count})";
+                $extra_class = 'delete-save'; // Marks it as active
+            }
+        }
+
         ob_start();
         ?>
-        <div class="elementor-button-wrapper add-to-groups save-influencer-trigger" influencer-id="<?php echo esc_attr( $influencer_id ); ?>" style="cursor: pointer;">
+        <div class="elementor-button-wrapper add-to-groups save-influencer-trigger <?php echo esc_attr( $extra_class ); ?>" influencer-id="<?php echo esc_attr( $influencer_id ); ?>" style="cursor: pointer;">
             <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
                 <span class="elementor-button-content-wrapper">
                     <span class="elementor-button-icon">
                         <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>
                     </span>
-                    <span class="elementor-button-text">ADD TO GROUPS</span>
+                    <span class="elementor-button-text"><?php echo esc_html( $button_text ); ?></span>
                 </span>
             </button>
         </div>
@@ -123,8 +157,6 @@ class Saves_Manager {
 
     /**
      * Shortcode: Render user's custom saved groups.
-     * Displays a UI grid matching the video spec, complete with 3-dot menus,
-     * dates, and dynamically loaded influencer avatars.
      *
      * @param array $atts Shortcode attributes.
      * @return string HTML output.
@@ -142,7 +174,7 @@ class Saves_Manager {
         }
 
         global $post;
-        $original_post = $post; // Cache original post to restore later
+        $original_post = $post;
 
         ob_start();
         ?>
@@ -214,8 +246,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Save User Search
-     *
-     * @return void Sends a JSON response.
      */
     public function handle_save_search_ajax() {
         check_ajax_referer('save_search_nonce', 'security');
@@ -257,28 +287,7 @@ class Saves_Manager {
     }
 
     /**
-     * Helper: Get Saved Influencer Post ID
-     *
-     * @param int $influencer_id The ID of the influencer.
-     * @param int $user_id The User ID.
-     * @return int|bool The Post ID if found, false otherwise.
-     */
-    private function get_existing_influencer_save_id( $influencer_id, $user_id ) {
-        $existing = get_posts([
-            'post_type'      => 'saved-influencer',
-            'author'         => $user_id,
-            'meta_key'       => 'influencer_id',
-            'meta_value'     => $influencer_id,
-            'posts_per_page' => 1,
-            'fields'         => 'ids'
-        ]);
-        return !empty($existing) ? $existing[0] : false;
-    }
-
-    /**
      * AJAX Handler: Get Modal Data
-     *
-     * @return void Sends a JSON response.
      */
     public function handle_get_modal_data_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -310,8 +319,7 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Save Influencer to Lists
-     *
-     * @return void Sends a JSON response.
+     * Returns the active group count back to the JS payload for dynamic button updating.
      */
     public function handle_save_influencer_lists_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -328,7 +336,7 @@ class Saves_Manager {
         if (empty($selected_lists)) {
             if ($post_id) wp_delete_post($post_id, true);
             $message = sprintf('<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
-            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved']);
+            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved', 'count' => 0]);
         } else {
             if (!$post_id) {
                 $post_args = [
@@ -345,14 +353,12 @@ class Saves_Manager {
 
             update_post_meta($post_id, 'saved_in_lists', $selected_lists);
             $message = sprintf('<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>');
-            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved']);
+            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists)]);
         }
     }
 
     /**
      * AJAX Handler: Upsert (Create/Update) Group
-     *
-     * @return void Sends a JSON response.
      */
     public function handle_upsert_group_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -387,8 +393,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Delete Group
-     *
-     * @return void Sends a JSON response.
      */
     public function handle_delete_group_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -431,8 +435,6 @@ class Saves_Manager {
 
     /**
      * AJAX Handler: Get Group Influencers
-     *
-     * @return void Sends a JSON response.
      */
     public function handle_get_group_influencers_ajax() {
         check_ajax_referer('save_influencer_nonce', 'security');
@@ -477,8 +479,6 @@ class Saves_Manager {
 
     /**
      * Renders Inline JavaScript, CSS, and HTML for the Modals & Shortcode.
-     *
-     * @return void Outputs directly to wp_footer.
      */
     public function render_inline_assets() {
         ?>
@@ -532,7 +532,7 @@ class Saves_Manager {
                 fill: none !important;
             }
 
-            /* Resets for Modal Input Fields against Elementor overrides */
+            /* Resets for Modal Input Fields */
             #inf-modal-overlay .inf-input-group label {
                 display: block !important;
                 margin-bottom: 6px !important;
@@ -561,10 +561,7 @@ class Saves_Manager {
                 text-shadow: none !important;
                 margin: 0 !important;
             }
-            #inf-modal-overlay .inf-textarea {
-                resize: vertical !important;
-                min-height: 80px !important;
-            }
+            #inf-modal-overlay .inf-textarea { resize: vertical !important; min-height: 80px !important; }
 
             /* Shortcode Grid Styling */
             .inf-groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
@@ -767,6 +764,7 @@ class Saves_Manager {
                     });
                 });
 
+                // Save Influencer Selection & Display Updated Count dynamically
                 $('#inf-modal-save-influencer').on('click', function() {
                     let selected = [];
                     $('.inf-list-checkbox:checked').each(function() { selected.push($(this).val()); });
@@ -779,8 +777,15 @@ class Saves_Manager {
                             if (res.success) {
                                 if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
                                 let $text = state.triggerBtn.find('.elementor-button-text');
-                                if(res.data.status === 'saved') { $text.text('SAVED'); state.triggerBtn.addClass('delete-save'); } 
-                                else { $text.text('UNSAVE'); state.triggerBtn.removeClass('delete-save'); }
+                                
+                                if (res.data.status === 'saved') { 
+                                    $text.text('SAVED(' + res.data.count + ')'); 
+                                    state.triggerBtn.addClass('delete-save'); 
+                                } else { 
+                                    $text.text('SAVE'); 
+                                    state.triggerBtn.removeClass('delete-save'); 
+                                }
+                                
                                 $('#inf-modal-overlay').hide();
                             } else { alert(res.data.message); }
                             $btn.text('Save').prop('disabled', false);
