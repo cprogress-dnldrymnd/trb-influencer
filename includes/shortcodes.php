@@ -469,9 +469,11 @@ function shortcode_influencer_search_filter()
             <div class="influencer-search-item">
                 <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '') ?>
             </div>
+            <!--
             <div class="influencer-search-item">
-                <?= checkbox_filter('platform', 'Platform', $influencer_search_fields['platform'] ?? '') ?>
-            </div>
+                <?php //checkbox_filter('platform', 'Platform', $influencer_search_fields['platform'] ?? '') 
+                ?>
+            </div>-->
 
             <div class="influencer-search-item">
                 <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers'] ?? '') ?>
@@ -551,9 +553,11 @@ function shortcode_influencer_search_filter_main()
                 <div class="influencer-search-item required-on-search">
                     <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                 </div>
+                <!--
                 <div class="influencer-search-item">
-                    <?= select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') ?>
-                </div>
+                    <?php //select_filter('platform', false, 'Platform', $influencer_search_fields['platform'] ?? '') 
+                    ?>
+                </div>-->
                 <div class="influencer-search-item">
                     <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                 </div>
@@ -594,7 +598,7 @@ function shortcode_influencer_search_summary()
     $brief   = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
     $niche   = isset($_GET['niche']) ? (array) $_GET['niche'] : [];
     $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
-    $platform = isset($_GET['platform']) ? (array) $_GET['platform'] : [];
+    //$platform = isset($_GET['platform']) ? (array) $_GET['platform'] : [];
     $followers = isset($_GET['followers']) ? (array) $_GET['followers'] : [];
     $filter  = isset($_GET['filter']) ? (array) $_GET['filter'] : [];
 
@@ -627,7 +631,7 @@ function shortcode_influencer_search_summary()
         }
         $parts[] = implode(', ', $country_names);
     }
-
+    /*
     if (! empty($platform)) {
         $platform_names = [];
         $platform_opts  = $fields['platform'] ?? [];
@@ -635,7 +639,7 @@ function shortcode_influencer_search_summary()
             $platform_names[] = isset($platform_opts[$slug]) ? $platform_opts[$slug] : ucfirst($slug);
         }
         $parts[] = implode(', ', $platform_names);
-    }
+    }*/
 
     if (! empty($followers) && ! empty($followers[0])) {
         $followers_opts = $fields['followers'] ?? [

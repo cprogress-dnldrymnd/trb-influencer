@@ -27,7 +27,7 @@ function my_custom_variable_setup()
         $explicit = [
             'niche'     => isset($_GET['niche']) ? (array) $_GET['niche'] : [],
             'country'   => isset($_GET['country']) ? (array) $_GET['country'] : [],
-            'platform'  => isset($_GET['platform']) ? (array) $_GET['platform'] : [],
+            //'platform'  => isset($_GET['platform']) ? (array) $_GET['platform'] : [],
             'followers' => isset($_GET['followers']) ? (array) $_GET['followers'] : [],
             'filter'    => isset($_GET['filter']) ? (array) $_GET['filter'] : [],
         ];
@@ -35,7 +35,7 @@ function my_custom_variable_setup()
         $merged = merge_brief_with_explicit_filters($parsed, $explicit);
         $_GET['niche']     = $merged['niche'];
         $_GET['country']   = $merged['country'];
-        $_GET['platform']  = $merged['platform'];
+        //$_GET['platform']  = $merged['platform'];
         $_GET['followers'] = $merged['followers'];
         $_GET['filter']    = $merged['filter'];
     }
@@ -48,7 +48,7 @@ function my_custom_variable_setup()
     foreach ($niche as $term) {
         $niche_options[$term->slug] = $term->name;
     }
-
+    /*
     $platform = get_terms(array(
         'taxonomy'   => 'platform',
         'hide_empty' => false,
@@ -56,7 +56,7 @@ function my_custom_variable_setup()
 
     foreach ($platform as $term) {
         $platform_options[$term->slug] = $term->name;
-    }
+    }*/
     $followers_options = array(
         '1000-10000' => '1K - 10K',
         '10000-50000' => '10K - 50K',
@@ -92,7 +92,7 @@ function my_custom_variable_setup()
     );
 
     $influencer_search_fields['niche'] = $niche_options;
-    $influencer_search_fields['platform'] = $platform_options;
+    //$influencer_search_fields['platform'] = $platform_options;
     $influencer_search_fields['followers'] = $followers_options;
     $influencer_search_fields['country'] = $country_options;
     $influencer_search_fields['lang'] = $lang_options;
