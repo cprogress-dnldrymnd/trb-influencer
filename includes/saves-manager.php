@@ -922,7 +922,7 @@ class Saves_Manager
                 color: var(--e-global-color-secondary);
             }
 
-            .save-influencer-trigger button {
+            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
                 font-size: var(--e-global-typography-2a20fd0-font-size);
                 font-weight: var(--e-global-typography-2a20fd0-font-weight);
@@ -934,7 +934,7 @@ class Saves_Manager
                 color: var(--e-global-color-accent);
             }
 
-            .save-influencer-trigger:not(.delete-save) button {
+            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger:not(.delete-save) button {
                 background-color: transparent;
                 color: var(--e-global-color-accent);
             }
