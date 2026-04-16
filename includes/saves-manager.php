@@ -532,6 +532,40 @@ class Saves_Manager {
                 fill: none !important;
             }
 
+            /* Resets for Modal Input Fields against Elementor overrides */
+            #inf-modal-overlay .inf-input-group label {
+                display: block !important;
+                margin-bottom: 6px !important;
+                font-size: 13px !important;
+                color: #444 !important;
+                font-weight: 500 !important;
+                font-family: 'Work Sans', sans-serif !important;
+                line-height: 1.5 !important;
+            }
+            #inf-modal-overlay .inf-input, 
+            #inf-modal-overlay .inf-textarea {
+                width: 100% !important;
+                padding: 10px 12px !important;
+                border: 1px solid #ddd !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                box-sizing: border-box !important;
+                font-family: 'Work Sans', sans-serif !important;
+                color: #333 !important;
+                background-color: #fff !important;
+                line-height: 1.5 !important;
+                box-shadow: none !important;
+                height: auto !important;
+                letter-spacing: normal !important;
+                text-transform: none !important;
+                text-shadow: none !important;
+                margin: 0 !important;
+            }
+            #inf-modal-overlay .inf-textarea {
+                resize: vertical !important;
+                min-height: 80px !important;
+            }
+
             /* Shortcode Grid Styling */
             .inf-groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
             .inf-group-card {
@@ -589,11 +623,8 @@ class Saves_Manager {
             #inf-modal-overlay button.inf-btn-back { background-color: transparent !important; border: none !important; cursor: pointer !important; color: #666 !important; padding: 0 10px 0 0 !important; margin: 0 !important; display: flex !important; align-items: center !important; gap: 4px !important; font-size:14px !important; }
             #inf-modal-overlay button.inf-btn-back:hover { color: #333 !important; }
             
-            .inf-input-group { margin-bottom: 16px; }
-            .inf-input-group label { display: block; margin-bottom: 6px; font-size: 13px; color: #444; font-weight: 500;}
             .inf-input-group label span { color: #dc3545; }
-            .inf-input, .inf-textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-            .inf-textarea { resize: vertical; min-height: 80px; }
+            
             .inf-lists-container { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
             .inf-list-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; border-radius: 6px; }
             .inf-list-item:hover { background: #f5f5f5; }
@@ -602,21 +633,20 @@ class Saves_Manager {
             .inf-list-item-left label { cursor: pointer; font-size: 14px; color: #444; user-select: none; }
             
             #inf-modal-overlay button.inf-create-btn { background-color: transparent !important; border: none !important; color: #666 !important; font-size: 14px !important; cursor: pointer !important; padding: 10px 4px !important; margin: 0 0 16px 0 !important; display: flex !important; align-items: center !important; gap: 8px !important; width: 100% !important; justify-content: flex-start !important; }
-            #inf-modal-overlay button.inf-create-btn:hover { color: #5034c4 !important; }
+            #inf-modal-overlay button.inf-create-btn:hover { color: var(--e-global-color-secondary) !important; }
             
             .inf-modal-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
             
             #inf-modal-overlay button.inf-btn { flex: 1 !important; padding: 10px !important; margin: 0 !important; border-radius: 8px !important; font-weight: 500 !important; cursor: pointer !important; text-align: center !important; transition: 0.2s !important; font-size: 14px !important; border: none !important;}
             #inf-modal-overlay button.inf-btn-cancel { background-color: transparent !important; color: #555 !important; border: 1px solid #ddd !important; }
             #inf-modal-overlay button.inf-btn-cancel:hover { background-color: #eaeaea !important; }
-            #inf-modal-overlay button.inf-btn-save { background-color: #5034c4 !important; color: #fff !important; }
-            #inf-modal-overlay button.inf-btn-save:hover { background-color: #40299e !important; }
+            #inf-modal-overlay button.inf-btn-save { background-color: var(--e-global-color-secondary) !important; color: #fff !important; }
             
             .inf-group-creators-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
             .inf-group-creators-list li { padding: 12px 20px; border-bottom: 1px solid #eaeaea; }
             .inf-group-creators-list li:last-child { border-bottom: none; }
             .inf-group-creators-list a { color: #333; text-decoration: none; font-weight: 500; }
-            .inf-group-creators-list a:hover { color: #5034c4; }
+            .inf-group-creators-list a:hover { color: var(--e-global-color-secondary); }
         </style>
 
         <div id="inf-modal-overlay" class="inf-modal-overlay">
