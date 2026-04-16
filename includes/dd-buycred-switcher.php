@@ -3,7 +3,7 @@
  * Plugin Name: buyCRED Inline Gateway Switcher
  * Plugin URI:  https://digitallydisruptive.co.uk/
  * Description: Deploys a global MutationObserver to inject a dynamic gateway reset mechanism into the myCred inline AJAX checkout form.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      Digitally Disruptive - Donald Raymundo
  * Author URI:  https://digitallydisruptive.co.uk/
  * Text Domain: dd-inline-switcher
@@ -32,8 +32,8 @@ class DD_BuyCred_Inline_Switcher {
 	/**
 	 * Injects the global JavaScript MutationObserver logic into the footer.
 	 * * This script monitors the entire document body for DOM node insertions.
-	 * When the `#buycred-checkout-page` UI is detected (injected via AJAX), 
-	 * it prepends a reset action button to clear the state.
+	 * When the `#buycred-checkout-page` UI is detected (injected via AJAX or POST), 
+	 * it prepends a reset action button to clear the state via a clean GET request.
 	 * * @return void
 	 */
 	public function inject_global_observer_script() {
@@ -88,11 +88,12 @@ class DD_BuyCred_Inline_Switcher {
 								resetBtn.onmouseout = function() { this.style.backgroundColor = '#d9534f'; };
 								
 								/**
-								 * Action: Force a page reload to clear the temporary AJAX transaction state
-								 * and return the user to the initial gateway selection UI.
+								 * Action: Force a clean GET request to the current URL structure.
+								 * This strips the browser of the POST payload that myCred uses to trigger
+								 * the checkout phase, effectively resetting the shortcode.
 								 */
 								resetBtn.onclick = function() {
-									window.location.reload();
+									window.location.href = window.location.origin + window.location.pathname;
 								};
 
 								// Inject the button directly at the top of the checkout order section.
