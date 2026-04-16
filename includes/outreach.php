@@ -62,6 +62,9 @@ class DD_Outreach_Manager
 
         // Backend Meta Boxes
         add_action('add_meta_boxes', [$this, 'add_note_meta_box']);
+
+        // Cache Invalidation for Elementor Form Sync
+        add_action('elementor/document/save/after', [$this, 'flush_elementor_form_options_cache']);
     }
 
     /**
@@ -2664,6 +2667,24 @@ class DD_Outreach_Manager
         }
 
         return $options;
+    }
+    /**
+     * Forcefully flushes the transient cache for Elementor form options whenever an Elementor document is saved.
+     * Ensures the frontend dashboard strictly reflects live changes made in the Elementor editor.
+     *
+     * @param \Elementor\Core\Base\Document $document The saved Elementor document instance.
+     * @return void
+     */
+    public function flush_elementor_form_options_cache($document)
+    {
+        global $wpdb;
+
+        // Execute direct DB query to purge all transients and their timeouts utilizing our specific prefix
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} 
+             WHERE option_name LIKE '_transient_dd_elem_opts_%' 
+             OR option_name LIKE '_transient_timeout_dd_elem_opts_%'"
+        );
     }
 }
 
