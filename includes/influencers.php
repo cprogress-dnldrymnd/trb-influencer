@@ -5,7 +5,7 @@
  * Description: Adds featured influencer functionality (WooCommerce style), expert toggles, and synchronized global settings to the influencer post type.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
- * Version: 1.0.3
+ * Version: 1.0.2
  */
 
 if (! defined('ABSPATH')) {
@@ -107,7 +107,7 @@ function dd_sync_global_featured_influencers()
 {
 	$featured_query = new WP_Query(array(
 		'post_type'      => 'influencer',
-		'posts_per_page' => -1, // Unlimited to prevent missing influencers
+		'posts_per_page' => 1000, // Hard limit to prevent infinite query timeouts
 		'fields'         => 'ids',
 		'meta_query'     => array(
 			array(
@@ -401,7 +401,7 @@ function dd_influencer_settings_page_html()
 
 			$all_influencer_ids = get_posts(array(
 				'post_type'      => 'influencer',
-				'posts_per_page' => -1, // Unlimited
+				'posts_per_page' => 1000,
 				'fields'         => 'ids'
 			));
 
@@ -417,9 +417,12 @@ function dd_influencer_settings_page_html()
 
 	$all_influencer_ids_display = get_posts(array(
 		'post_type'      => 'influencer',
-		'posts_per_page' => -1, // Unlimited
+		'posts_per_page' => 1000,
 		'fields'         => 'ids'
 	));
+
+	$raw_global_featured = get_option('global_featured_influencers', array());
+	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
 
 ?>
 	<div class="wrap">
@@ -439,11 +442,7 @@ function dd_influencer_settings_page_html()
 								<select name="featured_influencers[]" id="featured_influencers" multiple="multiple">
 									<?php if (! empty($all_influencer_ids_display)) : ?>
 										<?php foreach ($all_influencer_ids_display as $influencer_id) : ?>
-											<?php 
-												// Directly check post meta to ensure legacy posts are highlighted properly
-												$is_featured = get_post_meta($influencer_id, '_is_featured_influencer', true); 
-											?>
-											<option value="<?php echo esc_attr($influencer_id); ?>" <?php selected('yes' === $is_featured, true); ?>>
+											<option value="<?php echo esc_attr($influencer_id); ?>" <?php selected(in_array((int) $influencer_id, $global_featured, true), true); ?>>
 												<?php echo esc_html(get_the_title($influencer_id)); ?>
 											</option>
 										<?php endforeach; ?>
