@@ -2055,34 +2055,53 @@ class DD_Outreach_Manager
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof jQuery !== 'undefined') {
+                    var ddFormSubmitted = false;
+
                     jQuery(document).on('submit_success', function(event, response) {
                         if (response && response.data && response.data.dd_custom_html) {
+                            ddFormSubmitted = true;
+                            
                             var $summaryTarget = jQuery('#outreach-form-summary');
-                            var $pointsTarget = jQuery('.current-points');
+                            
+                            // Globally explicitly update ALL elements with the .current-points class
+                            if (response.data.updated_points !== undefined) {
+                                jQuery('.current-points').text(response.data.updated_points);
+                                if (response.data.updated_points == 0 || response.data.updated_points == '0') {
+                                    jQuery('.submit-new').remove();
+                                }
+                            } else {
+                                // Fallback calculation
+                                jQuery('.current-points').each(function() {
+                                    var currentPointsStr = jQuery(this).text().replace(/,/g, '');
+                                    var currentVal = parseInt(currentPointsStr, 10);
+                                    var cost = response.data.deducted_points ? parseInt(response.data.deducted_points, 10) : 1;
+                                    if (!isNaN(currentVal) && currentVal >= cost) {
+                                        jQuery(this).text(currentVal - cost);
+                                    }
+                                });
+                            }
 
                             if ($summaryTarget.length) {
                                 $summaryTarget.html(response.data.dd_custom_html);
                                 jQuery('#outreach-submission').addClass('hide-element');
                                 jQuery('#outreach-summary').removeClass('hide-element');
-
-                                if ($pointsTarget.length) {
-                                    if (response.data.updated_points !== undefined) {
-                                        $pointsTarget.text(response.data.updated_points);
-                                        if (response.data.updated_points == 0 || response.data.updated_points == '0') {
-                                            jQuery('.submit-new').remove();
-                                            jQuery('body').addClass('reload--page');
-                                        }
-                                    } else {
-                                        // Fallback calculation utilizing the dynamic cost returned via ajax
-                                        var currentPointsStr = $pointsTarget.text().replace(/,/g, '');
-                                        var currentVal = parseInt(currentPointsStr, 10);
-                                        var cost = response.data.deducted_points ? parseInt(response.data.deducted_points, 10) : 1;
-                                        if (!isNaN(currentVal) && currentVal >= cost) {
-                                            $pointsTarget.text(currentVal - cost);
-                                        }
-                                    }
-                                }
                             }
+                        }
+                    });
+
+                    // Force a page reload when the Elementor popup is closed IF a form was successfully submitted
+                    // This syncs the server-side UI elements (e.g. out of credits locks)
+                    jQuery(document).on('elementor/popup/hide', function() {
+                        if (ddFormSubmitted) {
+                            location.reload();
+                        }
+                    });
+
+                    // Ensure our custom Close button also triggers the popup close / sync
+                    jQuery(document).on('click', '.close-outreach a', function(e) {
+                        e.preventDefault();
+                        if (ddFormSubmitted) {
+                            location.reload();
                         }
                     });
                 }
@@ -2266,14 +2285,14 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-
+                    
                     <div class="influencer-search-item">
                         <select name="project_type" class="dd-filter-select">
                             <option value="">Filter by project type</option>
                             <?php foreach ($types_arr as $type) : ?>
-                                <?php
-                                $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
-                                $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                <?php 
+                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2284,9 +2303,9 @@ class DD_Outreach_Manager
                         <select name="project_length" class="dd-filter-select">
                             <option value="">Filter by project length</option>
                             <?php foreach ($lengths_arr as $length) : ?>
-                                <?php
-                                $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
-                                $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                <?php 
+                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2454,6 +2473,10 @@ class DD_Outreach_Manager
         $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
         $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
 
+        $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
+        $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
+        $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
+        $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
         $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
         $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
 
