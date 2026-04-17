@@ -1268,6 +1268,10 @@ class DD_Outreach_Manager
                 font-family: Inter;
             }
 
+            #dd-outreach-message-preview .tags-container {
+                margin-top: 0;
+            }
+
             .dd-footer {
                 display: flex;
                 gap: 15px;
