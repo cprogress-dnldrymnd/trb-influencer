@@ -865,7 +865,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-trial-text span {
-				background-color: var(--e-global-color-accent);
+				background-color: var(--e-global-color-primary);
 				padding: 10px;
 				display: inline-block;
 				border-radius: 5px;
