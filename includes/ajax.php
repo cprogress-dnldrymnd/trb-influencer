@@ -45,7 +45,7 @@ function my_custom_loop_filter_handler()
     }
 
     $niche        = $explicit['niche'];
-   // $platform     = $explicit['platform'];
+    // $platform     = $explicit['platform'];
     $country      = $explicit['country'];
     $lang         = $explicit['lang'];
     $followers    = $explicit['followers'];
