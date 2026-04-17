@@ -902,9 +902,7 @@ function get_outreach($this_month_only = false)
  */
 function get_saved_search($this_month_only = false)
 {
-    // Relies on the core query pattern. Assumes the 'saved-search' CPT also stores
-    // target identifiers under the 'influencer_id' meta key. If the CPT uses a different
-    // meta key (e.g., 'search_query_id'), update the 3rd parameter below.
+
     return get_user_post_meta_ids('saved-search', $this_month_only);
 }
 
