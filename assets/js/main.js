@@ -5,7 +5,11 @@
 
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
+        } else {
+            // If we are on a pre-rendered page, sort the tags right away
+            prioritize_active_tags(); 
         }
+
         nicheToggle();
         influencer_select_filters();
         influencer_search_trigger();
@@ -25,14 +29,11 @@
     function sync_url_params_to_dom() {
         const urlParams = new URLSearchParams(window.location.search);
         
-        // 1. Handle search-brief specifically (since it uses an ID)
         if (urlParams.has('search-brief')) {
             $('#search-brief').val(urlParams.get('search-brief'));
         }
 
-        // 2. Handle all array-based checkboxes dynamically (niche[], filter[], country[], etc.)
         urlParams.forEach((value, key) => {
-            // URLSearchParams automatically decodes spaces (e.g., "Include only verified influencers")
             $('input[name="' + key + '"]').each(function() {
                 if ($(this).attr('type') === 'checkbox' || $(this).attr('type') === 'radio') {
                     if ($(this).val() === value) {
@@ -43,48 +44,100 @@
         });
     }
 
+    /**
+     * NEW: Reorders the niche tags on creator cards so active filters appear first.
+     * It dynamically handles unhiding matched tags and hiding the overflowing ones.
+     */
+    function prioritize_active_tags() {
+        // 1. Gather all active tags from the sidebar
+        let activeTags = [];
+        $('.tags-container .tag span:first-child').each(function() {
+            activeTags.push($(this).text().trim().toLowerCase());
+        });
+
+        // If no active tags, exit early
+        if (activeTags.length === 0) return;
+
+        // 2. Loop through every creator card's tag container
+        $('.influencer-niche-container').each(function() {
+            let $container = $(this);
+            let $terms = $container.find('.niche-term');
+            let $toggle = $container.find('.niche-toggle');
+
+            if ($terms.length === 0) return;
+
+            // Determine how many tags are allowed to be visible before the "+ X" button
+            let visibleLimit = $terms.not('.term-hidden').length;
+            if (visibleLimit === 0) visibleLimit = 3; // safe fallback
+
+            let matched = [];
+            let unmatched = [];
+
+            // 3. Separate the tags into matched and unmatched arrays
+            $terms.each(function() {
+                let termText = $(this).text().trim().toLowerCase();
+                if (activeTags.includes(termText)) {
+                    matched.push($(this));
+                } else {
+                    unmatched.push($(this));
+                }
+            });
+
+            // If this card doesn't have any matching tags to pull forward, skip it
+            if (matched.length === 0) return;
+
+            // Combine them with matched tags first
+            let sortedTerms = matched.concat(unmatched);
+
+            // Detach everything so we can rebuild it cleanly
+            $terms.detach();
+            if ($toggle.length) $toggle.detach();
+
+            // 4. Re-append the tags and recalculate visibility
+            $.each(sortedTerms, function(index, $term) {
+                if (index < visibleLimit) {
+                    // Make visible
+                    $term.removeClass('term-hidden').css('display', '');
+                } else {
+                    // Hide
+                    $term.addClass('term-hidden').css('display', 'none');
+                }
+                $container.append($term);
+            });
+
+            // 5. Re-append the toggle button and update its number
+            if ($toggle.length) {
+                let hiddenCount = sortedTerms.length - visibleLimit;
+                if (hiddenCount > 0) {
+                    // Make sure it displays the correct remaining amount
+                    $toggle.text('+ ' + hiddenCount).show();
+                    $container.append($toggle);
+                } else {
+                    // If everything fits, hide the toggle
+                    $toggle.hide();
+                }
+            }
+        });
+    }
+
     function dashboardLogoHeightVar() {
-        // Cache the DOM element to optimize performance
         var $dashboardLogo = $('#dashboard-sidebar-logo');
-
-        // Verify the element exists before attempting calculations
         if ($dashboardLogo.length) {
-            // Retrieve the full rendered height, including padding and borders
             var dashboardLogoHeight = $dashboardLogo.outerHeight();
-
-            // Inject the calculated height as a CSS variable into the body element
             $('body').css('--dashboard-sidebar-logo-height', dashboardLogoHeight + 'px');
         }
     }
 
     function share_profile() {
-
         const shareButton = document.querySelector('.share-profile a');
+        if (!shareButton) return;
 
-        if (!shareButton) {
-            console.warn("Initialization aborted: '.share-profile' element not found.");
-            return;
-        }
-
-        /**
-         * Handles the click event for the share button.
-         * Prevents default anchor behavior, retrieves the current URL, 
-         * and asynchronously writes it to the system clipboard.
-         *
-         * @param {MouseEvent} event - The click event object.
-         */
         shareButton.addEventListener('click', async (event) => {
             event.preventDefault();
-
             const currentUrl = window.location.href;
-
             try {
-                // Write the current URL directly to the clipboard
                 await navigator.clipboard.writeText(currentUrl);
                 alert('URL copied to clipboard successfully.');
-
-                // Note: Insert user feedback logic here (e.g., UI state change)
-
             } catch (error) {
                 console.error('Clipboard write failed:', error);
             }
@@ -93,21 +146,15 @@
         $('.share-profile-trigger').click(function (e) {
             jQuery('#social-sharing').toggleClass('hide-element');
             e.preventDefault();
-
         });
     }
 
     function mobile_nav() {
-        // Listen for click on the trigger element
         $('.mobile-nav-trigger').on('click', function (e) {
-            // Prevent default action if the trigger is a link (<a>)
             e.preventDefault();
-
-            // Toggle the class on the body
             $('body').toggleClass('mobile-menu-active');
         });
     }
-
 
     function nicheToggle() {
         jQuery(document).on('click', '.niche-toggle', function (e) {
@@ -117,7 +164,6 @@
         });
     }
 
-
     function influencer_search_trigger() {
         jQuery('.influencer-search-trigger').on('click', function (e) {
             e.preventDefault();
@@ -125,43 +171,34 @@
         });
     }
 
-
-
     // Global variables to track pagination
     var current_page = 1;
-    var max_pages = 1; // Will be updated by the PHP response
+    var max_pages = 1;
 
     function fetch_influencers(is_load_more = false) {
         var container = $('#my-loop-grid-container');
         var button = $('#load-more-influencers');
         $('.loading-animation').show();
 
-        // 1. If this is NOT a "load more" click (it's a filter change), reset page to 1
         if (!is_load_more) {
             current_page = 1;
         }
 
-        // 2. Helper function to gather values
         function get_filter_values(name) {
             return $('[name="' + name + '"]:checked').map(function () {
                 return $(this).val();
             }).get();
         }
 
-        // 3. Gather values
         var filter_niche = get_filter_values('niche[]');
-        //var filter_platform = get_filter_values('platform[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
         var filter_followers = get_filter_values('followers');
         var filter_filter = get_filter_values('filter[]');
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
 
-
-
-        // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
-        button.text('Loading...'); // Change button text while loading
+        button.text('Loading...'); 
 
         $.ajax({
             url: ajax_vars.ajax_url,
@@ -169,7 +206,6 @@
             data: {
                 action: 'my_custom_loop_filter',
                 niche: filter_niche,
-                //platform: filter_platform,
                 country: filter_country,
                 lang: filter_lang,
                 followers: filter_followers,
@@ -181,25 +217,21 @@
             success: function (response) {
                 if (response.success) {
                     $('.loading-animation').hide();
-
-                    // Update Max Pages from PHP response
                     max_pages = response.data.max_pages;
 
-                    // A. Render HTML
                     if (is_load_more) {
-                        // If loading more, APPEND to existing content
                         container.append(response.data.html);
                     } else {
-                        // If filtering, REPLACE existing content
                         container.html(response.data.html);
                     }
 
-                    // B. Update Counters
+                    // --- NEW: Trigger the tag sorting function after HTML loads ---
+                    prioritize_active_tags();
+
                     jQuery('.total-found-influencer').text(response.data.found_posts);
                     var count = jQuery('#my-loop-grid-container .e-loop-item').length;
                     jQuery('.current-found-influencer').text(count);
 
-                    // C. Handle Button Visibility
                     if (current_page < max_pages) {
                         button.show();
                         button.text('Load More');
@@ -208,7 +240,6 @@
                     }
 
                 } else {
-                    // No posts found
                     if (!is_load_more) {
                         container.html('<p>No influencers found matching your criteria.</p>');
                     }
@@ -226,96 +257,71 @@
 
     jQuery(document).on('click', '#load-more-influencers', function (e) {
         e.preventDefault();
-        current_page++; // Increment page
-        fetch_influencers(true); // Pass true to indicate "Load More" mode
+        current_page++;
+        fetch_influencers(true);
     });
 
-
     function influencer_select_filters() {
-
-        // 1. Initialize all widgets independently
         document.querySelectorAll('.select-filter').forEach(widget => {
-
-            // Scope elements to THIS specific widget instance
             const dropdownBtn = widget.querySelector('.dropdown-button');
             const dropdownMenu = widget.querySelector('.dropdown-menu');
             const checkboxes = widget.querySelectorAll('.dropdown-item input');
             const tagsContainer = widget.querySelector('.tags-container');
             const resetBtn = widget.querySelector('.reset-btn');
-
-            // New Search Elements
             const searchInput = widget.querySelector('.dropdown-search-input');
             const listItems = widget.querySelectorAll('.dropdown-item');
 
-            // Toggle Dropdown
             dropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllOtherDropdowns(dropdownMenu, dropdownBtn);
-
                 dropdownMenu.classList.toggle('show');
                 dropdownBtn.classList.toggle('open');
-
-                // Optional: Focus search input when opening
                 if (dropdownMenu.classList.contains('show') && searchInput) {
                     setTimeout(() => searchInput.focus(), 100);
                 }
             });
 
-            // --- NEW SEARCH LOGIC ---
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const filter = e.target.value.toLowerCase();
-
                     listItems.forEach(item => {
                         const text = item.textContent || item.innerText;
                         if (text.toLowerCase().indexOf(filter) > -1) {
-                            item.style.display = ""; // Show
+                            item.style.display = ""; 
                         } else {
-                            item.style.display = "none"; // Hide
+                            item.style.display = "none"; 
                         }
                     });
                 });
-
-                // Prevent clicking the search input from closing the dropdown (if event bubbling causes issues)
                 searchInput.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
             }
-            // ------------------------
 
-            // Handle Checkbox Selection
             checkboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', () => {
                     updateTags();
                 });
             });
 
-            // Reset functionality
             resetBtn.addEventListener('click', () => {
                 checkboxes.forEach(box => box.checked = false);
-
-                // Clear search on reset
                 if (searchInput) {
                     searchInput.value = '';
-                    // Show all items again
                     listItems.forEach(item => item.style.display = "");
                 }
-
                 updateTags();
             });
 
-            // Function to Render Tags and Toggle Visibility
             function updateTags() {
                 tagsContainer.innerHTML = '';
                 let hasSelection = false;
-
                 checkboxes.forEach(checkbox => {
                     if (checkbox.checked) {
                         createTag(checkbox.dataset.label, checkbox);
                         hasSelection = true;
                     }
                 });
-
                 if (hasSelection) {
                     tagsContainer.style.display = '';
                     resetBtn.style.display = '';
@@ -325,14 +331,11 @@
                 }
             }
 
-            // Create individual Tag
             function createTag(label, linkedCheckbox) {
                 const tag = document.createElement('div');
                 tag.classList.add('tag');
-
                 const text = document.createElement('span');
                 text.innerText = label;
-
                 const closeBtn = document.createElement('span');
                 closeBtn.classList.add('tag-close');
                 closeBtn.innerHTML = '&times;';
@@ -340,6 +343,8 @@
                 closeBtn.addEventListener('click', () => {
                     linkedCheckbox.checked = false;
                     updateTags();
+                    // Also trigger search auto-update on tag removal if needed
+                    // fetch_influencers(false); 
                 });
 
                 tag.appendChild(text);
@@ -347,11 +352,9 @@
                 tagsContainer.appendChild(tag);
             }
 
-            // Run once on load
             updateTags();
         });
 
-        // 2. Global "Click Outside" Listener
         document.addEventListener('click', (e) => {
             document.querySelectorAll('.select-filter').forEach(widget => {
                 const dropdownBtn = widget.querySelector('.dropdown-button');
@@ -364,7 +367,6 @@
             });
         });
 
-        // Helper: Close all widgets except the one currently clicked
         function closeAllOtherDropdowns(currentMenu, currentBtn) {
             document.querySelectorAll('.select-filter').forEach(widget => {
                 const menu = widget.querySelector('.dropdown-menu');
