@@ -895,16 +895,38 @@ function get_outreach($this_month_only = false)
 
 
 /**
- * Retrieves saved search IDs for the current user.
+ * Retrieves the total count of saved searches for the current user.
+ * Bypasses the postmeta table since searches do not rely on 'influencer_id'.
  *
  * @param bool $this_month_only Filters results to the current month if true.
- * @return array                Array of IDs.
+ * @return int                  Total count of saved search posts.
  */
-function get_saved_search($this_month_only = false)
-{
+function get_saved_search_count_direct( $this_month_only = false ) {
+    if ( ! is_user_logged_in() ) {
+        return 0;
+    }
 
-    return get_user_post_meta_ids('saved-search', $this_month_only);
+    global $wpdb;
+    $user_id = get_current_user_id();
+
+    $sql = "
+        SELECT COUNT(ID) 
+        FROM {$wpdb->posts}
+        WHERE post_type = 'saved-search'
+        AND post_status = 'publish'
+        AND post_author = %d
+    ";
+
+    $args = [ $user_id ];
+
+    // Dynamically append SQL conditions for the current month constraint
+    if ( $this_month_only ) {
+        $sql .= " AND MONTH(post_date) = MONTH(CURRENT_DATE()) AND YEAR(post_date) = YEAR(CURRENT_DATE())";
+    }
+
+    return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$args ) );
 }
+
 
 
 
