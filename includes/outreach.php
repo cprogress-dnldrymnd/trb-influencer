@@ -43,7 +43,7 @@ class DD_Outreach_Manager
 
         // New Shortcode for Dynamic Credit Cost
         add_shortcode('dd_outreach_credit_cost', [$this, 'render_credit_cost_shortcode']);
-        
+
         // New Shortcode for Dynamic Outreach Message Preview
         add_shortcode('outreach_message', [$this, 'render_outreach_message_shortcode']);
 
@@ -103,13 +103,13 @@ class DD_Outreach_Manager
             'default' => 1,
             'sanitize_callback' => 'absint'
         ]);
-        
+
         // Default Message Setting
         register_setting('dd_outreach_settings_group', 'dd_outreach_default_message', [
             'type' => 'string',
             'default' => $this->get_default_outreach_message()
         ]);
-        
+
         // Dynamic Elementor Form Options
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_types');
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_lengths');
@@ -138,7 +138,7 @@ class DD_Outreach_Manager
         $job_title = get_user_meta($current_user->ID, 'job_title', true) ?: 'Representative';
 
         // Influencer context
-        $influencer_id = get_the_ID(); 
+        $influencer_id = get_the_ID();
         $influencer_name = get_the_title($influencer_id);
 
         $template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
@@ -155,11 +155,11 @@ class DD_Outreach_Manager
         $json_encoded_template = wp_json_encode($js_template);
 
         ob_start();
-        ?>
+?>
         <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" style="background:#fdfdfd; padding:15px; border:1px solid #000; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
             Loading message preview...
         </div>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
@@ -766,7 +766,7 @@ class DD_Outreach_Manager
         if (!is_array($templates) || empty($templates)) {
             $templates = $this->get_default_template_structure();
         }
-?>
+    ?>
         <style>
             /* Repeater UI CSS */
             .dd-repeater-item {
@@ -1238,10 +1238,13 @@ class DD_Outreach_Manager
             }
 
             .dd-message-overview-container .tags-container.tags-container.tags-container {
-                padding: 15px 20px;
                 margin: 0;
-                border-bottom: 1px solid #E7E7E7;
             }
+
+            .tags-container.tags-container.tags-container br {
+                display: none !important;
+            }
+
 
             .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
                 gap: 4px;
@@ -1778,7 +1781,7 @@ class DD_Outreach_Manager
 
         // We build the tags HTML dynamically as it was requested to be inside {{fields}}
         $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
-        
+
         $tags_html = '<div class="tags-container">
             <span class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</span>
             <span class="tag" style="' . $tag_style . '"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</span>
@@ -1800,9 +1803,9 @@ class DD_Outreach_Manager
 
         // Replace all placeholders and format into HTML
         $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
-        
+
         // Finalize standard line break parsing
-        $data['message'] = nl2br($final_message); 
+        $data['message'] = nl2br($final_message);
 
         $new_post_args = [
             'post_title'   => $post_title,
@@ -2257,14 +2260,14 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-                    
+
                     <div class="influencer-search-item">
                         <select name="project_type" class="dd-filter-select">
                             <option value="">Filter by project type</option>
                             <?php foreach ($types_arr as $type) : ?>
-                                <?php 
-                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
-                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                <?php
+                                $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2275,9 +2278,9 @@ class DD_Outreach_Manager
                         <select name="project_length" class="dd-filter-select">
                             <option value="">Filter by project length</option>
                             <?php foreach ($lengths_arr as $length) : ?>
-                                <?php 
-                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
-                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                <?php
+                                $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
