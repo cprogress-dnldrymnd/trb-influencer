@@ -300,8 +300,8 @@ class Saves_Manager
         }
         $desc_text = !empty($desc_parts) ? implode(' | ', $desc_parts) : 'No specific filters applied';
         
-        // Define the base URL where your search/filter is physically located
-        $search_url = home_url('/influencers/') . $query; 
+        // Define the base URL using the requested Page ID 1949
+        $search_url = get_permalink(1949) . $query; 
 
         ob_start();
         ?>
