@@ -656,7 +656,7 @@ class DD_Outreach_Manager
                 var projectDates = $('[name=\"form_fields[project_dates]\"]').val() || 'Flexible';
                 var budgetRange = $('[name=\"form_fields[budget_range]\"]').val() || $('[name=\"form_fields[budget]\"]').val() || 'To be discussed';
 
-                var tagStyle = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
+                var tagStyle = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block !important; margin: 2px;';
 
                 var tagsHtml = '<div class=\"tags-container\">' +
                     '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project type :</strong> ' + projectType + '</div>' +
@@ -1786,7 +1786,7 @@ class DD_Outreach_Manager
         $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
 
         // We build the tags HTML dynamically as it was requested to be inside {{fields}}
-        $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
+        $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block !important; margin: 2px;';
 
         $tags_html = '<div class="tags-container">
             <div class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</div>
