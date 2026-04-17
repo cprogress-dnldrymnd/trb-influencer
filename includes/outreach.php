@@ -1309,8 +1309,8 @@ class DD_Outreach_Manager
             }
 
             .close-outreach a:hover {
-                background-color: var(--e-global-color-ee06e41) !important;
-                color: var(--e-global-color-2ba2932) !important;
+                background-color: #000 !important;
+                color: #fff !important;
             }
 
             .submit-new a {
