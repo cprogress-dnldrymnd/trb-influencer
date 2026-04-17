@@ -1541,12 +1541,12 @@ input:checked + .slider:before {
         }
     }
 }
-
+/*
 body:not(.pmpro-level-no-membership) {
     .upgrade--plan.upgrade--plan {
         display: none !important;
     }
-}
+}*/
 
 body.pmpro-level-no-membership {
     --sidebar-width: 0;
