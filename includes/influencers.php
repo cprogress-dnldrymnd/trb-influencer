@@ -48,7 +48,7 @@ function dd_influencer_attributes_meta_box_html($post)
 	$is_expert   = get_post_meta($post->ID, 'is_expert', true);
 
 	// Ensure backward compatibility with existing DB entries using string '1'
-	$expert_checked = ( '1' === $is_expert || 'yes' === $is_expert ) ? '1' : '0';
+	$expert_checked = ('1' === $is_expert || 'yes' === $is_expert) ? '1' : '0';
 
 ?>
 	<p>
@@ -427,7 +427,9 @@ function dd_influencer_settings_page_html()
 ?>
 	<div class="wrap">
 		<h1><?php esc_html_e('Global Featured Influencers Settings', 'textdomain'); ?></h1>
-
+		<pre>
+			<?php var_dump(get_option('global_featured_influencers')) ?>
+		</pre>
 		<form method="post" action="">
 			<?php wp_nonce_field('dd_save_settings', 'dd_settings_nonce'); ?>
 
