@@ -659,10 +659,10 @@ class DD_Outreach_Manager
                 var tagStyle = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
 
                 var tagsHtml = '<div class=\"tags-container\">' +
-                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project type :</strong> ' + projectType + '</span>' +
-                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project length :</strong> ' + projectLength + '</span>' +
-                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
-                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Budget : </strong> ' + budgetRange + '</span>' +
+                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project type :</strong> ' + projectType + '</div>' +
+                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project length :</strong> ' + projectLength + '</div>' +
+                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project Dates :</strong> ' + projectDates + '</div>' +
+                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Budget : </strong> ' + budgetRange + '</div>' +
                     '</div>';
 
                 // Strip massive linebreaks surrounding the fields placeholder before injection
@@ -1789,10 +1789,10 @@ class DD_Outreach_Manager
         $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
 
         $tags_html = '<div class="tags-container">
-            <span class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</span>
-            <span class="tag" style="' . $tag_style . '"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</span>
-            <span class="tag" style="' . $tag_style . '"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</span>
-            <span class="tag" style="' . $tag_style . '"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</span>
+            <div class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</div>
+            <div class="tag" style="' . $tag_style . '"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</div>
+            <div class="tag" style="' . $tag_style . '"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</div>
+            <div class="tag" style="' . $tag_style . '"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</div>
         </div>';
 
         // Strip massive natural linebreaks surrounding the fields placeholder before injection
