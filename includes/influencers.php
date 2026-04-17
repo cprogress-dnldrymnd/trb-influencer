@@ -56,13 +56,12 @@ function dd_influencer_attributes_meta_box_html($post)
 	</p>
 	<p>
 		<label for="dd_is_expert">
-			<input type="checkbox" name="is_expert" id="dd_is_expert" value="1" <?php checked($is_expert, '1'); ?> />
+			<input type="checkbox" name="is_expert" id="dd_is_expert" value="yes" <?php checked($is_expert, 'yes'); ?> />
 			<?php esc_html_e('Professional experts only', 'textdomain'); ?>
 		</label>
 	</p>
 <?php
 }
-
 /**
  * Saves the custom meta box data when the influencer post is saved.
  * * Validates nonces and permissions, updates the post meta, and triggers
@@ -86,7 +85,7 @@ function dd_influencer_save_meta_box_data($post_id)
 	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
 	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
 
-	$expert_status = isset($_POST['is_expert']) ? '1' : '0';
+	$expert_status = isset($_POST['is_expert']) ? 'yes' : 'no';
 	update_post_meta($post_id, 'is_expert', $expert_status);
 
 	dd_sync_global_featured_influencers();
