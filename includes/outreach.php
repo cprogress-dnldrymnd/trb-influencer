@@ -1272,6 +1272,10 @@ class DD_Outreach_Manager
                 margin-top: 0;
             }
 
+            #dd-outreach-message-preview .tags-container+br {
+                display: none;
+            }
+
             .dd-footer {
                 display: flex;
                 gap: 15px;
