@@ -1126,29 +1126,59 @@ function render_mycred_circle_progress($atts)
 <?php
     return ob_get_clean();
 }
-
-
-function saved_influencer_count()
-{
-    return count(get_saved_influencer());
+/**
+ * Shortcode handler for counting saved influencers.
+ * Usage: [saved_influencer_count] or [saved_influencer_count this_month_only="true"]
+ *
+ * @param array $atts Shortcode attributes.
+ * @return int        Total count of saved influencers.
+ */
+function saved_influencer_count( $atts ) {
+    $this_month_only = parse_month_only_attribute( $atts );
+    return count( get_saved_influencer( $this_month_only ) );
 }
+add_shortcode( 'saved_influencer_count', 'saved_influencer_count' );
 
-add_shortcode('saved_influencer_count', 'saved_influencer_count');
 
-function viewed_influencer_count()
-{
-    return count(get_viewed_influencer());
+/**
+ * Shortcode handler for counting viewed influencers.
+ * Usage: [viewed_influencer_count] or [viewed_influencer_count this_month_only="true"]
+ *
+ * @param array $atts Shortcode attributes.
+ * @return int        Total count of viewed influencers.
+ */
+function viewed_influencer_count( $atts ) {
+    $this_month_only = parse_month_only_attribute( $atts );
+    return count( get_viewed_influencer( $this_month_only ) );
 }
+add_shortcode( 'viewed_influencer_count', 'viewed_influencer_count' );
 
-add_shortcode('viewed_influencer_count', 'viewed_influencer_count');
 
-
-function outreach_count()
-{
-    return count(get_outreach());
+/**
+ * Shortcode handler for counting outreaches.
+ * Usage: [outreach_count] or [outreach_count this_month_only="true"]
+ *
+ * @param array $atts Shortcode attributes.
+ * @return int        Total count of outreaches.
+ */
+function outreach_count( $atts ) {
+    $this_month_only = parse_month_only_attribute( $atts );
+    return count( get_outreach( $this_month_only ) );
 }
+add_shortcode( 'outreach_count', 'outreach_count' );
 
-add_shortcode('outreach_count', 'outreach_count');
+/**
+ * Shortcode handler for counting saved searches.
+ * Usage: [saved_search_count] or [saved_search_count this_month_only="true"]
+ *
+ * @param array $atts Shortcode attributes.
+ * @return int        Total count of saved searches.
+ */
+function saved_search_count( $atts ) {
+    $this_month_only = parse_month_only_attribute( $atts );
+    return count( get_saved_search( $this_month_only ) );
+}
+add_shortcode( 'saved_search_count', 'saved_search_count' );
 
 
 function unlocked_influencer_count()

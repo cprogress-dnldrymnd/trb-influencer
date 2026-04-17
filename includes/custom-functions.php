@@ -802,8 +802,16 @@ function set_admin_bar_height_variable()
 }
 add_action('wp_footer', 'set_admin_bar_height_variable');
 
-
-function get_saved_influencer()
+/**
+ * Core reusable function to fetch specific meta values for a user's posts.
+ * Includes dynamic month-filtering for analytics scopes.
+ *
+ * @param string $post_type       The custom post type to query.
+ * @param bool   $this_month_only If true, restricts query to posts created in the current month and year.
+ * @param string $meta_key        The meta key to retrieve. Defaults to 'influencer_id'.
+ * @return array                  Array of retrieved integer IDs.
+ */
+function get_user_post_meta_ids($post_type, $this_month_only = false, $meta_key = 'influencer_id')
 {
     if (! is_user_logged_in()) {
         return [];
@@ -814,79 +822,94 @@ function get_saved_influencer()
 
     // 2. Direct SQL Query
     // This fetches the 'influencer_id' meta directly from the database 
-    // for all 'saved-influencer' posts authored by the current user.
+    // for all designated posts authored by the current user.
     // We skip 'get_posts' entirely to avoid conflicts/loops.
-    $influencer_ids = $wpdb->get_col($wpdb->prepare("
+    $sql = "
         SELECT pm.meta_value 
         FROM {$wpdb->postmeta} pm
         INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-        WHERE p.post_type = 'saved-influencer'
+        WHERE p.post_type = %s
         AND p.post_status = 'publish'
         AND p.post_author = %d
-        AND pm.meta_key = 'influencer_id'
-    ", $user_id));
+        AND pm.meta_key = %s
+    ";
 
-    $ids = array_map('intval', $influencer_ids);
+    $args = [$post_type, $user_id, $meta_key];
 
-    return $ids;
-}
-
-
-function get_viewed_influencer()
-{
-    if (! is_user_logged_in()) {
-        return [];
+    // Dynamically append SQL conditions for the current month constraint
+    if ($this_month_only) {
+        $sql .= " AND MONTH(p.post_date) = MONTH(CURRENT_DATE()) AND YEAR(p.post_date) = YEAR(CURRENT_DATE())";
     }
 
-    global $wpdb;
-    $user_id = get_current_user_id();
+    $meta_ids = $wpdb->get_col($wpdb->prepare($sql, ...$args));
 
-    // 2. Direct SQL Query
-    // This fetches the 'influencer_id' meta directly from the database 
-    // for all 'saved-influencer' posts authored by the current user.
-    // We skip 'get_posts' entirely to avoid conflicts/loops.
-    $influencer_ids = $wpdb->get_col($wpdb->prepare("
-        SELECT pm.meta_value 
-        FROM {$wpdb->postmeta} pm
-        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-        WHERE p.post_type = 'viewed-influencer'
-        AND p.post_status = 'publish'
-        AND p.post_author = %d
-        AND pm.meta_key = 'influencer_id'
-    ", $user_id));
-
-    $ids = array_map('intval', $influencer_ids);
-
-    return $ids;
+    return array_map('intval', $meta_ids);
 }
 
-function get_outreach()
+/**
+ * Evaluates shortcode attributes to determine the boolean state of the 'this_month_only' flag.
+ *
+ * @param array|string $atts Shortcode attributes passed by the user.
+ * @return bool              True if 'this_month_only' is 'true', false otherwise.
+ */
+function parse_month_only_attribute($atts)
 {
-    if (! is_user_logged_in()) {
-        return [];
-    }
-
-    global $wpdb;
-    $user_id = get_current_user_id();
-
-    // 2. Direct SQL Query
-    // This fetches the 'influencer_id' meta directly from the database 
-    // for all 'saved-influencer' posts authored by the current user.
-    // We skip 'get_posts' entirely to avoid conflicts/loops.
-    $influencer_ids = $wpdb->get_col($wpdb->prepare("
-        SELECT pm.meta_value 
-        FROM {$wpdb->postmeta} pm
-        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-        WHERE p.post_type = 'outreach'
-        AND p.post_status = 'publish'
-        AND p.post_author = %d
-        AND pm.meta_key = 'influencer_id'
-    ", $user_id));
-
-    $ids = array_map('intval', $influencer_ids);
-
-    return $ids;
+    $atts = shortcode_atts(['this_month_only' => 'false'], $atts);
+    return filter_var($atts['this_month_only'], FILTER_VALIDATE_BOOLEAN);
 }
+
+/**
+ * Retrieves saved influencer IDs for the current user.
+ *
+ * @param bool $this_month_only Filters results to the current month if true.
+ * @return array                Array of IDs.
+ */
+function get_saved_influencer($this_month_only = false)
+{
+    return get_user_post_meta_ids('saved-influencer', $this_month_only);
+}
+
+
+/**
+ * Retrieves viewed influencer IDs for the current user.
+ *
+ * @param bool $this_month_only Filters results to the current month if true.
+ * @return array                Array of IDs.
+ */
+function get_viewed_influencer($this_month_only = false)
+{
+    return get_user_post_meta_ids('viewed-influencer', $this_month_only);
+}
+
+
+/**
+ * Retrieves outreach IDs for the current user.
+ *
+ * @param bool $this_month_only Filters results to the current month if true.
+ * @return array                Array of IDs.
+ */
+function get_outreach($this_month_only = false)
+{
+    return get_user_post_meta_ids('outreach', $this_month_only);
+}
+
+
+/**
+ * Retrieves saved search IDs for the current user.
+ *
+ * @param bool $this_month_only Filters results to the current month if true.
+ * @return array                Array of IDs.
+ */
+function get_saved_search($this_month_only = false)
+{
+    // Relies on the core query pattern. Assumes the 'saved-search' CPT also stores
+    // target identifiers under the 'influencer_id' meta key. If the CPT uses a different
+    // meta key (e.g., 'search_query_id'), update the 3rd parameter below.
+    return get_user_post_meta_ids('saved-search', $this_month_only);
+}
+
+
+
 /**
  * Retrieve a list of Post IDs purchased by the current user via myCred.
  *
