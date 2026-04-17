@@ -56,7 +56,7 @@ function dd_influencer_attributes_meta_box_html($post)
 	</p>
 	<p>
 		<label for="dd_is_expert">
-			<input type="checkbox" name="is_expert" id="dd_is_expert" value="1" <?php checked($is_expert, '0'); ?> />
+			<input type="checkbox" name="is_expert" id="dd_is_expert" value="1" <?php checked($is_expert, '1'); ?> />
 			<?php esc_html_e('Professional experts only', 'textdomain'); ?>
 		</label>
 	</p>
