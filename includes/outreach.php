@@ -1264,8 +1264,6 @@ class DD_Outreach_Manager
                 font-size: 15px;
                 color: #000000;
                 line-height: 1.6;
-                max-height: 300px;
-                overflow-y: auto;
                 padding: 15px 20px;
                 font-family: Inter;
             }
