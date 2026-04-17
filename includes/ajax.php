@@ -273,7 +273,7 @@ function my_custom_loop_filter_handler()
     if ($query->have_posts()) {
         $search_criteria = [
             'niche'       => $niche,
-            'platform'    => $platform,
+            //'platform'    => $platform,
             'country'     => $country,
             'followers'   => $followers,
             'filter'      => $filter,
