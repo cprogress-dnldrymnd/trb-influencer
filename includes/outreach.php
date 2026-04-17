@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs via settings and shortcodes.
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -156,7 +156,7 @@ class DD_Outreach_Manager
 
         ob_start();
         ?>
-        <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" style="background:#fdfdfd; padding:15px; border:1px solid #ccc; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
+        <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" style="background:#fdfdfd; padding:15px; border:1px solid #000; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
             Loading message preview...
         </div>
         <?php
@@ -656,17 +656,20 @@ class DD_Outreach_Manager
                 var projectDates = $('[name=\"form_fields[project_dates]\"]').val() || 'Flexible';
                 var budgetRange = $('[name=\"form_fields[budget_range]\"]').val() || $('[name=\"form_fields[budget]\"]').val() || 'To be discussed';
 
-                var tagsHtml = '<div class=\"tags-container\" style=\"margin: 15px 0; border: 1px solid #E7E7E7; padding: 15px 20px; border-radius: 8px; background: #fff;\">' +
-                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project type :</strong> ' + projectType + '</span>' +
-                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project length :</strong> ' + projectLength + '</span>' +
-                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
-                    '<span class=\"tag\" style=\"display:block;\"><strong>Budget : </strong> ' + budgetRange + '</span>' +
+                var tagStyle = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
+
+                var tagsHtml = '<div class=\"tags-container\">' +
+                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project type :</strong> ' + projectType + '</span>' +
+                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project length :</strong> ' + projectLength + '</span>' +
+                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
+                    '<span class=\"tag\" style=\"' + tagStyle + '\"><strong>Budget : </strong> ' + budgetRange + '</span>' +
                     '</div>';
 
-                var compiled = rawTemplate.replace(/\{\{fields\}\}/g, tagsHtml);
-                compiled = compiled.replace(/\{project_type\}/g, projectType);
+                // Strip massive linebreaks surrounding the fields placeholder before injection
+                var compiled = rawTemplate.replace(/[\\r\\n]*\\{\\{fields\\}\\}[\\r\\n]*/g, '<br><br>' + tagsHtml + '<br><br>');
+                compiled = compiled.replace(/\\{project_type\\}/g, projectType);
                 
-                // Convert line breaks so it formats properly in HTML
+                // Convert remaining organic line breaks
                 compiled = compiled.replace(/(?:\\r\\n|\\r|\\n)/g, '<br>');
 
                 previewDiv.html(compiled);
@@ -714,7 +717,7 @@ class DD_Outreach_Manager
 </head>
 <body style="margin:0;padding:20px;background-color:#EBEBEB;color:#1A1A1A;font-family:sans-serif;">
     <div style="background:#fff; max-width:600px; margin:0 auto; padding:30px; border-radius:8px;">
-        <h2>A partnership opportunity with {brand_name}</h2>
+        <h2>{subject}</h2>
         <p>Hi {influencer_name},</p>
         <div>{message}</div>
         <br>
@@ -900,7 +903,7 @@ class DD_Outreach_Manager
                             <div style="margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                                 <strong>Global Merge Tags (Click field to focus, then click tag to insert):</strong><br>
                                 <?php
-                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}'];
+                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}', '{subject}'];
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
@@ -1054,6 +1057,7 @@ class DD_Outreach_Manager
             'project_dates'   => 'Flexible',
             'budget'          => '$1,000 - $5,000',
             'message'         => wp_kses_post(wpautop("We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.")),
+            'subject'         => 'Partnership Inquiry',
             'sender_email'    => 'outreach@acmehealth.com'
         ];
 
@@ -1102,6 +1106,7 @@ class DD_Outreach_Manager
             $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
             $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
             $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
+            $subject        = get_the_title($post_id);
 
             // Populate the array with the live data
             $preview_data = [
@@ -1117,6 +1122,7 @@ class DD_Outreach_Manager
                 'project_dates'   => esc_html($project_dates),
                 'budget'          => esc_html($budget),
                 'message'         => wp_kses_post(wpautop($message)),
+                'subject'         => esc_html($subject),
                 'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com'
             ];
         }
@@ -1135,6 +1141,7 @@ class DD_Outreach_Manager
             '{project_dates}'   => $preview_data['project_dates'],
             '{budget}'          => $preview_data['budget'],
             '{message}'         => $preview_data['message'],
+            '{subject}'         => $preview_data['subject'],
             '{sender_email}'    => $preview_data['sender_email'],
         ];
 
@@ -1770,12 +1777,17 @@ class DD_Outreach_Manager
         $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
 
         // We build the tags HTML dynamically as it was requested to be inside {{fields}}
-        $tags_html = '<div class="tags-container tags-container tags-container">
-            <span class="tag"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</span>
-            <span class="tag"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</span>
-            <span class="tag"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</span>
-            <span class="tag"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</span>
+        $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block; margin: 2px;';
+        
+        $tags_html = '<div class="tags-container">
+            <span class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</span>
+            <span class="tag" style="' . $tag_style . '"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</span>
+            <span class="tag" style="' . $tag_style . '"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</span>
+            <span class="tag" style="' . $tag_style . '"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</span>
         </div>';
+
+        // Strip massive natural linebreaks surrounding the fields placeholder before injection
+        $message_template = preg_replace('/[\r\n]*\{\{fields\}\}[\r\n]*/', '<br><br>{{fields}}<br><br>', $message_template);
 
         $replacements = [
             '{influencer_name}' => $influencer_name,
@@ -1788,6 +1800,8 @@ class DD_Outreach_Manager
 
         // Replace all placeholders and format into HTML
         $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
+        
+        // Finalize standard line break parsing
         $data['message'] = nl2br($final_message); 
 
         $new_post_args = [
@@ -1973,7 +1987,8 @@ class DD_Outreach_Manager
             '{project_length}'  => esc_html($data['project_length'] ?? 'N/A'),
             '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
             '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
-            '{message}'         => wp_kses_post(wpautop($data['message'] ?? ''))
+            '{message}'         => wp_kses_post(wpautop($data['message'] ?? '')),
+            '{subject}'         => esc_html($data['subject'] ?? 'No Subject')
         ];
 
         $search  = array_keys($dictionary);
@@ -2430,10 +2445,6 @@ class DD_Outreach_Manager
         $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
         $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
 
-        $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
-        $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
-        $project_dates  = get_post_meta($post_id, 'project_dates', true) ?: 'Flexible';
-        $budget         = get_post_meta($post_id, 'budget', true) ?: 'To be discussed';
         $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
         $sent_date      = get_the_date('g:i A, F jS Y', $post_id);
 
@@ -2454,12 +2465,6 @@ class DD_Outreach_Manager
                     <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
                 </div>
                 <div class="dd-overview-body">
-                    <div class="tags-container tags-container tags-container">
-                        <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
-                        <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
-                        <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
-                        <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
-                    </div>
                     <div class="dd-message-sent-date">
                         <span>Sent at <?php echo esc_html($sent_date); ?></span>
                     </div>
@@ -2467,7 +2472,7 @@ class DD_Outreach_Manager
                     <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
 
                     <div class="dd-message-content">
-                        <?php echo nl2br(esc_html($message)); ?>
+                        <?php echo wp_kses_post($message); ?>
                     </div>
                 </div>
             </div>
