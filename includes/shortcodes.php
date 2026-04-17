@@ -496,7 +496,7 @@ function shortcode_influencer_search_filter()
                     <input type="range" id="score" value="<?= $_GET['score'] ?? 50 ?>" name="score" min="0" max="100">
                 </div>
             </div>-->
-            <div class="influencer-search-item checkbox-row d-none">
+            <div class="d-none">
                 <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
             </div>
             <div class="influencer-search-item">
