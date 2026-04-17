@@ -427,9 +427,7 @@ function dd_influencer_settings_page_html()
 ?>
 	<div class="wrap">
 		<h1><?php esc_html_e('Global Featured Influencers Settings', 'textdomain'); ?></h1>
-		<pre>
-			<?php var_dump(get_option('global_featured_influencers')) ?>
-		</pre>
+	
 		<form method="post" action="">
 			<?php wp_nonce_field('dd_save_settings', 'dd_settings_nonce'); ?>
 
