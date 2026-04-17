@@ -1551,7 +1551,9 @@ body:not(.pmpro-level-no-membership) {
 body.pmpro-level-no-membership {
     --sidebar-width: 0;
 }
-
+.d-none {
+    display: none !important;
+}
 /* Firefox (uncomment to work in Firefox) */
 /* * {
   scrollbar-width: thin;
