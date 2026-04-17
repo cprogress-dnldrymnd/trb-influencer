@@ -47,6 +47,9 @@ function dd_influencer_attributes_meta_box_html($post)
 	$is_featured = get_post_meta($post->ID, '_is_featured_influencer', true);
 	$is_expert   = get_post_meta($post->ID, 'is_expert', true);
 
+	// Ensure backward compatibility with existing DB entries using string '1'
+	$expert_checked = ( '1' === $is_expert || 'yes' === $is_expert ) ? '1' : '0';
+
 ?>
 	<p>
 		<label for="dd_is_featured_influencer">
@@ -56,7 +59,7 @@ function dd_influencer_attributes_meta_box_html($post)
 	</p>
 	<p>
 		<label for="dd_is_expert">
-			<input type="checkbox" name="is_expert" id="dd_is_expert" value="yes" <?php checked($is_expert, 'yes'); ?> />
+			<input type="checkbox" name="is_expert" id="dd_is_expert" value="1" <?php checked($expert_checked, '1'); ?> />
 			<?php esc_html_e('Professional experts only', 'textdomain'); ?>
 		</label>
 	</p>
@@ -85,7 +88,8 @@ function dd_influencer_save_meta_box_data($post_id)
 	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
 	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
 
-	$expert_status = isset($_POST['is_expert']) ? 'yes' : 'no';
+	// Save as '1' or '0' to align with existing database structure
+	$expert_status = isset($_POST['is_expert']) ? '1' : '0';
 	update_post_meta($post_id, 'is_expert', $expert_status);
 
 	dd_sync_global_featured_influencers();
@@ -277,8 +281,7 @@ add_action('admin_menu', 'dd_influencer_register_settings_page');
 
 /**
  * Enqueues Select2 assets strictly on the Influencer Featured Settings page.
- * 
- * Includes a bulletproof CSS reset to override aggressive third-party 
+ * * Includes a bulletproof CSS reset to override aggressive third-party 
  * admin styles (e.g., page builders) that break Select2's flexible height.
  *
  * @param string $hook The current admin page hook.
