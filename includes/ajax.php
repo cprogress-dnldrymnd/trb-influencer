@@ -335,12 +335,3 @@ function my_custom_loop_filter_handler()
 
     wp_die();
 }
-
-/**
- * AJAX Handler: Save User Search
- * * This function handles the server-side logic when the "Save Search" button is clicked.
- * It verifies security, creates a new post in the 'saved_searches' CPT, 
- * and saves the filter inputs as post meta data.
- */
-
-add_action('wp_ajax_save_user_search', 'handle_save_search_ajax');
