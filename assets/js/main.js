@@ -157,6 +157,17 @@
         var filter_filter = get_filter_values('filter[]');
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
 
+        console.log('Filters:', {
+            filter_filter,
+        });
+
+
+
+          console.log('filter_niche:', {
+            filter_niche,
+        });
+
+
         // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
         button.text('Loading...'); // Change button text while loading
