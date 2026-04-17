@@ -1,5 +1,8 @@
 (function ($) {
     jQuery(document).ready(function () {
+        // --- FIX: Sync URL Parameters to Checkboxes before anything else ---
+        sync_url_params_to_dom();
+
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
         }
@@ -15,6 +18,30 @@
         });
     });
 
+    /**
+     * Reads URL parameters on page load and physically checks the corresponding
+     * form inputs so the DOM matches the requested search before AJAX fires.
+     */
+    function sync_url_params_to_dom() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 1. Handle search-brief specifically (since it uses an ID)
+        if (urlParams.has('search-brief')) {
+            $('#search-brief').val(urlParams.get('search-brief'));
+        }
+
+        // 2. Handle all array-based checkboxes dynamically (niche[], filter[], country[], etc.)
+        urlParams.forEach((value, key) => {
+            // URLSearchParams automatically decodes spaces (e.g., "Include only verified influencers")
+            $('input[name="' + key + '"]').each(function() {
+                if ($(this).attr('type') === 'checkbox' || $(this).attr('type') === 'radio') {
+                    if ($(this).val() === value) {
+                        $(this).prop('checked', true);
+                    }
+                }
+            });
+        });
+    }
 
     function dashboardLogoHeightVar() {
         // Cache the DOM element to optimize performance
@@ -129,9 +156,6 @@
         var filter_followers = get_filter_values('followers');
         var filter_filter = get_filter_values('filter[]');
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
-
-        console.log(filter_filter);
-        console.log(filter_niche);
 
         // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
