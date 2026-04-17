@@ -417,7 +417,7 @@ function dd_influencer_settings_page_html()
 
 	$all_influencer_ids_display = get_posts(array(
 		'post_type'      => 'influencer',
-		'posts_per_page' => 1000,
+		'posts_per_page' => -1,
 		'fields'         => 'ids'
 	));
 
