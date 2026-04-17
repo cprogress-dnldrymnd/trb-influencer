@@ -59,12 +59,12 @@ class DD_PMPro_Frontend_Pricing
 			if (! $level->allow_signups) {
 				continue;
 			}
-			
+
 			$name = trim($level->name);
-			
+
 			// Extract the Annual payment plan extension for this base level
 			$annual_plan = $this->get_annual_payment_plan($level->id);
-			
+
 			// Only render the toggle if an Annual Payment Plan is actively configured for this level
 			if ($annual_plan) {
 				$pairs[] = [
@@ -91,38 +91,38 @@ class DD_PMPro_Frontend_Pricing
 
 		// The PMPro Level Meta table where the Payment Plans Add On serializes data
 		$meta_table = $wpdb->prefix . 'pmpro_membership_levelmeta';
-		
+
 		if ($wpdb->get_var("SHOW TABLES LIKE '{$meta_table}'") === $meta_table) {
-			
+
 			// Extract all meta for this level to bypass guessing the exact meta_key
 			$all_meta = $wpdb->get_results($wpdb->prepare("SELECT meta_key, meta_value FROM {$meta_table} WHERE pmpro_membership_level_id = %d", $level_id));
-			
+
 			foreach ($all_meta as $meta) {
 				$val = maybe_unserialize($meta->meta_value);
-				
+
 				// The Payment Plans add-on stores plans as an array
 				if (is_array($val)) {
 					foreach ($val as $plan_id => $plan) {
 						// Support both object and associative array formats
 						$p_name   = is_object($plan) ? ($plan->name ?? '') : ($plan['name'] ?? '');
 						$p_status = is_object($plan) ? ($plan->status ?? 'active') : ($plan['status'] ?? 'active');
-						
+
 						// Search for the "Annual" plan identifier
 						if (!empty($p_name) && stripos($p_name, 'annual') !== false && strtolower($p_status) === 'active') {
-							
+
 							// Prioritize initial_payment; fallback to billing_amount
 							$initial = is_object($plan) ? ($plan->initial_payment ?? 0) : ($plan['initial_payment'] ?? 0);
 							$billing = is_object($plan) ? ($plan->billing_amount ?? 0) : ($plan['billing_amount'] ?? 0);
 							$p_price = (float)$initial > 0 ? $initial : $billing;
-							
+
 							// Extract internal Plan ID (Usually the array key which may already contain the prefix)
 							$inner_id = is_object($plan) ? ($plan->id ?? $plan_id) : ($plan['id'] ?? $plan_id);
-							
+
 							// Prevent prefix duplication: If the ID already starts with 'L-', use it directly.
 							$plan_identifier = (strpos((string)$inner_id, 'L-') === 0) ? $inner_id : 'L-' . $level_id . '-P-' . $inner_id;
-							
+
 							return [
-								'id'        => $plan_identifier, 
+								'id'        => $plan_identifier,
 								'price'     => pmpro_formatPrice((float)$p_price),
 								'raw_price' => (float)$p_price // Passed for mathematical comparison during state detection
 							];
@@ -149,13 +149,13 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
-		
+
 		if (!empty($user_levels)) {
 			foreach ($user_levels as $l) {
 				if ($l->id == $level_id) {
 					// Retrieve the Annual plan details to compare the raw price
 					$annual_plan = $this->get_annual_payment_plan($level_id);
-					
+
 					if (!$annual_plan) {
 						return (string) $level_id; // If no annual plan exists, they own the default base level.
 					}
@@ -199,7 +199,7 @@ class DD_PMPro_Frontend_Pricing
 		foreach ($user_levels as $level) {
 			// Ensure the plan is meant to be paid (has a billing amount or initial payment > 0)
 			if ((float)$level->billing_amount > 0 || (float)$level->initial_payment > 0) {
-				
+
 				// Safely parse startdate (PMPro often returns it as a UNIX timestamp natively)
 				$startdate_str = is_numeric($level->startdate) ? gmdate('Y-m-d H:i:s', $level->startdate) : $level->startdate;
 
@@ -238,20 +238,20 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		$user_id = get_current_user_id();
-		
+
 		// If they aren't logged in, let PMPro handle standard guest workflows
 		if (!$user_id) {
-			return; 
+			return;
 		}
 
 		// Perform server-side trial check
 		if ($this->is_user_on_free_trial($user_id)) {
-			
+
 			// Display a WordPress/PMPro notice explaining the redirect
 			if (function_exists('pmpro_setMessage')) {
 				pmpro_setMessage('Plan changes are disabled during your free trial period. Please wait until your first payment is processed.', 'pmpro_error');
 			}
-			
+
 			// Bounce them back to the member account dashboard (or homepage fallback)
 			$redirect_url = function_exists('pmpro_url') ? pmpro_url('account') : home_url();
 			wp_redirect($redirect_url);
@@ -271,20 +271,20 @@ class DD_PMPro_Frontend_Pricing
 
 		// 1. NON-CHECKOUT PAGE CLEANUP (Fixes the empty box on [pmpro_signup] pages)
 		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
-			?>
+?>
 			<script>
 				document.addEventListener('DOMContentLoaded', function() {
 					const ppContainer = document.getElementById('pmpropp_payment_plans');
 					if (ppContainer) {
 						ppContainer.style.display = 'none';
-						
+
 						// Remove the rogue "Select a Payment Plan" heading
 						let prev = ppContainer.previousElementSibling;
 						if (prev && prev.textContent.toLowerCase().includes('payment plan')) {
 							prev.style.display = 'none';
 						}
 					}
-					
+
 					// Catch any stray headings injected by the Add On independently
 					const headings = document.querySelectorAll('h2, h3, h4, label, legend, p');
 					headings.forEach(h => {
@@ -294,7 +294,7 @@ class DD_PMPro_Frontend_Pricing
 					});
 				});
 			</script>
-			<?php
+		<?php
 			return; // Abort further execution as we are not on the true checkout page
 		}
 
@@ -313,10 +313,10 @@ class DD_PMPro_Frontend_Pricing
 		?>
 		<script>
 			document.addEventListener('DOMContentLoaded', function() {
-				
+
 				const ownedValue = "<?php echo esc_js($owned_plan_value); ?>";
 				const isOnTrial = <?php echo $is_on_free_trial ? 'true' : 'false'; ?>;
-				
+
 				const processCheckoutDOM = function() {
 
 					// Feature 0: If currently on a trial, entirely lock down the checkout logic
@@ -334,7 +334,7 @@ class DD_PMPro_Frontend_Pricing
 								}
 							}
 						});
-						
+
 						const submitBtn = document.getElementById('pmpro_btn-submit');
 						if (submitBtn && !submitBtn.disabled) {
 							submitBtn.disabled = true;
@@ -348,7 +348,7 @@ class DD_PMPro_Frontend_Pricing
 						const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
 						if (radioBtn && !radioBtn.disabled) {
 							radioBtn.disabled = true;
-							
+
 							const label = document.querySelector('label[for="' + radioBtn.id + '"]');
 							if (label && !label.classList.contains('dd-plan-disabled')) {
 								label.classList.add('dd-plan-disabled');
@@ -365,11 +365,13 @@ class DD_PMPro_Frontend_Pricing
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
 						const trialMatch = baseLabel.innerHTML.match(/(after your .*? trial\.?)/i);
-						
+
 						if (trialMatch && trialMatch[1]) {
 							let trialText = trialMatch[1].trim();
 							// Ensure the cloned text ends gracefully
-							if (!trialText.endsWith('.')) { trialText += '.'; }
+							if (!trialText.endsWith('.')) {
+								trialText += '.';
+							}
 
 							// Iterate through remaining dynamically generated plans (e.g., Annual)
 							for (let i = 1; i < labels.length; i++) {
@@ -387,8 +389,11 @@ class DD_PMPro_Frontend_Pricing
 				processCheckoutDOM();
 
 				// Attach a MutationObserver to instantly intercept and mutate nodes injected by the PMPro Payment Plans Addon
-				const targetNode = document.body; 
-				const config = { childList: true, subtree: true };
+				const targetNode = document.body;
+				const config = {
+					childList: true,
+					subtree: true
+				};
 
 				const observer = new MutationObserver(function(mutationsList) {
 					for (const mutation of mutationsList) {
@@ -401,7 +406,7 @@ class DD_PMPro_Frontend_Pricing
 				observer.observe(targetNode, config);
 			});
 		</script>
-		<?php
+	<?php
 	}
 
 	/**
@@ -516,7 +521,7 @@ class DD_PMPro_Frontend_Pricing
 		if (! current_user_can('manage_options')) {
 			return;
 		}
-?>
+	?>
 		<div class="wrap">
 			<h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 			<form action="options.php" method="post">
@@ -548,8 +553,8 @@ class DD_PMPro_Frontend_Pricing
 		$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
 
 		return [
-			'id'        => $level->id, 
-			'price'     => pmpro_formatPrice((float)$price), 
+			'id'        => $level->id,
+			'price'     => pmpro_formatPrice((float)$price),
 			'raw_price' => (float)$price,
 			'url'       => pmpro_url('checkout', '?level=' . $level->id)
 		];
@@ -570,7 +575,7 @@ class DD_PMPro_Frontend_Pricing
 
 		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
 		$max_base_price = 0.00;
-		
+
 		if (!empty($user_levels)) {
 			foreach ($user_levels as $l) {
 				$base_level = pmpro_getLevel($l->id);
@@ -582,7 +587,7 @@ class DD_PMPro_Frontend_Pricing
 				}
 			}
 		}
-		
+
 		return $max_base_price;
 	}
 
@@ -633,14 +638,14 @@ class DD_PMPro_Frontend_Pricing
 		$show_annual_default = $owns_annual;
 		$toggle_checked      = $show_annual_default ? 'checked' : '';
 		$current_price       = $show_annual_default ? $annual_data['price'] : $monthly_data['price'];
-		
+
 		$owns_current_view = $show_annual_default ? $owns_annual : $owns_monthly;
 		$owns_other_view   = $show_annual_default ? $owns_monthly : $owns_annual;
-		
+
 		// Determine Upgrade vs Downgrade based on tier hierarchy
 		$user_max_base_price = $this->get_user_max_tier_base_price($current_user_id);
 		$card_base_price     = $monthly_data['raw_price'];
-		
+
 		if ($user_max_base_price > 0) {
 			$action_verb = ($card_base_price < $user_max_base_price) ? 'DOWNGRADE PLAN' : 'UPGRADE PLAN';
 		} else {
@@ -652,7 +657,7 @@ class DD_PMPro_Frontend_Pricing
 		if ($user_max_base_price == 0) {
 			// Fetch dynamic trial days from PMPro Subscription Delays Add-on
 			$trial_days = get_option('pmpro_subscription_delay_' . $level_id, '');
-			
+
 			// Only display if a numeric delay is explicitly set
 			if (!empty($trial_days) && is_numeric($trial_days)) {
 				$trial_text_html = '<div class="dd-trial-text"><span>' . esc_html($trial_days) . ' day <i>free</i> trial</span></div>';
@@ -796,7 +801,8 @@ class DD_PMPro_Frontend_Pricing
 				display: flex;
 				align-items: center;
 				gap: 10px;
-				margin-bottom: 1.5rem; /* Adjusted for trial text */
+				margin-bottom: 1.5rem;
+				/* Adjusted for trial text */
 			}
 
 			.dd-switch {
@@ -853,15 +859,21 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			.dd-trial-text {
-				text-align: center;
 				font-size: 14px;
 				margin-bottom: 15px;
 				font-weight: 500;
-				color: var(--e-global-color-secondary);
 			}
+
 			.dd-trial-text span {
-				
+				background-color: var(--e-global-color-accent);
+				padding: 10px;
+				display: inline-block;
+				border-radius: 5px;
+				font-weight: 600;
+				color: #fef6f3;
+				letter-spacing: 0.2px;
 			}
+
 			.dd-trial-text i {
 				font-style: italic;
 			}
@@ -893,7 +905,8 @@ class DD_PMPro_Frontend_Pricing
 				text-align: center;
 				font-family: Inter;
 				font-size: 14px;
-				color: #666; /* Adjust as necessary to match your exact theme */
+				color: #666;
+				/* Adjust as necessary to match your exact theme */
 				max-width: 800px;
 				margin-left: auto;
 				margin-right: auto;
@@ -944,7 +957,7 @@ class DD_PMPro_Frontend_Pricing
 			?>
 		</div>
 
-		<?php 
+		<?php
 		// Render global disclaimer strictly for new members OR members actively on a trial lock.
 		if ($user_max_base_price == 0 || $is_on_free_trial) {
 		?>
@@ -967,7 +980,7 @@ class DD_PMPro_Frontend_Pricing
 							const isYearly = this.checked;
 							const priceEl = card.querySelector('.dd-price-amount');
 							const btnEl = card.querySelector('.dd-checkout-btn');
-							
+
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
@@ -975,22 +988,22 @@ class DD_PMPro_Frontend_Pricing
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
-							
+
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
-							const userOwnsOtherView    = isYearly ? ownsMonthly : ownsAnnual;
+							const userOwnsOtherView = isYearly ? ownsMonthly : ownsAnnual;
 
 							// If the user is on a free trial, strictly evaluate the button lockdown
 							if (isOnTrial) {
 								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
-							} 
+							}
 							// Evaluate standard button state based on explicit ownership
 							else if (userOwnsSelectedView) {
 								btnEl.textContent = 'CURRENT PLAN';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
-							} 
+							}
 							// Evaluate valid plan switch
 							else {
 								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade/select verb
