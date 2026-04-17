@@ -44,6 +44,9 @@ class DD_Outreach_Manager
         // New Shortcode for Dynamic Credit Cost
         add_shortcode('dd_outreach_credit_cost', [$this, 'render_credit_cost_shortcode']);
 
+        // New Shortcode for Dynamic Outreach Message Preview
+        add_shortcode('outreach_message', [$this, 'render_outreach_message_shortcode']);
+
         // Frontend AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
@@ -100,10 +103,100 @@ class DD_Outreach_Manager
             'default' => 1,
             'sanitize_callback' => 'absint'
         ]);
-        
+
+        // Default Message Setting
+        register_setting('dd_outreach_settings_group', 'dd_outreach_default_message', [
+            'type' => 'string',
+            'default' => $this->get_default_outreach_message()
+        ]);
+
         // Dynamic Elementor Form Options
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_types');
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_lengths');
+    }
+
+    /**
+     * Helper to return the default Outreach Message template.
+     * @return string
+     */
+    private function get_default_outreach_message()
+    {
+        return "Hi {influencer_name},\n\nI hope this message finds you well! My name is {sender_name}, and I represent {brand_name}. We’ve been following your incredible work and would love to explore a potential collaboration with you for our upcoming {project_type} campaign.\n\nHere’s a brief overview of the opportunity:\n\n{{fields}}\n\nWe believe your unique style and audience would be a great fit for this campaign, and we’re excited about the possibility of working together. Whether it’s promoting our new products, sharing your experience with our brand, or helping us amplify our message, we think you could bring something special to this collaboration.\n\nIf you're interested, we’d love to chat further and discuss the next steps, including any details, expectations, and how we can tailor the project to fit your personal style.\n\nLooking forward to hearing from you!\n\nKind regards,\n{sender_name}\n{job_title}\n{brand_name}\n{brand_website}";
+    }
+
+    /**
+     * Renders the Dynamic Read-Only Message Preview via [outreach_message].
+     */
+    public function render_outreach_message_shortcode($atts)
+    {
+        if (!is_user_logged_in()) return '';
+
+        $current_user = wp_get_current_user();
+        $sender_name = $current_user->first_name && $current_user->last_name ? $current_user->first_name . ' ' . $current_user->last_name : $current_user->display_name;
+        $brand_name = get_user_meta($current_user->ID, 'brand_name', true) ?: $sender_name;
+        $job_title = get_user_meta($current_user->ID, 'job_title', true) ?: 'Representative';
+        $brand_website = get_user_meta($current_user->ID, 'brand_website', true) ?: '';
+
+        // Influencer context
+        $influencer_id = get_the_ID();
+        $influencer_name = get_the_title($influencer_id);
+
+        $template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
+
+        $replacements = [
+            '{influencer_name}' => esc_js($influencer_name),
+            '{sender_name}' => esc_js($sender_name),
+            '{brand_name}' => esc_js($brand_name),
+            '{job_title}' => esc_js($job_title),
+            '{brand_website}' => esc_js($brand_website),
+        ];
+
+        // Safely pre-fill static tags to pass to JS
+        $js_template = str_replace(array_keys($replacements), array_values($replacements), $template);
+
+        ob_start();
+?>
+        <div id="dd-outreach-message-preview" class="dd-message-content" style="background:#fdfdfd; padding:15px; border:1px solid #ccc; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
+            Loading message preview...
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var rawTemplate = <?php echo json_encode($js_template); ?>;
+
+                function updateMessagePreview() {
+                    var projectType = jQuery('[name="form_fields[project_type]"]').val() || 'N/A';
+                    var projectLength = jQuery('[name="form_fields[project_length]"]').val() || 'N/A';
+                    var projectDates = jQuery('[name="form_fields[project_dates]"]').val() || 'Flexible';
+                    // Accounting for possible Elementor ID naming
+                    var budgetRange = jQuery('[name="form_fields[budget_range]"]').val() || jQuery('[name="form_fields[budget]"]').val() || 'To be discussed';
+
+                    var tagsHtml = '<div class="tags-container tags-container tags-container" style="margin: 15px 0; border: 1px solid #E7E7E7; padding: 15px 20px; border-radius: 8px; background: #fff;">' +
+                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project type :</strong> ' + projectType + '</span>' +
+                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project length :</strong> ' + projectLength + '</span>' +
+                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
+                        '<span class="tag" style="display:block;"><strong>Budget : </strong> ' + budgetRange + '</span>' +
+                        '</div>';
+
+                    var compiled = rawTemplate.replace(/\{\{fields\}\}/g, tagsHtml);
+                    compiled = compiled.replace(/\{project_type\}/g, projectType);
+
+                    // Convert line breaks so it formats properly in HTML
+                    compiled = compiled.replace(/(?:\r\n|\r|\n)/g, '<br>');
+
+                    jQuery('#dd-outreach-message-preview').html(compiled);
+                }
+
+                // Listen to Elementor form field changes
+                jQuery('form.elementor-form').on('change input', 'select, input', function() {
+                    updateMessagePreview();
+                });
+
+                // Initial render
+                setTimeout(updateMessagePreview, 300);
+            });
+        </script>
+    <?php
+        return ob_get_clean();
     }
 
     /**
@@ -656,7 +749,7 @@ class DD_Outreach_Manager
         if (!is_array($templates) || empty($templates)) {
             $templates = $this->get_default_template_structure();
         }
-?>
+    ?>
         <style>
             /* Repeater UI CSS */
             .dd-repeater-item {
@@ -750,6 +843,13 @@ class DD_Outreach_Manager
                             <td>
                                 <input name="dd_outreach_credit_cost" type="number" id="dd_outreach_credit_cost" value="<?php echo esc_attr($credit_cost); ?>" class="regular-text" min="0">
                                 <p class="description">Define the number of credits/points to deduct when a user successfully submits an outreach form.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="dd_outreach_default_message">Default Outreach Message</label></th>
+                            <td>
+                                <textarea name="dd_outreach_default_message" id="dd_outreach_default_message" rows="15" class="large-text"><?php echo esc_textarea(get_option('dd_outreach_default_message', $this->get_default_outreach_message())); ?></textarea>
+                                <p class="description">This establishes the core template shown to users in the <code>[outreach_message]</code> shortcode and is dispatched into the dashboard notes. Use placeholders: <code>{influencer_name}</code>, <code>{sender_name}</code>, <code>{brand_name}</code>, <code>{job_title}</code>, <code>{project_type}</code>, <code>{brand_website}</code>. Place <code>{{fields}}</code> exactly where the dynamic tags container should render.</p>
                             </td>
                         </tr>
                     </table>
@@ -1646,19 +1746,51 @@ class DD_Outreach_Manager
         $current_user_id = get_current_user_id();
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
 
+        // Dynamically compile the Message string relying on the server-side default template
+        $sender = get_userdata($current_user_id);
+        $sender_name = $sender && $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : ($sender ? $sender->display_name : 'Representative');
+        $brand_name = get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name;
+        $job_title = get_user_meta($current_user_id, 'job_title', true) ?: 'Representative';
+        $brand_website = get_user_meta($current_user_id, 'brand_website', true) ?: '';
+        $influencer_name = get_the_title($data['influencer_id']);
+
+        $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
+
+        // We build the tags HTML dynamically as it was requested to be inside {{fields}}
+        $tags_html = '<div class="tags-container tags-container tags-container">
+            <span class="tag"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</span>
+            <span class="tag"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</span>
+            <span class="tag"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</span>
+            <span class="tag"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</span>
+        </div>';
+
+        $replacements = [
+            '{influencer_name}' => $influencer_name,
+            '{sender_name}'     => $sender_name,
+            '{brand_name}'      => $brand_name,
+            '{job_title}'       => $job_title,
+            '{brand_website}'   => $brand_website,
+            '{project_type}'    => $data['project_type'] ?? 'N/A',
+            '{{fields}}'        => $tags_html
+        ];
+
+        // Replace all placeholders and format into HTML
+        $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
+        $data['message'] = nl2br($final_message);
+
         $new_post_args = [
             'post_title'   => $post_title,
             'post_type'    => 'outreach',
             'post_status'  => 'publish',
             'post_author'  => $current_user_id,
-            'post_content' => $data['message'] . '<div class="hide-element">' . get_the_title($data['influencer_id']) . '</div>'
+            'post_content' => wp_kses_post($data['message']) . '<div class="hide-element">' . get_the_title($data['influencer_id']) . '</div>'
         ];
 
         $post_id = wp_insert_post($new_post_args);
 
         if (!is_wp_error($post_id)) {
             foreach ($data as $meta_key => $meta_value) {
-                $sanitized_value = ('message' === $meta_key) ? sanitize_textarea_field($meta_value) : sanitize_text_field($meta_value);
+                $sanitized_value = ('message' === $meta_key) ? wp_kses_post($meta_value) : sanitize_text_field($meta_value);
                 update_post_meta($post_id, sanitize_key($meta_key), $sanitized_value);
             }
 
@@ -1733,17 +1865,10 @@ class DD_Outreach_Manager
                 <a href="<?= get_the_permalink() ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
             </div>
             <div class="dd-overview-body">
-                <div class="tags-container tags-container tags-container">
-                    <span class="tag"><strong>Project type :</strong> <?php echo esc_html($data['project_type'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project length :</strong> <?php echo esc_html($data['project_length'] ?? 'N/A'); ?></span>
-                    <span class="tag"><strong>Project Dates :</strong> <?php echo esc_html($data['project_dates'] ?? 'Flexible'); ?></span>
-                    <span class="tag"><strong>Budget : </strong> <?php echo esc_html($data['budget'] ?? 'To be discussed'); ?></span>
-                </div>
-
                 <h3 class="dd-subject-title"><?php echo esc_html($data['subject'] ?? 'No Subject'); ?></h3>
 
                 <div class="dd-message-content">
-                    <?php echo nl2br(esc_html($data['message'] ?? 'No message provided.')); ?>
+                    <?php echo wp_kses_post($data['message'] ?? 'No message provided.'); ?>
                 </div>
             </div>
         </div>
@@ -2105,14 +2230,14 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-                    
+
                     <div class="influencer-search-item">
                         <select name="project_type" class="dd-filter-select">
                             <option value="">Filter by project type</option>
                             <?php foreach ($types_arr as $type) : ?>
-                                <?php 
-                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
-                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                <?php
+                                $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2123,9 +2248,9 @@ class DD_Outreach_Manager
                         <select name="project_length" class="dd-filter-select">
                             <option value="">Filter by project length</option>
                             <?php foreach ($lengths_arr as $length) : ?>
-                                <?php 
-                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
-                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                <?php
+                                $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2317,12 +2442,6 @@ class DD_Outreach_Manager
                     <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
                 </div>
                 <div class="dd-overview-body">
-                    <div class="tags-container tags-container tags-container">
-                        <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
-                        <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
-                        <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
-                        <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
-                    </div>
                     <div class="dd-message-sent-date">
                         <span>Sent at <?php echo esc_html($sent_date); ?></span>
                     </div>
@@ -2330,7 +2449,7 @@ class DD_Outreach_Manager
                     <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
 
                     <div class="dd-message-content">
-                        <?php echo nl2br(esc_html($message)); ?>
+                        <?php echo wp_kses_post($message); ?>
                     </div>
                 </div>
             </div>
