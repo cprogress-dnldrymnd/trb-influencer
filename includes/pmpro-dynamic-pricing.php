@@ -905,9 +905,7 @@ class DD_PMPro_Frontend_Pricing
 				text-align: center;
 				font-family: Inter;
 				font-size: 14px;
-				color: #666;
-				/* Adjust as necessary to match your exact theme */
-				max-width: 800px;
+				color: var(--e-global-color-secondary);
 				margin-left: auto;
 				margin-right: auto;
 				line-height: 1.5;
