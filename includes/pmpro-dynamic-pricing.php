@@ -655,7 +655,7 @@ class DD_PMPro_Frontend_Pricing
 			
 			// Only display if a numeric delay is explicitly set
 			if (!empty($trial_days) && is_numeric($trial_days)) {
-				$trial_text_html = '<div class="dd-trial-text">' . esc_html($trial_days) . ' day <i>free</i> trial</div>';
+				$trial_text_html = '<div class="dd-trial-text"><span>' . esc_html($trial_days) . ' day <i>free</i> trial</span></div>';
 			}
 		}
 
@@ -859,7 +859,9 @@ class DD_PMPro_Frontend_Pricing
 				font-weight: 500;
 				color: var(--e-global-color-secondary);
 			}
-
+			.dd-trial-text span {
+				
+			}
 			.dd-trial-text i {
 				font-style: italic;
 			}
