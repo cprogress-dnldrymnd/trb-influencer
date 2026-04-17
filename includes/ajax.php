@@ -151,7 +151,7 @@ function my_custom_loop_filter_handler()
     if (!empty($filter) && in_array('Professional experts only', $filter, true)) {
         $meta_query[] = [
             'key'     => 'is_expert',
-            'value'   => 'yes',
+            'value'   => '1',
             'compare' => '=',
         ];
     }
