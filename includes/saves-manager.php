@@ -282,8 +282,10 @@ class Saves_Manager
 
         $user_id = get_current_user_id();
         $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
+        $search_name = isset($_POST['search_name']) ? sanitize_text_field($_POST['search_name']) : '';
 
-        $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score'];
+        // Added 'filter' to allowed keys
+        $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score', 'filter'];
         $clean_data = [];
 
         foreach ($allowed_keys as $key) {
@@ -300,8 +302,10 @@ class Saves_Manager
         $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
         $final_string = '?' . $query_string;
 
+        $post_title = !empty($search_name) ? $search_name : 'Search saved on ' . current_time('M j, Y @ g:i a');
+
         $post_args = [
-            'post_title'  => 'Search saved on ' . current_time('M j, Y @ g:i a'),
+            'post_title'  => $post_title,
             'post_type'   => 'saved-search',
             'post_status' => 'publish',
             'post_author' => $user_id,
@@ -312,7 +316,7 @@ class Saves_Manager
         if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Error creating save file.']);
 
         update_post_meta($post_id, 'search_query', $final_string);
-        wp_send_json_success(['message' => 'Search padding: 20px 20px successfully!']);
+        wp_send_json_success(['message' => 'Search saved successfully!']);
     }
 
     /**
@@ -1039,6 +1043,20 @@ class Saves_Manager
                 </div>
             </div>
 
+            <div id="inf-view-save-search" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <h3>Name your search</h3>
+                </div>
+                <div class="inf-input-group">
+                    <label>Search name<span>*</span></label>
+                    <input type="text" id="inf-save-search-name" class="inf-input" placeholder="e.g. Top Tech Creators UK">
+                </div>
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-modal-confirm-save-search">Save Search</button>
+                </div>
+            </div>
+
         </div>
 
         <script type="text/javascript">
@@ -1326,12 +1344,26 @@ class Saves_Manager
                     });
                 });
 
-                // 4. Search Form Saving
+                // 4. Search Form Saving Flow
+                // Triggers the naming modal instead of immediately saving
                 $('.save-search-trigger').on('click', function(e) {
                     e.preventDefault();
+                    $('#inf-save-search-name').val('');
+                    switchModalView('inf-view-save-search');
+                });
+
+                // Confirms the search save action from inside the modal
+                $('#inf-modal-confirm-save-search').on('click', function() {
+                    let searchName = $('#inf-save-search-name').val().trim();
+                    if (!searchName) {
+                        alert("Please enter a name for your search.");
+                        return;
+                    }
+
                     let $btn = $(this);
                     let ogText = $btn.text();
-                    $btn.text('Saving...');
+                    $btn.text('Saving...').prop('disabled', true);
+
                     let getChecked = (name) => {
                         let v = [];
                         $('input[name^="' + name + '"]:checked').each(function() {
@@ -1347,7 +1379,8 @@ class Saves_Manager
                         'country': getChecked('country'),
                         'lang': getChecked('lang'),
                         'gender': getChecked('gender'),
-                        'score': $('input[name="score"]').val()
+                        'score': $('input[name="score"]').val(),
+                        'filter': getChecked('filter') // Now safely captures the filter array
                     };
 
                     $.ajax({
@@ -1356,16 +1389,22 @@ class Saves_Manager
                         data: {
                             action: 'save_user_search',
                             security: ajax_vars.save_search_nonce,
-                            search_data: searchData
+                            search_data: searchData,
+                            search_name: searchName
                         },
                         success: function(res) {
                             if (res.success) {
-                                $btn.text('Saved!');
-                                setTimeout(() => $btn.text(ogText), 2000);
+                                $('#inf-modal-overlay').hide();
+                                display_mycred_notice('<div class="my-cred-notice-text"><h4>Search Saved</h4><p>Your custom search has been successfully saved.</p></div>');
+                                
+                                let $trigger = $('.save-search-trigger');
+                                let origTriggerText = $trigger.text();
+                                $trigger.text('Saved!');
+                                setTimeout(() => $trigger.text(origTriggerText), 2000);
                             } else {
                                 alert(res.data.message);
-                                $btn.text(ogText);
                             }
+                            $btn.text(ogText).prop('disabled', false);
                         }
                     });
                 });
