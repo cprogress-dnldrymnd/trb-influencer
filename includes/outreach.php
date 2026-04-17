@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs via settings and shortcodes.
- * Version: 2.3.0
+ * Version: 2.3.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -43,7 +43,7 @@ class DD_Outreach_Manager
 
         // New Shortcode for Dynamic Credit Cost
         add_shortcode('dd_outreach_credit_cost', [$this, 'render_credit_cost_shortcode']);
-
+        
         // New Shortcode for Dynamic Outreach Message Preview
         add_shortcode('outreach_message', [$this, 'render_outreach_message_shortcode']);
 
@@ -103,13 +103,13 @@ class DD_Outreach_Manager
             'default' => 1,
             'sanitize_callback' => 'absint'
         ]);
-
+        
         // Default Message Setting
         register_setting('dd_outreach_settings_group', 'dd_outreach_default_message', [
             'type' => 'string',
             'default' => $this->get_default_outreach_message()
         ]);
-
+        
         // Dynamic Elementor Form Options
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_types');
         register_setting('dd_outreach_settings_group', 'dd_outreach_project_lengths');
@@ -121,11 +121,12 @@ class DD_Outreach_Manager
      */
     private function get_default_outreach_message()
     {
-        return "Hi {influencer_name},\n\nI hope this message finds you well! My name is {sender_name}, and I represent {brand_name}. We’ve been following your incredible work and would love to explore a potential collaboration with you for our upcoming {project_type} campaign.\n\nHere’s a brief overview of the opportunity:\n\n{{fields}}\n\nWe believe your unique style and audience would be a great fit for this campaign, and we’re excited about the possibility of working together. Whether it’s promoting our new products, sharing your experience with our brand, or helping us amplify our message, we think you could bring something special to this collaboration.\n\nIf you're interested, we’d love to chat further and discuss the next steps, including any details, expectations, and how we can tailor the project to fit your personal style.\n\nLooking forward to hearing from you!\n\nKind regards,\n{sender_name}\n{job_title}\n{brand_name}\n{brand_website}";
+        return "Hi {influencer_name},\n\nI hope this message finds you well! My name is {sender_name}, and I represent {brand_name}. We’ve been following your incredible work and would love to explore a potential collaboration with you for our upcoming {project_type} campaign.\n\nHere’s a brief overview of the opportunity:\n\n{{fields}}\n\nWe believe your unique style and audience would be a great fit for this campaign, and we’re excited about the possibility of working together. Whether it’s promoting our new products, sharing your experience with our brand, or helping us amplify our message, we think you could bring something special to this collaboration.\n\nIf you're interested, we’d love to chat further and discuss the next steps, including any details, expectations, and how we can tailor the project to fit your personal style.\n\nLooking forward to hearing from you!\n\nKind regards,\n{sender_name}\n{job_title}\n{brand_name}";
     }
 
     /**
      * Renders the Dynamic Read-Only Message Preview via [outreach_message].
+     * Populates a data-template attribute to prevent script-stripping issues inside Elementor HTML elements/Popups.
      */
     public function render_outreach_message_shortcode($atts)
     {
@@ -135,67 +136,30 @@ class DD_Outreach_Manager
         $sender_name = $current_user->first_name && $current_user->last_name ? $current_user->first_name . ' ' . $current_user->last_name : $current_user->display_name;
         $brand_name = get_user_meta($current_user->ID, 'brand_name', true) ?: $sender_name;
         $job_title = get_user_meta($current_user->ID, 'job_title', true) ?: 'Representative';
-        $brand_website = get_user_meta($current_user->ID, 'brand_website', true) ?: '';
 
         // Influencer context
-        $influencer_id = get_the_ID();
+        $influencer_id = get_the_ID(); 
         $influencer_name = get_the_title($influencer_id);
 
         $template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
 
         $replacements = [
-            '{influencer_name}' => esc_js($influencer_name),
-            '{sender_name}' => esc_js($sender_name),
-            '{brand_name}' => esc_js($brand_name),
-            '{job_title}' => esc_js($job_title),
-            '{brand_website}' => esc_js($brand_website),
+            '{influencer_name}' => $influencer_name,
+            '{sender_name}' => $sender_name,
+            '{brand_name}' => $brand_name,
+            '{job_title}' => $job_title,
         ];
 
-        // Safely pre-fill static tags to pass to JS
+        // Replace strictly static tags before sending to the frontend DOM
         $js_template = str_replace(array_keys($replacements), array_values($replacements), $template);
+        $json_encoded_template = wp_json_encode($js_template);
 
         ob_start();
-?>
-        <div id="dd-outreach-message-preview" class="dd-message-content" style="background:#fdfdfd; padding:15px; border:1px solid #ccc; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
+        ?>
+        <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" style="background:#fdfdfd; padding:15px; border:1px solid #ccc; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
             Loading message preview...
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                var rawTemplate = <?php echo json_encode($js_template); ?>;
-
-                function updateMessagePreview() {
-                    var projectType = jQuery('[name="form_fields[project_type]"]').val() || 'N/A';
-                    var projectLength = jQuery('[name="form_fields[project_length]"]').val() || 'N/A';
-                    var projectDates = jQuery('[name="form_fields[project_dates]"]').val() || 'Flexible';
-                    // Accounting for possible Elementor ID naming
-                    var budgetRange = jQuery('[name="form_fields[budget_range]"]').val() || jQuery('[name="form_fields[budget]"]').val() || 'To be discussed';
-
-                    var tagsHtml = '<div class="tags-container tags-container tags-container" style="margin: 15px 0; border: 1px solid #E7E7E7; padding: 15px 20px; border-radius: 8px; background: #fff;">' +
-                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project type :</strong> ' + projectType + '</span>' +
-                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project length :</strong> ' + projectLength + '</span>' +
-                        '<span class="tag" style="display:block; margin-bottom:5px;"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
-                        '<span class="tag" style="display:block;"><strong>Budget : </strong> ' + budgetRange + '</span>' +
-                        '</div>';
-
-                    var compiled = rawTemplate.replace(/\{\{fields\}\}/g, tagsHtml);
-                    compiled = compiled.replace(/\{project_type\}/g, projectType);
-
-                    // Convert line breaks so it formats properly in HTML
-                    compiled = compiled.replace(/(?:\r\n|\r|\n)/g, '<br>');
-
-                    jQuery('#dd-outreach-message-preview').html(compiled);
-                }
-
-                // Listen to Elementor form field changes
-                jQuery('form.elementor-form').on('change input', 'select, input', function() {
-                    updateMessagePreview();
-                });
-
-                // Initial render
-                setTimeout(updateMessagePreview, 300);
-            });
-        </script>
-    <?php
+        <?php
         return ob_get_clean();
     }
 
@@ -671,6 +635,56 @@ class DD_Outreach_Manager
                 });
             });
 
+
+            // --- 4. Dynamic Message Preview Logic (Elementor Popup Safe) ---
+            function updateMessagePreview() {
+                var previewDiv = $('#dd-outreach-message-preview');
+                if (!previewDiv.length) return;
+
+                var rawTemplateData = previewDiv.attr('data-template');
+                if (!rawTemplateData) return;
+
+                var rawTemplate = '';
+                try {
+                    rawTemplate = JSON.parse(rawTemplateData);
+                } catch(e) {
+                    return; // Fail gracefully if unable to parse json attribute
+                }
+
+                var projectType = $('[name=\"form_fields[project_type]\"]').val() || 'N/A';
+                var projectLength = $('[name=\"form_fields[project_length]\"]').val() || 'N/A';
+                var projectDates = $('[name=\"form_fields[project_dates]\"]').val() || 'Flexible';
+                var budgetRange = $('[name=\"form_fields[budget_range]\"]').val() || $('[name=\"form_fields[budget]\"]').val() || 'To be discussed';
+
+                var tagsHtml = '<div class=\"tags-container\" style=\"margin: 15px 0; border: 1px solid #E7E7E7; padding: 15px 20px; border-radius: 8px; background: #fff;\">' +
+                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project type :</strong> ' + projectType + '</span>' +
+                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project length :</strong> ' + projectLength + '</span>' +
+                    '<span class=\"tag\" style=\"display:block; margin-bottom:5px;\"><strong>Project Dates :</strong> ' + projectDates + '</span>' +
+                    '<span class=\"tag\" style=\"display:block;\"><strong>Budget : </strong> ' + budgetRange + '</span>' +
+                    '</div>';
+
+                var compiled = rawTemplate.replace(/\{\{fields\}\}/g, tagsHtml);
+                compiled = compiled.replace(/\{project_type\}/g, projectType);
+                
+                // Convert line breaks so it formats properly in HTML
+                compiled = compiled.replace(/(?:\\r\\n|\\r|\\n)/g, '<br>');
+
+                previewDiv.html(compiled);
+            }
+
+            // Listen to form field changes
+            $(document).on('change input', 'form.elementor-form select, form.elementor-form input', function() {
+                updateMessagePreview();
+            });
+
+            // Fire preview calculation specifically when Elementor Popups are opened
+            $(document).on('elementor/popup/show', function() {
+                setTimeout(updateMessagePreview, 100);
+            });
+
+            // Initial fallback render
+            setTimeout(updateMessagePreview, 300);
+
         });
         ";
 
@@ -749,7 +763,7 @@ class DD_Outreach_Manager
         if (!is_array($templates) || empty($templates)) {
             $templates = $this->get_default_template_structure();
         }
-    ?>
+?>
         <style>
             /* Repeater UI CSS */
             .dd-repeater-item {
@@ -849,7 +863,7 @@ class DD_Outreach_Manager
                             <th scope="row"><label for="dd_outreach_default_message">Default Outreach Message</label></th>
                             <td>
                                 <textarea name="dd_outreach_default_message" id="dd_outreach_default_message" rows="15" class="large-text"><?php echo esc_textarea(get_option('dd_outreach_default_message', $this->get_default_outreach_message())); ?></textarea>
-                                <p class="description">This establishes the core template shown to users in the <code>[outreach_message]</code> shortcode and is dispatched into the dashboard notes. Use placeholders: <code>{influencer_name}</code>, <code>{sender_name}</code>, <code>{brand_name}</code>, <code>{job_title}</code>, <code>{project_type}</code>, <code>{brand_website}</code>. Place <code>{{fields}}</code> exactly where the dynamic tags container should render.</p>
+                                <p class="description">This establishes the core template shown to users in the <code>[outreach_message]</code> shortcode and is dispatched into the dashboard notes. Use placeholders: <code>{influencer_name}</code>, <code>{sender_name}</code>, <code>{brand_name}</code>, <code>{job_title}</code>, <code>{project_type}</code>. Place <code>{{fields}}</code> exactly where the dynamic tags container should render.</p>
                             </td>
                         </tr>
                     </table>
@@ -1751,7 +1765,6 @@ class DD_Outreach_Manager
         $sender_name = $sender && $sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : ($sender ? $sender->display_name : 'Representative');
         $brand_name = get_user_meta($current_user_id, 'brand_name', true) ?: $sender_name;
         $job_title = get_user_meta($current_user_id, 'job_title', true) ?: 'Representative';
-        $brand_website = get_user_meta($current_user_id, 'brand_website', true) ?: '';
         $influencer_name = get_the_title($data['influencer_id']);
 
         $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
@@ -1769,14 +1782,13 @@ class DD_Outreach_Manager
             '{sender_name}'     => $sender_name,
             '{brand_name}'      => $brand_name,
             '{job_title}'       => $job_title,
-            '{brand_website}'   => $brand_website,
             '{project_type}'    => $data['project_type'] ?? 'N/A',
             '{{fields}}'        => $tags_html
         ];
 
         // Replace all placeholders and format into HTML
         $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
-        $data['message'] = nl2br($final_message);
+        $data['message'] = nl2br($final_message); 
 
         $new_post_args = [
             'post_title'   => $post_title,
@@ -2230,14 +2242,14 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-
+                    
                     <div class="influencer-search-item">
                         <select name="project_type" class="dd-filter-select">
                             <option value="">Filter by project type</option>
                             <?php foreach ($types_arr as $type) : ?>
-                                <?php
-                                $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
-                                $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                <?php 
+                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2248,9 +2260,9 @@ class DD_Outreach_Manager
                         <select name="project_length" class="dd-filter-select">
                             <option value="">Filter by project length</option>
                             <?php foreach ($lengths_arr as $length) : ?>
-                                <?php
-                                $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
-                                $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                <?php 
+                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2442,6 +2454,12 @@ class DD_Outreach_Manager
                     <a href="<?php echo get_permalink($influencer_id); ?>" class="dd-btn-outline">VIEW CREATOR PROFILE</a>
                 </div>
                 <div class="dd-overview-body">
+                    <div class="tags-container tags-container tags-container">
+                        <span class="tag"><strong>Project type : </strong> <?php echo esc_html($project_type); ?></span>
+                        <span class="tag"><strong>Project length : </strong> <?php echo esc_html($project_length); ?></span>
+                        <span class="tag"><strong>Project Dates : </strong> <?php echo esc_html($project_dates); ?></span>
+                        <span class="tag"><strong>Budget : </strong> <?php echo esc_html($budget); ?></span>
+                    </div>
                     <div class="dd-message-sent-date">
                         <span>Sent at <?php echo esc_html($sent_date); ?></span>
                     </div>
@@ -2449,7 +2467,7 @@ class DD_Outreach_Manager
                     <h3 class="dd-subject-title"><?php echo esc_html($post->post_title); ?></h3>
 
                     <div class="dd-message-content">
-                        <?php echo wp_kses_post($message); ?>
+                        <?php echo nl2br(esc_html($message)); ?>
                     </div>
                 </div>
             </div>
