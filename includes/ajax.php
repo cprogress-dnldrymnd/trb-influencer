@@ -65,11 +65,9 @@ function my_custom_loop_filter_handler()
     ];
 
     // --- Taxonomy Query ---
-    // Niche, topic, content_tag use OR (broaden: match any of these).
-    // Platform uses AND (must match).
     $tax_query = [];
+    $content_taxonomies = []; 
 
-    $content_taxonomies = []; // niche, topic, content_tag — OR together
     if (!empty($niche)) {
         $content_taxonomies[] = [
             'taxonomy' => 'niche',
@@ -114,12 +112,12 @@ function my_custom_loop_filter_handler()
         $args['tax_query'] = $tax_query;
     }
 
-    // --- Meta Query (Country, Lang, Followers) ---
+    // --- Meta Query Setup ---
     $meta_query = [];
+    $strict_meta_query = []; // NEW: These filters will NEVER drop during fallback broadening
 
     if (!empty($country)) {
         $country_arr = is_array($country) ? $country : [$country];
-        // Match both uppercase and lowercase (DB may store gbr or GBR)
         $country_arr = array_merge($country_arr, array_map('strtolower', $country_arr), array_map('strtoupper', $country_arr));
         $country_arr = array_unique($country_arr);
         $meta_query[] = [
@@ -138,27 +136,8 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    // Filter: Include only verified influencers
-    if (!empty($filter) && in_array('Include only verified influencers', $filter, true)) {
-        $meta_query[] = [
-            'key'     => 'isverified',
-            'value'   => '1',
-            'compare' => '=',
-        ];
-    }
-
-    // Filter: Professional experts only
-    if (!empty($filter) && in_array('Professional experts only', $filter, true)) {
-        $meta_query[] = [
-            'key'     => 'is_expert',
-            'value'   => '1',
-            'compare' => '=',
-        ];
-    }
-
     // Followers Logic
     if (!empty($followers)) {
-        // Check if it contains a hyphen indicating a range (e.g., "1000-10000")
         if (strpos($followers[0], '-') !== false) {
             $range = explode('-', $followers[0]);
             $meta_query[] = [
@@ -168,8 +147,6 @@ function my_custom_loop_filter_handler()
                 'type'    => 'NUMERIC',
             ];
         } else {
-            // No hyphen, assumed to be the top tier (e.g., "10000000")
-            // Requirement: search for value GREATER THAN selected
             $meta_query[] = [
                 'key'     => 'followers',
                 'value'   => $followers[0],
@@ -179,21 +156,40 @@ function my_custom_loop_filter_handler()
         }
     }
 
-    if (!empty($meta_query)) {
-        $meta_query['relation'] = 'AND';
-        $args['meta_query'] = $meta_query;
+    // Strict Filter: Include only verified influencers
+    if (!empty($filter) && in_array('Include only verified influencers', $filter, true)) {
+        $strict_meta_query[] = [
+            'key'     => 'isverified',
+            'value'   => '1',
+            'compare' => '=',
+        ];
+    }
+
+    // Strict Filter: Professional experts only (Checks for both new '1' and legacy 'yes')
+    if (!empty($filter) && in_array('Professional experts only', $filter, true)) {
+        $strict_meta_query[] = [
+            'key'     => 'is_expert',
+            'value'   => ['1', 'yes'], 
+            'compare' => 'IN',
+        ];
+    }
+
+    // Combine standard and strict meta queries for the initial run
+    $combined_meta_query = array_merge($meta_query, $strict_meta_query);
+    if (!empty($combined_meta_query)) {
+        $combined_meta_query['relation'] = 'AND';
+        $args['meta_query'] = $combined_meta_query;
     }
 
     // 4. EXECUTE QUERY
     $query = new WP_Query($args);
 
     // --- BROADENING / FALLBACK LOGIC ---
-    // Broadening: if fewer than 6 results with full filters, retry with niche + platform only (drop country, followers, lang, verified)
     $min_results = 6;
-    $has_broadening_filters = !empty($country) || !empty($followers) || !empty($lang)
-        || (!empty($filter) && in_array('Include only verified influencers', $filter, true));
+    // We only trigger broadening if they actually have droppable filters applied
+    $has_droppable_filters = !empty($country) || !empty($followers) || !empty($lang);
 
-    if ($query->found_posts < $min_results && $has_broadening_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
+    if ($query->found_posts < $min_results && $has_droppable_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
         $broadened_args = [
             'post_type'      => 'influencer',
             'posts_per_page' => 12,
@@ -219,14 +215,22 @@ function my_custom_loop_filter_handler()
         } elseif (count($content_tax) === 1) {
             $broadened_tax[] = $content_tax[0];
         }
+        /*
         if (!empty($platform)) {
             $broadened_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
         }
+        */
         if (count($broadened_tax) > 1) {
             $broadened_tax['relation'] = 'AND';
         }
         if (!empty($broadened_tax)) {
             $broadened_args['tax_query'] = $broadened_tax;
+        }
+
+        // Apply strict meta queries to broadened search (Never drop Verified/Expert)
+        if (!empty($strict_meta_query)) {
+            $strict_meta_query['relation'] = 'AND';
+            $broadened_args['meta_query'] = $strict_meta_query;
         }
 
         $query = new WP_Query($broadened_args);
@@ -245,9 +249,11 @@ function my_custom_loop_filter_handler()
         if (!empty($niche)) {
             $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
         }
+        /*
         if (!empty($platform)) {
             $fallback_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
         }
+        */
         if (count($fallback_tax) > 1) {
             $fallback_tax['relation'] = 'AND';
         }
@@ -255,18 +261,30 @@ function my_custom_loop_filter_handler()
             $fallback_args['tax_query'] = $fallback_tax;
         }
 
+        // Apply strict meta queries to fallback search (Never drop Verified/Expert)
+        if (!empty($strict_meta_query)) {
+            $strict_meta_query['relation'] = 'AND';
+            $fallback_args['meta_query'] = $strict_meta_query;
+        }
+
         $query = new WP_Query($fallback_args);
 
-        // Last resort: if still 0, return all published (no filters)
+        // Last resort: if still 0, return all published matching strict filters
         if (!$query->have_posts()) {
-
-
-            $query = new WP_Query([
+            $last_resort_args = [
                 'post_type'      => 'influencer',
                 'posts_per_page' => 12,
                 'post_status'    => 'publish',
                 'paged'          => $paged // <--- FIX 3: Add pagination to last resort
-            ]);
+            ];
+            
+            // Ensure even the last resort honors Verified/Expert if selected
+            if (!empty($strict_meta_query)) {
+                $strict_meta_query['relation'] = 'AND';
+                $last_resort_args['meta_query'] = $strict_meta_query;
+            }
+
+            $query = new WP_Query($last_resort_args);
         }
     }
 
