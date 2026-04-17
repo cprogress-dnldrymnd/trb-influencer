@@ -466,7 +466,7 @@ function shortcode_influencer_search_filter()
 ?>
     <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
-            <div class="influencer-search-item">
+            <div class="influencer-search-item niche-filters">
                 <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '') ?>
             </div>
             <!--
