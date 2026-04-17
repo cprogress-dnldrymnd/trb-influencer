@@ -131,6 +131,7 @@
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
 
         console.log(filter_filter);
+        console.log(filter_niche);
 
         // UI Feedback (Optional: Add spinner here)
         container.css('opacity', '0.5');
