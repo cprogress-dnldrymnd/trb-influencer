@@ -903,7 +903,7 @@ class DD_Outreach_Manager
                             <div style="margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                                 <strong>Global Merge Tags (Click field to focus, then click tag to insert):</strong><br>
                                 <?php
-                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}', '{subject}'];
+                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}', '{subject}', '{site_url}'];
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
@@ -1058,7 +1058,8 @@ class DD_Outreach_Manager
             'budget'          => '$1,000 - $5,000',
             'message'         => wp_kses_post(wpautop("We came across your profile and absolutely love your approach to women's health. We are planning a campaign and think your content feels like a strong fit.\n\nWe would love to explore a potential collaboration with you.")),
             'subject'         => 'Partnership Inquiry',
-            'sender_email'    => 'outreach@acmehealth.com'
+            'sender_email'    => 'outreach@acmehealth.com',
+            'site_url'        => get_site_url()
         ];
 
         // 2. Query the latest outreach post
@@ -1123,7 +1124,8 @@ class DD_Outreach_Manager
                 'budget'          => esc_html($budget),
                 'message'         => wp_kses_post(wpautop($message)),
                 'subject'         => esc_html($subject),
-                'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com'
+                'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com',
+                'site_url'        => get_site_url()
             ];
         }
 
@@ -1143,6 +1145,7 @@ class DD_Outreach_Manager
             '{message}'         => $preview_data['message'],
             '{subject}'         => $preview_data['subject'],
             '{sender_email}'    => $preview_data['sender_email'],
+            '{site_url}'        => $preview_data['site_url'],
         ];
 
         // 5. Execute Merge Tag Search & Replace over the raw HTML
@@ -1997,7 +2000,8 @@ class DD_Outreach_Manager
             '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
             '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
             '{message}'         => wp_kses_post(wpautop($data['message'] ?? '')),
-            '{subject}'         => esc_html($data['subject'] ?? 'No Subject')
+            '{subject}'         => esc_html($data['subject'] ?? 'No Subject'),
+            '{site_url}'        => get_site_url()
         ];
 
         $search  = array_keys($dictionary);

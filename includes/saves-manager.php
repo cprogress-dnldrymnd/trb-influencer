@@ -312,7 +312,7 @@ class Saves_Manager
         if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Error creating save file.']);
 
         update_post_meta($post_id, 'search_query', $final_string);
-        wp_send_json_success(['message' => 'Search saved successfully!']);
+        wp_send_json_success(['message' => 'Search padding: 20px 20px successfully!']);
     }
 
     /**
