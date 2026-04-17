@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.18
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices, and cleans up broken Payment Plan injections on non-checkout pages.
+ * Version: 1.0.19
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -647,6 +647,12 @@ class DD_PMPro_Frontend_Pricing
 			$action_verb = 'SELECT PLAN';
 		}
 
+		// Inject 3-day free trial text strictly for users with no plan
+		$trial_text_html = '';
+		if ($user_max_base_price == 0) {
+			$trial_text_html = '<div class="dd-trial-text">3 day <i>free</i> trial</div>';
+		}
+
 		// Implement robust lock out if user is on a free trial phase
 		if ($is_on_free_trial) {
 			if ($owns_current_view) {
@@ -685,6 +691,7 @@ class DD_PMPro_Frontend_Pricing
 				<span class="dd-toggle-label">Yearly</span>
 				<span class="dd-discount">Save 20%</span>
 			</div>
+			<?php echo wp_kses_post($trial_text_html); ?>
 			<a <?php echo $current_url ? 'href="' . esc_url($current_url) . '"' : ''; ?> class="<?php echo esc_attr($btn_class); ?>"><?php echo esc_html($btn_text); ?></a>
 		</div>
 	<?php
@@ -703,6 +710,7 @@ class DD_PMPro_Frontend_Pricing
 		// Calculate global trial state for the active user once
 		$current_user_id = get_current_user_id();
 		$is_on_free_trial = $current_user_id ? $this->is_user_on_free_trial($current_user_id) : false;
+		$user_max_base_price = $current_user_id ? $this->get_user_max_tier_base_price($current_user_id) : 0.00;
 
 		ob_start();
 	?>
@@ -782,7 +790,7 @@ class DD_PMPro_Frontend_Pricing
 				display: flex;
 				align-items: center;
 				gap: 10px;
-				margin-bottom: 2rem;
+				margin-bottom: 1.5rem; /* Adjusted for trial text */
 			}
 
 			.dd-switch {
@@ -838,6 +846,17 @@ class DD_PMPro_Frontend_Pricing
 				border-radius: 50%;
 			}
 
+			.dd-trial-text {
+				text-align: center;
+				font-size: 14px;
+				margin-bottom: 15px;
+				font-weight: 500;
+				color: var(--e-global-color-secondary);
+			}
+
+			.dd-trial-text i {
+				font-style: italic;
+			}
 
 			.dd-btn {
 				background-color: var(--e-global-color-accent);
@@ -859,6 +878,18 @@ class DD_PMPro_Frontend_Pricing
 				background: #ffbbae;
 				pointer-events: none;
 				cursor: not-allowed;
+			}
+
+			.dd-pricing-disclaimer {
+				margin-top: 2.5rem;
+				text-align: center;
+				font-family: Inter;
+				font-size: 14px;
+				color: #666; /* Adjust as necessary to match your exact theme */
+				max-width: 800px;
+				margin-left: auto;
+				margin-right: auto;
+				line-height: 1.5;
 			}
 
 			@media(max-width: 1300px) {
@@ -904,6 +935,17 @@ class DD_PMPro_Frontend_Pricing
 			}
 			?>
 		</div>
+
+		<?php 
+		// Render global disclaimer strictly for new members OR members actively on a trial lock.
+		if ($user_max_base_price == 0 || $is_on_free_trial) {
+		?>
+			<div class="dd-pricing-disclaimer">
+				<strong>Please note:</strong> During the free trial period, you are unable to change your plan. Plan adjustments can be made after your first paid month.
+			</div>
+		<?php
+		}
+		?>
 
 		<script>
 			(function() {
