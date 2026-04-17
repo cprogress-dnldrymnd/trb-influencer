@@ -28,10 +28,15 @@ class Saves_Manager
         add_action('wp_ajax_get_group_influencers', [$this, 'handle_get_group_influencers_ajax']);
         add_action('wp_ajax_upsert_influencer_group', [$this, 'handle_upsert_group_ajax']);
         add_action('wp_ajax_delete_influencer_group', [$this, 'handle_delete_group_ajax']);
+        
+        // Saved Searches Pagination & Deletion
+        add_action('wp_ajax_load_more_saved_searches', [$this, 'handle_load_more_searches_ajax']);
+        add_action('wp_ajax_delete_saved_search', [$this, 'handle_delete_saved_search_ajax']);
 
         // Shortcodes
         add_shortcode('my_saved_groups', [$this, 'render_saved_groups_shortcode']);
         add_shortcode('add_to_groups_btn', [$this, 'render_add_to_groups_shortcode']);
+        add_shortcode('my_saved_searches', [$this, 'render_saved_searches_shortcode']);
 
         // Frontend hooks for injecting variables, styles, and scripts
         add_action('wp_enqueue_scripts', [$this, 'enqueue_ajax_variables']);
@@ -270,6 +275,172 @@ class Saves_Manager
         if ($post) setup_postdata($post);
 
         return ob_get_clean();
+    }
+    
+    /**
+     * Helper: Generate a single Saved Search Card HTML block
+     * Used by both the shortcode and the load more AJAX
+     * * @param WP_Post $post
+     * @return string
+     */
+    private function generate_search_card_html($post)
+    {
+        $query = get_post_meta($post->ID, 'search_query', true);
+        $date = get_the_date('M j, Y \a\t g:i a', $post->ID);
+
+        // Parse query string to generate a human-readable list of active filters
+        parse_str(ltrim($query, '?'), $params);
+        $desc_parts = [];
+        foreach ($params as $k => $v) {
+            if (is_array($v)) {
+                $v = implode(', ', $v);
+            }
+            $k_clean = ucfirst(str_replace('_', ' ', $k));
+            $desc_parts[] = '<strong>' . esc_html($k_clean) . ':</strong> ' . esc_html($v);
+        }
+        $desc_text = !empty($desc_parts) ? implode(' | ', $desc_parts) : 'No specific filters applied';
+        
+        // Define the base URL where your search/filter is physically located
+        $search_url = home_url('/influencers/') . $query; 
+
+        ob_start();
+        ?>
+        <div class="inf-group-card" id="search-card-<?php echo esc_attr($post->ID); ?>">
+            <div class="inf-card-header">
+                <div class="inf-group-header-left">
+                    <h4 class="inf-group-title"><?php echo esc_html($post->post_title); ?></h4>
+                    <div class="inf-group-desc" style="display:-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?php echo wp_kses_post($desc_text); ?></div>
+                </div>
+                <div class="inf-card-actions">
+                    <div class="inf-dropdown-wrapper">
+                        <button class="inf-btn-icon inf-trigger-dropdown" title="Options">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                        </button>
+                        <div class="inf-dropdown-menu">
+                            <button class="inf-dropdown-item inf-trigger-delete-search" data-id="<?php echo esc_attr($post->ID); ?>">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Delete search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="inf-card-body" onclick="window.location.href='<?php echo esc_url($search_url); ?>'" style="justify-content: flex-start; padding-top:15px;">
+                <div class="inf-group-date" style="margin-bottom: 0;">Saved on: <?php echo esc_html($date); ?></div>
+                <div class="inf-group-avatars" style="color:var(--e-global-color-secondary); font-size:13px; font-weight:500; margin-top:auto;">
+                    View Search Results &rarr;
+                </div>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Shortcode: Render user's Custom Saved Searches grid
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_saved_searches_shortcode($atts)
+    {
+        if (!is_user_logged_in()) {
+            return '<div class="inf-alert">Please log in to view your saved searches.</div>';
+        }
+
+        $user_id = get_current_user_id();
+        $args = [
+            'post_type'      => 'saved-search',
+            'post_status'    => 'publish',
+            'author'         => $user_id,
+            'posts_per_page' => 12,
+            'paged'          => 1,
+            'orderby'        => 'date',
+            'order'          => 'DESC'
+        ];
+
+        $q = new WP_Query($args);
+
+        if (!$q->have_posts()) {
+            return '<div class="inf-alert">You have not saved any searches yet.</div>';
+        }
+
+        ob_start();
+        ?>
+        <div class="inf-groups-grid" id="inf-searches-shortcode-grid">
+            <?php
+            foreach ($q->posts as $p) {
+                echo $this->generate_search_card_html($p);
+            }
+            ?>
+        </div>
+        <?php if ($q->max_num_pages > 1) : ?>
+            <div class="inf-load-more-wrapper" style="margin-top:20px;">
+                <button type="button" class="inf-btn inf-btn-save inf-load-more-searches" data-paged="1" style="width: auto; padding: 12px 24px !important;">Load More Searches</button>
+            </div>
+        <?php endif; ?>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * AJAX Handler: Load More Saved Searches
+     */
+    public function handle_load_more_searches_ajax()
+    {
+        check_ajax_referer('save_search_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error();
+
+        $paged = isset($_POST['paged']) ? intval($_POST['paged']) : 1;
+        $user_id = get_current_user_id();
+
+        $args = [
+            'post_type'      => 'saved-search',
+            'post_status'    => 'publish',
+            'author'         => $user_id,
+            'posts_per_page' => 12,
+            'paged'          => $paged,
+            'orderby'        => 'date',
+            'order'          => 'DESC'
+        ];
+
+        $q = new WP_Query($args);
+        $html = '';
+        
+        if ($q->have_posts()) {
+            foreach ($q->posts as $p) {
+                $html .= $this->generate_search_card_html($p);
+            }
+        }
+
+        $has_more = $q->max_num_pages > $paged;
+        wp_send_json_success(['html' => $html, 'has_more' => $has_more]);
+    }
+
+    /**
+     * AJAX Handler: Delete Single Saved Search
+     */
+    public function handle_delete_saved_search_ajax()
+    {
+        check_ajax_referer('save_search_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+        $post = get_post($post_id);
+
+        if ($post && $post->post_author == get_current_user_id() && $post->post_type === 'saved-search') {
+            wp_delete_post($post_id, true);
+            wp_send_json_success(['message' => 'Search deleted successfully.']);
+        }
+
+        wp_send_json_error(['message' => 'Could not delete search.']);
     }
 
     /**
@@ -534,11 +705,13 @@ class Saves_Manager
                BULLETPROOF ELEMENTOR CSS RESETS
                ========================================================================= */
             #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-searches-shortcode-grid button.inf-btn-icon,
             #inf-modal-overlay button.inf-btn-icon,
             #inf-modal-overlay button.inf-btn,
             #inf-modal-overlay button.inf-btn-back,
             #inf-modal-overlay button.inf-create-btn,
-            #inf-groups-shortcode-grid button.inf-dropdown-item {
+            #inf-groups-shortcode-grid button.inf-dropdown-item,
+            #inf-searches-shortcode-grid button.inf-dropdown-item {
                 background-image: none !important;
                 letter-spacing: normal !important;
                 text-transform: none !important;
@@ -548,6 +721,7 @@ class Saves_Manager
             }
 
             #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-searches-shortcode-grid button.inf-btn-icon,
             #inf-modal-overlay button.inf-btn-icon {
                 background-color: transparent !important;
                 border: none !important;
@@ -567,12 +741,14 @@ class Saves_Manager
             }
 
             #inf-groups-shortcode-grid button.inf-btn-icon:hover,
+            #inf-searches-shortcode-grid button.inf-btn-icon:hover,
             #inf-modal-overlay button.inf-btn-icon:hover {
                 background-color: #f0f2f5 !important;
                 color: var(--e-global-color-primary) !important;
             }
 
             #inf-groups-shortcode-grid button.inf-btn-icon svg,
+            #inf-searches-shortcode-grid button.inf-btn-icon svg,
             #inf-modal-overlay button.inf-btn-icon svg {
                 width: 16px !important;
                 height: 16px !important;
@@ -710,7 +886,8 @@ class Saves_Manager
                 display: block;
             }
 
-            #inf-groups-shortcode-grid button.inf-dropdown-item {
+            #inf-groups-shortcode-grid button.inf-dropdown-item,
+            #inf-searches-shortcode-grid button.inf-dropdown-item {
                 display: flex !important;
                 align-items: center !important;
                 gap: 8px !important;
@@ -726,7 +903,8 @@ class Saves_Manager
                 border-radius: 4px !important;
             }
 
-            #inf-groups-shortcode-grid button.inf-dropdown-item:hover {
+            #inf-groups-shortcode-grid button.inf-dropdown-item:hover,
+            #inf-searches-shortcode-grid button.inf-dropdown-item:hover {
                 background-color: #f8f9fa !important;
                 color: #dc3545 !important;
             }
@@ -922,7 +1100,7 @@ class Saves_Manager
                 margin-top: 24px;
             }
 
-            #inf-modal-overlay button.inf-btn {
+            button.inf-btn {
                 flex: 1 !important;
                 padding: 10px !important;
                 margin: 0 !important;
@@ -933,19 +1111,20 @@ class Saves_Manager
                 transition: 0.2s !important;
                 font-size: 14px !important;
                 border: none !important;
+                font-family: inherit !important;
             }
 
-            #inf-modal-overlay button.inf-btn-cancel {
+            button.inf-btn-cancel {
                 background-color: transparent !important;
                 color: var(--e-global-color-secondary) !important;
                 border: 1px solid var(--e-global-color-secondary) !important;
             }
 
-            #inf-modal-overlay button.inf-btn-cancel:hover {
+            button.inf-btn-cancel:hover {
                 background-color: #eaeaea !important;
             }
 
-            #inf-modal-overlay button.inf-btn-save {
+            button.inf-btn-save {
                 background-color: var(--e-global-color-secondary) !important;
                 color: #fff !important;
             }
@@ -1408,6 +1587,83 @@ class Saves_Manager
                         }
                     });
                 });
+                
+                // 5. Saved Searches Load More & Deletion
+                let isFetchingSearches = false;
+                $('.inf-load-more-searches').on('click', function() {
+                    if (isFetchingSearches) return;
+                    
+                    let $btn = $(this);
+                    let nextPage = parseInt($btn.attr('data-paged')) + 1;
+                    isFetchingSearches = true;
+                    
+                    let ogText = $btn.text();
+                    $btn.text('Loading...');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'load_more_saved_searches',
+                            security: ajax_vars.save_search_nonce,
+                            paged: nextPage
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $('#inf-searches-shortcode-grid').append(res.data.html);
+                                $btn.attr('data-paged', nextPage);
+                                
+                                // Remove button if no more pages exist
+                                if (!res.data.has_more) {
+                                    $btn.parent().fadeOut(300, function() { $(this).remove(); });
+                                } else {
+                                    $btn.text(ogText);
+                                }
+                            } else {
+                                alert('Error loading more searches.');
+                                $btn.text(ogText);
+                            }
+                            isFetchingSearches = false;
+                        },
+                        error: function() {
+                            alert('A server error occurred while loading searches.');
+                            isFetchingSearches = false;
+                            $btn.text(ogText);
+                        }
+                    });
+                });
+
+                $(document).on('click', '.inf-trigger-delete-search', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active');
+                    
+                    if (!confirm("Are you sure you want to permanently delete this saved search?")) return;
+
+                    let id = $(this).attr('data-id');
+                    let $card = $('#search-card-' + id);
+                    $card.css('opacity', '0.5');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'delete_saved_search',
+                            security: ajax_vars.save_search_nonce,
+                            post_id: id
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $card.fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                            } else {
+                                alert(res.data.message);
+                                $card.css('opacity', '1');
+                            }
+                        }
+                    });
+                });
+
             });
         </script>
 <?php
