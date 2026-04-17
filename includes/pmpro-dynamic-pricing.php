@@ -4,8 +4,8 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.19
+ * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
+ * Version: 1.0.20
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -647,10 +647,16 @@ class DD_PMPro_Frontend_Pricing
 			$action_verb = 'SELECT PLAN';
 		}
 
-		// Inject 3-day free trial text strictly for users with no plan
+		// Inject dynamic free trial text strictly for users with no plan
 		$trial_text_html = '';
 		if ($user_max_base_price == 0) {
-			$trial_text_html = '<div class="dd-trial-text">3 day <i>free</i> trial</div>';
+			// Fetch dynamic trial days from PMPro Subscription Delays Add-on
+			$trial_days = get_option('pmpro_subscription_delay_' . $level_id, '');
+			
+			// Only display if a numeric delay is explicitly set
+			if (!empty($trial_days) && is_numeric($trial_days)) {
+				$trial_text_html = '<div class="dd-trial-text">' . esc_html($trial_days) . ' day <i>free</i> trial</div>';
+			}
 		}
 
 		// Implement robust lock out if user is on a free trial phase
