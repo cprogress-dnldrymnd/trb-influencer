@@ -97,12 +97,12 @@ add_action('init', function () {
 });
 
 /**
- * 1. FORCE LEVEL OVERRIDE: Strip out all trials/delays triggered by the $0 initial payment.
+ * 1. FORCE LEVEL VARIABLES: Strip out all trials and force a $0 initial payment for upgrades.
+ * Hooks globally to catch AJAX requests from the Payment Plans add-on.
  */
-add_filter( 'pmpro_checkout_level', 'influencer_collective_force_level_for_upgrades', 999 );
-function influencer_collective_force_level_for_upgrades( $level ) {
-    // Only apply to logged-in users checking out
-    if ( ! is_user_logged_in() || empty( $level ) ) {
+add_filter( 'pmpro_checkout_level', 'influencer_collective_force_time_stacking', 999 );
+function influencer_collective_force_time_stacking( $level ) {
+    if ( ! is_user_logged_in() || empty( $level ) || ( is_admin() && ! wp_doing_ajax() ) ) {
         return $level;
     }
     
@@ -111,10 +111,18 @@ function influencer_collective_force_level_for_upgrades( $level ) {
 
     // If the user already has an active, paid plan...
     if ( ! empty( $current_level ) ) {
-        // Forcefully eradicate any trials or delays injected by the $0 initial payment or add-ons
-        $level->custom_trial = 0;
-        $level->trial_amount = 0;
-        $level->trial_limit  = 0;
+        $next_payment = pmpro_next_payment( $user_id );
+        if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
+            $next_payment = $current_level->enddate;
+        }
+
+        // If they have banked time in the future, force the system to honor it
+        if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
+            $level->initial_payment = 0; // Charge nothing today
+            $level->custom_trial = 0;    // Eradicate the trial
+            $level->trial_amount = 0;
+            $level->trial_limit  = 0;
+        }
     }
     
     return $level;
@@ -123,27 +131,22 @@ function influencer_collective_force_level_for_upgrades( $level ) {
 /**
  * 2. FORCE START DATE: Lock the new billing cycle to their exact banked expiration date.
  */
-add_filter( 'pmpro_profile_start_date', 'influencer_collective_force_start_date', 999, 2 );
-function influencer_collective_force_start_date( $startdate, $order ) {
-    if ( ! is_user_logged_in() ) {
-        return $startdate;
-    }
+add_filter( 'pmpro_profile_start_date', 'influencer_collective_force_stacked_date', 999, 2 );
+function influencer_collective_force_stacked_date( $startdate, $order ) {
+    if ( ! is_user_logged_in() ) return $startdate;
     
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
     if ( ! empty( $current_level ) ) {
-        // Securely grab their banked time
-        $next_payment_timestamp = pmpro_next_payment( $user_id );
-        
-        // Fallback for manual/bank transfer gateways
-        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
-            $next_payment_timestamp = $current_level->enddate;
+        $next_payment = pmpro_next_payment( $user_id );
+        if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
+            $next_payment = $current_level->enddate;
         }
 
-        // Force the gateway to delay the first charge until their banked time expires
-        if ( ! empty( $next_payment_timestamp ) ) {
-            $startdate = date( "Y-m-d\TH:i:s", $next_payment_timestamp );
+        // Push the gateway's first charge to their exact banked expiration date
+        if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
+            $startdate = date( "Y-m-d\TH:i:s", $next_payment );
         }
     }
     
@@ -151,29 +154,27 @@ function influencer_collective_force_start_date( $startdate, $order ) {
 }
 
 /**
- * 3. FORCE FRONTEND UI: Fix the text on the checkout page so it doesn't say "3 day trial".
+ * 3. FORCE FRONTEND UI: Aggressively rewrite the text during AJAX so it doesn't say "3 day trial".
  */
-add_filter( 'pmpro_level_cost_text', 'influencer_collective_force_checkout_text', 999, 4 );
-function influencer_collective_force_checkout_text( $text, $level, $tags, $short ) {
-    if ( ! is_user_logged_in() ) {
-        return $text;
-    }
+add_filter( 'pmpro_level_cost_text', 'influencer_collective_force_ajax_text', 999, 4 );
+function influencer_collective_force_ajax_text( $text, $level, $tags, $short ) {
+    if ( ! is_user_logged_in() ) return $text;
     
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
     if ( ! empty( $current_level ) ) {
-        $next_payment_timestamp = pmpro_next_payment( $user_id );
-        
-        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
-            $next_payment_timestamp = $current_level->enddate;
+        $next_payment = pmpro_next_payment( $user_id );
+        if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
+            $next_payment = $current_level->enddate;
         }
 
-        if ( ! empty( $next_payment_timestamp ) ) {
-            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
+        if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
+            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment );
             
-            // Scrub the trial text and replace it with their true start date
-            $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
+            // Use regex to catch ANY variation of the trial string injected by add-ons
+            // and replace it with their true, stacked start date.
+            $text = preg_replace( '/after your.*?trial\.?/i', 'starting on ' . $formatted_date . '.', $text );
         }
     }
     
