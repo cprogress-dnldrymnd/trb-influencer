@@ -917,25 +917,35 @@ function is_influencer_saved($current_influencer_id)
 
 /**
  * Helper Function: Generates the HTML for the current user's avatar.
- * * Retrieves the avatar from Paid Memberships Pro or falls back to
+ * Retrieves the avatar from Paid Memberships Pro or falls back to
  * generating initials based on the user's name or email.
- * * @author Digitally Disruptive - Donald Raymundo
- * @link https://digitallydisruptive.co.uk/
- * * @return string The HTML representation of the user avatar, or an empty string if not logged in.
+ *
+ * @param string|bool $is_email_template Whether to output inline CSS for email compatibility.
+ * @return string The HTML representation of the user avatar, or an empty string if not logged in.
  */
-function dd_get_user_avatar_html()
+function dd_get_user_avatar_html($is_email_template = false)
 {
     // 1. Check if user is logged in. If not, return nothing.
     if (!is_user_logged_in()) {
         return '';
     }
 
-    // 2. Get User Info via PMPro
+    // 2. Prepare inline styles if it's an email template
+    $img_style = '';
+    $fallback_style = '';
+    
+    if (filter_var($is_email_template, FILTER_VALIDATE_BOOLEAN)) {
+        $base_style = 'width: 60px !important; height: 60px !important; border-radius: 50% !important; border: 1px solid #CCCCCC !important; object-fit: cover !important;';
+        $img_style = " style='{$base_style}'";
+        $fallback_style = " style='{$base_style} text-align: center; font-size: 20px; padding: 17px 0; box-sizing: border-box; font-weight: bold;'";
+    }
+
+    // 3. Get User Info via PMPro
     $avatar = convert_pmpro_path_to_url(get_pmpro_file_field_url(get_current_user_id(), 'user_avatar', 'thumbnail'));
 
     // Output the featured image if it exists
     if ($avatar) {
-        $avatar_html = "<img src='{$avatar}' alt='User Avatar' class='cad-avatar'>";
+        $avatar_html = "<img src='{$avatar}' alt='User Avatar' class='cad-avatar'{$img_style}>";
     } else {
         // Fallback: Generate initials from the user data
         $current_user = wp_get_current_user();
@@ -951,10 +961,9 @@ function dd_get_user_avatar_html()
         $email = $current_user->user_email;
 
         // Build the HTML for the initials avatar
-        // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
-        $avatar_html  = '<div class="avatar-fallback">';
+        $avatar_html  = "<div class='avatar-fallback'{$fallback_style}>";
         $avatar_html .= esc_html(dd_get_initials_from_string($name ? $name : $email));
-        $avatar_html .= '</div>';
+        $avatar_html .= "</div>";
     }
 
     return $avatar_html;
@@ -962,25 +971,20 @@ function dd_get_user_avatar_html()
 
 /**
  * Shortcode: Displays the user avatar standalone.
- * * Usage: [user_avatar]
- * * @author Digitally Disruptive - Donald Raymundo
- * @link https://digitallydisruptive.co.uk/
- * * @return string HTML output for the user avatar.
+ * Usage: [user_avatar] or [user_avatar is_email_template="true"]
+ *
+ * @return string HTML output for the user avatar.
  */
-function custom_standalone_avatar_shortcode()
+function custom_standalone_avatar_shortcode($atts)
 {
-    return dd_get_user_avatar_html();
+    $atts = shortcode_atts(array(
+        'is_email_template' => 'false',
+    ), $atts, 'user_avatar');
+
+    return dd_get_user_avatar_html($atts['is_email_template']);
 }
 add_shortcode('user_avatar', 'custom_standalone_avatar_shortcode');
 
-/**
- * Shortcode: Displays the user avatar wrapped in a dropdown menu.
- * * Usage: [avatar_dropdown ids="12, 45, 20"]
- * * @author Digitally Disruptive - Donald Raymundo
- * @link https://digitallydisruptive.co.uk/
- * * @param array $atts Shortcode attributes.
- * @return string The HTML output for the avatar and dropdown menu.
- */
 function custom_avatar_dropdown_shortcode($atts)
 {
     // 1. Check if user is logged in. If not, return nothing (or a login button).
@@ -1817,11 +1821,12 @@ add_shortcode('roi_calculator', 'roi_calculator');
  */
 function dd_influencer_avatar_shortcode($atts)
 {
-    // Parse attributes, allowing an optional post_id and size override
+    // Parse attributes, allowing an optional post_id, size override, and email template flag
     $args = shortcode_atts(array(
-        'post_id' => get_the_ID(),
-        'size'    => 'thumbnail', // Accepts standard WordPress image sizes
-    ), $atts);
+        'post_id'           => get_the_ID(),
+        'size'              => 'thumbnail', // Accepts standard WordPress image sizes
+        'is_email_template' => 'false',
+    ), $atts, 'influencer_avatar');
 
     $post_id = intval($args['post_id']);
 
@@ -1829,9 +1834,23 @@ function dd_influencer_avatar_shortcode($atts)
         $post_id = get_the_ID();
     }
 
+    // Prepare inline styles if it's an email template
+    $img_style = '';
+    $fallback_style = '';
+    
+    if (filter_var($args['is_email_template'], FILTER_VALIDATE_BOOLEAN)) {
+        $base_style = 'width: 60px !important; height: 60px !important; border-radius: 50% !important; border: 1px solid #CCCCCC !important; object-fit: cover !important;';
+        $img_style = $base_style; // get_the_post_thumbnail takes raw CSS in the style array
+        $fallback_style = " style='{$base_style} text-align: center; font-size: 20px; padding: 17px 0; box-sizing: border-box; font-weight: bold;'";
+    }
+
     // Output the featured image if it exists
     if (has_post_thumbnail($post_id)) {
-        return get_the_post_thumbnail($post_id, $args['size'], array('class' => 'influencer-avatar-img'));
+        $attr = array('class' => 'influencer-avatar-img');
+        if (!empty($img_style)) {
+            $attr['style'] = $img_style;
+        }
+        return get_the_post_thumbnail($post_id, $args['size'], $attr);
     }
 
     // Fallback: Generate initials from the post title
@@ -1839,10 +1858,9 @@ function dd_influencer_avatar_shortcode($atts)
     $initials = dd_get_initials_from_string($title);
 
     // Build the HTML for the initials avatar
-    // Note: Inline styles are used for structural demonstration. Best practice is to move these to your theme/plugin CSS.
-    $html  = '<div class="influencer-avatar-fallback">';
+    $html  = "<div class='influencer-avatar-fallback'{$fallback_style}>";
     $html .= esc_html($initials);
-    $html .= '</div>';
+    $html .= "</div>";
 
     return $html;
 }

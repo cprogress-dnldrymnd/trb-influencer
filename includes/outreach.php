@@ -2054,8 +2054,8 @@ class DD_Outreach_Manager
         $influencer_name = get_the_title($influencer_id);
 
         // Execute the shortcodes to grab the HTML avatars
-        $user_avatar_html       = do_shortcode('[user_avatar]');
-        $influencer_avatar_html = do_shortcode('[influencer_avatar post_id="' . $influencer_id . '"]');
+        $user_avatar_html       = do_shortcode('[user_avatar is_email_template="true"]');
+        $influencer_avatar_html = do_shortcode('[influencer_avatar is_email_template="true" post_id="' . $influencer_id . '"]');
 
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
