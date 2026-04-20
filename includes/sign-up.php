@@ -243,7 +243,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
 
             // Construct the HTML label containing the required target="_blank" links
             $label_html = sprintf(
-                'I have read and agree to the <a href="%s" target="_blank">Privacy Policy</a> and <a href="%s" target="_blank">Terms of Use</a>.',
+                '<span>I have read and agree to the <a href="%s" target="_blank">Privacy Policy</a> and <a href="%s" target="_blank">Terms of Use</a>.<span>',
                 esc_url($privacy_url),
                 esc_url($terms_url)
             );
