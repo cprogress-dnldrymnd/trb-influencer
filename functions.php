@@ -97,20 +97,20 @@ add_action('init', function () {
 });
 
 /**
- * Safely disable the PMPro Subscription Delays Add-on for existing paid members
- * so the PMPro Proration Add-on can function correctly during plan changes.
+ * Safely disable the PMPro Subscription Delays Add-on for existing paid members.
+ * Hooked to 'template_redirect' to guarantee it fires AFTER the add-on has loaded.
  */
-add_action( 'init', 'influencer_collective_disable_pmprosd_for_upgrades', 99 );
+add_action( 'template_redirect', 'influencer_collective_disable_pmprosd_for_upgrades', 99 );
 function influencer_collective_disable_pmprosd_for_upgrades() {
-    // Only proceed if PMPro is active and the user is logged in
-    if ( ! function_exists( 'pmpro_getMembershipLevelForUser' ) || ! is_user_logged_in() ) {
+    // Only proceed if we are on the PMPro checkout page and the user is logged in
+    if ( ! function_exists( 'pmpro_getMembershipLevelForUser' ) || ! is_user_logged_in() || ! function_exists( 'pmpro_is_checkout' ) || ! pmpro_is_checkout() ) {
         return;
     }
 
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
-    // If the user already has an active membership level, kill the delay add-on's filters
+    // If the user already has an active membership, aggressively unhook the Delay Add-on's filters
     if ( ! empty( $current_level ) ) {
         // Unhook Subscription Delays from hijacking the checkout level price/trials
         remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10 );
@@ -118,7 +118,7 @@ function influencer_collective_disable_pmprosd_for_upgrades() {
         // Unhook Subscription Delays from hijacking the start date
         remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10 );
         
-        // Unhook Subscription Delays from hijacking the checkout text
+        // Unhook Subscription Delays from hijacking the checkout text UI
         remove_filter( 'pmpro_level_cost_text', 'pmprosd_pmpro_level_cost_text', 10 );
     }
 }
