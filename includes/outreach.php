@@ -1120,7 +1120,7 @@ class DD_Outreach_Manager
             .dd-profile-info { flex-grow: 1; line-height: 1.4; }
             .dd-message-sent-date { padding: 15px 20px; border-bottom: 1px solid #E7E7E7; font-size: 14px; }
             .dd-overview-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
-            .dd-overview-header .dd-timestamp { font-weight: normal; color: #555; }
+            .dd-overview-header .dd-timestamp { font-weight: normal; color: #8F8F8F; }
             .dd-btn-outline { background-color: var(--e-global-color-1c4ea17); font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); fill: var(--e-global-color-accent); color: var(--e-global-color-accent); border: 1px solid var(--e-global-color-accent); padding: 14px 23px 14px 23px; border-radius: 5px; }
             .dd-btn-outline:hover { background-color: var(--e-global-color-accent); color: var(--e-global-color-2ba2932); }
             .dd-message-overview-container .tags-container.tags-container.tags-container { margin: 0; }
@@ -1154,7 +1154,7 @@ class DD_Outreach_Manager
                 border-bottom: 1px solid #BCBCBC;
             }
             .dd-pill-filters-wrapper {padding: 20px;}
-            .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; width: 100%; }
+            .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #8F8F8F; text-decoration: none; font-weight: 600; width: 100%; font-family: Inter; font-size: 14px; }
             .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
             .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
             .dd-archive-link.active { color: #034146; font-weight: bold; }
@@ -1162,7 +1162,7 @@ class DD_Outreach_Manager
             .dd-pill-filters { display: flex; gap: 10px; }
             
             /* Force strict override to prevent Elementor button bleeding */
-            .dd-status-pill { padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #ccc !important; background: transparent !important; cursor: pointer !important; color: #555 !important; font-size: 13px !important; font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
+            .dd-status-pill { padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #ccc !important; background: transparent !important; cursor: pointer !important; color: #8F8F8F !important; font-size: 13px !important; font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
             .dd-status-pill.active { background: #034146 !important; border-color: #034146 !important; color: #fff !important; font-weight: bold !important; }
 
             .dd-item-list { max-height: 600px; overflow-y: auto; }
