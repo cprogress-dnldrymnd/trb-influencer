@@ -140,12 +140,3 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
     return $checkout_level;
 }
 add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
-
-/**
- * Swap in our custom prorating function.
- */
-function init_custom_prorating_rules() {
-	remove_filter( 'pmpro_checkout_level', 'pmprorate_pmpro_checkout_level', 10, 1 );
-	add_filter( 'pmpro_checkout_level', 'pmpro_checkout_level_custom_prorating_rules', 10, 1 );
-}
-add_action( 'init', 'init_custom_prorating_rules');
