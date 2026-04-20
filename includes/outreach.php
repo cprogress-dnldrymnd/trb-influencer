@@ -1161,7 +1161,7 @@ class DD_Outreach_Manager
             .dd-status-pill.active { background: #034146 !important; border-color: #034146 !important; color: #fff !important; font-weight: bold !important; }
 
             .dd-item-list { max-height: 600px; overflow-y: auto; }
-            .dd-outreach-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
+            .dd-outreach-item { display: flex; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
             .dd-outreach-item .avatar-holder { flex: 0 0 68px; width: 68px; }
             .dd-outreach-item .dd-item-content { flex: 0 0 calc(100% - 100px); width: calc(100% - 100px); padding-left: 10px; }
             .dd-outreach-item:hover, .dd-outreach-item.active-item { background: #FEF6F3; border-bottom: 1px solid #3B1527; border-top: 1px solid #3B1527; }
@@ -1177,7 +1177,7 @@ class DD_Outreach_Manager
 
             /* 3-Dot Action Menu */
             .dd-item-dots { position: relative; margin-left: auto; }
-            .dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; font-weight: bold; padding: 0 5px; line-height: 1; outline: none; }
+            .dd-action-toggle.dd-action-toggle.dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--e-global-color-secondary); font-weight: bold; padding: 0 5px; line-height: 1; outline: none; }
             .dd-action-menu { position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; width: 140px; z-index: 10; display: none; overflow: hidden; }
             .dd-action-menu a { display: block; padding: 10px; text-decoration: none; color: #333; font-size: 13px; border-bottom: 1px solid #f5f5f5; font-family: Inter; }
             .dd-action-menu a:hover { background: #f9f9f9; color: #034146; }
