@@ -1161,7 +1161,7 @@ class DD_Outreach_Manager
         wp_send_json_success($final_html);
     }
 
-    /**
+ /**
      * Outputs consolidated CSS into the document <head>.
      * Responsive modal overlay logic is introduced at max-width: 1024px.
      */
@@ -1170,689 +1170,122 @@ class DD_Outreach_Manager
     ?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
-            .dd-message-overview {
-                display: flex;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                font-size: 16px;
-                font-weight: 500;
-            }
-
-            .dd-message-overview-container {
-                font-family: inherit;
-                margin-top: 15px;
-                border-radius: 10px;
-                border: 2px solid #034146;
-                background-color: #fff;
-            }
-
-            .mt-0 {
-                margin-top: 0 !important;
-            }
-
-            .dd-profile-header {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-            }
-
-            .dd-avatar.dd-avatar.dd-avatar {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-            }
-
-            .dd-profile-info {
-                flex-grow: 1;
-                line-height: 1.4;
-            }
-
-            .dd-message-sent-date {
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-                font-size: 14px;
-            }
-
-            .dd-overview-header {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-
-            .dd-overview-header .dd-timestamp {
-                font-weight: normal;
-                color: #555;
-            }
-
-            .dd-btn-outline {
-                background-color: var(--e-global-color-1c4ea17);
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: var(--e-global-typography-2a20fd0-font-size);
-                font-weight: var(--e-global-typography-2a20fd0-font-weight);
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-                fill: var(--e-global-color-accent);
-                color: var(--e-global-color-accent);
-                border: 1px solid var(--e-global-color-accent);
-                padding: 14px 23px 14px 23px;
-                border-radius: 5px;
-            }
-
-            .dd-btn-outline:hover {
-                background-color: var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932);
-            }
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container {
-                margin: 0;
-            }
-
-            .tags-container.tags-container.tags-container br {
-                display: none !important;
-            }
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
-                gap: 4px;
-            }
-
-            .dd-subject-title {
-                color: #034146;
-                font-size: 18px !important;
-                font-weight: bold;
-                margin: 0;
-                border-bottom: 1px solid #E7E7E7;
-                font-family: Inter !important;
-                padding: 15px 20px;
-            }
-
-            .dd-message-content {
-                font-size: 15px;
-                color: #000000;
-                line-height: 1.6;
-                padding: 15px 20px;
-                font-family: Inter;
-            }
-
-            #dd-outreach-message-preview .tags-container {
-                margin-top: 0;
-            }
-
-            #dd-outreach-message-preview .tags-container+br {
-                display: none;
-            }
-
-            .dd-footer {
-                display: flex;
-                gap: 15px;
-                margin-top: 15px;
-            }
-
-            .dd-footer a {
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: 14px !important;
-                font-weight: 600 !important;
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-            }
-
-            .view-outreach a {
-                background-color: var(--e-global-color-accent) !important;
-                border: 1px solid var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932) !important;
-            }
-
-            .view-outreach a:hover {
-                background-color: var(--e-global-color-secondary) !important;
-                border: 1px solid var(--e-global-color-secondary);
-            }
-
-            .close-outreach a {
-                border-style: solid;
-                border-color: var(--e-global-color-ee06e41) !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-            }
-
-            .close-outreach a:hover {
-                background-color: #000 !important;
-                color: #fff !important;
-            }
-
-            .submit-new a {
-                border: none !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
-
-            .submit-new a span.elementor-button-text {
-                text-decoration: underline;
-            }
+            .dd-message-overview { display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 16px; font-weight: 500; }
+            .dd-message-overview-container { font-family: inherit; margin-top: 15px; border-radius: 10px; border: 2px solid #034146; background-color: #fff; }
+            .mt-0 { margin-top: 0 !important; }
+            .dd-profile-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #E7E7E7; }
+            .dd-avatar.dd-avatar.dd-avatar { width: 50px; height: 50px; border-radius: 50%; }
+            .dd-profile-info { flex-grow: 1; line-height: 1.4; }
+            .dd-message-sent-date { padding: 15px 20px; border-bottom: 1px solid #E7E7E7; font-size: 14px; }
+            .dd-overview-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+            .dd-overview-header .dd-timestamp { font-weight: normal; color: #555; }
+            .dd-btn-outline { background-color: var(--e-global-color-1c4ea17); font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); fill: var(--e-global-color-accent); color: var(--e-global-color-accent); border: 1px solid var(--e-global-color-accent); padding: 14px 23px 14px 23px; border-radius: 5px; }
+            .dd-btn-outline:hover { background-color: var(--e-global-color-accent); color: var(--e-global-color-2ba2932); }
+            .dd-message-overview-container .tags-container.tags-container.tags-container { margin: 0; }
+            .tags-container.tags-container.tags-container br { display: none !important; }
+            .dd-message-overview-container .tags-container.tags-container.tags-container .tag { gap: 4px; }
+            .dd-subject-title { color: #034146; font-size: 18px !important; font-weight: bold; margin: 0; border-bottom: 1px solid #E7E7E7; font-family: Inter !important; padding: 15px 20px; }
+            .dd-message-content { font-size: 15px; color: #000000; line-height: 1.6; padding: 15px 20px; font-family: Inter; }
+            #dd-outreach-message-preview .tags-container { margin-top: 0; }
+            #dd-outreach-message-preview .tags-container+br { display: none; }
+            .dd-footer { display: flex; gap: 15px; margin-top: 15px; }
+            .dd-footer a { font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: 14px !important; font-weight: 600 !important; line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); }
+            .view-outreach a { background-color: var(--e-global-color-accent) !important; border: 1px solid var(--e-global-color-accent); color: var(--e-global-color-2ba2932) !important; }
+            .view-outreach a:hover { background-color: var(--e-global-color-secondary) !important; border: 1px solid var(--e-global-color-secondary); }
+            .close-outreach a { border-style: solid; border-color: var(--e-global-color-ee06e41) !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; }
+            .close-outreach a:hover { background-color: #000 !important; color: #fff !important; }
+            .submit-new a { border: none !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; padding-left: 0 !important; padding-right: 0 !important; }
+            .submit-new a span.elementor-button-text { text-decoration: underline; }
 
             /* --- Dashboard List Navigation & Status Styles --- */
-            .dd-dashboard-list-container {
-                background: #fdfdfd;
-                border: 1px solid #eaeaea;
-                border-radius: 8px;
-                width: 100%;
-                max-width: 350px;
-            }
-
-            .outreach-filter {
-                padding: 20px;
-                border-bottom: 1px solid #BCBCBC;
-            }
-
-            .dd-filter-controls {
-                margin-bottom: 20px;
-            }
-
-            .dd-list-search {
-                width: 100%;
-                margin-bottom: 15px;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-filter-label-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-            }
-
-            .dd-filter-reset {
-                font-size: 12px;
-                color: #888;
-                text-decoration: none;
-            }
-
-            .dd-filter-select {
-                width: 100%;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-status-nav-wrapper {
-                padding: 15px 20px;
-                border-bottom: 1px solid #BCBCBC;
-                background: #fdfdfd;
-            }
-
-            .dd-archive-link {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                color: #555;
-                text-decoration: none;
-                font-weight: 500;
-                margin-bottom: 15px;
-                width: 100%;
-            }
-
-            .dd-archive-link-left {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .dd-archive-count-badge {
-                font-weight: bold;
-                font-size: 16px;
-                color: #034146;
-            }
-
-            .dd-archive-link.active {
-                color: #034146;
-                font-weight: bold;
-            }
-
-            .dd-pill-filters {
-                display: flex;
-                gap: 10px;
-            }
-
+            .dd-dashboard-list-container { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; width: 100%; max-width: 350px; }
+            .outreach-filter { padding: 20px; border-bottom: 1px solid #BCBCBC; }
+            .dd-filter-controls { margin-bottom: 20px; }
+            .dd-list-search { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            .dd-filter-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+            .dd-filter-reset { font-size: 12px; color: #888; text-decoration: none; }
+            .dd-filter-select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            
+            .dd-status-nav-wrapper { padding: 15px 20px; border-bottom: 1px solid #BCBCBC; background: #fdfdfd; }
+            .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; width: 100%; }
+            .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
+            .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
+            .dd-archive-link.active { color: #034146; font-weight: bold; }
+            
+            .dd-pill-filters { display: flex; gap: 10px; }
+            
             /* Force strict override to prevent Elementor button bleeding */
-            .dd-status-pill {
-                padding: 8px 20px !important;
-                border-radius: 999px !important;
-                border: 1px solid #ccc !important;
-                background: transparent !important;
-                cursor: pointer !important;
-                color: #555 !important;
-                font-size: 13px !important;
-                font-weight: 500 !important;
-                line-height: 1 !important;
-                box-shadow: none !important;
-                outline: none !important;
-                text-decoration: none !important;
-                margin: 0 !important;
-            }
+            .dd-status-pill { padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #ccc !important; background: transparent !important; cursor: pointer !important; color: #555 !important; font-size: 13px !important; font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
+            .dd-status-pill.active { background: #034146 !important; border-color: #034146 !important; color: #fff !important; font-weight: bold !important; }
 
-            .dd-status-pill.active {
-                background: #034146 !important;
-                border-color: #034146 !important;
-                color: #fff !important;
-                font-weight: bold !important;
-            }
-
-            .dd-item-list {
-                max-height: 600px;
-                overflow-y: auto;
-            }
-
-            .dd-outreach-item {
-                display: flex;
-                align-items: center;
-                padding: 15px 20px;
-                border-bottom: 1px solid #eee;
-                border-top: 1px solid transparent;
-                cursor: pointer;
-                transition: background 0.2s;
-                position: relative;
-            }
-
-            .dd-outreach-item .avatar-holder {
-                flex: 0 0 68px;
-                width: 68px;
-            }
-
-            .dd-outreach-item .dd-item-content {
-                flex: 0 0 calc(100% - 100px);
-                width: calc(100% - 100px);
-                padding-left: 10px;
-            }
-
-            .dd-outreach-item:hover,
-            .dd-outreach-item.active-item {
-                background: #FEF6F3;
-                border-bottom: 1px solid #3B1527;
-                border-top: 1px solid #3B1527;
-            }
-
-            .dd-item-avatar.dd-item-avatar.dd-item-avatar {
-                width: 68px;
-                height: 68px;
-                border-radius: 50%;
-                object-fit: cover;
-                margin-right: 15px;
-                border: 1px solid gray;
-            }
-
-            .dd-item-name {
-                display: block;
-                font-size: 15px;
-                font-weight: 500;
-                color: #000000;
-            }
-
+            .dd-item-list { max-height: 600px; overflow-y: auto; }
+            .dd-outreach-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
+            .dd-outreach-item .avatar-holder { flex: 0 0 68px; width: 68px; }
+            .dd-outreach-item .dd-item-content { flex: 0 0 calc(100% - 100px); width: calc(100% - 100px); padding-left: 10px; }
+            .dd-outreach-item:hover, .dd-outreach-item.active-item { background: #FEF6F3; border-bottom: 1px solid #3B1527; border-top: 1px solid #3B1527; }
+            .dd-item-avatar.dd-item-avatar.dd-item-avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid gray; }
+            .dd-item-name { display: block; font-size: 15px; font-weight: 500; color: #000000; }
+            
             /* Top Left Favorite Star */
-            .dd-fav-star {
-                position: absolute;
-                top: 12px;
-                left: 8px;
-                color: #FFD700;
-                font-size: 18px;
-                line-height: 1;
-                z-index: 5;
-            }
-
-            .dd-item-handle {
-                display: block;
-                color: #000000;
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .dd-item-title {
-                display: block;
-                font-size: 14px;
-                color: #034146;
-                font-weight: bold;
-                margin-top: 4px;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                white-space: nowrap;
-                max-width: 200px;
-            }
-
-            .dd-item-date {
-                color: #8F8F8F;
-                font-size: 13px;
-            }
+            .dd-fav-star { position: absolute; top: 12px; left: 8px; color: #FFD700; font-size: 18px; line-height: 1; z-index: 5; }
+            
+            .dd-item-handle { display: block; color: #000000; font-size: 14px; font-weight: 400; }
+            .dd-item-title { display: block; font-size: 14px; color: #034146; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
+            .dd-item-date { color: #8F8F8F; font-size: 13px; }
 
             /* 3-Dot Action Menu */
-            .dd-item-dots {
-                position: relative;
-                margin-left: auto;
-            }
-
-            .dd-action-toggle {
-                background: none;
-                border: none;
-                font-size: 20px;
-                cursor: pointer;
-                color: #888;
-                font-weight: bold;
-                padding: 0 5px;
-                line-height: 1;
-                outline: none;
-            }
-
-            .dd-action-menu {
-                position: absolute;
-                right: 0;
-                top: 100%;
-                background: #fff;
-                border: 1px solid #eee;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-                border-radius: 4px;
-                width: 140px;
-                z-index: 10;
-                display: none;
-                overflow: hidden;
-            }
-
-            .dd-action-menu a {
-                display: block;
-                padding: 10px;
-                text-decoration: none;
-                color: #333;
-                font-size: 13px;
-                border-bottom: 1px solid #f5f5f5;
-                font-family: Inter;
-            }
-
-            .dd-action-menu a:hover {
-                background: #f9f9f9;
-                color: #034146;
-            }
+            .dd-item-dots { position: relative; margin-left: auto; }
+            .dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; font-weight: bold; padding: 0 5px; line-height: 1; outline: none; }
+            .dd-action-menu { position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; width: 140px; z-index: 10; display: none; overflow: hidden; }
+            .dd-action-menu a { display: block; padding: 10px; text-decoration: none; color: #333; font-size: 13px; border-bottom: 1px solid #f5f5f5; font-family: Inter; }
+            .dd-action-menu a:hover { background: #f9f9f9; color: #034146; }
 
             /* --- Notes Component Styles --- */
-            .dd-outreach-view-container {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            .dd-modal-content-wrapper {
-                width: 100%;
-                position: relative;
-            }
-
-            .dd-close-modal {
-                display: none;
-            }
-
-            .dd-view-placeholder {
-                text-align: center;
-                color: #888;
-                margin-top: 10%;
-                display: block;
-            }
-
-            .dd-view-error {
-                text-align: center;
-                color: red;
-                margin-top: 50%;
-                transform: translateY(-50%);
-                display: block;
-            }
-
-            .dd-notes-grid {
-                display: flex;
-                gap: 20px;
-                flex-wrap: nowrap;
-                align-items: flex-start;
-                margin-top: 20px;
-                font-family: Inter;
-            }
-
-            .dd-note-card {
-                flex: 1;
-                min-width: 280px;
-                background: var(--e-global-color-2ba2932);
-                border: 2px solid #FFE17B;
-                border-radius: 8px;
-                padding: 20px;
-                box-sizing: border-box;
-                position: sticky;
-                top: 20px;
-            }
-
-            .dd-notes-list-container {
-                flex: 1;
-                min-width: 280px;
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .dd-note-title.dd-note-title {
-                margin-top: 0;
-                font-size: 20px;
-                margin-bottom: 15px;
-                color: #3B1527;
-                font-weight: bold;
-            }
-
-            .dd-note-desc {
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-bottom: 15px;
-            }
-
-            .dd-note-input {
-                width: 100%;
-                margin-bottom: 10px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                font-family: inherit;
-            }
-
-            .dd-note-textarea {
-                width: 100%;
-                height: 80px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                resize: vertical;
-                font-family: inherit;
-            }
-
-            .dd-note-btn {
-                margin-top: 10px;
-                background: #ffcc00;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
-                cursor: pointer;
-                color: #333;
-                font-size: 13px;
-                transition: opacity 0.2s;
-            }
-
-            .dd-note-btn:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-            }
-
-            .dd-steps-content {
-                background: #FCF3D5;
-                padding: 15px;
-                border-radius: 8px;
-                font-size: 14px;
-                color: #000;
-                margin-bottom: 15px;
-                line-height: 1.5;
-                border: 1px solid #FFE17B;
-            }
-
-            .dd-steps-actions {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-
-            .dd-delete-btn {
-                border: none;
-                background: transparent;
-                color: #aaa;
-                cursor: pointer;
-                font-size: 12px;
-            }
-
-            .dd-edit-btn {
-                border: 1px solid #ddd;
-                background: #f9f9f9;
-                padding: 8px 15px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                color: #333;
-            }
-
-            .dd-last-edited {
-                text-align: right;
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-top: 10px !important;
-                display: block;
-            }
-
-            .dd-no-notes {
-                text-align: center;
-                color: #888;
-                padding: 20px;
-                border: 1px dashed #ccc;
-                border-radius: 8px;
-                background-color: #fff;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn {
-                padding: 12px 20px !important;
-                border: 1px solid #BCBCBC;
-                font-family: Inter !important;
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0.6px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow {
-                background-color: #FFE17B;
-                border-color: #FFE17B;
-                color: #000000;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline {
-                background-color: transparent;
-                color: #BCBCBC;
-                border-color: #BCBCBC;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span {
-                text-decoration: underline;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link {
-                border: none;
-                background-color: transparent;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
-                text-decoration: underline;
-            }
+            .dd-outreach-view-container { width: 100%; box-sizing: border-box; }
+            .dd-modal-content-wrapper { width: 100%; position: relative; }
+            .dd-close-modal { display: none; }
+            .dd-view-placeholder { text-align: center; color: #888; margin-top: 10%; display: block; }
+            .dd-view-error { text-align: center; color: red; margin-top: 50%; transform: translateY(-50%); display: block; }
+            .dd-notes-grid { display: flex; gap: 20px; flex-wrap: nowrap; align-items: flex-start; margin-top: 20px; font-family: Inter; }
+            .dd-note-card { flex: 1; min-width: 280px; background: var(--e-global-color-2ba2932); border: 2px solid #FFE17B; border-radius: 8px; padding: 20px; box-sizing: border-box; position: sticky; top: 20px; }
+            .dd-notes-list-container { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 15px; }
+            .dd-note-title.dd-note-title { margin-top: 0; font-size: 20px; margin-bottom: 15px; color: #3B1527; font-weight: bold; }
+            .dd-note-desc { font-size: 14px; color: #8F8F8F; margin-bottom: 15px; }
+            .dd-note-input { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+            .dd-note-textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; }
+            .dd-note-btn { margin-top: 10px; background: #ffcc00; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; font-size: 13px; transition: opacity 0.2s; }
+            .dd-note-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+            .dd-steps-content { background: #FCF3D5; padding: 15px; border-radius: 8px; font-size: 14px; color: #000; margin-bottom: 15px; line-height: 1.5; border: 1px solid #FFE17B; }
+            .dd-steps-actions { display: flex; justify-content: flex-end; gap: 10px; }
+            .dd-delete-btn { border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 12px; }
+            .dd-edit-btn { border: 1px solid #ddd; background: #f9f9f9; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #333; }
+            .dd-last-edited { text-align: right; font-size: 14px; color: #8F8F8F; margin-top: 10px !important; display: block; }
+            .dd-no-notes { text-align: center; color: #888; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; background-color: #fff; }
+            .dd-note-btn.dd-note-btn.dd-note-btn { padding: 12px 20px !important; border: 1px solid #BCBCBC; font-family: Inter !important; font-size: 12px; font-weight: 600; letter-spacing: 0.6px; display: flex; align-items: center; gap: 10px; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow { background-color: #FFE17B; border-color: #FFE17B; color: #000000; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline { background-color: transparent; color: #BCBCBC; border-color: #BCBCBC; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span { text-decoration: underline; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link { border: none; background-color: transparent; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span { text-decoration: underline; }
 
             /* --- Responsive Mobile Modal Interception --- */
             @media (max-width: 1024px) {
-                .dd-outreach-view-container {
-                    display: none;
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0, 0, 0, 0.6);
-                    z-index: 999999;
-                    padding: 20px;
-                    box-sizing: border-box;
-                    align-items: center;
-                    justify-content: center;
-                    backdrop-filter: blur(3px);
-                }
-
-                .dd-outreach-view-container.dd-modal-active {
-                    display: flex;
-                }
-
-                .dd-modal-content-wrapper {
-                    background: #fff;
-                    width: 100%;
-                    max-width: 600px;
-                    max-height: 90vh;
-                    overflow-y: auto;
-                    border-radius: 8px;
-                    padding: 50px 20px 20px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                }
-
-                .dd-close-modal.dd-close-modal {
-                    display: block;
-                    position: absolute;
-                    top: 10px;
-                    right: 15px;
-                    background: none;
-                    border: none;
-                    font-size: 28px;
-                    cursor: pointer;
-                    color: #333;
-                    z-index: 10;
-                    line-height: 1;
-                    background-color: transparent;
-                    padding: 0;
-                    border: none;
-                }
-
-                .dd-item-list {
-                    max-height: 100%;
-                }
+                .dd-outreach-view-container { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); z-index: 999999; padding: 20px; box-sizing: border-box; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+                .dd-outreach-view-container.dd-modal-active { display: flex; }
+                .dd-modal-content-wrapper { background: #fff; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 50px 20px 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+                .dd-close-modal.dd-close-modal { display: block; position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #333; z-index: 10; line-height: 1; background-color: transparent; padding: 0; border: none; }
+                .dd-item-list { max-height: 100%; }
             }
-
             @media(max-width: 1199px) {
-                .dd-notes-grid {
-                    flex-direction: column;
-                }
-
-                .dd-note-card {
-                    width: 100%;
-                }
-
-                .dd-notes-list-container {
-                    width: 100%;
-                }
-
-                .dd-dashboard-list-container {
-                    max-width: 100%;
-                }
+                .dd-notes-grid { flex-direction: column; }
+                .dd-note-card { width: 100%; }
+                .dd-notes-list-container { width: 100%; }
+                .dd-dashboard-list-container { max-width: 100%; }
             }
         </style>
     <?php
     }
+
 
     /**
      * Intercepts the Elementor Form submission to compile a custom HTML payload.
