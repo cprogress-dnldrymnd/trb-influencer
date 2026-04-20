@@ -98,52 +98,61 @@ add_action('init', function () {
 
 
 /**
- * 1. THE EVICTION: Successfully remove the Subscription Delays Add-on for all upgrades.
- * CRITICAL FIX: Corrected function names to include underscores (pmpro_sd_)
+ * 1. THE EVICTION: Kill all forced delays from ALL add-ons for existing members.
  */
-add_action( 'init', 'influencer_collective_kill_delays_for_upgrades', 99 );
-function influencer_collective_kill_delays_for_upgrades() {
+add_action( 'init', 'influencer_collective_kill_all_delays', 999 );
+function influencer_collective_kill_all_delays() {
     if ( ! is_user_logged_in() || ! function_exists( 'pmpro_getMembershipLevelForUser' ) ) return;
 
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
-    // If the user is an existing member, completely disable the 3-day delay Add-on
     if ( ! empty( $current_level ) ) {
+        // Kill Standalone Subscription Delays Add-on
         remove_filter( 'pmpro_checkout_level', 'pmpro_sd_pmpro_checkout_level', 10 );
         remove_filter( 'pmpro_profile_start_date', 'pmpro_sd_pmpro_profile_start_date', 10 );
         remove_filter( 'pmpro_level_cost_text', 'pmpro_sd_pmpro_level_cost_text', 10 );
+
+        // Kill Built-in Pay by Check / Offline Gateway Delays
+        remove_filter( 'pmpro_checkout_level', 'pmpro_pay_by_check_pmpro_checkout_level', 10 );
+        remove_filter( 'pmpro_profile_start_date', 'pmpro_pay_by_check_pmpro_profile_start_date', 10 );
+        remove_filter( 'pmpro_level_cost_text', 'pmpro_pay_by_check_pmpro_level_cost_text', 10 );
+        
+        // Failsafe for older PMPro offline plugin prefixes
+        remove_filter( 'pmpro_checkout_level', 'pmprooff_pmpro_checkout_level', 10 );
+        remove_filter( 'pmpro_profile_start_date', 'pmprooff_pmpro_profile_start_date', 10 );
+        remove_filter( 'pmpro_level_cost_text', 'pmprooff_pmpro_level_cost_text', 10 );
     }
 }
 
 /**
- * 2. TIME-STACKING FOR BANK TRANSFER ONLY:
- * Proration works natively for Stripe now that the delay is gone.
- * We ONLY apply $0 time-stacking to manual gateways to prevent double-billing.
+ * 2. THE LEVEL OVERRIDE: Stack time for manual gateways without breaking Stripe.
  */
-add_filter( 'pmpro_checkout_level', 'influencer_collective_bank_transfer_stacking', 999 );
-function influencer_collective_bank_transfer_stacking( $level ) {
+add_filter( 'pmpro_checkout_level', 'influencer_collective_manual_gateway_stacking', 999 );
+function influencer_collective_manual_gateway_stacking( $level ) {
     if ( ! is_user_logged_in() || empty( $level ) ) return $level;
 
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
     
-    // Detect the currently selected gateway
+    // Catch the gateway even during an AJAX radio button toggle
     $gateway = isset( $_REQUEST['gateway'] ) ? sanitize_text_field( $_REQUEST['gateway'] ) : pmpro_getOption('gateway');
-    
-    // PMPro's default offline slug is 'check', but we cover all bases
-    $manual_gateways = array( 'check', 'bank_transfer', 'manual' );
+    $manual_gateways = array( 'check', 'bank_transfer', 'manual', 'offline' );
 
-    // Only apply the $0 override if they are using an offline/manual gateway
+    // If manual gateway AND existing member
     if ( ! empty( $current_level ) && in_array( $gateway, $manual_gateways ) ) {
         $next_payment = pmpro_next_payment( $user_id );
+        
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
             $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
         }
         
-        // If they have banked time, set today's charge to $0
         if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
             $level->initial_payment = 0; 
+            // CRITICAL FIX: We MUST zero out the trials so PMPro core doesn't auto-generate a ghost trial!
+            $level->custom_trial = 0;
+            $level->trial_amount = 0;
+            $level->trial_limit  = 0;
         }
     }
     
@@ -151,23 +160,22 @@ function influencer_collective_bank_transfer_stacking( $level ) {
 }
 
 /**
- * 3. PUSH START DATE FOR BANK TRANSFER ONLY
- * Force the offline gateway to delay the new billing cycle until banked time expires.
+ * 3. THE START DATE: Push billing cycle to banked expiration date for manual gateways.
  */
-add_filter( 'pmpro_profile_start_date', 'influencer_collective_bank_transfer_date', 999, 2 );
-function influencer_collective_bank_transfer_date( $startdate, $order ) {
+add_filter( 'pmpro_profile_start_date', 'influencer_collective_manual_gateway_date', 999, 2 );
+function influencer_collective_manual_gateway_date( $startdate, $order ) {
     if ( ! is_user_logged_in() || empty( $order ) ) return $startdate;
 
     $gateway = $order->gateway;
-    $manual_gateways = array( 'check', 'bank_transfer', 'manual' );
+    $manual_gateways = array( 'check', 'bank_transfer', 'manual', 'offline' );
 
-    // Only manipulate the start date if it is an offline gateway
     if ( in_array( $gateway, $manual_gateways ) ) {
         $user_id = get_current_user_id();
         $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
         if ( ! empty( $current_level ) ) {
             $next_payment = pmpro_next_payment( $user_id );
+            
             if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
                 $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
             }
@@ -179,4 +187,34 @@ function influencer_collective_bank_transfer_date( $startdate, $order ) {
     }
     
     return $startdate;
+}
+
+/**
+ * 4. THE UI TEXT FIX: Strip the trial text out forcefully for Bank Transfers.
+ */
+add_filter( 'pmpro_level_cost_text', 'influencer_collective_force_ajax_text_fix', 999, 4 );
+function influencer_collective_force_ajax_text_fix( $text, $level, $tags, $short ) {
+    if ( ! is_user_logged_in() ) return $text;
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    $gateway = isset( $_REQUEST['gateway'] ) ? sanitize_text_field( $_REQUEST['gateway'] ) : pmpro_getOption('gateway');
+    $manual_gateways = array( 'check', 'bank_transfer', 'manual', 'offline' );
+
+    if ( ! empty( $current_level ) && in_array( $gateway, $manual_gateways ) ) {
+        $next_payment = pmpro_next_payment( $user_id );
+        
+        if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
+            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
+        }
+
+        if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
+            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment );
+            // Aggressively scrub any trial wording and inject the proper banked start date
+            $text = preg_replace( '/after your.*?trial\.?/i', 'starting on ' . $formatted_date . '.', $text );
+        }
+    }
+    
+    return $text;
 }
