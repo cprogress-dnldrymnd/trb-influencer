@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs via settings and shortcodes.
- * Version: 2.3.2
+ * Version: 2.4.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -54,6 +54,9 @@ class DD_Outreach_Manager
         // Frontend AJAX Handlers for Notes CRUD
         add_action('wp_ajax_dd_save_outreach_note', [$this, 'ajax_save_outreach_note']);
         add_action('wp_ajax_dd_delete_outreach_note', [$this, 'ajax_delete_outreach_note']);
+
+        // Frontend AJAX Handler for Favorites & Archives
+        add_action('wp_ajax_dd_toggle_outreach_status', [$this, 'ajax_toggle_outreach_status']);
 
         // Backend Admin Menu & Settings
         add_action('admin_menu', [$this, 'register_admin_menu']);
@@ -166,11 +169,6 @@ class DD_Outreach_Manager
     /**
      * Intercepts Elementor form rendering to dynamically inject dropdown options.
      * Targets specific field IDs ('project_type' and 'project_length') and replaces their predefined options.
-     *
-     * @param array  $item       The Elementor form field array.
-     * @param int    $item_index The index position of the field.
-     * @param object $form       The Elementor form instance.
-     * @return array Modified field array containing backend-defined options.
      */
     public function inject_elementor_form_options($item, $item_index, $form)
     {
@@ -193,10 +191,6 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues administration scripts and styles strictly for the settings page.
-     * Handles live HTML preview rendering, merge tag injection, and Repeater Field logic.
-     *
-     * @param string $hook The current admin page hook.
-     * @return void
      */
     public function enqueue_admin_scripts($hook)
     {
@@ -289,15 +283,11 @@ class DD_Outreach_Manager
                 btn.text(body.is(':visible') ? 'Collapse' : 'Expand');
             });
 
-
             // --- 3. Merge Tag Injection & Editor Tracking ---
             var lastFocusedElement = null;
 
-            // Track the last focused input or textarea within the template container
             $('#dd-repeater-container').on('focus', 'input[type=\"text\"], textarea', function() {
                 lastFocusedElement = this;
-                
-                // Immediately trigger preview for the active textarea if it's a body editor
                 if ($(this).hasClass('dd-email-body-editor')) {
                     triggerPreviewUpdate($(this).val());
                 }
@@ -314,13 +304,9 @@ class DD_Outreach_Manager
                     var end = lastFocusedElement.selectionEnd;
                     
                     txtarea.val(val.substring(0, start) + tag + val.substring(end));
-                    
-                    // If it was the body, trigger preview
                     if (txtarea.hasClass('dd-email-body-editor')) {
                         triggerPreviewUpdate(txtarea.val());
                     }
-                    
-                    // Refocus
                     txtarea.focus();
                     lastFocusedElement.selectionEnd = start + tag.length;
                 } else {
@@ -331,7 +317,7 @@ class DD_Outreach_Manager
             // --- 4. Live Preview AJAX logic ---
             var previewTimer;
             function triggerPreviewUpdate(contentToPreview) {
-                if (!contentToPreview) return; // Ignore if undefined
+                if (!contentToPreview) return;
 
                 $.post(ajaxurl, {
                     action: 'dd_preview_email',
@@ -348,7 +334,6 @@ class DD_Outreach_Manager
                 });
             }
 
-            // Update preview as the user types in ANY body textarea
             $('#dd-repeater-container').on('keyup change', '.dd-email-body-editor', function() {
                 var content = $(this).val();
                 clearTimeout(previewTimer);
@@ -357,7 +342,6 @@ class DD_Outreach_Manager
                 }, 500);
             });
 
-            // Render the first active template on page load
             setTimeout(function() {
                 var firstBody = $('#dd-repeater-container .dd-repeater-item:not(.blueprint) .dd-email-body-editor').first();
                 if(firstBody.length) {
@@ -376,8 +360,6 @@ class DD_Outreach_Manager
 
     /**
      * Enqueues the custom jQuery dashboard handler.
-     * Incorporates explicit breakpoint handlers for < 1025px modal triggering.
-     * * @return void
      */
     public function enqueue_dashboard_scripts()
     {
@@ -386,6 +368,9 @@ class DD_Outreach_Manager
         $script = "
         jQuery(document).ready(function($) {
             
+            // Core UI State Variables
+            var currentStatusFilter = 'all';
+
             // --- 1. Master-Detail List Click Loader ---
             function bindListItemClicks() {
                 $('.dd-outreach-item').off('click').on('click', function(e) {
@@ -436,7 +421,6 @@ class DD_Outreach_Manager
             if (firstItem.length) {
                 firstItem.trigger('click');
             } else {
-                // Display notice on placeholder if no items are found on initial load
                 $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found.</span>');
                 $('#no-outreach-found').removeClass('hide-element');
                 $('#outreach-found').addClass('hide-element');
@@ -449,7 +433,6 @@ class DD_Outreach_Manager
                 $('body').css('overflow', '');
             });
 
-            // Dismiss modal when clicking outside the container content bounds
             $(document).on('click', '#dd-outreach-view-container', function(e) {
                 if ($(window).width() < 1025 && e.target === this) {
                     $(this).removeClass('dd-modal-active');
@@ -464,21 +447,17 @@ class DD_Outreach_Manager
             function triggerFilter() {
                 var searchQuery = $('#dd-outreach-search').val();
                 
-                // Collect project types
                 var selectedTypes = [];
                 $('input[name=\"project_type[]\"]:checked').each(function() {
-                    var val = $(this).attr('data-label') || $(this).val();
-                    selectedTypes.push(val);
+                    selectedTypes.push($(this).attr('data-label') || $(this).val());
                 });
                 if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
                     selectedTypes.push($('select[name=\"project_type\"]').val());
                 }
 
-                // Collect project lengths
                 var selectedLengths = [];
                 $('input[name=\"project_length[]\"]:checked').each(function() {
-                    var val = $(this).attr('data-label') || $(this).val();
-                    selectedLengths.push(val);
+                    selectedLengths.push($(this).attr('data-label') || $(this).val());
                 });
                 if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
                     selectedLengths.push($('select[name=\"project_length\"]').val());
@@ -494,7 +473,8 @@ class DD_Outreach_Manager
                         security: ddOutreach.nonce,
                         search: searchQuery,
                         project_type: selectedTypes,
-                        project_length: selectedLengths
+                        project_length: selectedLengths,
+                        status_filter: currentStatusFilter
                     },
                     success: function(response) {
                         if(response.success) {
@@ -505,7 +485,6 @@ class DD_Outreach_Manager
                             if (newFirstItem.length) {
                                 newFirstItem.trigger('click');
                             } else {
-                                // Display notice on placeholder if no filter results are found
                                 $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found matching your criteria.</span>');
                             }
                         }
@@ -522,17 +501,69 @@ class DD_Outreach_Manager
                 triggerFilter();
             });
 
-            // Reset button: clear all filter inputs and re-run the list query
+            // Status Navigation Handlers (All, Favourites, Archived)
+            $(document).on('click', '.dd-status-pill, .dd-archive-link', function(e) {
+                e.preventDefault();
+                $('.dd-status-pill, .dd-archive-link').removeClass('active');
+                $(this).addClass('active');
+                
+                // If clicking a pill, ensure Archived link loses bold
+                if($(this).hasClass('dd-status-pill')) {
+                    $('.dd-archive-link').css('font-weight', '500');
+                } else {
+                    $(this).css('font-weight', 'bold');
+                }
+
+                currentStatusFilter = $(this).data('status');
+                triggerFilter();
+            });
+
             $(document).on('click', '.reset-btn, .tag-close', function(e) {
                 e.preventDefault();
                 triggerFilter();
             });
 
+            // --- 3. 3-Dot Action Menu Interactions ---
+            $(document).on('click', '.dd-action-toggle', function(e) {
+                e.preventDefault();
+                e.stopPropagation(); // Stop item click
+                $('.dd-action-menu').not($(this).next('.dd-action-menu')).hide();
+                $(this).next('.dd-action-menu').toggle();
+            });
 
-            // --- 3. Note CRUD Event Delegation ---
+            $(document).on('click', function() {
+                $('.dd-action-menu').hide();
+            });
+
+            $(document).on('click', '.dd-action-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var btn = $(this);
+                var postId = btn.data('id');
+                var action = btn.data('action');
+
+                $.ajax({
+                    url: ddOutreach.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'dd_toggle_outreach_status',
+                        security: ddOutreach.nonce,
+                        post_id: postId,
+                        toggle_action: action
+                    },
+                    success: function(res) {
+                        if(res.success) {
+                            $('.dd-action-menu').hide();
+                            triggerFilter(); // Soft-refresh grid to reflect new state
+                        }
+                    }
+                });
+            });
+
+
+            // --- 4. Note CRUD Event Delegation ---
             var viewContainer = $('#dd-outreach-view-container');
 
-            // Save / Update Action
             viewContainer.on('click', '#dd-save-note', function(e) {
                 e.preventDefault();
                 var btn = $(this);
@@ -562,10 +593,7 @@ class DD_Outreach_Manager
                     success: function(res) {
                         btn.text('💾 SAVE NOTE').prop('disabled', false);
                         if(res.success) {
-                            // Inject the freshly built list of notes into the wrapper
                             $('#dd-notes-list-wrapper').html(res.data);
-                            
-                            // Reset form back to \"Create\" state
                             $('#dd-cancel-edit-note').trigger('click');
                         } else {
                             alert('An error occurred while saving the note.');
@@ -574,7 +602,6 @@ class DD_Outreach_Manager
                 });
             });
 
-            // Edit Action (Populate Form)
             viewContainer.on('click', '.dd-edit-note', function(e) {
                 e.preventDefault();
                 var card = $(this).closest('.dd-steps-card');
@@ -591,7 +618,6 @@ class DD_Outreach_Manager
                 $('#dd-note-input-content').focus();
             });
 
-            // Cancel Edit Action
             viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
                 e.preventDefault();
                 $('#dd-note-input-id').val('');
@@ -601,7 +627,6 @@ class DD_Outreach_Manager
                 $(this).hide();
             });
 
-            // Delete Action
             viewContainer.on('click', '.dd-delete-note', function(e) {
                 e.preventDefault();
                 if (!confirm('Are you sure you want to permanently delete this note?')) return;
@@ -623,10 +648,7 @@ class DD_Outreach_Manager
                     },
                     success: function(res) {
                         if(res.success) {
-                            // Inject updated notes list
                             $('#dd-notes-list-wrapper').html(res.data);
-                            
-                            // If they delete the note they were currently editing, reset the form
                             if ($('#dd-note-input-id').val() === noteId) {
                                 $('#dd-cancel-edit-note').trigger('click');
                             }
@@ -636,7 +658,7 @@ class DD_Outreach_Manager
             });
 
 
-            // --- 4. Dynamic Message Preview Logic (Elementor Popup Safe) ---
+            // --- 5. Dynamic Message Preview Logic (Elementor Popup Safe) ---
             function updateMessagePreview() {
                 var previewDiv = $('#dd-outreach-message-preview');
                 if (!previewDiv.length) return;
@@ -648,7 +670,7 @@ class DD_Outreach_Manager
                 try {
                     rawTemplate = JSON.parse(rawTemplateData);
                 } catch(e) {
-                    return; // Fail gracefully if unable to parse json attribute
+                    return; 
                 }
 
                 var projectType = $('[name=\"form_fields[project_type]\"]').val() || 'N/A';
@@ -665,27 +687,22 @@ class DD_Outreach_Manager
                     '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Budget : </strong> ' + budgetRange + '</div>' +
                     '</div>';
 
-                // Strip massive linebreaks surrounding the fields placeholder before injection
                 var compiled = rawTemplate.replace(/[\\r\\n]*\\{\\{fields\\}\\}[\\r\\n]*/g, '<br><br>' + tagsHtml + '<br><br>');
                 compiled = compiled.replace(/\\{project_type\\}/g, projectType);
                 
-                // Convert remaining organic line breaks
                 compiled = compiled.replace(/(?:\\r\\n|\\r|\\n)/g, '<br>');
 
                 previewDiv.html(compiled);
             }
 
-            // Listen to form field changes
             $(document).on('change input', 'form.elementor-form select, form.elementor-form input', function() {
                 updateMessagePreview();
             });
 
-            // Fire preview calculation specifically when Elementor Popups are opened
             $(document).on('elementor/popup/show', function() {
                 setTimeout(updateMessagePreview, 100);
             });
 
-            // Initial fallback render
             setTimeout(updateMessagePreview, 300);
 
         });
@@ -703,7 +720,7 @@ class DD_Outreach_Manager
 
 
     /**
-     * Helper to return the default HTML boilerplate so it's not bloating the UI logic.
+     * Helper to return the default HTML boilerplate.
      * @return string
      */
     private function get_default_html_template()
@@ -753,92 +770,30 @@ class DD_Outreach_Manager
 
     /**
      * Renders the Backend Settings Page HTML.
-     * Contains the tabbed logic, Form Builder inputs, and the Repeater Email Builder.
-     *
-     * @return void
      */
     public function render_settings_page()
     {
         $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
         $credit_cost = get_option('dd_outreach_credit_cost', 1);
 
-        // Safety catch: if somehow empty, force default structure
         if (!is_array($templates) || empty($templates)) {
             $templates = $this->get_default_template_structure();
         }
     ?>
         <style>
             /* Repeater UI CSS */
-            .dd-repeater-item {
-                border: 1px solid #c3c4c7;
-                background: #fff;
-                margin-bottom: 15px;
-                border-radius: 4px;
-                box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
-            }
-
-            .dd-repeater-header {
-                padding: 10px 15px;
-                background: #f6f7f7;
-                border-bottom: 1px solid #c3c4c7;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-
-            .dd-repeater-header h4 {
-                margin: 0;
-                font-size: 14px;
-                flex-grow: 1;
-                padding-left: 10px;
-                cursor: pointer;
-            }
-
-            .dd-repeater-header .drag-handle {
-                cursor: grab;
-                color: #8c8f94;
-            }
-
-            .dd-repeater-header .actions a {
-                margin-left: 10px;
-                text-decoration: none;
-                font-size: 13px;
-            }
-
-            .dd-repeater-header .actions a.delete-item {
-                color: #d63638;
-            }
-
-            .dd-repeater-body {
-                padding: 15px;
-            }
-
-            .dd-field-group {
-                margin-bottom: 15px;
-                display: flex;
-                gap: 15px;
-                flex-wrap: wrap;
-            }
-
-            .dd-field-group .field {
-                flex: 1;
-                min-width: 250px;
-            }
-
-            .dd-field-group label {
-                display: block;
-                font-weight: 600;
-                margin-bottom: 5px;
-                font-size: 12px;
-            }
-
-            .dd-field-group input {
-                width: 100%;
-            }
-
-            .blueprint {
-                display: none;
-            }
+            .dd-repeater-item { border: 1px solid #c3c4c7; background: #fff; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 1px 1px rgba(0, 0, 0, .04); }
+            .dd-repeater-header { padding: 10px 15px; background: #f6f7f7; border-bottom: 1px solid #c3c4c7; display: flex; align-items: center; justify-content: space-between; }
+            .dd-repeater-header h4 { margin: 0; font-size: 14px; flex-grow: 1; padding-left: 10px; cursor: pointer; }
+            .dd-repeater-header .drag-handle { cursor: grab; color: #8c8f94; }
+            .dd-repeater-header .actions a { margin-left: 10px; text-decoration: none; font-size: 13px; }
+            .dd-repeater-header .actions a.delete-item { color: #d63638; }
+            .dd-repeater-body { padding: 15px; }
+            .dd-field-group { margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap; }
+            .dd-field-group .field { flex: 1; min-width: 250px; }
+            .dd-field-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; }
+            .dd-field-group input { width: 100%; }
+            .blueprint { display: none; }
         </style>
 
         <div class="wrap">
@@ -1029,9 +984,6 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to render the live HTML preview of the active editor.
-     * Parses the focused textarea content and injects real database data.
-     *
-     * @return void
      */
     public function ajax_preview_email()
     {
@@ -1071,33 +1023,25 @@ class DD_Outreach_Manager
             'post_status'    => 'publish'
         ]);
 
-        // 3. If an outreach post exists, overwrite dummy data with real data
         if (!empty($latest_outreach)) {
             $post      = $latest_outreach[0];
             $post_id   = $post->ID;
             $author_id = $post->post_author;
 
-            // Extract Sender (Brand) Identity
             $sender      = get_userdata($author_id);
             $sender_name = $sender ? ($sender->first_name && $sender->last_name ? $sender->first_name . ' ' . $sender->last_name : $sender->display_name) : 'Unknown Sender';
-
             $meta_job_title = get_user_meta($author_id, 'job_title', true);
             $job_title      = !empty($meta_job_title) ? esc_html($meta_job_title) : 'Representative';
-
             $meta_brand_name = get_user_meta($author_id, 'brand_name', true);
             $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
-
             $meta_country    = get_user_meta($author_id, 'country', true);
             $country_display = $this->get_country_display($meta_country);
-
-            // Extract PMPro User Avatar explicitly via absolute url path
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
-            $avatar_url  = 'https://via.placeholder.com/60x60'; // fallback
+            $avatar_url  = 'https://via.placeholder.com/60x60'; 
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
                 $avatar_url = $avatar_meta['fullurl'];
             }
 
-            // Extract Influencer & Project Scope
             $influencer_id    = get_post_meta($post_id, 'influencer_id', true);
             $influencer_name  = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
             $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'creator_contact_emails', true) : 'creator@example.com';
@@ -1109,7 +1053,6 @@ class DD_Outreach_Manager
             $message        = get_post_meta($post_id, 'message', true) ?: 'No message provided.';
             $subject        = get_the_title($post_id);
 
-            // Populate the array with the live data
             $preview_data = [
                 'influencer_email' => esc_html($influencer_email),
                 'influencer_name' => esc_html($influencer_name),
@@ -1129,7 +1072,6 @@ class DD_Outreach_Manager
             ];
         }
 
-        // 4. Map the exact Merge Tags to the data array
         $dictionary = [
             '{influencer_email}' => $preview_data['influencer_email'],
             '{influencer_name}' => $preview_data['influencer_name'],
@@ -1148,7 +1090,6 @@ class DD_Outreach_Manager
             '{site_url}'        => $preview_data['site_url'],
         ];
 
-        // 5. Execute Merge Tag Search & Replace over the raw HTML
         $final_html = str_replace(array_keys($dictionary), array_values($dictionary), $template);
 
         wp_send_json_success($final_html);
@@ -1163,595 +1104,109 @@ class DD_Outreach_Manager
     ?>
         <style>
             /* --- Original Elementor Form Summary Styles --- */
-            .dd-message-overview {
-                display: flex;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                font-size: 16px;
-                font-weight: 500;
-            }
+            .dd-message-overview { display: flex; justify-content: space-between; flex-wrap: wrap; font-size: 16px; font-weight: 500; }
+            .dd-message-overview-container { font-family: inherit; margin-top: 15px; border-radius: 10px; border: 2px solid #034146; background-color: #fff; }
+            .mt-0 { margin-top: 0 !important; }
+            .dd-profile-header { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-bottom: 1px solid #E7E7E7; }
+            .dd-avatar.dd-avatar.dd-avatar { width: 50px; height: 50px; border-radius: 50%; }
+            .dd-profile-info { flex-grow: 1; line-height: 1.4; }
+            .dd-message-sent-date { padding: 15px 20px; border-bottom: 1px solid #E7E7E7; font-size: 14px; }
+            .dd-overview-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: bold; }
+            .dd-overview-header .dd-timestamp { font-weight: normal; color: #555; }
+            .dd-btn-outline { background-color: var(--e-global-color-1c4ea17); font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: var(--e-global-typography-2a20fd0-font-size); font-weight: var(--e-global-typography-2a20fd0-font-weight); line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); fill: var(--e-global-color-accent); color: var(--e-global-color-accent); border: 1px solid var(--e-global-color-accent); padding: 14px 23px 14px 23px; border-radius: 5px; }
+            .dd-btn-outline:hover { background-color: var(--e-global-color-accent); color: var(--e-global-color-2ba2932); }
+            .dd-message-overview-container .tags-container.tags-container.tags-container { margin: 0; }
+            .tags-container.tags-container.tags-container br { display: none !important; }
+            .dd-message-overview-container .tags-container.tags-container.tags-container .tag { gap: 4px; }
+            .dd-subject-title { color: #034146; font-size: 18px !important; font-weight: bold; margin: 0; border-bottom: 1px solid #E7E7E7; font-family: Inter !important; padding: 15px 20px; }
+            .dd-message-content { font-size: 15px; color: #000000; line-height: 1.6; padding: 15px 20px; font-family: Inter; }
+            #dd-outreach-message-preview .tags-container { margin-top: 0; }
+            #dd-outreach-message-preview .tags-container+br { display: none; }
+            .dd-footer { display: flex; gap: 15px; margin-top: 15px; }
+            .dd-footer a { font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif; font-size: 14px !important; font-weight: 600 !important; line-height: var(--e-global-typography-2a20fd0-line-height); letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing); }
+            .view-outreach a { background-color: var(--e-global-color-accent) !important; border: 1px solid var(--e-global-color-accent); color: var(--e-global-color-2ba2932) !important; }
+            .view-outreach a:hover { background-color: var(--e-global-color-secondary) !important; border: 1px solid var(--e-global-color-secondary); }
+            .close-outreach a { border-style: solid; border-color: var(--e-global-color-ee06e41) !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; }
+            .close-outreach a:hover { background-color: #000 !important; color: #fff !important; }
+            .submit-new a { border: none !important; background-color: transparent !important; color: var(--e-global-color-ee06e41) !important; padding-left: 0 !important; padding-right: 0 !important; }
+            .submit-new a span.elementor-button-text { text-decoration: underline; }
 
-            .dd-message-overview-container {
-                font-family: inherit;
-                margin-top: 15px;
-                border-radius: 10px;
-                border: 2px solid #034146;
-                background-color: #fff;
-            }
+            /* --- Dashboard List Navigation & Status Styles --- */
+            .dd-dashboard-list-container { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; width: 100%; max-width: 350px; }
+            .outreach-filter { padding: 20px; border-bottom: 1px solid #BCBCBC; }
+            .dd-filter-controls { margin-bottom: 20px; }
+            .dd-list-search { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            .dd-filter-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+            .dd-filter-reset { font-size: 12px; color: #888; text-decoration: none; }
+            .dd-filter-select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+            
+            .dd-status-nav-wrapper { padding: 15px 20px; border-bottom: 1px solid #BCBCBC; background: #fdfdfd; }
+            .dd-archive-link { display: flex; align-items: center; gap: 8px; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; }
+            .dd-archive-link.active { color: #034146; font-weight: bold; }
+            .dd-pill-filters { display: flex; gap: 10px; }
+            .dd-status-pill { padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc; background: transparent; cursor: pointer; color: #555; font-size: 13px; font-weight: 500; }
+            .dd-status-pill.active { background: #E6F4F1; border-color: #4DB2A6; color: #034146; font-weight: bold; }
 
-            .mt-0 {
-                margin-top: 0 !important;
-            }
+            .dd-item-list { max-height: 600px; overflow-y: auto; }
+            .dd-outreach-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
+            .dd-outreach-item .avatar-holder { flex: 0 0 68px; width: 68px; }
+            .dd-outreach-item .dd-item-content { flex: 0 0 calc(100% - 100px); width: calc(100% - 100px); padding-left: 10px; }
+            .dd-outreach-item:hover, .dd-outreach-item.active-item { background: #FEF6F3; border-bottom: 1px solid #3B1527; border-top: 1px solid #3B1527; }
+            .dd-item-avatar.dd-item-avatar.dd-item-avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid gray; }
+            .dd-item-name { display: block; font-size: 15px; font-weight: 500; color: #000000; }
+            .dd-fav-star { color: #FFD700; margin-left: 5px; font-size: 16px; }
+            .dd-item-handle { display: block; color: #000000; font-size: 14px; font-weight: 400; }
+            .dd-item-title { display: block; font-size: 14px; color: #034146; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
+            .dd-item-date { color: #8F8F8F; font-size: 13px; }
 
-            .dd-profile-header {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-            }
-
-            .dd-avatar.dd-avatar.dd-avatar {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-            }
-
-            .dd-profile-info {
-                flex-grow: 1;
-                line-height: 1.4;
-            }
-
-            .dd-message-sent-date {
-                padding: 15px 20px;
-                border-bottom: 1px solid #E7E7E7;
-                font-size: 14px;
-            }
-
-            .dd-overview-header {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-
-            .dd-overview-header .dd-timestamp {
-                font-weight: normal;
-                color: #555;
-            }
-
-            .dd-btn-outline {
-                background-color: var(--e-global-color-1c4ea17);
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: var(--e-global-typography-2a20fd0-font-size);
-                font-weight: var(--e-global-typography-2a20fd0-font-weight);
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-                fill: var(--e-global-color-accent);
-                color: var(--e-global-color-accent);
-                border: 1px solid var(--e-global-color-accent);
-                padding: 14px 23px 14px 23px;
-                border-radius: 5px;
-            }
-
-            .dd-btn-outline:hover {
-                background-color: var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932);
-            }
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container {
-                margin: 0;
-            }
-
-            .tags-container.tags-container.tags-container br {
-                display: none !important;
-            }
-
-
-            .dd-message-overview-container .tags-container.tags-container.tags-container .tag {
-                gap: 4px;
-            }
-
-            .dd-subject-title {
-                color: #034146;
-                font-size: 18px !important;
-                font-weight: bold;
-                margin: 0;
-                border-bottom: 1px solid #E7E7E7;
-                font-family: Inter !important;
-                padding: 15px 20px;
-            }
-
-            .dd-message-content {
-                font-size: 15px;
-                color: #000000;
-                line-height: 1.6;
-                padding: 15px 20px;
-                font-family: Inter;
-            }
-
-            #dd-outreach-message-preview .tags-container {
-                margin-top: 0;
-            }
-
-            #dd-outreach-message-preview .tags-container+br {
-                display: none;
-            }
-
-            .dd-footer {
-                display: flex;
-                gap: 15px;
-                margin-top: 15px;
-            }
-
-            .dd-footer a {
-                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
-                font-size: 14px !important;
-                font-weight: 600 !important;
-                line-height: var(--e-global-typography-2a20fd0-line-height);
-                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
-            }
-
-            .view-outreach a {
-                background-color: var(--e-global-color-accent) !important;
-                border: 1px solid var(--e-global-color-accent);
-                color: var(--e-global-color-2ba2932) !important;
-            }
-
-            .view-outreach a:hover {
-                background-color: var(--e-global-color-secondary) !important;
-                border: 1px solid var(--e-global-color-secondary);
-            }
-
-            .close-outreach a {
-                border-style: solid;
-                border-color: var(--e-global-color-ee06e41) !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-            }
-
-            .close-outreach a:hover {
-                background-color: #000 !important;
-                color: #fff !important;
-            }
-
-            .submit-new a {
-                border: none !important;
-                background-color: transparent !important;
-                color: var(--e-global-color-ee06e41) !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
-
-            .submit-new a span.elementor-button-text {
-                text-decoration: underline;
-            }
-
-            /* --- Dashboard List Navigation Styles --- */
-            .dd-dashboard-list-container {
-                background: #fdfdfd;
-                border: 1px solid #eaeaea;
-                border-radius: 8px;
-                width: 100%;
-                max-width: 350px;
-            }
-
-            .outreach-filter {
-                padding: 20px;
-                border-bottom: 1px solid #BCBCBC;
-            }
-
-            .dd-filter-controls {
-                margin-bottom: 20px;
-            }
-
-            .dd-list-search {
-                width: 100%;
-                margin-bottom: 15px;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-filter-label-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-            }
-
-            .dd-filter-reset {
-                font-size: 12px;
-                color: #888;
-                text-decoration: none;
-            }
-
-            .dd-filter-select {
-                width: 100%;
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-sizing: border-box;
-            }
-
-            .dd-filter-buttons-row {
-                margin-top: 15px;
-                display: flex;
-                gap: 10px;
-            }
-
-            .dd-filter-btn {
-                border-radius: 20px;
-                border: 1px solid #ccc;
-                background: transparent;
-                padding: 5px 15px;
-                cursor: pointer;
-                font-size: 13px;
-            }
-
-            .dd-filter-btn.active {
-                border-color: #4DB2A6;
-                background: #E6F4F1;
-                color: #4DB2A6;
-            }
-
-            .dd-item-list {
-                max-height: 600px;
-                overflow-y: auto;
-            }
-
-            .dd-outreach-item {
-                display: flex;
-                align-items: center;
-                padding: 15px 20px;
-                border-bottom: 1px solid #eee;
-                border-top: 1px solid transparent;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-
-            .dd-outreach-item .avatar-holder {
-                flex: 0 0 68px;
-                width: 68px;
-            }
-
-            .dd-outreach-item .dd-item-content {
-                flex: 0 0 calc(100% - 68px);
-                width: calc(100% - 68px);
-                padding-left: 10px;
-
-            }
-
-            .dd-outreach-item:hover,
-            .dd-outreach-item.active-item {
-                background: #FEF6F3;
-                border-bottom: 1px solid #3B1527;
-                border-top: 1px solid #3B1527;
-            }
-
-            .dd-item-avatar.dd-item-avatar.dd-item-avatar {
-                width: 68px;
-                height: 68px;
-                border-radius: 50%;
-                object-fit: cover;
-                margin-right: 15px;
-                border: 1px solid gray;
-            }
-
-            .dd-item-content {
-                flex-grow: 1;
-            }
-
-            .dd-item-name {
-                display: block;
-                font-size: 15px;
-                font-weight: 500;
-                color: #000000;
-            }
-
-            .dd-item-handle {
-                display: block;
-                color: #000000;
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .dd-item-title {
-                display: block;
-                font-size: 14px;
-                color: #034146;
-                font-weight: bold;
-                margin-top: 4px;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                white-space: nowrap;
-                max-width: 200px;
-            }
-
-            .dd-item-date {
-                color: #8F8F8F;
-                font-size: 13px;
-            }
+            /* 3-Dot Action Menu */
+            .dd-item-dots { position: relative; margin-left: auto; }
+            .dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; font-weight: bold; padding: 0 5px; line-height: 1; }
+            .dd-action-menu { position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; width: 140px; z-index: 10; display: none; overflow: hidden; }
+            .dd-action-menu a { display: block; padding: 10px; text-decoration: none; color: #333; font-size: 13px; border-bottom: 1px solid #f5f5f5; font-family: Inter; }
+            .dd-action-menu a:hover { background: #f9f9f9; color: #034146; }
 
             /* --- Notes Component Styles --- */
-            .dd-outreach-view-container {
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* --- Base Wrapper --- */
-            .dd-modal-content-wrapper {
-                width: 100%;
-                position: relative;
-            }
-
-            .dd-close-modal {
-                display: none;
-                /* Hidden by default on desktop */
-            }
-
-            .dd-view-placeholder {
-                text-align: center;
-                color: #888;
-                margin-top: 10%;
-                display: block;
-            }
-
-            .dd-view-error {
-                text-align: center;
-                color: red;
-                margin-top: 50%;
-                transform: translateY(-50%);
-                display: block;
-            }
-
-            .dd-notes-grid {
-                display: flex;
-                gap: 20px;
-                flex-wrap: nowrap;
-                align-items: flex-start;
-                margin-top: 20px;
-                font-family: Inter;
-            }
-
-            .dd-note-card {
-                flex: 1;
-                min-width: 280px;
-                background: var(--e-global-color-2ba2932);
-                border: 2px solid #FFE17B;
-                border-radius: 8px;
-                padding: 20px;
-                box-sizing: border-box;
-                position: sticky;
-                top: 20px;
-            }
-
-            .dd-notes-list-container {
-                flex: 1;
-                min-width: 280px;
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .dd-note-title.dd-note-title {
-                margin-top: 0;
-                font-size: 20px;
-                margin-bottom: 15px;
-                color: #3B1527;
-                font-weight: bold;
-            }
-
-            .dd-note-desc {
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-bottom: 15px;
-            }
-
-            .dd-note-input {
-                width: 100%;
-                margin-bottom: 10px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                font-family: inherit;
-            }
-
-            .dd-note-textarea {
-                width: 100%;
-                height: 80px;
-                padding: 10px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                box-sizing: border-box;
-                resize: vertical;
-                font-family: inherit;
-            }
-
-            .dd-note-btn {
-                margin-top: 10px;
-                background: #ffcc00;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                font-weight: bold;
-                cursor: pointer;
-                color: #333;
-                font-size: 13px;
-                transition: opacity 0.2s;
-            }
-
-            .dd-note-btn:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-            }
-
-            .dd-steps-content {
-                background: #FCF3D5;
-                padding: 15px;
-                border-radius: 8px;
-                font-size: 14px;
-                color: #000;
-                margin-bottom: 15px;
-                line-height: 1.5;
-                border: 1px solid #FFE17B;
-            }
-
-            .dd-steps-actions {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-
-            .dd-delete-btn {
-                border: none;
-                background: transparent;
-                color: #aaa;
-                cursor: pointer;
-                font-size: 12px;
-            }
-
-            .dd-edit-btn {
-                border: 1px solid #ddd;
-                background: #f9f9f9;
-                padding: 8px 15px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                color: #333;
-            }
-
-            .dd-last-edited {
-                text-align: right;
-                font-size: 14px;
-                color: #8F8F8F;
-                margin-top: 10px !important;
-                display: block;
-            }
-
-            .dd-no-notes {
-                text-align: center;
-                color: #888;
-                padding: 20px;
-                border: 1px dashed #ccc;
-                border-radius: 8px;
-                background-color: #fff;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn {
-                padding: 12px 20px !important;
-                border: 1px solid #BCBCBC;
-                font-family: Inter !important;
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0.6px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow {
-                background-color: #FFE17B;
-                border-color: #FFE17B;
-                color: #000000;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline {
-                background-color: transparent;
-                color: #BCBCBC;
-                border-color: #BCBCBC;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span {
-                text-decoration: underline;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link {
-                border: none;
-                background-color: transparent;
-            }
-
-            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span {
-                text-decoration: underline;
-            }
+            .dd-outreach-view-container { width: 100%; box-sizing: border-box; }
+            .dd-modal-content-wrapper { width: 100%; position: relative; }
+            .dd-close-modal { display: none; }
+            .dd-view-placeholder { text-align: center; color: #888; margin-top: 10%; display: block; }
+            .dd-view-error { text-align: center; color: red; margin-top: 50%; transform: translateY(-50%); display: block; }
+            .dd-notes-grid { display: flex; gap: 20px; flex-wrap: nowrap; align-items: flex-start; margin-top: 20px; font-family: Inter; }
+            .dd-note-card { flex: 1; min-width: 280px; background: var(--e-global-color-2ba2932); border: 2px solid #FFE17B; border-radius: 8px; padding: 20px; box-sizing: border-box; position: sticky; top: 20px; }
+            .dd-notes-list-container { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 15px; }
+            .dd-note-title.dd-note-title { margin-top: 0; font-size: 20px; margin-bottom: 15px; color: #3B1527; font-weight: bold; }
+            .dd-note-desc { font-size: 14px; color: #8F8F8F; margin-bottom: 15px; }
+            .dd-note-input { width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+            .dd-note-textarea { width: 100%; height: 80px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; resize: vertical; font-family: inherit; }
+            .dd-note-btn { margin-top: 10px; background: #ffcc00; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #333; font-size: 13px; transition: opacity 0.2s; }
+            .dd-note-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+            .dd-steps-content { background: #FCF3D5; padding: 15px; border-radius: 8px; font-size: 14px; color: #000; margin-bottom: 15px; line-height: 1.5; border: 1px solid #FFE17B; }
+            .dd-steps-actions { display: flex; justify-content: flex-end; gap: 10px; }
+            .dd-delete-btn { border: none; background: transparent; color: #aaa; cursor: pointer; font-size: 12px; }
+            .dd-edit-btn { border: 1px solid #ddd; background: #f9f9f9; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #333; }
+            .dd-last-edited { text-align: right; font-size: 14px; color: #8F8F8F; margin-top: 10px !important; display: block; }
+            .dd-no-notes { text-align: center; color: #888; padding: 20px; border: 1px dashed #ccc; border-radius: 8px; background-color: #fff; }
+            .dd-note-btn.dd-note-btn.dd-note-btn { padding: 12px 20px !important; border: 1px solid #BCBCBC; font-family: Inter !important; font-size: 12px; font-weight: 600; letter-spacing: 0.6px; display: flex; align-items: center; gap: 10px; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-yellow { background-color: #FFE17B; border-color: #FFE17B; color: #000000; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline { background-color: transparent; color: #BCBCBC; border-color: #BCBCBC; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-outline span { text-decoration: underline; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link { border: none; background-color: transparent; }
+            .dd-note-btn.dd-note-btn.dd-note-btn.dd-note-btn-link span { text-decoration: underline; }
 
             /* --- Responsive Mobile Modal Interception --- */
             @media (max-width: 1024px) {
-                .dd-outreach-view-container {
-                    display: none;
-                    /* Hide static desktop interface */
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0, 0, 0, 0.6);
-                    z-index: 999999;
-                    padding: 20px;
-                    box-sizing: border-box;
-                    align-items: center;
-                    justify-content: center;
-                    backdrop-filter: blur(3px);
-                }
-
-                .dd-outreach-view-container.dd-modal-active {
-                    display: flex;
-                    /* Execute Modal Sequence */
-                }
-
-                .dd-modal-content-wrapper {
-                    background: #fff;
-                    width: 100%;
-                    max-width: 600px;
-                    max-height: 90vh;
-                    overflow-y: auto;
-                    border-radius: 8px;
-                    padding: 50px 20px 20px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                }
-
-                .dd-close-modal.dd-close-modal {
-                    display: block;
-                    /* Reveal responsive close trigger */
-                    position: absolute;
-                    top: 10px;
-                    right: 15px;
-                    background: none;
-                    border: none;
-                    font-size: 28px;
-                    cursor: pointer;
-                    color: #333;
-                    z-index: 10;
-                    line-height: 1;
-                    background-color: transparent;
-                    padding: 0;
-                    border: none;
-                }
-
-                .dd-item-list {
-                    max-height: 100%;
-                }
+                .dd-outreach-view-container { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); z-index: 999999; padding: 20px; box-sizing: border-box; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+                .dd-outreach-view-container.dd-modal-active { display: flex; }
+                .dd-modal-content-wrapper { background: #fff; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 50px 20px 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+                .dd-close-modal.dd-close-modal { display: block; position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 28px; cursor: pointer; color: #333; z-index: 10; line-height: 1; background-color: transparent; padding: 0; border: none; }
+                .dd-item-list { max-height: 100%; }
             }
-
             @media(max-width: 1199px) {
-                .dd-notes-grid {
-                    flex-direction: column;
-                }
-
-                .dd-note-card {
-                    width: 100%;
-                }
-
-                .dd-notes-list-container {
-                    width: 100%;
-                }
-
-                .dd-dashboard-list-container {
-                    max-width: 100%;
-                }
+                .dd-notes-grid { flex-direction: column; }
+                .dd-note-card { width: 100%; }
+                .dd-notes-list-container { width: 100%; }
+                .dd-dashboard-list-container { max-width: 100%; }
             }
         </style>
     <?php
@@ -1840,10 +1295,6 @@ class DD_Outreach_Manager
                 $credit_cost = (int) get_option('dd_outreach_credit_cost', 1);
 
                 if ($credit_cost > 0) {
-                    /**
-                     * Retrieve the targeted post's title and permalink utilizing the influencer_id.
-                     * Formats the log entry as an HTML-linked string for point deduction tracking.
-                     */
                     $target_post_id    = absint($data['influencer_id']);
                     $target_post_title = esc_html(get_the_title($target_post_id));
                     $target_post_url   = esc_url(get_permalink($target_post_id));
@@ -1854,15 +1305,6 @@ class DD_Outreach_Manager
                         $target_post_title
                     );
 
-                    /**
-                     * Executes point deduction utilizing the native myCred API.
-                     * Explicitly sets the reference to 'outreach_submission'.
-                     * * @param string $reference  The unique transaction reference.
-                     * @param int    $user_id    The ID of the user losing points.
-                     * @param float  $amount     The number of points to deduct.
-                     * @param string $entry      The log entry message.
-                     * @param int    $ref_id     (Optional) The related post ID for reference tracking.
-                     */
                     mycred_subtract(
                         'outreach_submission',
                         $current_user_id,
@@ -1876,7 +1318,6 @@ class DD_Outreach_Manager
             if (function_exists('mycred_get_users_cred')) {
                 $updated_points = mycred_get_users_cred($current_user_id);
                 $ajax_handler->add_response_data('updated_points', $updated_points);
-                // Also pass the cost back to the frontend logic so it updates UI accurately
                 $ajax_handler->add_response_data('deducted_points', get_option('dd_outreach_credit_cost', 1));
             }
 
@@ -1941,7 +1382,6 @@ class DD_Outreach_Manager
 
     /**
      * Compiles and dispatches the HTML outreach email payload to the target influencer.
-     * Iterates over all saved repeater templates and dynamically compiles their header/body merge tags.
      */
     private function send_outreach_email($data, $current_user_id)
     {
@@ -1960,19 +1400,16 @@ class DD_Outreach_Manager
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_display = $this->get_country_display($meta_country);
 
-        // Extract PMPro User Avatar explicitly via absolute url path
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-        $avatar_url  = 'https://via.placeholder.com/60x60'; // Default safety fallback
+        $avatar_url  = 'https://via.placeholder.com/60x60'; 
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
             $avatar_url = $avatar_meta['fullurl'];
         }
 
-        // Resolve Influencer Context strictly via post meta
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
         $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
 
-        // Fallback constraint to post_author account email if no explicit meta is present
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
             if ($influencer_post) {
@@ -1981,11 +1418,9 @@ class DD_Outreach_Manager
                     $influencer_email = $influencer_user->user_email;
                 }
             }
-            // Abort if unable to establish recipient address
             if (empty($influencer_email)) return false;
         }
 
-        // Compile Dictionary for Search/Replace execution
         $dictionary = [
             '{influencer_email}' => $influencer_email,
             '{influencer_name}' => $influencer_name,
@@ -2007,12 +1442,10 @@ class DD_Outreach_Manager
         $search  = array_keys($dictionary);
         $replace = array_values($dictionary);
 
-        // Retrieve the repeater array of Email Templates
         $templates = get_option('dd_outreach_email_templates', $this->get_default_template_structure());
 
         $success = false;
 
-        // Loop through each configured template and dispatch dynamically
         foreach ($templates as $tpl) {
 
             $to         = str_replace($search, $replace, $tpl['to']);
@@ -2024,7 +1457,6 @@ class DD_Outreach_Manager
             $bcc        = str_replace($search, $replace, $tpl['bcc']);
             $body       = str_replace($search, $replace, $tpl['body']);
 
-            // Compile the Mail Headers payload array
             $headers = ['Content-Type: text/html; charset=UTF-8'];
 
             if (!empty($from_email) && is_email($from_email)) {
@@ -2040,7 +1472,6 @@ class DD_Outreach_Manager
                 $headers[] = 'Bcc: ' . $bcc;
             }
 
-            // Ensure we have a valid parsed recipient before dispatching
             if (is_email($to)) {
                 $sent = wp_mail($to, $subject, $body, $headers);
                 if ($sent) $success = true;
@@ -2093,15 +1524,12 @@ class DD_Outreach_Manager
                         }
                     });
 
-                    // Force a page reload when the Elementor popup is closed IF a form was successfully submitted
-                    // This syncs the server-side UI elements (e.g. out of credits locks)
                     jQuery(document).on('elementor/popup/hide', function() {
                         if (ddFormSubmitted) {
                             location.reload();
                         }
                     });
 
-                    // Ensure our custom Close button also triggers the popup close / sync
                     jQuery(document).on('click', '.close-outreach a', function(e) {
                         e.preventDefault();
                         if (ddFormSubmitted) {
@@ -2115,7 +1543,7 @@ class DD_Outreach_Manager
     }
 
     /**
-     * Backend Meta Box setup for the wp-admin screen.
+     * Backend Meta Box setup.
      */
     public function add_note_meta_box()
     {
@@ -2260,8 +1688,33 @@ class DD_Outreach_Manager
     }
 
     /**
+     * AJAX endpoint to toggle the Favorite or Archive status.
+     */
+    public function ajax_toggle_outreach_status()
+    {
+        check_ajax_referer('dd_outreach_nonce', 'security');
+
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        $action  = isset($_POST['toggle_action']) ? sanitize_text_field($_POST['toggle_action']) : '';
+
+        if (!$post_id || !current_user_can('edit_post', $post_id)) {
+            wp_send_json_error('Unauthorized.');
+        }
+
+        if ($action === 'favorite') {
+            $current = get_post_meta($post_id, 'dd_outreach_favorite', true);
+            update_post_meta($post_id, 'dd_outreach_favorite', $current === '1' ? '0' : '1');
+        } elseif ($action === 'archive') {
+            $current = get_post_meta($post_id, 'dd_outreach_archived', true);
+            update_post_meta($post_id, 'dd_outreach_archived', $current === '1' ? '0' : '1');
+        }
+
+        wp_send_json_success();
+    }
+
+    /**
      * Renders the left-side panel (list and filters) via shortcode [dd_outreach_list].
-     * Integrates dynamic dropdown options native to the plugin backend state.
+     * Injects the dynamic status toggles based on the provided UI layout.
      */
     public function render_list_shortcode($atts)
     {
@@ -2318,6 +1771,16 @@ class DD_Outreach_Manager
                 </div>
             </div>
 
+            <div class="dd-status-nav-wrapper">
+                <a href="#" class="dd-archive-link" data-status="archived">
+                    <span class="dashicons dashicons-archive"></span> Archived
+                </a>
+                <div class="dd-pill-filters">
+                    <button class="dd-status-pill active" data-status="all">All</button>
+                    <button class="dd-status-pill" data-status="favorites">Favourites</button>
+                </div>
+            </div>
+
             <div class="dd-item-list" id="dd-outreach-list-container">
                 <?php echo $this->generate_list_html(); ?>
             </div>
@@ -2338,7 +1801,7 @@ class DD_Outreach_Manager
     /**
      * Helper function to generate the HTML for the item list.
      */
-    private function generate_list_html($search_query = '', $project_types = [], $project_lengths = [])
+    private function generate_list_html($search_query = '', $project_types = [], $project_lengths = [], $status_filter = 'all')
     {
         $args = [
             'post_type'      => 'outreach',
@@ -2352,6 +1815,30 @@ class DD_Outreach_Manager
         }
 
         $meta_query = ['relation' => 'AND'];
+
+        // Strict UI Flow Status Toggles
+        if ($status_filter === 'archived') {
+            $meta_query[] = [
+                'key'     => 'dd_outreach_archived',
+                'value'   => '1',
+                'compare' => '='
+            ];
+        } else {
+            // If viewing All or Favorites, strict filter OUT any archived entries
+            $meta_query[] = [
+                'relation' => 'OR',
+                ['key' => 'dd_outreach_archived', 'compare' => 'NOT EXISTS'],
+                ['key' => 'dd_outreach_archived', 'value' => '1', 'compare' => '!=']
+            ];
+
+            if ($status_filter === 'favorites') {
+                $meta_query[] = [
+                    'key'     => 'dd_outreach_favorite',
+                    'value'   => '1',
+                    'compare' => '='
+                ];
+            }
+        }
 
         if (!empty($project_types) && is_array($project_types)) {
             $type_query = ['relation' => 'OR'];
@@ -2400,20 +1887,37 @@ class DD_Outreach_Manager
                 $influencer_handle = do_shortcode('[instagram_id id="' . $influencer_id . '"]');
                 $influencer_name = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
 
+                // Fetch visual state attributes
+                $is_fav = get_post_meta($post_id, 'dd_outreach_favorite', true) === '1';
+                $is_arch = get_post_meta($post_id, 'dd_outreach_archived', true) === '1';
 
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
+                
+                $fav_star_html = $is_fav ? '<span class="dd-fav-star">&#9733;</span>' : '';
+                $fav_action_text = $is_fav ? 'Remove from Favourites' : 'Add to Favourites';
+                $arch_action_text = $is_arch ? 'Unarchive' : 'Archive';
 
                 $html .= '<div class="dd-outreach-item" data-post-id="' . esc_attr($post_id) . '">';
                 $html .= '<div class="avatar-holder">';
                 $html .= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]');
                 $html .= '</div>';
                 $html .= '<div class="dd-item-content">';
-                $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . '</span>';
+                $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . $fav_star_html . '</span>';
                 $html .= '<span class="dd-item-handle">@' . esc_html($influencer_handle) . '</span>';
                 $html .= '<span class="dd-item-title">' . esc_html($title) . '</span>';
                 $html .= '<span class="dd-item-date">' . esc_html($date) . '</span>';
+                $html .= '</div>';
+
+                // Appended 3-dot dropdown menu overlay to exactly match UI request
+                $html .= '<div class="dd-item-dots">';
+                $html .= '<button class="dd-action-toggle">&bull;&bull;&bull;</button>';
+                $html .= '<div class="dd-action-menu">';
+                $html .= '<a href="#" class="dd-action-btn" data-action="favorite" data-id="' . esc_attr($post_id) . '">' . $fav_action_text . '</a>';
+                $html .= '<a href="#" class="dd-action-btn" data-action="archive" data-id="' . esc_attr($post_id) . '">' . $arch_action_text . '</a>';
                 $html .= '</div></div>';
+
+                $html .= '</div>';
             }
             wp_reset_postdata();
         } else {
@@ -2435,11 +1939,12 @@ class DD_Outreach_Manager
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $status_filter = isset($_POST['status_filter']) ? sanitize_text_field($_POST['status_filter']) : 'all';
 
         $project_types = isset($_POST['project_type']) && is_array($_POST['project_type']) ? array_map('sanitize_text_field', $_POST['project_type']) : [];
         $project_lengths = isset($_POST['project_length']) && is_array($_POST['project_length']) ? array_map('sanitize_text_field', $_POST['project_length']) : [];
 
-        $html = $this->generate_list_html($search, $project_types, $project_lengths);
+        $html = $this->generate_list_html($search, $project_types, $project_lengths, $status_filter);
 
         wp_send_json_success($html);
     }
@@ -2456,7 +1961,6 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to fetch specific outreach post details.
-     * Re-factored payload to inject `.dd-modal-content-wrapper` and the mobile close trigger for responsive viewing.
      */
     public function ajax_get_outreach_details()
     {
