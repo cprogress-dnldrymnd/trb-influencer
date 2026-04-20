@@ -1,12 +1,19 @@
 <?php
+
+/**
+ * Plugin Name: PMPro Customizations
+ * Description: Uses MutationObserver to forcefully rename the checkout button on the membership checkout page, overriding payment gateways. Includes advanced pricing, prorating, and delayed downgrade routines.
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ */
+
 if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly to prevent direct file execution.
 }
 
 /**
- * Description: Uses MutationObserver to forcefully rename the checkout button on the membership checkout page, overriding payment gateways.
+ * Uses MutationObserver to forcefully rename the checkout button on the membership checkout page, overriding payment gateways.
  */
-
 function dd_pmpro_force_checkout_text_observer()
 {
     // 1. Target the specific checkout page URL provided
@@ -246,7 +253,7 @@ add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10
  * Intercepts frontend page loads to handle two specific free-tier redirections:
  * 1. Redirects users completing checkout for the Free Level (15) directly to the pricing page.
  * 2. Forcefully redirects Free members to the pricing page if they access the dashboard template,
- *    while explicitly exempting core PMPro functional pages to prevent lockouts.
+ * while explicitly exempting core PMPro functional pages to prevent lockouts.
  *
  * @return void
  */
@@ -1189,4 +1196,103 @@ function pmpro_checkout_level_custom_prorating_rules($level)
     }
     return $level;
 }
+
+/**
+ * Intercepts successful checkouts to process delayed downgrades safely.
+ * Reverts the database to the previous higher tier until the new billing cycle begins.
+ *
+ * @param int         $user_id The integer ID of the user.
+ * @param MemberOrder $morder  The PMPro membership order object.
+ * @return void
+ */
+function dd_pmpro_schedule_delayed_downgrade($user_id, $morder)
+{
+    global $pmpro_checkout_old_level, $wpdb;
+
+    // Ensure we have an old level to restore natively
+    if (empty($pmpro_checkout_old_level)) {
+        return;
+    }
+
+    $new_level = pmpro_getMembershipLevelForUser($user_id);
+
+    // Validate that a new level exists and fundamentally differs from the origin tier
+    if (empty($new_level) || $new_level->id === $pmpro_checkout_old_level->id) {
+        return;
+    }
+
+    // Process downgrade verification protocol
+    $is_downgrade = false;
+    if (function_exists('pmprorate_isDowngrade')) {
+        $is_downgrade = pmprorate_isDowngrade($pmpro_checkout_old_level->id, $new_level->id);
+    } elseif (isset($pmpro_checkout_old_level->billing_amount) && isset($new_level->billing_amount)) {
+        $is_downgrade = $pmpro_checkout_old_level->billing_amount > $new_level->billing_amount;
+    }
+
+    // Execute retention layer directly via $wpdb to prevent triggering gateway cancellations prematurely
+    if ($is_downgrade) {
+        $next_payment_timestamp = pmpro_next_payment($user_id);
+
+        // Extract gateway-dictated start date directly from the processed order logic
+        if (! empty($morder->ProfileStartDate)) {
+            $next_payment_timestamp = strtotime($morder->ProfileStartDate);
+        }
+
+        if ($next_payment_timestamp && $next_payment_timestamp > current_time('timestamp')) {
+
+            // Queue the delayed downgrade target ID in user meta
+            update_user_meta($user_id, 'dd_pmpro_delayed_downgrade_level_id', $new_level->id);
+
+            // Dynamically restructure the existing valid DB row back to the higher tier
+            $enddate = date('Y-m-d H:i:s', $next_payment_timestamp);
+
+            $wpdb->update(
+                $wpdb->pmpro_memberships_users,
+                array(
+                    'membership_id' => $pmpro_checkout_old_level->id,
+                    'enddate'       => $enddate,
+                ),
+                array(
+                    'user_id'       => $user_id,
+                    'membership_id' => $new_level->id,
+                    'status'        => 'active'
+                ),
+                array('%d', '%s'),
+                array('%d', '%d', '%s')
+            );
+
+            // Ensure WP clears transient roles immediately to reflect the override
+            clean_user_cache($user_id);
+        }
+    }
+}
+add_action('pmpro_after_checkout', 'dd_pmpro_schedule_delayed_downgrade', 50, 2);
+
+/**
+ * Executes the queued downgrade upon the expiration of the retained higher tier.
+ * Hooks into the PMPro expiry action to seamlessly swap the user's access state.
+ *
+ * @param int $user_id       The integer ID of the user.
+ * @param int $membership_id The ID of the expired membership level.
+ * @return void
+ */
+function dd_pmpro_apply_delayed_downgrade($user_id, $membership_id)
+{
+    $delayed_level_id = get_user_meta($user_id, 'dd_pmpro_delayed_downgrade_level_id', true);
+
+    if (! empty($delayed_level_id)) {
+        // Array execution strictly bypasses secondary checkout/gateway processing loops
+        $custom_level = array(
+            'user_id'       => $user_id,
+            'membership_id' => $delayed_level_id,
+            'status'        => 'active',
+            'startdate'     => current_time('mysql')
+        );
+
+        pmpro_changeMembershipLevel($custom_level, $user_id);
+        delete_user_meta($user_id, 'dd_pmpro_delayed_downgrade_level_id');
+    }
+}
+add_action('pmpro_membership_post_membership_expiry', 'dd_pmpro_apply_delayed_downgrade', 10, 2);
+
 /** End of Codes to fix pricing and subscription when changing payment plans and membership*/
