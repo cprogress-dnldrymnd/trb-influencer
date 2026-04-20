@@ -1291,7 +1291,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     width: 100%;
     margin: 0 !important; }
   body:not(.page-id-4144) span#pmpro_submit_span:before {
-    content: "Upgrade plan";
+    content: "Choose Plan";
     position: absolute;
     left: 0;
     top: 0;
