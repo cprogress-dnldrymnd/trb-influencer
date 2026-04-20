@@ -1148,7 +1148,11 @@ class DD_Outreach_Manager
             .dd-filter-reset { font-size: 12px; color: #888; text-decoration: none; }
             .dd-filter-select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
             
-            .dd-status-nav-wrapper { padding: 15px 20px; border-bottom: 1px solid #BCBCBC; background: #fdfdfd; }
+            .dd-status-nav-wrapper {border-bottom: 1px solid #BCBCBC; background: #fdfdfd; }
+            .dd-status-archive {
+                padding: 20px;
+                border-bottom: 1px solid #BCBCBC;
+            }
             .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; width: 100%; }
             .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
             .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
@@ -1819,12 +1823,14 @@ class DD_Outreach_Manager
             </div>
 
             <div class="dd-status-nav-wrapper">
-                <a href="#" class="dd-archive-link" data-status="archived">
-                    <div class="dd-archive-link-left">
-                        <span class="dashicons dashicons-archive"></span> Archived
-                    </div>
-                    <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
-                </a>
+                <div class="dd-status-archive">
+                    <a href="#" class="dd-archive-link" data-status="archived">
+                        <div class="dd-archive-link-left">
+                            <span class="dashicons dashicons-archive"></span> Archived
+                        </div>
+                        <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
+                    </a>
+                </div>
                 <div class="dd-pill-filters">
                     <button class="dd-status-pill active" data-status="all">All</button>
                     <button class="dd-status-pill" data-status="favorites">Favourites</button>
