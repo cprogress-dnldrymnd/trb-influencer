@@ -96,9 +96,9 @@ add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
 
+
 /**
  * 1. FORCE LEVEL VARIABLES: Strip out all trials and force a $0 initial payment for upgrades.
- * Hooks globally to catch AJAX requests from the Payment Plans add-on.
  */
 add_filter( 'pmpro_checkout_level', 'influencer_collective_force_time_stacking', 999 );
 function influencer_collective_force_time_stacking( $level ) {
@@ -112,11 +112,13 @@ function influencer_collective_force_time_stacking( $level ) {
     // If the user already has an active, paid plan...
     if ( ! empty( $current_level ) ) {
         $next_payment = pmpro_next_payment( $user_id );
+        
+        // CRITICAL FIX: Convert the MySQL date string into a Unix Timestamp integer
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-            $next_payment = $current_level->enddate;
+            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
         }
 
-        // If they have banked time in the future, force the system to honor it
+        // Now the math accurately detects the future date and runs the override
         if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
             $level->initial_payment = 0; // Charge nothing today
             $level->custom_trial = 0;    // Eradicate the trial
@@ -140,8 +142,10 @@ function influencer_collective_force_stacked_date( $startdate, $order ) {
 
     if ( ! empty( $current_level ) ) {
         $next_payment = pmpro_next_payment( $user_id );
+        
+        // CRITICAL FIX: Convert the MySQL date string into a Unix Timestamp integer
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-            $next_payment = $current_level->enddate;
+            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
         }
 
         // Push the gateway's first charge to their exact banked expiration date
@@ -165,8 +169,10 @@ function influencer_collective_force_ajax_text( $text, $level, $tags, $short ) {
 
     if ( ! empty( $current_level ) ) {
         $next_payment = pmpro_next_payment( $user_id );
+        
+        // CRITICAL FIX: Convert the MySQL date string into a Unix Timestamp integer
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-            $next_payment = $current_level->enddate;
+            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
         }
 
         if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
