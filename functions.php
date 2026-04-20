@@ -139,6 +139,20 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
     } 
     return $checkout_level;
 }
-add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay',  999,1);
+add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
 
+function dd_dynamic_initial_payment_proration_fix( $checkout_level ) {
+    // 1. Target Audience: Ignore brand new customers so they keep their $0 3-day trial.
+    if ( ! pmpro_hasMembershipLevel() ) {
+        return $checkout_level;
+    }
 
+    // 2. The Setup: If it's an existing member changing plans, feed Proration the full base price.
+    if ( $checkout_level->billing_amount > 0 && $checkout_level->initial_payment == 0 ) {
+        $checkout_level->initial_payment = $checkout_level->billing_amount;
+    }
+
+    return $checkout_level;
+}
+// 3. THE FIX: Changed priority to 5 so this runs BEFORE the Proration Add-on!
+add_filter( 'pmpro_checkout_level', 'dd_dynamic_initial_payment_proration_fix', 5, 1 );
