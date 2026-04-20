@@ -182,6 +182,9 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
         // Safely determine the base cost for the new level
         $base_new_level_cost = ( $level->initial_payment > 0 ) ? $level->initial_payment : $level->billing_amount;
 
+        // THE FIX: Do not rely on Level IDs. Check the actual cycle text (e.g. "Month" vs "Year")
+        $is_same_period = ( $clevel->cycle_number == $level->cycle_number && $clevel->cycle_period == $level->cycle_period );
+
         // DOWNGRADE LOGIC
         if ( pmprorate_isDowngrade( $clevel->id, $level->id ) ) {
             
@@ -192,7 +195,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );
             
         // UPGRADE LOGIC (SAME BILLING PERIOD)
-        } elseif( pmprorate_have_same_payment_period( $clevel->id, $level->id ) ) {
+        } elseif( $is_same_period ) { // <- Used the new strict check here!
             
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
             $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
@@ -239,12 +242,14 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
                 $level->initial_payment = 0;
             }
 
-            // THE NEW FIX: Force the start date to map exactly to the NEW billing cycle!
+            // Unhook any lingering Same-Period filters from PMPro core just to be safe
+            remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
+
+            // Force the start date to map exactly to the NEW billing cycle!
             global $dd_new_cycle_number, $dd_new_cycle_period;
             $dd_new_cycle_number = $level->cycle_number; // e.g., 1
             $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
             
-            // Hook in at priority 99 to override PMPro's confused defaults
             add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
         }       
     }
