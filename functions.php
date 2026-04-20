@@ -107,4 +107,3 @@ function my_pmprosd_subscription_delay_for_switching(  ) {
     }
 
 }
-add_action( 'init', 'my_pmprosd_subscription_delay_for_switching');
