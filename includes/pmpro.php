@@ -32,6 +32,58 @@ function get_pmpro_membership_level_shortcode()
 }
 
 /**
+ * Description: Automatically cancels all other active membership levels when a user obtains a new level, regardless of group association.
+ */
+
+if (! function_exists('dd_pmpro_enforce_single_membership_global')) {
+
+    /**
+     * Cancels all old membership levels when a user is assigned a new one.
+     *
+     * This hooks into 'pmpro_after_change_membership_level' which runs after
+     * a level has been successfully changed/added.
+     *
+     * @param int $level_id     The ID of the new level being assigned (0 if cancelling).
+     * @param int $user_id      The ID of the user.
+     * @param int $cancel_level The ID of the level being cancelled (if applicable).
+     */
+    function dd_pmpro_enforce_single_membership_global($level_id, $user_id, $cancel_level)
+    {
+
+        // 1. Safety Check: If $level_id is 0, it means a cancellation is happening.
+        // We must exit to prevent an infinite loop of cancellations triggering this hook.
+        if (0 === (int) $level_id) {
+            return;
+        }
+
+        // 2. Retrieve all active membership levels for the user.
+        // pmpro_getMembershipLevelsForUser returns an array of level objects, irrespective of groups.
+        $user_levels = pmpro_getMembershipLevelsForUser($user_id);
+
+        // 3. Iterate through active levels and cancel any that are not the new level.
+        if (! empty($user_levels)) {
+            foreach ($user_levels as $level) {
+
+                // Compare IDs to ensure we don't cancel the level specifically just added.
+                if ((int) $level->id !== (int) $level_id) {
+
+                    // Cancel the old level.
+                    // 'cancelled' uses the 'old_level_status' enum to mark it as cancelled in history.
+                    pmpro_cancelMembershipLevel($level->id, $user_id, 'cancelled');
+
+                    // Optional: Log this action for debugging if needed.
+                    // error_log( "PMPro Global Enforce: Cancelled Level ID {$level->id} for User ID {$user_id} in favor of Level ID {$level_id}" );
+                }
+            }
+        }
+    }
+
+    // Priority 10 is standard; this ensures it runs during the checkout/assignment flow.
+    add_action('pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10, 3);
+}
+
+
+/**
  * Plugin Name: PMPro Checkout Button - Force Update
  * Description: Uses MutationObserver to forcefully rename the checkout button on the membership checkout page, overriding payment gateways.
  * Author: Digitally Disruptive - Donald Raymundo
@@ -98,8 +150,98 @@ function dd_pmpro_force_checkout_text_observer()
     </script>
 <?php
 }
-add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99)
+add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99);
 
+/**
+ * Retrieve the file URL for a specific user and PMPro field.
+ *
+ * @param int    $user_id   The ID of the user.
+ * @param string $field_key The meta key used when registering the field (e.g., 'resume_upload').
+ * @return string|false     The URL of the file or false if not found.
+ */
+function get_pmpro_file_field_url(int $user_id, string $field_key)
+{
+    // Retrieve the raw meta value.
+    $meta_value = get_user_meta($user_id, $field_key, true);
+
+    // Case A: The field stored a direct string URL.
+    if (is_string($meta_value) && ! empty($meta_value)) {
+        return $meta_value;
+    }
+
+    // Case B: The field stored an array (common in newer Register Helper versions).
+    // The array typically looks like: ['original_filename' => '...', 'fullpath' => '...']
+    if (is_array($meta_value) && ! empty($meta_value['fullpath'])) {
+        return $meta_value['fullpath'];
+    }
+
+    // Case C: Sometimes only the Attachment ID is stored (rare, but possible with custom implementations).
+    if (is_numeric($meta_value)) {
+        return wp_get_attachment_url($meta_value);
+    }
+
+    return false;
+}
+
+/**
+ * Converts an absolute server path to a web-accessible URL.
+ * * This is specifically designed to handle PMPro Register Helper fields
+ * that store the full /home/user/path instead of the URL.
+ *
+ * @param string $path_or_url The raw value retrieved from get_user_meta.
+ * @return string The converted URL, or the original string if no conversion was needed.
+ */
+function convert_pmpro_path_to_url($path_or_url)
+{
+    // 1. If the input is an array (sometimes returned by PMPro), extract the fullpath.
+    if (is_array($path_or_url) && isset($path_or_url['fullpath'])) {
+        $path_or_url = $path_or_url['fullpath'];
+    }
+
+    // 2. If it's empty or not a string, return early.
+    if (empty($path_or_url) || ! is_string($path_or_url)) {
+        return '';
+    }
+
+    // 3. Check if the string contains the local server path (ABSPATH).
+    // ABSPATH is a WP constant, e.g., /home/influencerdd2/public_html/
+    if (strpos($path_or_url, ABSPATH) !== false) {
+        // Replace the server path with the site URL.
+        // We use site_url('/') to ensure we get the root web address.
+        $url = str_replace(ABSPATH, site_url('/'), $path_or_url);
+
+        // Fix any potential double slashes that might occur during replacement
+        // (excluding the http:// or https:// protocol slashes).
+        $url = str_replace('://', '___PROTOCOL___', $url);
+        $url = str_replace('//', '/', $url);
+        $url = str_replace('___PROTOCOL___', '://', $url);
+
+        return $url;
+    }
+
+    // 4. Fallback: If ABSPATH didn't match, try matching against the Uploads Directory specifically.
+    // This is useful if the server structure varies slightly (e.g., symlinks).
+    $upload_dir = wp_upload_dir();
+    if (strpos($path_or_url, $upload_dir['basedir']) !== false) {
+        return str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $path_or_url);
+    }
+
+    // Return original if no match found (it might already be a URL).
+    return $path_or_url;
+}
+
+// --- Usage Example ---
+
+// 1. Get the raw meta (the path you pasted).
+$raw_file_path = get_user_meta(get_current_user_id(), 'my_file_field_key', true);
+
+// 2. Convert it.
+$file_url = convert_pmpro_path_to_url($raw_file_path);
+
+// 3. Output.
+if ($file_url) {
+    echo '<a href="' . esc_url($file_url) . '" target="_blank">View File</a>';
+}
 
 
 /**
@@ -1027,239 +1169,3 @@ function dd_pmpro_save_name_fields_to_usermeta($user_id, $morder)
     }
 }
 add_action('pmpro_after_checkout', 'dd_pmpro_save_name_fields_to_usermeta', 10, 2);
-
-
-/**
- * 1. Create the Submenu Page under PMPro Dashboard
- */
-function ic_pmpro_account_update_email_menu() {
-	// Ensure PMPro is active before adding the menu
-	if ( ! defined( 'PMPRO_VERSION' ) ) {
-		return;
-	}
-
-	add_submenu_page(
-		'pmpro-dashboard', // Parent slug (PMPro Dashboard)
-		'Account Update Email', // Page title
-		'Account Update Email', // Menu title
-		'manage_options', // Capability required
-		'ic-pmpro-account-update-email', // Menu slug
-		'ic_pmpro_account_update_email_page' // Callback function to render the page
-	);
-}
-add_action( 'admin_menu', 'ic_pmpro_account_update_email_menu', 20 );
-
-/**
- * 2. Render the Backend Settings Page & Email Builder
- */
-function ic_pmpro_account_update_email_page() {
-	// Check permissions
-	if ( ! current_user_can( 'manage_options' ) ) {
-		return;
-	}
-
-	// Handle saving the form data
-	if ( isset( $_POST['ic_save_email_settings'] ) && check_admin_referer( 'ic_pmpro_email_settings_nonce' ) ) {
-		update_option( 'ic_pmpro_profile_update_subject', sanitize_text_field( $_POST['ic_pmpro_profile_update_subject'] ) );
-		update_option( 'ic_pmpro_profile_update_body', wp_kses_post( $_POST['ic_pmpro_profile_update_body'] ) );
-		
-		echo '<div class="notice notice-success is-dismissible"><p><strong>Email settings saved successfully!</strong></p></div>';
-	}
-
-	// Retrieve existing data or set fallbacks
-	$subject = get_option( 'ic_pmpro_profile_update_subject', 'Your account details have been updated!' );
-	$body    = get_option( 'ic_pmpro_profile_update_body', '<h2>Profile Update Successful</h2><p>Hey {display_name},</p><p>We just wanted to give you a quick heads-up that your account details were successfully updated on your profile.</p><p>If you didn\'t make this change, please reach out to our support team immediately.</p><p>Stay awesome!</p>' );
-	?>
-	<div class="wrap">
-		<h1>Account Update Email Builder</h1>
-		<p>Customize the automated email sent to members when they update their profile details on the frontend.</p>
-		
-		<div style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; margin-top: 20px; max-width: 800px;">
-			<form method="post" action="">
-				<?php wp_nonce_field( 'ic_pmpro_email_settings_nonce' ); ?>
-				
-				<table class="form-table">
-					<tr>
-						<th scope="row"><label for="ic_pmpro_profile_update_subject"><strong>Email Subject</strong></label></th>
-						<td>
-							<input name="ic_pmpro_profile_update_subject" type="text" id="ic_pmpro_profile_update_subject" value="<?php echo esc_attr( $subject ); ?>" class="regular-text" style="width: 100%;">
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="ic_pmpro_profile_update_body"><strong>Email Body</strong></label><br><br>
-							<em>Available Merge Tags:</em><br>
-							<code>{display_name}</code><br>
-							<code>{user_email}</code><br>
-							<code>{username}</code>
-						</th>
-						<td>
-							<?php 
-							// Generate the native WordPress Rich Text Editor
-							$settings = array(
-								'textarea_name' => 'ic_pmpro_profile_update_body',
-								'textarea_rows' => 15,
-								'media_buttons' => true,
-							);
-							wp_editor( $body, 'ic_pmpro_profile_update_body_editor', $settings ); 
-							?>
-						</td>
-					</tr>
-				</table>
-				
-				<p class="submit">
-					<input type="submit" name="ic_save_email_settings" id="submit" class="button button-primary" value="Save Email Template">
-				</p>
-			</form>
-		</div>
-	</div>
-	<?php
-}
-
-/**
- * 3. Send the custom PMPro email using our new database values
- */
-function ic_custom_pmpro_profile_update_email( $user_id, $old_user_data ) {
-	// Make sure PMPro is active
-	if ( ! class_exists( 'PMProEmail' ) ) {
-		return;
-	}
-
-	// Check if user has an active membership level (optional, uncomment if needed)
-	// if ( ! pmpro_hasMembershipLevel( null, $user_id ) ) { return; }
-
-	$user = get_userdata( $user_id );
-
-	// Fetch our saved builder settings (with fallbacks)
-	$subject = get_option( 'ic_pmpro_profile_update_subject', 'Your account details have been updated!' );
-	$body    = get_option( 'ic_pmpro_profile_update_body', '<p>Hey {display_name}, your profile was updated.</p>' );
-
-	// Process dynamic merge tags
-	$body = str_replace( '{display_name}', $user->display_name, $body );
-	$body = str_replace( '{user_email}', $user->user_email, $body );
-	$body = str_replace( '{username}', $user->user_login, $body );
-
-	// Set up and send the PMPro Email
-	$pmpro_email = new PMProEmail();
-	$pmpro_email->email    = $user->user_email;
-	$pmpro_email->subject  = $subject;
-	$pmpro_email->template = "custom_profile_update";
-	$pmpro_email->body     = $body;
-
-	$pmpro_email->sendEmail();
-}
-add_action( 'profile_update', 'ic_custom_pmpro_profile_update_email', 10, 2 );
-
-
-/**
- * Description: Automatically cancels all other active membership levels when a user obtains a new level, regardless of group association.
- */
-
-if (! function_exists('dd_pmpro_enforce_single_membership_global')) {
-
-    /**
-     * Cancels all old membership levels when a user is assigned a new one.
-     *
-     * This hooks into 'pmpro_after_change_membership_level' which runs after
-     * a level has been successfully changed/added.
-     *
-     * @param int $level_id     The ID of the new level being assigned (0 if cancelling).
-     * @param int $user_id      The ID of the user.
-     * @param int $cancel_level The ID of the level being cancelled (if applicable).
-     */
-    function dd_pmpro_enforce_single_membership_global($level_id, $user_id, $cancel_level)
-    {
-
-        // 1. Safety Check: If $level_id is 0, it means a cancellation is happening.
-        // We must exit to prevent an infinite loop of cancellations triggering this hook.
-        if (0 === (int) $level_id) {
-            return;
-        }
-
-        // 2. Retrieve all active membership levels for the user.
-        // pmpro_getMembershipLevelsForUser returns an array of level objects, irrespective of groups.
-        $user_levels = pmpro_getMembershipLevelsForUser($user_id);
-
-        // 3. Iterate through active levels and cancel any that are not the new level.
-        if (! empty($user_levels)) {
-            foreach ($user_levels as $level) {
-
-                // Compare IDs to ensure we don't cancel the level specifically just added.
-                if ((int) $level->id !== (int) $level_id) {
-
-                    // Cancel the old level.
-                    // 'cancelled' uses the 'old_level_status' enum to mark it as cancelled in history.
-                    pmpro_cancelMembershipLevel($level->id, $user_id, 'cancelled');
-
-                    // Optional: Log this action for debugging if needed.
-                    // error_log( "PMPro Global Enforce: Cancelled Level ID {$level->id} for User ID {$user_id} in favor of Level ID {$level_id}" );
-                }
-            }
-        }
-    }
-
-    // Priority 10 is standard; this ensures it runs during the checkout/assignment flow.
-    add_action('pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10, 3);
-}
-
-/**
- * 1. BACKEND OVERRIDE: Push the next payment date to the existing expiration date.
- * Priority set to 99 to guarantee it overrides the Subscription Delays add-on.
- */
-add_filter( 'pmpro_profile_start_date', 'influencer_collective_fix_delay_on_switch', 99, 2 );
-function influencer_collective_fix_delay_on_switch( $startdate, $order ) {
-    // Only apply to logged-in users who are upgrading/switching
-    if ( ! is_user_logged_in() ) {
-        return $startdate;
-    }
-    
-    $user_id = get_current_user_id();
-    $current_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    if ( ! empty( $current_level ) ) {
-        // Securely grab the exact timestamp of their next payment via PMPro's native function
-        $next_payment_timestamp = pmpro_next_payment( $user_id );
-        
-        // Fallback: If no recurring payment is found, check if they have a hard expiration date set
-        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
-            $next_payment_timestamp = $current_level->enddate;
-        }
-
-        // If we successfully found their banked time (e.g., May 17, 2026), force that date
-        if ( ! empty( $next_payment_timestamp ) ) {
-            $startdate = date( "Y-m-d\TH:i:s", $next_payment_timestamp );
-        }
-    }
-    
-    return $startdate;
-}
-
-/**
- * 2. FRONTEND OVERRIDE: Fix the pricing text on the checkout page so it reads correctly.
- */
-add_filter( 'pmpro_level_cost_text', 'influencer_collective_fix_checkout_text', 99, 4 );
-function influencer_collective_fix_checkout_text( $text, $level, $tags, $short ) {
-    if ( ! is_user_logged_in() ) {
-        return $text;
-    }
-    
-    $user_id = get_current_user_id();
-    $current_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    if ( ! empty( $current_level ) ) {
-        $next_payment_timestamp = pmpro_next_payment( $user_id );
-        
-        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
-            $next_payment_timestamp = $current_level->enddate;
-        }
-
-        if ( ! empty( $next_payment_timestamp ) ) {
-            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
-            
-            // Dynamically strip out the "after your X day trial" text and inject the real date
-            $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
-        }
-    }
-    
-    return $text;
-}
