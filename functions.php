@@ -96,50 +96,12 @@ add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
 
-// 1. Violently evict all delay plugins from memory for active users
-add_action('init', 'influencer_global_evict_delays', 99);
-function influencer_global_evict_delays() {
-    if ( is_user_logged_in() && pmpro_hasMembershipLevel() ) {
-        // Unhook the official Subscription Delays Add-on (No underscore after sd)
-        remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10); 
-        // Unhook the Offline Payments Add-on delays
-        remove_filter('pmpro_checkout_level', 'pmprooff_pmpro_checkout_level', 10); 
-    }
-}
 
-// 2. Absolute Override: Wipe Ghost Trials on Bank Transfers
-add_filter('pmpro_checkout_level', 'influencer_nuclear_checkout_override', 999);
-function influencer_nuclear_checkout_override($level) {
-    if ( is_user_logged_in() && pmpro_hasMembershipLevel() ) {
-        // PMPro's default ID for the manual/offline gateway is 'check'
-        if (isset($_REQUEST['gateway']) && $_REQUEST['gateway'] == 'check') {
-            $level->initial_payment = 0;
-            $level->custom_trial = 0; // Kills the Ghost Trial
-            $level->trial_amount = 0;
-            $level->trial_limit = 0;
-        }
+function my_pmprosd_subscription_delay_for_switching( $delay, $level_id, $user_id ) {
+    // Check if user already has an active membership
+    if ( pmpro_hasMembershipLevel( NULL, $user_id ) ) {
+        return 0; // No delay for existing members
     }
-    return $level;
+    return $delay; // Keep delay for new members
 }
-
-// 3. Time-Based Stacking: Lock the Start Date to the User's Banked Time
-add_filter('pmpro_profile_start_date', 'influencer_bank_transfer_start_date', 99, 2);
-function influencer_bank_transfer_start_date($startdate, $order) {
-    if ($order->gateway == 'check') {
-        global $current_user;
-        $current_levels = pmpro_getMembershipLevelsForUser($current_user->ID);
-        
-        if (!empty($current_levels)) {
-            $current_level = $current_levels[0];
-            if (!empty($current_level->enddate)) {
-                // Convert string to a mathematical timestamp
-                $end_timestamp = strtotime($current_level->enddate);
-                if ($end_timestamp > current_time('timestamp')) {
-                    // Push the next payment exactly to their expiration date
-                    return date("Y-m-d\TH:i:s", $end_timestamp);
-                }
-            }
-        }
-    }
-    return $startdate;
-}
+add_filter( 'pmprosd_subscription_delay', 'my_pmprosd_subscription_delay_for_switching', 10, 3 );
