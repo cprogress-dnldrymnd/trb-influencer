@@ -1875,6 +1875,18 @@ body:not(.page-id-4144) {
     }
 
     .pmpro_form_label-inline {
+        display: flex;
+        align-items: flex-start;
+        input {
+            width: 20px;
+            height: 20px;
+        }
+        span {
+            line-height: 1.3;
+        }
+        a {
+            text-decoration: underline;
+        }
     }
 }
 /*responsive*/

@@ -1484,6 +1484,16 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 
 #terms_acceptance_div label[for="terms_acceptance"]:first-child {
   display: none !important; }
+#terms_acceptance_div .pmpro_form_label-inline {
+  display: flex;
+  align-items: flex-start; }
+  #terms_acceptance_div .pmpro_form_label-inline input {
+    width: 20px;
+    height: 20px; }
+  #terms_acceptance_div .pmpro_form_label-inline span {
+    line-height: 1.3; }
+  #terms_acceptance_div .pmpro_form_label-inline a {
+    text-decoration: underline; }
 
 /*responsive*/
 @media (min-width: 1025px) {
