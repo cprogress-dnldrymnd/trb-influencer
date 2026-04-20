@@ -4,7 +4,7 @@
  * Plugin Name: DD Outreach Manager
  * Plugin URI: https://digitallydisruptive.co.uk/
  * Description: Manages Elementor form submissions for outreach, dispatches multiple dynamic HTML notifications, provides a master-detail dashboard, and handles dynamic credit costs via settings and shortcodes.
- * Version: 2.4.0
+ * Version: 2.4.1
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -375,6 +375,11 @@ class DD_Outreach_Manager
             function bindListItemClicks() {
                 $('.dd-outreach-item').off('click').on('click', function(e) {
                     
+                    // Stop row execution completely if clicking on the 3-dot toggle wrapper
+                    if ($(e.target).closest('.dd-item-dots').length) {
+                        return; 
+                    }
+
                     // Determine if triggered by physical click vs script dispatch
                     var isHumanClick = e.originalEvent !== undefined;
                     var postId = $(this).data('post-id');
@@ -382,7 +387,7 @@ class DD_Outreach_Manager
                     
                     // Responsive Check: If < 1025px, avoid auto-loading the first element immediately
                     if ($(window).width() < 1025 && !isHumanClick) {
-                        return; // Halt execution to prevent the modal from popping open instantly on load
+                        return; 
                     }
 
                     $('.dd-outreach-item').removeClass('active-item');
@@ -526,18 +531,18 @@ class DD_Outreach_Manager
             // --- 3. 3-Dot Action Menu Interactions ---
             $(document).on('click', '.dd-action-toggle', function(e) {
                 e.preventDefault();
-                e.stopPropagation(); // Stop item click
                 $('.dd-action-menu').not($(this).next('.dd-action-menu')).hide();
                 $(this).next('.dd-action-menu').toggle();
             });
 
-            $(document).on('click', function() {
-                $('.dd-action-menu').hide();
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dd-item-dots').length) {
+                    $('.dd-action-menu').hide();
+                }
             });
 
             $(document).on('click', '.dd-action-btn', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
                 var btn = $(this);
                 var postId = btn.data('id');
                 var action = btn.data('action');
@@ -553,8 +558,11 @@ class DD_Outreach_Manager
                     },
                     success: function(res) {
                         if(res.success) {
+                            if (res.data && res.data.archived_count !== undefined) {
+                                $('#dd-archive-count-badge').text(res.data.archived_count);
+                            }
                             $('.dd-action-menu').hide();
-                            triggerFilter(); // Soft-refresh grid to reflect new state
+                            triggerFilter(); 
                         }
                     }
                 });
@@ -1141,11 +1149,16 @@ class DD_Outreach_Manager
             .dd-filter-select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
             
             .dd-status-nav-wrapper { padding: 15px 20px; border-bottom: 1px solid #BCBCBC; background: #fdfdfd; }
-            .dd-archive-link { display: flex; align-items: center; gap: 8px; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; }
+            .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; width: 100%; }
+            .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
+            .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
             .dd-archive-link.active { color: #034146; font-weight: bold; }
+            
             .dd-pill-filters { display: flex; gap: 10px; }
-            .dd-status-pill { padding: 5px 15px; border-radius: 20px; border: 1px solid #ccc; background: transparent; cursor: pointer; color: #555; font-size: 13px; font-weight: 500; }
-            .dd-status-pill.active { background: #E6F4F1; border-color: #4DB2A6; color: #034146; font-weight: bold; }
+            
+            /* Force strict override to prevent Elementor button bleeding */
+            .dd-status-pill { padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #ccc !important; background: transparent !important; cursor: pointer !important; color: #555 !important; font-size: 13px !important; font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
+            .dd-status-pill.active { background: #034146 !important; border-color: #034146 !important; color: #fff !important; font-weight: bold !important; }
 
             .dd-item-list { max-height: 600px; overflow-y: auto; }
             .dd-outreach-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
@@ -1154,14 +1167,17 @@ class DD_Outreach_Manager
             .dd-outreach-item:hover, .dd-outreach-item.active-item { background: #FEF6F3; border-bottom: 1px solid #3B1527; border-top: 1px solid #3B1527; }
             .dd-item-avatar.dd-item-avatar.dd-item-avatar { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 1px solid gray; }
             .dd-item-name { display: block; font-size: 15px; font-weight: 500; color: #000000; }
-            .dd-fav-star { color: #FFD700; margin-left: 5px; font-size: 16px; }
+            
+            /* Top Left Favorite Star */
+            .dd-fav-star { position: absolute; top: 12px; left: 8px; color: #FFD700; font-size: 18px; line-height: 1; z-index: 5; }
+            
             .dd-item-handle { display: block; color: #000000; font-size: 14px; font-weight: 400; }
             .dd-item-title { display: block; font-size: 14px; color: #034146; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
             .dd-item-date { color: #8F8F8F; font-size: 13px; }
 
             /* 3-Dot Action Menu */
             .dd-item-dots { position: relative; margin-left: auto; }
-            .dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; font-weight: bold; padding: 0 5px; line-height: 1; }
+            .dd-action-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; font-weight: bold; padding: 0 5px; line-height: 1; outline: none; }
             .dd-action-menu { position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; width: 140px; z-index: 10; display: none; overflow: hidden; }
             .dd-action-menu a { display: block; padding: 10px; text-decoration: none; color: #333; font-size: 13px; border-bottom: 1px solid #f5f5f5; font-family: Inter; }
             .dd-action-menu a:hover { background: #f9f9f9; color: #034146; }
@@ -1498,14 +1514,12 @@ class DD_Outreach_Manager
                             
                             var $summaryTarget = jQuery('#outreach-form-summary');
                             
-                            // Globally explicitly update ALL elements with the .current-points class
                             if (response.data.updated_points !== undefined) {
                                 jQuery('.current-points').text(response.data.updated_points);
                                 if (response.data.updated_points == 0 || response.data.updated_points == '0') {
                                     jQuery('.submit-new').remove();
                                 }
                             } else {
-                                // Fallback calculation
                                 jQuery('.current-points').each(function() {
                                     var currentPointsStr = jQuery(this).text().replace(/,/g, '');
                                     var currentVal = parseInt(currentPointsStr, 10);
@@ -1689,6 +1703,7 @@ class DD_Outreach_Manager
 
     /**
      * AJAX endpoint to toggle the Favorite or Archive status.
+     * Evaluates the new total of archived lists dynamically to update the UI counter.
      */
     public function ajax_toggle_outreach_status()
     {
@@ -1709,7 +1724,23 @@ class DD_Outreach_Manager
             update_post_meta($post_id, 'dd_outreach_archived', $current === '1' ? '0' : '1');
         }
 
-        wp_send_json_success();
+        // Return the freshly calculated total of archived posts so JS can inject it
+        $archived_posts = get_posts([
+            'post_type'      => 'outreach',
+            'posts_per_page' => -1,
+            'author'         => get_current_user_id(),
+            'post_status'    => 'publish',
+            'fields'         => 'ids',
+            'meta_query'     => [
+                [
+                    'key'     => 'dd_outreach_archived',
+                    'value'   => '1',
+                    'compare' => '='
+                ]
+            ]
+        ]);
+
+        wp_send_json_success(['archived_count' => count($archived_posts)]);
     }
 
     /**
@@ -1725,7 +1756,6 @@ class DD_Outreach_Manager
         $raw_fields = get_query_var('influencer_outreach_fields');
         $influencer_outreach_fields = is_array($raw_fields) ? $raw_fields : [];
 
-        // Fetch dynamic filter options explicitly
         $types_raw = get_option('dd_outreach_project_types', '');
         $types_arr = array_filter(array_map('trim', explode("\n", $types_raw)));
         $current_type = $influencer_outreach_fields['project_type'] ?? '';
@@ -1733,6 +1763,23 @@ class DD_Outreach_Manager
         $lengths_raw = get_option('dd_outreach_project_lengths', '');
         $lengths_arr = array_filter(array_map('trim', explode("\n", $lengths_raw)));
         $current_length = $influencer_outreach_fields['project_length'] ?? '';
+
+        // Pre-compute the initial archived badge count
+        $archived_posts = get_posts([
+            'post_type'      => 'outreach',
+            'posts_per_page' => -1,
+            'author'         => get_current_user_id(),
+            'post_status'    => 'publish',
+            'fields'         => 'ids',
+            'meta_query'     => [
+                [
+                    'key'     => 'dd_outreach_archived',
+                    'value'   => '1',
+                    'compare' => '='
+                ]
+            ]
+        ]);
+        $total_archived = count($archived_posts);
 
         ob_start();
     ?>
@@ -1773,7 +1820,10 @@ class DD_Outreach_Manager
 
             <div class="dd-status-nav-wrapper">
                 <a href="#" class="dd-archive-link" data-status="archived">
-                    <span class="dashicons dashicons-archive"></span> Archived
+                    <div class="dd-archive-link-left">
+                        <span class="dashicons dashicons-archive"></span> Archived
+                    </div>
+                    <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
                 </a>
                 <div class="dd-pill-filters">
                     <button class="dd-status-pill active" data-status="all">All</button>
@@ -1899,11 +1949,12 @@ class DD_Outreach_Manager
                 $arch_action_text = $is_arch ? 'Unarchive' : 'Archive';
 
                 $html .= '<div class="dd-outreach-item" data-post-id="' . esc_attr($post_id) . '">';
+                $html .= $fav_star_html; // Placed outside to float absolutely top-left
                 $html .= '<div class="avatar-holder">';
                 $html .= do_shortcode('[influencer_avatar post_id="' . esc_attr($influencer_id) . '"]');
                 $html .= '</div>';
                 $html .= '<div class="dd-item-content">';
-                $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . $fav_star_html . '</span>';
+                $html .= '<span class="dd-item-name">' . esc_html($influencer_name) . '</span>';
                 $html .= '<span class="dd-item-handle">@' . esc_html($influencer_handle) . '</span>';
                 $html .= '<span class="dd-item-title">' . esc_html($title) . '</span>';
                 $html .= '<span class="dd-item-date">' . esc_html($date) . '</span>';
