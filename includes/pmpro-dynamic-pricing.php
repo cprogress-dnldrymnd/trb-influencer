@@ -80,41 +80,6 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Data retrieval and standard card rendering logic.
-	 * UPDATED: Runs base plans through `pmpro_checkout_level` strictly for logged-in 
-	 * users so the table accurately reflects customized prorated quotes.
-	 */
-	private function get_level_data($level_id)
-	{
-		if (! function_exists('pmpro_getLevel')) {
-			return false;
-		}
-		$level = pmpro_getLevel($level_id);
-		if (empty($level)) {
-			return false;
-		}
-
-		// Apply PMPro checkout filters to capture dynamic prorating for active members
-		if (is_user_logged_in() && function_exists('pmpro_hasMembershipLevel') && pmpro_hasMembershipLevel()) {
-			$cloned_level = clone $level;
-			$cloned_level = apply_filters('pmpro_checkout_level', $cloned_level);
-			
-			// Use the dynamically filtered initial payment if it was prorated
-			$price = $cloned_level->initial_payment;
-		} else {
-			// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
-			$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
-		}
-
-		return [
-			'id'        => $level->id,
-			'price'     => pmpro_formatPrice((float)$price),
-			'raw_price' => (float)$price,
-			'url'       => pmpro_url('checkout', '?level=' . $level->id)
-		];
-	}
-
-	/**
 	 * Retrieves the 'Annual' payment plan data for a given PMPro level.
 	 * UPDATED: Passes the deserialized custom payment plan parameters through the prorating
 	 * engine to ensure Yearly tiers also reflect exact real-world costs at checkout.
@@ -575,7 +540,7 @@ class DD_PMPro_Frontend_Pricing
 	<?php
 	}
 
-	/**
+/**
 	 * Data retrieval and standard card rendering logic.
 	 * UPDATED: Runs base plans through `pmpro_checkout_level` strictly for logged-in 
 	 * users so the table accurately reflects customized prorated quotes.

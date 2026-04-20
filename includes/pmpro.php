@@ -444,51 +444,305 @@ function dd_influencer_style_pmpro_checkout()
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
-        #pmpro_form { max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000; }
-        .dd-influencer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; }
-        .dd-checkout-title-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; }
-        .dd-checkout-title-row h2 { font-size: clamp(20px, 1.5vw, 32px) !important; font-weight: 700 !important; margin: 0 !important; color: #000; letter-spacing: -0.5px; }
-        .dd-checkout-title-row a { color: var(--e-global-color-accent); text-decoration: underline; font-weight: 500; font-size: 14px; transition: color 0.2s ease; }
-        .dd-checkout-title-row a:hover { color: #000; }
-        .dd-avatar-wrapper { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #eee; border: 2px solid #ddd; }
-        .dd-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        .pmpro_checkout-section { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; }
-        .pmpro_checkout-section h3, .pmpro_checkout-section h2 { font-size: 20px !important; font-weight: 700 !important; border: none !important; margin-bottom: 15px !important; padding-bottom: 0 !important; color: #000; }
-        #pmpro_level_cost, #pmpropp_payment_plans, #pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan { display: none !important; }
-        .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items { flex-direction: column; gap: 0; }
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item { width: 100%; }
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label { font-size: 1rem; color: #000; }
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input { width: auto; }
-        .pmpro_check_instructions.pmpro_check_instructions { box-shadow: none; border: none; border-radius: 0; margin-top: 0; }
-        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title, .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content { padding: 0; }
-        #pmpro_payment_information_fields .pmpro_card, #pmpro_payment_method .pmpro_card { border-radius: 0; margin: 0; border: none; box-shadow: none; }
-        #pmpro_payment_method .pmpro_card { margin-bottom: 30px; }
-        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content, #pmpro_payment_method .pmpro_card .pmpro_card_content { padding: 0; }
-        #dd-influencer-summary { margin-top: 20px !important; margin-bottom: 20px !important; border-bottom: 1px solid #e5e5e5 !important; padding-bottom: 20px !important; }
-        .infl-summary-card { background: transparent; }
-        .infl-header-row { display: flex; align-items: center; margin-bottom: 25px; }
-        .infl-icon { width: 50px; height: 50px; background: var(--e-global-color-secondary); border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; margin-right: 15px; color: #fff; }
-        .infl-icon img { width: 30px; height: 30px; }
-        .infl-plan-info { flex-grow: 1; }
-        .infl-plan-info h4, .infl-price-info h4 { margin: 0 0 2px 0 !important; font-size: 16px !important; font-weight: 700 !important; }
-        .infl-plan-info span, .infl-price-info span { font-size: 14px; color: #b3b3b3; }
-        .infl-price-info { text-align: right; }
-        body:not(.page-id-4144) span#pmpro_submit_span { width: 100%; }
-        .pmpro_form_submit { flex-direction: column; }
-        .infl-timeline { position: relative; padding-left: 15px; margin-bottom: 20px; }
-        .infl-timeline::before { content: ''; position: absolute; left: 19px; top: 10px; bottom: 25px; width: 1px; background: #000; }
-        .infl-timeline-item { position: relative; padding-left: 20px; margin-bottom: 20px; }
-        .infl-dot { position: absolute; left: 0; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: #000; z-index: 2; }
-        .infl-dot.hollow { background: #fff; border: 2px solid #000; left: 0px; width: 9px; height: 9px; }
-        .infl-content p { margin: 0 0 2px 0 !important; font-size: 15px; font-weight: 500; }
-        .infl-content span { font-size: 14px; color: #b3b3b3; }
-        .infl-bullets.infl-bullets { list-style: none; padding: 0; margin: 0; font-size: 13px !important; color: #6a6a6a; line-height: 1.5; }
-        .infl-bullets li { position: relative; padding-left: 15px; margin-bottom: 6px; }
-        .infl-bullets li::before { content: '•'; position: absolute; left: 0; top: 0; color: #6a6a6a; }
-        .infl-bullets a { color: #6a6a6a; text-decoration: underline; }
-        #pmpro_btn-submit { background-color: #1ed760 !important; color: #000 !important; border-radius: 500px !important; padding: 16px 30px !important; font-size: 16px !important; font-weight: 700 !important; border: none !important; width: 100% !important; text-transform: none !important; transition: transform 0.2s ease, background-color 0.2s ease; margin-top: 20px; }
-        #pmpro_btn-submit:hover { background-color: #1fdf64 !important; transform: scale(1.02); }
-        .dd-clean-account-info h2, .dd-clean-account-info h3, .dd-clean-account-info hr, .dd-clean-account-info p.pmpro_logged_in_text { display: none !important; }
+        #pmpro_form {
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #000;
+        }
+
+        .dd-influencer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+        }
+
+        .dd-checkout-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 20px;
+        }
+
+        .dd-checkout-title-row h2 {
+            font-size: clamp(20px, 1.5vw, 32px) !important;
+            font-weight: 700 !important;
+            margin: 0 !important;
+            color: #000;
+            letter-spacing: -0.5px;
+        }
+
+        .dd-checkout-title-row a {
+            color: var(--e-global-color-accent);
+            text-decoration: underline;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .dd-checkout-title-row a:hover {
+            color: #000;
+        }
+
+        .dd-avatar-wrapper {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #eee;
+            border: 2px solid #ddd;
+        }
+
+        .dd-avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .pmpro_checkout-section {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin-bottom: 30px !important;
+        }
+
+        .pmpro_checkout-section h3,
+        .pmpro_checkout-section h2 {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 0 !important;
+            color: #000;
+        }
+
+        #pmpro_level_cost,
+        #pmpropp_payment_plans,
+        #pmpro_pricing_fields,
+        #pmpro_user_fields,
+        #pmpropp_select_payment_plan {
+            display: none !important;
+        }
+
+        .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item {
+            width: 100%;
+        }
+
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label {
+            font-size: 1rem;
+            color: #000;
+        }
+
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input {
+            width: auto;
+        }
+
+        .pmpro_check_instructions.pmpro_check_instructions {
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+            margin-top: 0;
+        }
+
+        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title,
+        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content {
+            padding: 0;
+        }
+
+        #pmpro_payment_information_fields .pmpro_card,
+        #pmpro_payment_method .pmpro_card {
+            border-radius: 0;
+            margin: 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        #pmpro_payment_method .pmpro_card {
+            margin-bottom: 30px;
+        }
+
+        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content,
+        #pmpro_payment_method .pmpro_card .pmpro_card_content {
+            padding: 0;
+        }
+
+        #dd-influencer-summary {
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            border-bottom: 1px solid #e5e5e5 !important;
+            padding-bottom: 20px !important;
+        }
+
+        .infl-summary-card {
+            background: transparent;
+        }
+
+        .infl-header-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .infl-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--e-global-color-secondary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-right: 15px;
+            color: #fff;
+        }
+
+        .infl-icon img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .infl-plan-info {
+            flex-grow: 1;
+        }
+
+        .infl-plan-info h4,
+        .infl-price-info h4 {
+            margin: 0 0 2px 0 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+        }
+
+        .infl-plan-info span,
+        .infl-price-info span {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        .infl-price-info {
+            text-align: right;
+        }
+
+        body:not(.page-id-4144) span#pmpro_submit_span {
+            width: 100%;
+        }
+
+        .pmpro_form_submit {
+            flex-direction: column;
+        }
+
+        .infl-timeline {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+
+        .infl-timeline::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 10px;
+            bottom: 25px;
+            width: 1px;
+            background: #000;
+        }
+
+        .infl-timeline-item {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .infl-dot {
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #000;
+            z-index: 2;
+        }
+
+        .infl-dot.hollow {
+            background: #fff;
+            border: 2px solid #000;
+            left: 0px;
+            width: 9px;
+            height: 9px;
+        }
+
+        .infl-content p {
+            margin: 0 0 2px 0 !important;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .infl-content span {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        .infl-bullets.infl-bullets {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px !important;
+            color: #6a6a6a;
+            line-height: 1.5;
+        }
+
+        .infl-bullets li {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 6px;
+        }
+
+        .infl-bullets li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #6a6a6a;
+        }
+
+        .infl-bullets a {
+            color: #6a6a6a;
+            text-decoration: underline;
+        }
+
+        #pmpro_btn-submit {
+            background-color: #1ed760 !important;
+            color: #000 !important;
+            border-radius: 500px !important;
+            padding: 16px 30px !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            width: 100% !important;
+            text-transform: none !important;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            margin-top: 20px;
+        }
+
+        #pmpro_btn-submit:hover {
+            background-color: #1fdf64 !important;
+            transform: scale(1.02);
+        }
+
+        .dd-clean-account-info h2,
+        .dd-clean-account-info h3,
+        .dd-clean-account-info hr,
+        .dd-clean-account-info p.pmpro_logged_in_text {
+            display: none !important;
+        }
     </style>
 
     <script>
@@ -564,7 +818,7 @@ function dd_influencer_style_pmpro_checkout()
                     var isAnnual = sourceText.toLowerCase().includes('annual') || sourceText.toLowerCase().includes('year');
                     if (isAnnual) planName = planName + " (Annual)";
 
-                    var nowPrice = "$0.00"; 
+                    var nowPrice = "$0.00";
                     var recurringPrice = "";
                     var cycle = "month";
                     var trialDays = 0;
@@ -595,10 +849,16 @@ function dd_influencer_style_pmpro_checkout()
                     // Catch edge cases for Free upgrades or Downgrades explicitly returned as $0.00
                     if (sourceText.toLowerCase().includes('free now') || sourceText.toLowerCase().includes('0.00 now') || sourceText.toLowerCase().includes('0,00 now')) {
                         var zeroExtract = sourceText.match(/([^\d\sA-Za-z]+\s*0[.,]00)/);
-                        if (zeroExtract) { nowPrice = zeroExtract[1]; }
+                        if (zeroExtract) {
+                            nowPrice = zeroExtract[1];
+                        }
                     }
 
-                    var options = { month: 'short', day: 'numeric', year: 'numeric' };
+                    var options = {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    };
                     var today = new Date();
                     var startDateStr = "Now";
 
@@ -622,7 +882,7 @@ function dd_influencer_style_pmpro_checkout()
 
                         // If the Initial Payment mathematically differs from the recurring base OR equals 0 via downgrade
                         if (!isNaN(cleanNow) && !isNaN(cleanRec) && cleanNow !== cleanRec) {
-                             bulletsHtml += '<li><strong>Plan Adjustment:</strong> ' + proratingNotice + '</li>';
+                            bulletsHtml += '<li><strong>Plan Adjustment:</strong> ' + proratingNotice + '</li>';
                         }
                     }
 
@@ -707,7 +967,7 @@ function dd_influencer_style_pmpro_checkout()
 
                     if ($levelCost.length) $levelCost.hide();
                 }
-            }, 100); 
+            }, 100);
         });
     </script>
 <?php
