@@ -420,6 +420,11 @@ input:checked + .slider:before {
 .pmpro_form_input.pmpro_form_input {
   width: 100%; }
 
+#pmpro_login .pmpro_actions_nav {
+  text-align: left; }
+  #pmpro_login .pmpro_actions_nav a {
+    color: var(--e-global-color-accent); }
+
 .pmpro.pmpro * {
   font-family: Inter !important; }
 .pmpro.pmpro .pmpro_section {
