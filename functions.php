@@ -57,9 +57,9 @@ require $dir . '/includes/saves-manager.php';
 require $dir . '/includes/mycred.php';
 require $dir . '/includes/mycred-frontend-log.php';
 #require $dir . '/includes/pmpro.php';
-#require $dir . '/includes/pmpro-mycred-rewards-manager.php';
+require $dir . '/includes/pmpro-mycred-rewards-manager.php';
 require $dir . '/includes/email-template-manager.php';
-require $dir . '/includes/pmpro-dynamic-pricing.php';
+#require $dir . '/includes/pmpro-dynamic-pricing.php';
 require $dir . '/includes/acf.php';
 require $dir . '/includes/sign-up.php';
 require $dir . '/includes/elementor.php';
@@ -96,49 +96,29 @@ add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
 
-
-
 /**
- * 1. BACKEND OVERRIDE: Push the next payment date to the existing expiration date, bypassing the delay.
+ * Safely disable the PMPro Subscription Delays Add-on for existing paid members
+ * so the PMPro Proration Add-on can function correctly during plan changes.
  */
-add_filter( 'pmpro_profile_start_date', 'influencer_collective_fix_delay_on_switch', 10, 2 );
-function influencer_collective_fix_delay_on_switch( $startdate, $order ) {
-    // Only apply to logged-in users who are upgrading/switching
-    if ( ! is_user_logged_in() ) {
-        return $startdate;
+add_action( 'init', 'influencer_collective_disable_pmprosd_for_upgrades', 99 );
+function influencer_collective_disable_pmprosd_for_upgrades() {
+    // Only proceed if PMPro is active and the user is logged in
+    if ( ! function_exists( 'pmpro_getMembershipLevelForUser' ) || ! is_user_logged_in() ) {
+        return;
     }
-    
+
     $user_id = get_current_user_id();
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
-    // Check if the user has an active level with a future payment date
-    if ( ! empty( $current_level ) && ! empty( $current_level->next_payment ) ) {
-        // Override the 3-day delay and force the new plan to start when the current banked time expires
-        $startdate = date( "Y-m-d\TH:i:s", $current_level->next_payment );
-    }
-    
-    return $startdate;
-}
-
-/**
- * 2. FRONTEND OVERRIDE: Fix the pricing text on the checkout page so it doesn't say "3 day trial".
- */
-add_filter( 'pmpro_level_cost_text', 'influencer_collective_fix_checkout_text', 10, 4 );
-function influencer_collective_fix_checkout_text( $text, $level, $tags, $short ) {
-    if ( ! is_user_logged_in() ) {
-        return $text;
-    }
-    
-    $user_id = get_current_user_id();
-    $current_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    // If they have banked time, rewrite the display text
-    if ( ! empty( $current_level ) && ! empty( $current_level->next_payment ) ) {
-        $formatted_date = date_i18n( get_option( 'date_format' ), $current_level->next_payment );
+    // If the user already has an active membership level, kill the delay add-on's filters
+    if ( ! empty( $current_level ) ) {
+        // Unhook Subscription Delays from hijacking the checkout level price/trials
+        remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10 );
         
-        // Dynamically replace the default trial text with their actual next payment date
-        $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
+        // Unhook Subscription Delays from hijacking the start date
+        remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10 );
+        
+        // Unhook Subscription Delays from hijacking the checkout text
+        remove_filter( 'pmpro_level_cost_text', 'pmprosd_pmpro_level_cost_text', 10 );
     }
-    
-    return $text;
 }
