@@ -1292,31 +1292,3 @@ function ic_custom_pmpro_profile_update_email( $user_id, $old_user_data ) {
 }
 add_action( 'profile_update', 'ic_custom_pmpro_profile_update_email', 10, 2 );
 
-/**
- * Disable PMPro Subscription Delay on Plan Switch for Active Members
- * Forces the new plan's payments to start exactly when the current paid time expires.
- */
-function ic_override_subscription_delay_on_switch( $startdate, $user_id, $level ) {
-    // 1. Get the user's currently active membership level
-    $current_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    // 2. Check if they have an active plan
-    if ( ! empty( $current_level ) ) {
-        
-        // 3. Find exactly when their current paid time runs out
-        // Check for a hard end date first, otherwise check the recurring next payment date
-        $current_expiration = ! empty( $current_level->enddate ) ? $current_level->enddate : pmpro_next_payment( $user_id );
-        
-        // 4. If they have time banked in the future, override the start date
-        if ( ! empty( $current_expiration ) && $current_expiration > time() ) {
-            
-            // Format the start date exactly how PMPro expects it (Y-m-d\TH:i:s)
-            // This completely ignores the 3-day delay and uses their banked time
-            $startdate = date( "Y-m-d\TH:i:s", $current_expiration );
-        }
-    }
-
-    return $startdate;
-}
-// We use priority 20 to ensure this runs AFTER the PMPro Subscription Delays add-on tries to set its 3-day rule
-add_filter( 'pmpro_profile_start_date', 'ic_override_subscription_delay_on_switch', 20, 3 );
