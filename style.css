@@ -1482,6 +1482,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
   justify-content: center;
   font-weight: bold; }
 
+#terms_acceptance_div label {
+  display: none !important; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
