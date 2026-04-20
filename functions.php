@@ -98,7 +98,7 @@ add_action('init', function () {
 
 
 /**
- * 1. THE EVICTION: Kill all forced delays from ALL add-ons for existing members.
+ * 1. THE EVICTION: Kill all forced delays using the CORRECT PMPro function names.
  */
 add_action( 'init', 'influencer_collective_kill_all_delays', 999 );
 function influencer_collective_kill_all_delays() {
@@ -108,25 +108,20 @@ function influencer_collective_kill_all_delays() {
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
     if ( ! empty( $current_level ) ) {
-        // Kill Standalone Subscription Delays Add-on
-        remove_filter( 'pmpro_checkout_level', 'pmpro_sd_pmpro_checkout_level', 10 );
-        remove_filter( 'pmpro_profile_start_date', 'pmpro_sd_pmpro_profile_start_date', 10 );
-        remove_filter( 'pmpro_level_cost_text', 'pmpro_sd_pmpro_level_cost_text', 10 );
+        // CRITICAL FIX: Removed the incorrect underscores. These are the real function names.
+        remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10 );
+        remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10 );
+        remove_filter( 'pmpro_level_cost_text', 'pmprosd_pmpro_level_cost_text', 10 );
 
-        // Kill Built-in Pay by Check / Offline Gateway Delays
+        // Ensure Pay by Check / Offline delays are also dead
         remove_filter( 'pmpro_checkout_level', 'pmpro_pay_by_check_pmpro_checkout_level', 10 );
         remove_filter( 'pmpro_profile_start_date', 'pmpro_pay_by_check_pmpro_profile_start_date', 10 );
         remove_filter( 'pmpro_level_cost_text', 'pmpro_pay_by_check_pmpro_level_cost_text', 10 );
-        
-        // Failsafe for older PMPro offline plugin prefixes
-        remove_filter( 'pmpro_checkout_level', 'pmprooff_pmpro_checkout_level', 10 );
-        remove_filter( 'pmpro_profile_start_date', 'pmprooff_pmpro_profile_start_date', 10 );
-        remove_filter( 'pmpro_level_cost_text', 'pmprooff_pmpro_level_cost_text', 10 );
     }
 }
 
 /**
- * 2. THE LEVEL OVERRIDE: Stack time for manual gateways without breaking Stripe.
+ * 2. THE LEVEL OVERRIDE: Stack time for manual gateways ONLY (protects Stripe Proration).
  */
 add_filter( 'pmpro_checkout_level', 'influencer_collective_manual_gateway_stacking', 999 );
 function influencer_collective_manual_gateway_stacking( $level ) {
@@ -139,17 +134,16 @@ function influencer_collective_manual_gateway_stacking( $level ) {
     $gateway = isset( $_REQUEST['gateway'] ) ? sanitize_text_field( $_REQUEST['gateway'] ) : pmpro_getOption('gateway');
     $manual_gateways = array( 'check', 'bank_transfer', 'manual', 'offline' );
 
-    // If manual gateway AND existing member
+    // ONLY apply to manual gateways so we DO NOT break Stripe's native Proration math
     if ( ! empty( $current_level ) && in_array( $gateway, $manual_gateways ) ) {
         $next_payment = pmpro_next_payment( $user_id );
         
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
+            $next_payment = strtotime( $current_level->enddate );
         }
         
         if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
             $level->initial_payment = 0; 
-            // CRITICAL FIX: We MUST zero out the trials so PMPro core doesn't auto-generate a ghost trial!
             $level->custom_trial = 0;
             $level->trial_amount = 0;
             $level->trial_limit  = 0;
@@ -177,7 +171,7 @@ function influencer_collective_manual_gateway_date( $startdate, $order ) {
             $next_payment = pmpro_next_payment( $user_id );
             
             if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-                $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
+                $next_payment = strtotime( $current_level->enddate );
             }
 
             if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
@@ -206,12 +200,11 @@ function influencer_collective_force_ajax_text_fix( $text, $level, $tags, $short
         $next_payment = pmpro_next_payment( $user_id );
         
         if ( empty( $next_payment ) && ! empty( $current_level->enddate ) ) {
-            $next_payment = strtotime( $current_level->enddate, current_time( 'timestamp' ) );
+            $next_payment = strtotime( $current_level->enddate );
         }
 
         if ( ! empty( $next_payment ) && $next_payment > current_time( 'timestamp' ) ) {
             $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment );
-            // Aggressively scrub any trial wording and inject the proper banked start date
             $text = preg_replace( '/after your.*?trial\.?/i', 'starting on ' . $formatted_date . '.', $text );
         }
     }
