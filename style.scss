@@ -1890,6 +1890,12 @@ body:not(.page-id-4144) {
     }
 }
 
+.pmpro_form_submit {
+    .pmpro_btn-cancel {
+        padding: 12px 20px;
+    }
+}
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
