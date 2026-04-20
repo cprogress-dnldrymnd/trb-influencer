@@ -1150,3 +1150,64 @@ function ic_custom_pmpro_profile_update_email( $user_id, $old_user_data ) {
 }
 add_action( 'profile_update', 'ic_custom_pmpro_profile_update_email', 10, 2 );
 
+/**
+ * 1. BACKEND OVERRIDE: Push the next payment date to the existing expiration date.
+ * Priority set to 99 to guarantee it overrides the Subscription Delays add-on.
+ */
+add_filter( 'pmpro_profile_start_date', 'influencer_collective_fix_delay_on_switch', 99, 2 );
+function influencer_collective_fix_delay_on_switch( $startdate, $order ) {
+    // Only apply to logged-in users who are upgrading/switching
+    if ( ! is_user_logged_in() ) {
+        return $startdate;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    if ( ! empty( $current_level ) ) {
+        // Securely grab the exact timestamp of their next payment via PMPro's native function
+        $next_payment_timestamp = pmpro_next_payment( $user_id );
+        
+        // Fallback: If no recurring payment is found, check if they have a hard expiration date set
+        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
+            $next_payment_timestamp = $current_level->enddate;
+        }
+
+        // If we successfully found their banked time (e.g., May 17, 2026), force that date
+        if ( ! empty( $next_payment_timestamp ) ) {
+            $startdate = date( "Y-m-d\TH:i:s", $next_payment_timestamp );
+        }
+    }
+    
+    return $startdate;
+}
+
+/**
+ * 2. FRONTEND OVERRIDE: Fix the pricing text on the checkout page so it reads correctly.
+ */
+add_filter( 'pmpro_level_cost_text', 'influencer_collective_fix_checkout_text', 99, 4 );
+function influencer_collective_fix_checkout_text( $text, $level, $tags, $short ) {
+    if ( ! is_user_logged_in() ) {
+        return $text;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    if ( ! empty( $current_level ) ) {
+        $next_payment_timestamp = pmpro_next_payment( $user_id );
+        
+        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
+            $next_payment_timestamp = $current_level->enddate;
+        }
+
+        if ( ! empty( $next_payment_timestamp ) ) {
+            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
+            
+            // Dynamically strip out the "after your X day trial" text and inject the real date
+            $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
+        }
+    }
+    
+    return $text;
+}
