@@ -2391,16 +2391,20 @@ class DD_Outreach_Manager
                 </div>
             </div>
 
-            <div class="dd-status-nav-wrapper">
-                <a href="#" class="dd-archive-link" data-status="archived">
-                    <div class="dd-archive-link-left">
-                        <span class="dashicons dashicons-archive"></span> Archived
+              <div class="dd-status-nav-wrapper">
+                <div class="dd-status-archive">
+                    <a href="#" class="dd-archive-link" data-status="archived">
+                        <div class="dd-archive-link-left">
+                            <span class="dashicons dashicons-archive"></span> Archived
+                        </div>
+                        <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
+                    </a>
+                </div>
+                <div class="dd-pill-filters-wrapper">
+                    <div class="dd-pill-filters">
+                        <button class="dd-status-pill active" data-status="all">All</button>
+                        <button class="dd-status-pill" data-status="favorites">Favourites</button>
                     </div>
-                    <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
-                </a>
-                <div class="dd-pill-filters">
-                    <button class="dd-status-pill active" data-status="all">All</button>
-                    <button class="dd-status-pill" data-status="favorites">Favourites</button>
                 </div>
             </div>
 
