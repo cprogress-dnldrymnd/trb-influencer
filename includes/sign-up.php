@@ -203,7 +203,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 'user_avatar',
                 'file',
                 array(
-                    'label'        => 'Profile Picture',
+                    'label'        => 'Brand logo',
                     'profile'      => true,
                     'preview'      => true,
                     'allow_delete' => true,
