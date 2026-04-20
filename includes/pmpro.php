@@ -1099,10 +1099,16 @@ function pmpro_checkout_level_custom_prorating_rules($level)
         if (pmprorate_isDowngrade($clevel->id, $level->id)) {
 
             $level->initial_payment = 0;
-            // CRITICAL FIX: Safely capture the expiration date BEFORE the checkout destroys it
-            global $pmpro_checkout_old_level, $dd_banked_expiration;
+            
+            // CRITICAL FIX: Safely capture the expiration date and intent to the DB before checkout destroys it
+            $banked_expiration = pmpro_next_payment($current_user->ID);
+            update_user_meta($current_user->ID, 'dd_checkout_intent_old_level', $clevel->id);
+            update_user_meta($current_user->ID, 'dd_checkout_intent_new_level', $level->id);
+            update_user_meta($current_user->ID, 'dd_checkout_intent_expiration', $banked_expiration);
+
+            // Keep the global for legacy PMPro addons just in case
+            global $pmpro_checkout_old_level;
             $pmpro_checkout_old_level = $clevel;
-            $dd_banked_expiration = pmpro_next_payment($current_user->ID);
 
             add_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2);
 
@@ -1210,49 +1216,77 @@ function pmpro_checkout_level_custom_prorating_rules($level)
  */
 
 /**
- * 1. Intercept the Downgrade Checkout & Revert Access
+ * 1. Intercept the Downgrade Checkout & Webhook Defense
  */
 function dd_custom_preserve_old_level_on_downgrade($level_id, $user_id, $cancel_level)
 {
-    global $pmpro_checkout_old_level, $dd_banked_expiration;
+    // --- PART 1: STRIPE WEBHOOK DEFENSE ---
+    // If a gateway fires a webhook later trying to force them into the downgraded plan prematurely, block it!
+    $future_downgrade_level = get_user_meta($user_id, 'dd_future_downgrade_level', true);
+    $future_downgrade_date  = get_user_meta($user_id, 'dd_future_downgrade_date', true);
+    $preserved_old_level    = get_user_meta($user_id, 'dd_preserved_old_level', true);
 
-    // If this isn't a confirmed downgrade from our proration math, let it run normally
-    if (empty($pmpro_checkout_old_level) || ! pmprorate_isDowngrade($pmpro_checkout_old_level->id, $level_id)) {
-        return;
+    if (!empty($future_downgrade_level) && $level_id == $future_downgrade_level && current_time('timestamp') < $future_downgrade_date) {
+        if (!empty($preserved_old_level)) {
+            // Temporarily disable gateway cancellations
+            add_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
+
+            // Revert the webhook's action and aggressively put them back on their higher tier
+            pmpro_changeMembershipLevel($preserved_old_level, $user_id);
+
+            // Ensure their active profile strictly matches the expiration date
+            global $wpdb;
+            $formatted_date = date('Y-m-d H:i:s', $future_downgrade_date);
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->pmpro_memberships_users} SET enddate = %s WHERE user_id = %d AND membership_id = %d AND status = 'active'",
+                $formatted_date, $user_id, $preserved_old_level
+            ));
+
+            // Re-enable cancellations
+            remove_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
+            return; // Exit here so we don't process part 2
+        }
     }
 
-    // CRITICAL FIX: Disarm the Single Membership Enforcer so it doesn't massacre the restored level!
-    remove_action('pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10);
+    // --- PART 2: INITIAL CHECKOUT INTERCEPT ---
+    // Check the database for intent instead of relying on fragile PHP globals
+    $intent_old_level = get_user_meta($user_id, 'dd_checkout_intent_old_level', true);
+    $intent_new_level = get_user_meta($user_id, 'dd_checkout_intent_new_level', true);
+    $expiration_timestamp = get_user_meta($user_id, 'dd_checkout_intent_expiration', true);
 
-    // Temporarily disable gateway cancellations so Stripe doesn't panic when we swap them back
-    add_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
+    if (!empty($intent_old_level) && $level_id == $intent_new_level) {
 
-    // Use the safely captured expiration date from before checkout scrambled the database
-    $expiration_timestamp = !empty($dd_banked_expiration) ? $dd_banked_expiration : pmpro_next_payment($user_id);
+        if (!empty($expiration_timestamp)) {
+            // Lock the delay parameters into the database for the Daily Worker and Webhook Defense
+            update_user_meta($user_id, 'dd_future_downgrade_level', $level_id);
+            update_user_meta($user_id, 'dd_future_downgrade_date', $expiration_timestamp);
+            update_user_meta($user_id, 'dd_preserved_old_level', $intent_old_level);
 
-    if (! empty($expiration_timestamp)) {
-        // Save the future downgrade plan and date in the database
-        update_user_meta($user_id, 'dd_future_downgrade_level', $level_id);
-        update_user_meta($user_id, 'dd_future_downgrade_date', $expiration_timestamp);
+            // Clean up the initial checkout intent so it doesn't fire again randomly
+            delete_user_meta($user_id, 'dd_checkout_intent_old_level');
+            delete_user_meta($user_id, 'dd_checkout_intent_new_level');
+            delete_user_meta($user_id, 'dd_checkout_intent_expiration');
 
-        // Immediately swap them BACK to their old level without triggering new emails/cancellations
-        pmpro_changeMembershipLevel($pmpro_checkout_old_level->id, $user_id);
+            // Temporarily disable gateway cancellations
+            add_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
 
-        // Ensure their active profile strictly matches the expiration date
-        global $wpdb;
-        $formatted_date = date('Y-m-d H:i:s', $expiration_timestamp);
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$wpdb->pmpro_memberships_users} SET enddate = %s WHERE user_id = %d AND membership_id = %d AND status = 'active'",
-            $formatted_date,
-            $user_id,
-            $pmpro_checkout_old_level->id
-        ));
+            // Immediately swap them BACK to their old level
+            pmpro_changeMembershipLevel($intent_old_level, $user_id);
+
+            // Ensure their active profile strictly matches the expiration date
+            global $wpdb;
+            $formatted_date = date('Y-m-d H:i:s', $expiration_timestamp);
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->pmpro_memberships_users} SET enddate = %s WHERE user_id = %d AND membership_id = %d AND status = 'active'",
+                $formatted_date, $user_id, $intent_old_level
+            ));
+
+            // Re-enable cancellations
+            remove_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
+        }
     }
-
-    // Re-enable cancellations
-    remove_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
 }
-// CRITICAL FIX: Bumped Priority to 1. This guarantees our Engine runs FIRST, before any other scripts cancel the user's plans.
+// Hook priority remains at 1
 add_action('pmpro_after_change_membership_level', 'dd_custom_preserve_old_level_on_downgrade', 1, 3);
 
 /**
