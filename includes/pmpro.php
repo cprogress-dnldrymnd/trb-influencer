@@ -419,43 +419,6 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1);
 
 
-/**
- * Displays a clarifying notice on the PMPro checkout page before redirecting to Stripe.
- * This informs the user that Stripe's mandatory UI will label their previously paid time as a 'Free Trial'.
- *
- * @global object $pmpro_level The current membership level being processed at checkout.
- * @return void Outputs HTML directly to the checkout page.
- */
-/*
-function dd_pmpro_checkout_stripe_trial_notice() {
-    global $pmpro_level;
-    
-    // Ensure we are actively on the checkout page processing a level for an authenticated user.
-    if ( empty( $pmpro_level ) || ! is_user_logged_in() ) {
-        return;
-    }
-
-    $user_id = get_current_user_id();
-    $old_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    // Abort if there is no active subscription or if the user is renewing the exact same level.
-    if ( empty( $old_level ) || $old_level->id == $pmpro_level->id ) {
-        return;
-    }
-
-    // Retrieve the UNIX timestamp for the existing subscription's next scheduled payment.
-    $next_payment_timestamp = pmpro_next_payment( $user_id );
-
-    // If the user has a future payment date (indicating prepaid time remains), inject the warning notice.
-    if ( $next_payment_timestamp && $next_payment_timestamp > current_time( 'timestamp' ) ) {
-        $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
-        
-        echo '<div class="pmpro_message pmpro_alert" style="margin-bottom: 20px; padding: 15px; border-left: 4px solid #ffba00; background-color: #fff9e6;">';
-        echo '<strong>Billing Notice:</strong> On the next screen, the payment gateway may display your remaining prepaid time (valid until <strong>' . esc_html( $formatted_date ) . '</strong>) as a "Free Trial". This is a system limitation; it simply represents the time you have already paid for on your current plan. You will not be double-charged.';
-        echo '</div>';
-    }
-}
-add_action( 'pmpro_checkout_before_submit_button', 'dd_pmpro_checkout_stripe_trial_notice' );*/
 
 /**
  * Intercepts frontend page loads to handle two specific free-tier redirections:
@@ -1206,3 +1169,125 @@ function dd_pmpro_save_name_fields_to_usermeta($user_id, $morder)
     }
 }
 add_action('pmpro_after_checkout', 'dd_pmpro_save_name_fields_to_usermeta', 10, 2);
+
+
+/**
+ * 1. Create the Submenu Page under PMPro Dashboard
+ */
+function ic_pmpro_account_update_email_menu() {
+	// Ensure PMPro is active before adding the menu
+	if ( ! defined( 'PMPRO_VERSION' ) ) {
+		return;
+	}
+
+	add_submenu_page(
+		'pmpro-dashboard', // Parent slug (PMPro Dashboard)
+		'Account Update Email', // Page title
+		'Account Update Email', // Menu title
+		'manage_options', // Capability required
+		'ic-pmpro-account-update-email', // Menu slug
+		'ic_pmpro_account_update_email_page' // Callback function to render the page
+	);
+}
+add_action( 'admin_menu', 'ic_pmpro_account_update_email_menu', 20 );
+
+/**
+ * 2. Render the Backend Settings Page & Email Builder
+ */
+function ic_pmpro_account_update_email_page() {
+	// Check permissions
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	// Handle saving the form data
+	if ( isset( $_POST['ic_save_email_settings'] ) && check_admin_referer( 'ic_pmpro_email_settings_nonce' ) ) {
+		update_option( 'ic_pmpro_profile_update_subject', sanitize_text_field( $_POST['ic_pmpro_profile_update_subject'] ) );
+		update_option( 'ic_pmpro_profile_update_body', wp_kses_post( $_POST['ic_pmpro_profile_update_body'] ) );
+		
+		echo '<div class="notice notice-success is-dismissible"><p><strong>Email settings saved successfully!</strong></p></div>';
+	}
+
+	// Retrieve existing data or set fallbacks
+	$subject = get_option( 'ic_pmpro_profile_update_subject', 'Your account details have been updated!' );
+	$body    = get_option( 'ic_pmpro_profile_update_body', '<h2>Profile Update Successful</h2><p>Hey {display_name},</p><p>We just wanted to give you a quick heads-up that your account details were successfully updated on your profile.</p><p>If you didn\'t make this change, please reach out to our support team immediately.</p><p>Stay awesome!</p>' );
+	?>
+	<div class="wrap">
+		<h1>Account Update Email Builder</h1>
+		<p>Customize the automated email sent to members when they update their profile details on the frontend.</p>
+		
+		<div style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; margin-top: 20px; max-width: 800px;">
+			<form method="post" action="">
+				<?php wp_nonce_field( 'ic_pmpro_email_settings_nonce' ); ?>
+				
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="ic_pmpro_profile_update_subject"><strong>Email Subject</strong></label></th>
+						<td>
+							<input name="ic_pmpro_profile_update_subject" type="text" id="ic_pmpro_profile_update_subject" value="<?php echo esc_attr( $subject ); ?>" class="regular-text" style="width: 100%;">
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="ic_pmpro_profile_update_body"><strong>Email Body</strong></label><br><br>
+							<em>Available Merge Tags:</em><br>
+							<code>{display_name}</code><br>
+							<code>{user_email}</code><br>
+							<code>{username}</code>
+						</th>
+						<td>
+							<?php 
+							// Generate the native WordPress Rich Text Editor
+							$settings = array(
+								'textarea_name' => 'ic_pmpro_profile_update_body',
+								'textarea_rows' => 15,
+								'media_buttons' => true,
+							);
+							wp_editor( $body, 'ic_pmpro_profile_update_body_editor', $settings ); 
+							?>
+						</td>
+					</tr>
+				</table>
+				
+				<p class="submit">
+					<input type="submit" name="ic_save_email_settings" id="submit" class="button button-primary" value="Save Email Template">
+				</p>
+			</form>
+		</div>
+	</div>
+	<?php
+}
+
+/**
+ * 3. Send the custom PMPro email using our new database values
+ */
+function ic_custom_pmpro_profile_update_email( $user_id, $old_user_data ) {
+	// Make sure PMPro is active
+	if ( ! class_exists( 'PMProEmail' ) ) {
+		return;
+	}
+
+	// Check if user has an active membership level (optional, uncomment if needed)
+	// if ( ! pmpro_hasMembershipLevel( null, $user_id ) ) { return; }
+
+	$user = get_userdata( $user_id );
+
+	// Fetch our saved builder settings (with fallbacks)
+	$subject = get_option( 'ic_pmpro_profile_update_subject', 'Your account details have been updated!' );
+	$body    = get_option( 'ic_pmpro_profile_update_body', '<p>Hey {display_name}, your profile was updated.</p>' );
+
+	// Process dynamic merge tags
+	$body = str_replace( '{display_name}', $user->display_name, $body );
+	$body = str_replace( '{user_email}', $user->user_email, $body );
+	$body = str_replace( '{username}', $user->user_login, $body );
+
+	// Set up and send the PMPro Email
+	$pmpro_email = new PMProEmail();
+	$pmpro_email->email    = $user->user_email;
+	$pmpro_email->subject  = $subject;
+	$pmpro_email->template = "custom_profile_update";
+	$pmpro_email->body     = $body;
+
+	$pmpro_email->sendEmail();
+}
+add_action( 'profile_update', 'ic_custom_pmpro_profile_update_email', 10, 2 );
