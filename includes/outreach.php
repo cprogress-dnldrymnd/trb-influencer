@@ -1110,8 +1110,8 @@ class DD_Outreach_Manager
             $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'creator_contact_emails', true) : 'creator@example.com';
 
             // Generate HTML using your existing shortcodes
-            $user_avatar       = do_shortcode('[user_avatar]');
-            $influencer_avatar = do_shortcode('[influencer_avatar post_id="' . $influencer_id . '"]');
+            $user_avatar       = do_shortcode('[user_avatar is_email_template="true"]');
+            $influencer_avatar = do_shortcode('[influencer_avatar is_email_template="true" post_id="' . $influencer_id . '"]');
 
             $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
             $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
