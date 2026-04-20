@@ -790,76 +790,18 @@ class DD_Outreach_Manager
     ?>
         <style>
             /* Repeater UI CSS */
-            .dd-repeater-item {
-                border: 1px solid #c3c4c7;
-                background: #fff;
-                margin-bottom: 15px;
-                border-radius: 4px;
-                box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
-            }
-
-            .dd-repeater-header {
-                padding: 10px 15px;
-                background: #f6f7f7;
-                border-bottom: 1px solid #c3c4c7;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-
-            .dd-repeater-header h4 {
-                margin: 0;
-                font-size: 14px;
-                flex-grow: 1;
-                padding-left: 10px;
-                cursor: pointer;
-            }
-
-            .dd-repeater-header .drag-handle {
-                cursor: grab;
-                color: #8c8f94;
-            }
-
-            .dd-repeater-header .actions a {
-                margin-left: 10px;
-                text-decoration: none;
-                font-size: 13px;
-            }
-
-            .dd-repeater-header .actions a.delete-item {
-                color: #d63638;
-            }
-
-            .dd-repeater-body {
-                padding: 15px;
-            }
-
-            .dd-field-group {
-                margin-bottom: 15px;
-                display: flex;
-                gap: 15px;
-                flex-wrap: wrap;
-            }
-
-            .dd-field-group .field {
-                flex: 1;
-                min-width: 250px;
-            }
-
-            .dd-field-group label {
-                display: block;
-                font-weight: 600;
-                margin-bottom: 5px;
-                font-size: 12px;
-            }
-
-            .dd-field-group input {
-                width: 100%;
-            }
-
-            .blueprint {
-                display: none;
-            }
+            .dd-repeater-item { border: 1px solid #c3c4c7; background: #fff; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 1px 1px rgba(0, 0, 0, .04); }
+            .dd-repeater-header { padding: 10px 15px; background: #f6f7f7; border-bottom: 1px solid #c3c4c7; display: flex; align-items: center; justify-content: space-between; }
+            .dd-repeater-header h4 { margin: 0; font-size: 14px; flex-grow: 1; padding-left: 10px; cursor: pointer; }
+            .dd-repeater-header .drag-handle { cursor: grab; color: #8c8f94; }
+            .dd-repeater-header .actions a { margin-left: 10px; text-decoration: none; font-size: 13px; }
+            .dd-repeater-header .actions a.delete-item { color: #d63638; }
+            .dd-repeater-body { padding: 15px; }
+            .dd-field-group { margin-bottom: 15px; display: flex; gap: 15px; flex-wrap: wrap; }
+            .dd-field-group .field { flex: 1; min-width: 250px; }
+            .dd-field-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; }
+            .dd-field-group input { width: 100%; }
+            .blueprint { display: none; }
         </style>
 
         <div class="wrap">
@@ -1103,7 +1045,7 @@ class DD_Outreach_Manager
             $meta_country    = get_user_meta($author_id, 'country', true);
             $country_display = $this->get_country_display($meta_country);
             $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
-            $avatar_url  = 'https://via.placeholder.com/60x60';
+            $avatar_url  = 'https://via.placeholder.com/60x60'; 
             if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
                 $avatar_url = $avatar_meta['fullurl'];
             }
@@ -1161,7 +1103,7 @@ class DD_Outreach_Manager
         wp_send_json_success($final_html);
     }
 
-
+   
     /**
      * Outputs consolidated CSS into the document <head>.
      * Responsive modal overlay logic is introduced at max-width: 1024px.
@@ -2048,7 +1990,7 @@ class DD_Outreach_Manager
         $country_display = $this->get_country_display($meta_country);
 
         $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-        $avatar_url  = 'https://via.placeholder.com/60x60';
+        $avatar_url  = 'https://via.placeholder.com/60x60'; 
         if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
             $avatar_url = $avatar_meta['fullurl'];
         }
@@ -2142,9 +2084,9 @@ class DD_Outreach_Manager
                     jQuery(document).on('submit_success', function(event, response) {
                         if (response && response.data && response.data.dd_custom_html) {
                             ddFormSubmitted = true;
-
+                            
                             var $summaryTarget = jQuery('#outreach-form-summary');
-
+                            
                             if (response.data.updated_points !== undefined) {
                                 jQuery('.current-points').text(response.data.updated_points);
                                 if (response.data.updated_points == 0 || response.data.updated_points == '0') {
@@ -2420,14 +2362,14 @@ class DD_Outreach_Manager
                     <div class="influencer-search-item">
                         <input type="text" id="dd-outreach-search" name="search" placeholder="Search by influencer or message">
                     </div>
-
+                    
                     <div class="influencer-search-item">
                         <select name="project_type" class="dd-filter-select">
                             <option value="">Filter by project type</option>
                             <?php foreach ($types_arr as $type) : ?>
-                                <?php
-                                $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
-                                $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
+                                <?php 
+                                    $val = strpos($type, '|') !== false ? explode('|', $type)[0] : $type;
+                                    $label = strpos($type, '|') !== false ? explode('|', $type)[1] : $type;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_type, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2438,9 +2380,9 @@ class DD_Outreach_Manager
                         <select name="project_length" class="dd-filter-select">
                             <option value="">Filter by project length</option>
                             <?php foreach ($lengths_arr as $length) : ?>
-                                <?php
-                                $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
-                                $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
+                                <?php 
+                                    $val = strpos($length, '|') !== false ? explode('|', $length)[0] : $length;
+                                    $label = strpos($length, '|') !== false ? explode('|', $length)[1] : $length;
                                 ?>
                                 <option value="<?php echo esc_attr($val); ?>" <?php selected($current_length, $val); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
@@ -2450,19 +2392,15 @@ class DD_Outreach_Manager
             </div>
 
             <div class="dd-status-nav-wrapper">
-                <div class="dd-status-archive">
-                    <a href="#" class="dd-archive-link" data-status="archived">
-                        <div class="dd-archive-link-left">
-                            <span class="dashicons dashicons-archive"></span> Archived
-                        </div>
-                        <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
-                    </a>
-                </div>
-                <div class="dd-pill-filters-wrapper">
-                    <div class="dd-pill-filters">
-                        <button class="dd-status-pill active" data-status="all">All</button>
-                        <button class="dd-status-pill" data-status="favorites">Favourites</button>
+                <a href="#" class="dd-archive-link" data-status="archived">
+                    <div class="dd-archive-link-left">
+                        <span class="dashicons dashicons-archive"></span> Archived
                     </div>
+                    <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
+                </a>
+                <div class="dd-pill-filters">
+                    <button class="dd-status-pill active" data-status="all">All</button>
+                    <button class="dd-status-pill" data-status="favorites">Favourites</button>
                 </div>
             </div>
 
@@ -2578,7 +2516,7 @@ class DD_Outreach_Manager
 
                 $title = get_the_title();
                 $date = get_the_date('M j, Y');
-
+                
                 $fav_star_html = $is_fav ? '<span class="dd-fav-star">&#9733;</span>' : '';
                 $fav_action_text = $is_fav ? 'Remove from Favourites' : 'Add to Favourites';
                 $arch_action_text = $is_arch ? 'Unarchive' : 'Archive';
@@ -2596,13 +2534,12 @@ class DD_Outreach_Manager
                 $html .= '</div>';
 
                 // Appended 3-dot dropdown menu overlay to exactly match UI request
-                $html .= '<div class="dd-item-dots-holder">';
                 $html .= '<div class="dd-item-dots">';
                 $html .= '<button class="dd-action-toggle">&bull;&bull;&bull;</button>';
                 $html .= '<div class="dd-action-menu">';
                 $html .= '<a href="#" class="dd-action-btn" data-action="favorite" data-id="' . esc_attr($post_id) . '">' . $fav_action_text . '</a>';
                 $html .= '<a href="#" class="dd-action-btn" data-action="archive" data-id="' . esc_attr($post_id) . '">' . $arch_action_text . '</a>';
-                $html .= '</div></div></div>';
+                $html .= '</div></div>';
 
                 $html .= '</div>';
             }
