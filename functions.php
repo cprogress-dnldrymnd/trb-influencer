@@ -211,7 +211,10 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             $new_level_cost = $level->billing_amount * $per_left;
             $old_level_cost = $clevel->billing_amount * $per_passed;
             
-            $level->initial_payment = min( $base_new_level_cost, round( $new_level_cost + $old_level_cost - $morder->subtotal, 2 ) );
+            // HOPSCOTCH FIX: Prevent $0 subtotals from breaking Same-Period math
+            $subtotal_to_use = ( $morder->subtotal > 0 ) ? $morder->subtotal : $clevel->billing_amount;
+            
+            $level->initial_payment = min( $base_new_level_cost, round( $new_level_cost + $old_level_cost - $subtotal_to_use, 2 ) );
             
             if ( $level->initial_payment < 0 ) {
                 $level->initial_payment = 0;
@@ -225,23 +228,45 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
             $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
             $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
-            $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
             
-            if ( $days_in_period <= 0 ) return $level;
+            $days_left = ceil( ( $next_payment_date - $today ) / 3600 / 24 );
             
-            $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
-            $per_passed = $days_passed / $days_in_period;        
-            $per_left   = 1 - $per_passed;
-            
-            // Calculate their exact dollar credit from their old plan
-            $credit = $morder->subtotal * $per_left;            
+            if ( $days_left <= 0 ) return $level;
+
+            // THE HOPSCOTCH FIX: Accurately calculate credit even if the last order was $0
+            if ( $morder->subtotal > 0 ) {
+                $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
+                $per_passed = ( $days_in_period - $days_left ) / $days_in_period;        
+                $per_left   = 1 - $per_passed;
+                $credit = $morder->subtotal * $per_left; 
+            } else {
+                // Last checkout was $0. Calculate the true value of their banked days.
+                $cycle_days = 30; // Default to Monthly
+                if ( $clevel->cycle_period == 'Year' ) $cycle_days = 365 * $clevel->cycle_number;
+                elseif ( $clevel->cycle_period == 'Week' ) $cycle_days = 7 * $clevel->cycle_number;
+                elseif ( $clevel->cycle_period == 'Day' ) $cycle_days = $clevel->cycle_number;
+
+                $daily_rate = $clevel->billing_amount / $cycle_days;
+
+                // Fallback to new plan's daily rate if old plan was completely free
+                if ( $daily_rate <= 0 ) {
+                    $new_cycle_days = 30;
+                    if ( $level->cycle_period == 'Year' ) $new_cycle_days = 365 * $level->cycle_number;
+                    elseif ( $level->cycle_period == 'Week' ) $new_cycle_days = 7 * $level->cycle_number;
+                    elseif ( $level->cycle_period == 'Day' ) $new_cycle_days = $level->cycle_number;
+
+                    $daily_rate = $base_new_level_cost / $new_cycle_days;
+                }
+
+                $credit = $days_left * $daily_rate;
+            }
             
             $level->initial_payment = round( $base_new_level_cost - $credit, 2 );
             
             // Unhook any lingering Same-Period filters from PMPro core just to be safe
             remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
 
-            // THE NEW FIX: Check if they have surplus credit (e.g. Annual -> Monthly)
+            // Check if they have surplus credit (e.g. Annual -> Monthly OR Hopscotching)
             if ( $level->initial_payment <= 0 ) {
                 
                 // Zero out the cost today
@@ -252,8 +277,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
                 
             } else {
                 
-                // They owe money today (e.g. Monthly -> Annual). 
-                // Force the start date to map exactly to the NEW billing cycle (+ 1 Year)!
+                // They owe money today. Force the start date to map exactly to the NEW billing cycle!
                 global $dd_new_cycle_number, $dd_new_cycle_period;
                 $dd_new_cycle_number = $level->cycle_number; // e.g., 1
                 $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
