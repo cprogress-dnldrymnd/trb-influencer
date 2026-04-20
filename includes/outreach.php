@@ -1961,12 +1961,13 @@ class DD_Outreach_Manager
                 $html .= '</div>';
 
                 // Appended 3-dot dropdown menu overlay to exactly match UI request
+                $html .= '<div class="dd-item-dots-holder">';
                 $html .= '<div class="dd-item-dots">';
                 $html .= '<button class="dd-action-toggle">&bull;&bull;&bull;</button>';
                 $html .= '<div class="dd-action-menu">';
                 $html .= '<a href="#" class="dd-action-btn" data-action="favorite" data-id="' . esc_attr($post_id) . '">' . $fav_action_text . '</a>';
                 $html .= '<a href="#" class="dd-action-btn" data-action="archive" data-id="' . esc_attr($post_id) . '">' . $arch_action_text . '</a>';
-                $html .= '</div></div>';
+                $html .= '</div></div></div>';
 
                 $html .= '</div>';
             }
