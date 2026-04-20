@@ -1503,6 +1503,9 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 .pmpro_form_submit .pmpro_btn-cancel {
   padding: 12px 20px; }
 
+#pmpro_account-membership-15 {
+  display: none !important; }
+
 /*responsive*/
 @media (min-width: 1025px) {
   .checkbox-row .checkbox-lists .checkbox-list-item,
