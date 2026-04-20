@@ -97,13 +97,11 @@ add_action('init', function () {
 });
 
 
-function my_pmprosd_subscription_delay_for_switching(  ) {
+function my_pmprosd_subscription_delay_for_switching( $delay, $level_id, $user_id ) {
     // Check if user already has an active membership
     if ( pmpro_hasMembershipLevel( NULL, $user_id ) ) {
-        echo 'has-membership'; // No delay for existing members
-    } else {
-        echo 'has-no-membership'; // No delay for existing members
-
+        return 0; // No delay for existing members
     }
-
+    return $delay; // Keep delay for new members
 }
+add_filter( 'pmprosd_subscription_delay', 'my_pmprosd_subscription_delay_for_switching', 10, 3 );
