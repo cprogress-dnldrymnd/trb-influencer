@@ -111,7 +111,7 @@ function my_pmpro_level_adjustment( $level ) {
     }
 
     // If it's not the level with the trial amount, just bail. Adjust the numeric value for the level ID that should be altered.
-    if ( $level->id != '9' ) {
+    if ( $level->id != '9' || $level->id != '8' ) {
         return $level;
     }
 
