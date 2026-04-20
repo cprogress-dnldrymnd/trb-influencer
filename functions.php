@@ -108,6 +108,7 @@ function influencer_collective_kill_all_delays() {
     $current_level = pmpro_getMembershipLevelForUser( $user_id );
 
     if ( ! empty( $current_level ) ) {
+        echo '<div>xxxx3</div>';
         // CRITICAL FIX: Removed the incorrect underscores. These are the real function names.
         remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10 );
         remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10 );
@@ -117,6 +118,8 @@ function influencer_collective_kill_all_delays() {
         remove_filter( 'pmpro_checkout_level', 'pmpro_pay_by_check_pmpro_checkout_level', 10 );
         remove_filter( 'pmpro_profile_start_date', 'pmpro_pay_by_check_pmpro_profile_start_date', 10 );
         remove_filter( 'pmpro_level_cost_text', 'pmpro_pay_by_check_pmpro_level_cost_text', 10 );
+    } else  {
+        echo '<div>xxxx2</div>';
     }
 }
 
