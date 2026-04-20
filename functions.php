@@ -105,4 +105,4 @@ function my_pmprosd_subscription_delay_for_switching( $delay, $level_id, $user_i
            echo 'has-no-membership'; // No delay for existing members
 
 }
-add_filter( 'init', 'my_pmprosd_subscription_delay_for_switching', 10, 3 );
+add_action( 'init', 'my_pmprosd_subscription_delay_for_switching', 10, 3 );
