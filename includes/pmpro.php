@@ -438,7 +438,7 @@ function dd_influencer_style_pmpro_checkout()
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
-      
+
 
         #pmpro_form {
             max-width: 600px;
@@ -1152,8 +1152,10 @@ function pmpro_checkout_level_custom_prorating_rules($level)
         if (pmprorate_isDowngrade($clevel->id, $level->id)) {
 
             $level->initial_payment = 0;
-            global $pmpro_checkout_old_level;
+            // CRITICAL FIX: Safely capture the expiration date BEFORE the checkout destroys it
+            global $pmpro_checkout_old_level, $dd_banked_expiration;
             $pmpro_checkout_old_level = $clevel;
+            $dd_banked_expiration = pmpro_next_payment($current_user->ID);
 
             add_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2);
 
@@ -1263,76 +1265,83 @@ function pmpro_checkout_level_custom_prorating_rules($level)
 /**
  * 1. Intercept the Downgrade Checkout & Revert Access
  */
-function dd_custom_preserve_old_level_on_downgrade( $level_id, $user_id, $cancel_level ) {
-    global $pmpro_checkout_old_level;
+function dd_custom_preserve_old_level_on_downgrade($level_id, $user_id, $cancel_level)
+{
+    global $pmpro_checkout_old_level, $dd_banked_expiration;
 
     // If this isn't a confirmed downgrade from our proration math, let it run normally
-    if ( empty( $pmpro_checkout_old_level ) || ! pmprorate_isDowngrade( $pmpro_checkout_old_level->id, $level_id ) ) {
+    if (empty($pmpro_checkout_old_level) || ! pmprorate_isDowngrade($pmpro_checkout_old_level->id, $level_id)) {
         return;
     }
 
+    // CRITICAL FIX: Disarm the Single Membership Enforcer so it doesn't massacre the restored level!
+    remove_action('pmpro_after_change_membership_level', 'dd_pmpro_enforce_single_membership_global', 10);
+
     // Temporarily disable gateway cancellations so Stripe doesn't panic when we swap them back
-    add_filter( 'pmpro_cancel_previous_subscriptions', '__return_false', 999 );
+    add_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
 
-    // Calculate when their paid/banked time actually expires
-    $expiration_timestamp = pmpro_next_payment( $user_id );
+    // Use the safely captured expiration date from before checkout scrambled the database
+    $expiration_timestamp = !empty($dd_banked_expiration) ? $dd_banked_expiration : pmpro_next_payment($user_id);
 
-    if ( ! empty( $expiration_timestamp ) ) {
+    if (! empty($expiration_timestamp)) {
         // Save the future downgrade plan and date in the database
-        update_user_meta( $user_id, 'dd_future_downgrade_level', $level_id );
-        update_user_meta( $user_id, 'dd_future_downgrade_date', $expiration_timestamp );
+        update_user_meta($user_id, 'dd_future_downgrade_level', $level_id);
+        update_user_meta($user_id, 'dd_future_downgrade_date', $expiration_timestamp);
 
         // Immediately swap them BACK to their old level without triggering new emails/cancellations
-        pmpro_changeMembershipLevel( $pmpro_checkout_old_level->id, $user_id );
+        pmpro_changeMembershipLevel($pmpro_checkout_old_level->id, $user_id);
 
         // Ensure their active profile strictly matches the expiration date
         global $wpdb;
-        $formatted_date = date( 'Y-m-d H:i:s', $expiration_timestamp );
-        $wpdb->query( $wpdb->prepare(
+        $formatted_date = date('Y-m-d H:i:s', $expiration_timestamp);
+        $wpdb->query($wpdb->prepare(
             "UPDATE {$wpdb->pmpro_memberships_users} SET enddate = %s WHERE user_id = %d AND membership_id = %d AND status = 'active'",
-            $formatted_date, $user_id, $pmpro_checkout_old_level->id
-        ) );
+            $formatted_date,
+            $user_id,
+            $pmpro_checkout_old_level->id
+        ));
     }
 
     // Re-enable cancellations
-    remove_filter( 'pmpro_cancel_previous_subscriptions', '__return_false', 999 );
+    remove_filter('pmpro_cancel_previous_subscriptions', '__return_false', 999);
 }
-add_action( 'pmpro_after_change_membership_level', 'dd_custom_preserve_old_level_on_downgrade', 10, 3 );
-
+// CRITICAL FIX: Bumped Priority to 1. This guarantees our Engine runs FIRST, before any other scripts cancel the user's plans.
+add_action('pmpro_after_change_membership_level', 'dd_custom_preserve_old_level_on_downgrade', 1, 3);
 
 /**
  * 2. The Daily Background Worker (CRON)
  */
-function dd_process_pending_downgrades() {
+function dd_process_pending_downgrades()
+{
     global $wpdb;
-    $today_timestamp = current_time( 'timestamp' );
+    $today_timestamp = current_time('timestamp');
 
     // Find all users who have a pending downgrade scheduled
-    $pending_downgrades = $wpdb->get_results( "SELECT user_id, meta_value as downgrade_date FROM {$wpdb->usermeta} WHERE meta_key = 'dd_future_downgrade_date'" );
+    $pending_downgrades = $wpdb->get_results("SELECT user_id, meta_value as downgrade_date FROM {$wpdb->usermeta} WHERE meta_key = 'dd_future_downgrade_date'");
 
-    foreach ( $pending_downgrades as $pending ) {
+    foreach ($pending_downgrades as $pending) {
         $user_id = $pending->user_id;
         $downgrade_date = (int) $pending->downgrade_date;
 
         // If their banked time is officially up today (or past)
-        if ( $today_timestamp >= $downgrade_date ) {
-            $future_level_id = get_user_meta( $user_id, 'dd_future_downgrade_level', true );
+        if ($today_timestamp >= $downgrade_date) {
+            $future_level_id = get_user_meta($user_id, 'dd_future_downgrade_level', true);
 
-            if ( ! empty( $future_level_id ) ) {
+            if (! empty($future_level_id)) {
                 // Safely drop them to their new downgraded tier
-                pmpro_changeMembershipLevel( $future_level_id, $user_id );
+                pmpro_changeMembershipLevel($future_level_id, $user_id);
 
                 // Clean up the database so this user doesn't get processed again
-                delete_user_meta( $user_id, 'dd_future_downgrade_level' );
-                delete_user_meta( $user_id, 'dd_future_downgrade_date' );
+                delete_user_meta($user_id, 'dd_future_downgrade_level');
+                delete_user_meta($user_id, 'dd_future_downgrade_date');
             }
         }
     }
 }
 // Hook into WordPress's daily cron
-if ( ! wp_next_scheduled( 'dd_daily_downgrade_worker' ) ) {
-    wp_schedule_event( time(), 'daily', 'dd_daily_downgrade_worker' );
+if (! wp_next_scheduled('dd_daily_downgrade_worker')) {
+    wp_schedule_event(time(), 'daily', 'dd_daily_downgrade_worker');
 }
-add_action( 'dd_daily_downgrade_worker', 'dd_process_pending_downgrades' );
+add_action('dd_daily_downgrade_worker', 'dd_process_pending_downgrades');
 
 /** End of Codes to fix pricing and subscription when changing payment plans and membership*/
