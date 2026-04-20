@@ -59,7 +59,7 @@ require $dir . '/includes/mycred-frontend-log.php';
 #require $dir . '/includes/pmpro.php';
 require $dir . '/includes/pmpro-mycred-rewards-manager.php';
 require $dir . '/includes/email-template-manager.php';
-#require $dir . '/includes/pmpro-dynamic-pricing.php';
+require $dir . '/includes/pmpro-dynamic-pricing.php';
 require $dir . '/includes/acf.php';
 require $dir . '/includes/sign-up.php';
 require $dir . '/includes/elementor.php';
@@ -95,32 +95,3 @@ add_shortcode('influencers_meta', 'influencers_meta');
 add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
-
-/**
- * Safely disable Subscription Delays for existing paid members.
- * Hooked to 'init' globally so it successfully intercepts PMPro's AJAX price calculations.
- */
-add_action( 'init', 'influencer_collective_evict_delays_globally', 999 );
-function influencer_collective_evict_delays_globally() {
-    // Only proceed if PMPro is active and the user is logged in
-    if ( ! function_exists( 'pmpro_getMembershipLevelForUser' ) || ! is_user_logged_in() ) {
-        return;
-    }
-
-    $user_id = get_current_user_id();
-    $current_level = pmpro_getMembershipLevelForUser( $user_id );
-
-    // If the user already has an active membership, unhook ALL delay filters globally
-    if ( ! empty( $current_level ) ) {
-        
-        // 1. Unhook standard PMPro Subscription Delays Add-on
-        remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10 );
-        remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10 );
-        remove_filter( 'pmpro_level_cost_text', 'pmprosd_pmpro_level_cost_text', 10 );
-
-        // 2. Unhook PMPro Pay by Check / Bank Transfer Delays (Covering all manual gateway bases)
-        remove_filter( 'pmpro_checkout_level', 'pmpro_pay_by_check_pmpro_checkout_level', 10 );
-        remove_filter( 'pmpro_profile_start_date', 'pmpro_pay_by_check_pmpro_profile_start_date', 10 );
-        remove_filter( 'pmpro_level_cost_text', 'pmpro_pay_by_check_pmpro_level_cost_text', 10 );
-    }
-}
