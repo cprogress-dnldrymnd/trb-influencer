@@ -148,7 +148,7 @@ function dd_force_new_billing_cycle_start_date( $startdate, $order ) {
     global $dd_new_cycle_number, $dd_new_cycle_period;
     
     if ( ! empty( $dd_new_cycle_number ) && ! empty( $dd_new_cycle_period ) ) {
-        // Calculate the exact future date based on the new plan's cycle (e.g., "+ 1 Year")
+        // Calculate the exact future date based on the new plan's cycle
         return date( 'Y-m-d\TH:i:s', current_time( 'timestamp' ) + strtotime( "+ {$dd_new_cycle_number} {$dd_new_cycle_period}", 0 ) );
     }
     return $startdate;
@@ -182,7 +182,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
         // Safely determine the base cost for the new level
         $base_new_level_cost = ( $level->initial_payment > 0 ) ? $level->initial_payment : $level->billing_amount;
 
-        // THE FIX: Do not rely on Level IDs. Check the actual cycle text (e.g. "Month" vs "Year")
+        // Do not rely on Level IDs. Check the actual cycle text (e.g. "Month" vs "Year")
         $is_same_period = ( $clevel->cycle_number == $level->cycle_number && $clevel->cycle_period == $level->cycle_period );
 
         // DOWNGRADE LOGIC
@@ -195,7 +195,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );
             
         // UPGRADE LOGIC (SAME BILLING PERIOD)
-        } elseif( $is_same_period ) { // <- Used the new strict check here!
+        } elseif( $is_same_period ) { 
             
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
             $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
@@ -219,7 +219,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );            
             
-        // UPGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly to Annual)
+        // UPGRADE / DOWNGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly <-> Annual)
         } else {
             
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
@@ -238,19 +238,28 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             
             $level->initial_payment = round( $base_new_level_cost - $credit, 2 );
             
-            if ( $level->initial_payment < 0 ) {
-                $level->initial_payment = 0;
-            }
-
             // Unhook any lingering Same-Period filters from PMPro core just to be safe
             remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
 
-            // Force the start date to map exactly to the NEW billing cycle!
-            global $dd_new_cycle_number, $dd_new_cycle_period;
-            $dd_new_cycle_number = $level->cycle_number; // e.g., 1
-            $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
-            
-            add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
+            // THE NEW FIX: Check if they have surplus credit (e.g. Annual -> Monthly)
+            if ( $level->initial_payment <= 0 ) {
+                
+                // Zero out the cost today
+                $level->initial_payment = 0;
+                
+                // Force the start date to map exactly to their EXISTING expiration date so they keep their banked time!
+                add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 99, 2 );
+                
+            } else {
+                
+                // They owe money today (e.g. Monthly -> Annual). 
+                // Force the start date to map exactly to the NEW billing cycle (+ 1 Year)!
+                global $dd_new_cycle_number, $dd_new_cycle_period;
+                $dd_new_cycle_number = $level->cycle_number; // e.g., 1
+                $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
+                
+                add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
+            }
         }       
     }
     return $level;
