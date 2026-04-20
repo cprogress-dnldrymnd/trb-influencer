@@ -134,9 +134,9 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
 
         // Set the initial amount to match the billing amount.
         if ( $checkout_level->billing_amount > 0 ) {
-            $checkout_level->initial_payment = 111;
+            $checkout_level->initial_payment = $checkout_level->billing_amount;
         }
     } 
     return $checkout_level;
 }
-add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
+add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay',  999,1);
