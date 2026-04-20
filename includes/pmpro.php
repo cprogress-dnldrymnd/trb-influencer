@@ -1096,15 +1096,17 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
     return $checkout_level;
 }
 add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
-
 /**
  * Helper function to force correct start date for different billing periods
+ *
+ * @param string $startdate The calculated start date.
+ * @param object $order The PMPro member order object.
+ * @return string The strictly formatted future date.
  */
 function dd_force_new_billing_cycle_start_date( $startdate, $order ) {
     global $dd_new_cycle_number, $dd_new_cycle_period;
     
     if ( ! empty( $dd_new_cycle_number ) && ! empty( $dd_new_cycle_period ) ) {
-        // Calculate the exact future date based on the new plan's cycle
         return date( 'Y-m-d\TH:i:s', current_time( 'timestamp' ) + strtotime( "+ {$dd_new_cycle_number} {$dd_new_cycle_period}", 0 ) );
     }
     return $startdate;
@@ -1120,127 +1122,144 @@ function init_custom_prorating_rules() {
 add_action( 'init', 'init_custom_prorating_rules');
 
 /**
- * Our custom prorating function
+ * Our custom prorating function with UI Message Carrier
+ *
+ * @param object $level The PMPro level object being checked out.
+ * @return object The modified level object with adjusted pricing and messages.
  */
 function pmpro_checkout_level_custom_prorating_rules( $level ) {
-    // Can only prorate if they already have a level
     if ( pmpro_hasMembershipLevel() ) {
         global $current_user;
         $clevel = $current_user->membership_level;
         $morder = new MemberOrder();
         $morder->getLastMemberOrder( $current_user->ID, array( 'success', '', 'cancelled' ) );
         
-        // No prorating needed if they don't have an order
         if ( empty( $morder->timestamp ) ) {
             return $level;
         }
         
-        // Safely determine the base cost for the new level
         $base_new_level_cost = ( $level->initial_payment > 0 ) ? $level->initial_payment : $level->billing_amount;
-
-        // Do not rely on Level IDs. Check the actual cycle text (e.g. "Month" vs "Year")
         $is_same_period = ( $clevel->cycle_number == $level->cycle_number && $clevel->cycle_period == $level->cycle_period );
+        $credit_applied = 0;
 
         // DOWNGRADE LOGIC
         if ( pmprorate_isDowngrade( $clevel->id, $level->id ) ) {
-            
             $level->initial_payment = 0;
             global $pmpro_checkout_old_level;
             $pmpro_checkout_old_level = $clevel;            
-            
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );
+            
+            $level->dd_proration_message = "<strong>Downgrade Applied:</strong> You will not be charged today. Your new rate begins on your next billing cycle.";
             
         // UPGRADE LOGIC (SAME BILLING PERIOD)
         } elseif( $is_same_period ) { 
-            
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
             $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
             $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
             $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
             
-            if ( $days_in_period <= 0 ) return $level;
-            
-            $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
-            $per_passed = $days_passed / $days_in_period;        
-            $per_left   = 1 - $per_passed;
-            
-            $new_level_cost = $level->billing_amount * $per_left;
-            $old_level_cost = $clevel->billing_amount * $per_passed;
-            
-            // HOPSCOTCH FIX: Prevent $0 subtotals from breaking Same-Period math
-            $subtotal_to_use = ( $morder->subtotal > 0 ) ? $morder->subtotal : $clevel->billing_amount;
-            
-            $level->initial_payment = min( $base_new_level_cost, round( $new_level_cost + $old_level_cost - $subtotal_to_use, 2 ) );
-            
-            if ( $level->initial_payment < 0 ) {
-                $level->initial_payment = 0;
+            if ( $days_in_period > 0 ) {
+                $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
+                $per_passed = $days_passed / $days_in_period;        
+                $per_left   = 1 - $per_passed;
+                
+                $new_level_cost = $level->billing_amount * $per_left;
+                $old_level_cost = $clevel->billing_amount * $per_passed;
+                $subtotal_to_use = ( $morder->subtotal > 0 ) ? $morder->subtotal : $clevel->billing_amount;
+                
+                $calculated_payment = round( $new_level_cost + $old_level_cost - $subtotal_to_use, 2 );
+                $credit_applied = $base_new_level_cost - $calculated_payment;
+                
+                $level->initial_payment = min( $base_new_level_cost, $calculated_payment );
+                if ( $level->initial_payment < 0 ) $level->initial_payment = 0;
+                
+                add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );            
             }
             
-            add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );            
-            
-        // UPGRADE / DOWNGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly <-> Annual)
+        // UPGRADE / DOWNGRADE LOGIC (DIFFERENT BILLING PERIODS)
         } else {
-            
             $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
             $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
             $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
-            
             $days_left = ceil( ( $next_payment_date - $today ) / 3600 / 24 );
             
-            if ( $days_left <= 0 ) return $level;
+            if ( $days_left > 0 ) {
+                if ( $morder->subtotal > 0 ) {
+                    $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
+                    $per_passed = ( $days_in_period - $days_left ) / $days_in_period;        
+                    $per_left   = 1 - $per_passed;
+                    $credit_applied = $morder->subtotal * $per_left; 
+                } else {
+                    // Hopscotch Fix calculation
+                    $cycle_days = 30; 
+                    if ( $clevel->cycle_period == 'Year' ) $cycle_days = 365 * $clevel->cycle_number;
+                    elseif ( $clevel->cycle_period == 'Week' ) $cycle_days = 7 * $clevel->cycle_number;
+                    elseif ( $clevel->cycle_period == 'Day' ) $cycle_days = $clevel->cycle_number;
 
-            // THE HOPSCOTCH FIX: Accurately calculate credit even if the last order was $0
-            if ( $morder->subtotal > 0 ) {
-                $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
-                $per_passed = ( $days_in_period - $days_left ) / $days_in_period;        
-                $per_left   = 1 - $per_passed;
-                $credit = $morder->subtotal * $per_left; 
-            } else {
-                // Last checkout was $0. Calculate the true value of their banked days.
-                $cycle_days = 30; // Default to Monthly
-                if ( $clevel->cycle_period == 'Year' ) $cycle_days = 365 * $clevel->cycle_number;
-                elseif ( $clevel->cycle_period == 'Week' ) $cycle_days = 7 * $clevel->cycle_number;
-                elseif ( $clevel->cycle_period == 'Day' ) $cycle_days = $clevel->cycle_number;
+                    $daily_rate = $clevel->billing_amount / $cycle_days;
 
-                $daily_rate = $clevel->billing_amount / $cycle_days;
+                    if ( $daily_rate <= 0 ) {
+                        $new_cycle_days = 30;
+                        if ( $level->cycle_period == 'Year' ) $new_cycle_days = 365 * $level->cycle_number;
+                        elseif ( $level->cycle_period == 'Week' ) $new_cycle_days = 7 * $level->cycle_number;
+                        elseif ( $level->cycle_period == 'Day' ) $new_cycle_days = $level->cycle_number;
 
-                // Fallback to new plan's daily rate if old plan was completely free
-                if ( $daily_rate <= 0 ) {
-                    $new_cycle_days = 30;
-                    if ( $level->cycle_period == 'Year' ) $new_cycle_days = 365 * $level->cycle_number;
-                    elseif ( $level->cycle_period == 'Week' ) $new_cycle_days = 7 * $level->cycle_number;
-                    elseif ( $level->cycle_period == 'Day' ) $new_cycle_days = $level->cycle_number;
-
-                    $daily_rate = $base_new_level_cost / $new_cycle_days;
+                        $daily_rate = $base_new_level_cost / $new_cycle_days;
+                    }
+                    $credit_applied = $days_left * $daily_rate;
                 }
+                
+                $level->initial_payment = round( $base_new_level_cost - $credit_applied, 2 );
+                remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
 
-                $credit = $days_left * $daily_rate;
-            }
-            
-            $level->initial_payment = round( $base_new_level_cost - $credit, 2 );
-            
-            // Unhook any lingering Same-Period filters from PMPro core just to be safe
-            remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
-
-            // Check if they have surplus credit (e.g. Annual -> Monthly OR Hopscotching)
-            if ( $level->initial_payment <= 0 ) {
-                
-                // Zero out the cost today
-                $level->initial_payment = 0;
-                
-                // Force the start date to map exactly to their EXISTING expiration date so they keep their banked time!
-                add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 99, 2 );
-                
-            } else {
-                
-                // They owe money today. Force the start date to map exactly to the NEW billing cycle!
-                global $dd_new_cycle_number, $dd_new_cycle_period;
-                $dd_new_cycle_number = $level->cycle_number; // e.g., 1
-                $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
-                
-                add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
+                if ( $level->initial_payment <= 0 ) {
+                    $level->initial_payment = 0;
+                    $level->dd_proration_message = "<strong>Surplus Credit Applied:</strong> You have banked time worth <strong>$" . number_format($credit_applied, 2) . "</strong>. You owe $0.00 today, and your current expiration date has been protected.";
+                    add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 99, 2 );
+                } else {
+                    global $dd_new_cycle_number, $dd_new_cycle_period;
+                    $dd_new_cycle_number = $level->cycle_number; 
+                    $dd_new_cycle_period = $level->cycle_period; 
+                    add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
+                }
             }
         }       
+        
+        // Construct the universal message if credit was applied (and not already set)
+        if ( $credit_applied > 0 && empty($level->dd_proration_message) ) {
+            $level->dd_proration_message = "<strong>Proration Applied:</strong> We automatically credited <strong>$" . number_format($credit_applied, 2) . "</strong> from your unused time to today's total.";
+        }
     }
     return $level;
 }
+
+/**
+ * Overrides PMPro's default checkout cost text to display the newly discounted rate.
+ *
+ * @param string $text The original cost text.
+ * @param object $level The level object.
+ * @return string The modified cost text.
+ */
+function dd_override_pmpro_cost_text_for_proration( $text, $level, $tags ) {
+    if ( isset( $level->dd_proration_message ) && ! empty( $level->dd_proration_message ) ) {
+        $text = "The price for membership is <strong>$" . number_format($level->initial_payment, 2) . "</strong> now.";
+        if ( $level->billing_amount > 0 ) {
+            $text .= " Then <strong>$" . number_format($level->billing_amount, 2) . "</strong> per " . $level->cycle_period . ".";
+        }
+    }
+    return $text;
+}
+add_filter( 'pmpro_level_cost_text', 'dd_override_pmpro_cost_text_for_proration', 99, 3 );
+
+/**
+ * Injects a highly visible math explanation box directly above the checkout button.
+ */
+function dd_display_proration_explanation_on_checkout() {
+    global $pmpro_level;
+    if ( isset( $pmpro_level->dd_proration_message ) && ! empty( $pmpro_level->dd_proration_message ) ) {
+        echo '<div class="pmpro_message pmpro_success" style="background-color: #d1fae5; border-left: 4px solid #10b981; color: #065f46; padding: 15px; margin-bottom: 20px; border-radius: 4px; font-size: 15px; line-height: 1.5;">';
+        echo '💡 ' . wp_kses_post( $pmpro_level->dd_proration_message );
+        echo '</div>';
+    }
+}
+add_action('pmpro_checkout_before_submit_button', 'dd_display_proration_explanation_on_checkout', 5);
