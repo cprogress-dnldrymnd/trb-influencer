@@ -98,40 +98,7 @@ function dd_pmpro_force_checkout_text_observer()
     </script>
 <?php
 }
-add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99);
-
-/**
- * Retrieve the file URL for a specific user and PMPro field.
- *
- * @param int    $user_id   The ID of the user.
- * @param string $field_key The meta key used when registering the field (e.g., 'resume_upload').
- * @return string|false     The URL of the file or false if not found.
- */
-function get_pmpro_file_field_url(int $user_id, string $field_key)
-{
-    // Retrieve the raw meta value.
-    $meta_value = get_user_meta($user_id, $field_key, true);
-
-    // Case A: The field stored a direct string URL.
-    if (is_string($meta_value) && ! empty($meta_value)) {
-        return $meta_value;
-    }
-
-    // Case B: The field stored an array (common in newer Register Helper versions).
-    // The array typically looks like: ['original_filename' => '...', 'fullpath' => '...']
-    if (is_array($meta_value) && ! empty($meta_value['fullpath'])) {
-        return $meta_value['fullpath'];
-    }
-
-    // Case C: Sometimes only the Attachment ID is stored (rare, but possible with custom implementations).
-    if (is_numeric($meta_value)) {
-        return wp_get_attachment_url($meta_value);
-    }
-
-    return false;
-}
-
-
+add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99)
 
 
 

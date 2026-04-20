@@ -901,8 +901,9 @@ function get_outreach($this_month_only = false)
  * @param bool $this_month_only Filters results to the current month if true.
  * @return int                  Total count of saved search posts.
  */
-function get_saved_search_count_direct( $this_month_only = false ) {
-    if ( ! is_user_logged_in() ) {
+function get_saved_search_count_direct($this_month_only = false)
+{
+    if (! is_user_logged_in()) {
         return 0;
     }
 
@@ -917,14 +918,14 @@ function get_saved_search_count_direct( $this_month_only = false ) {
         AND post_author = %d
     ";
 
-    $args = [ $user_id ];
+    $args = [$user_id];
 
     // Dynamically append SQL conditions for the current month constraint
-    if ( $this_month_only ) {
+    if ($this_month_only) {
         $sql .= " AND MONTH(post_date) = MONTH(CURRENT_DATE()) AND YEAR(post_date) = YEAR(CURRENT_DATE())";
     }
 
-    return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$args ) );
+    return (int) $wpdb->get_var($wpdb->prepare($sql, ...$args));
 }
 
 
@@ -1395,4 +1396,35 @@ function convert_pmpro_path_to_url($path_or_url)
 
     // Return original if no match found (it might already be a URL).
     return $path_or_url;
+}
+
+/**
+ * Retrieve the file URL for a specific user and PMPro field.
+ *
+ * @param int    $user_id   The ID of the user.
+ * @param string $field_key The meta key used when registering the field (e.g., 'resume_upload').
+ * @return string|false     The URL of the file or false if not found.
+ */
+function get_pmpro_file_field_url(int $user_id, string $field_key)
+{
+    // Retrieve the raw meta value.
+    $meta_value = get_user_meta($user_id, $field_key, true);
+
+    // Case A: The field stored a direct string URL.
+    if (is_string($meta_value) && ! empty($meta_value)) {
+        return $meta_value;
+    }
+
+    // Case B: The field stored an array (common in newer Register Helper versions).
+    // The array typically looks like: ['original_filename' => '...', 'fullpath' => '...']
+    if (is_array($meta_value) && ! empty($meta_value['fullpath'])) {
+        return $meta_value['fullpath'];
+    }
+
+    // Case C: Sometimes only the Attachment ID is stored (rare, but possible with custom implementations).
+    if (is_numeric($meta_value)) {
+        return wp_get_attachment_url($meta_value);
+    }
+
+    return false;
 }
