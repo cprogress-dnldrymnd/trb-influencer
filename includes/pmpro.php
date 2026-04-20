@@ -1100,13 +1100,17 @@ function pmpro_checkout_level_custom_prorating_rules($level)
 
             $level->initial_payment = 0;
             
-            // CRITICAL FIX: Safely capture the expiration date and intent to the DB before checkout destroys it
+            // -------------------------------------------------------------
+            // THE GHOST ACCESS ENGINE: Part 1 - Capture Intent
+            // -------------------------------------------------------------
             $banked_expiration = pmpro_next_payment($current_user->ID);
-            update_user_meta($current_user->ID, 'dd_checkout_intent_old_level', $clevel->id);
-            update_user_meta($current_user->ID, 'dd_checkout_intent_new_level', $level->id);
-            update_user_meta($current_user->ID, 'dd_checkout_intent_expiration', $banked_expiration);
+            if (!empty($banked_expiration)) {
+                // Lock the ghost level in the database so we remember what they used to have
+                update_user_meta($current_user->ID, 'dd_ghost_level_id', $clevel->id);
+                update_user_meta($current_user->ID, 'dd_ghost_new_level_id', $level->id);
+                update_user_meta($current_user->ID, 'dd_ghost_level_exp', $banked_expiration);
+            }
 
-            // Keep the global for legacy PMPro addons just in case
             global $pmpro_checkout_old_level;
             $pmpro_checkout_old_level = $clevel;
 
@@ -1206,129 +1210,67 @@ function pmpro_checkout_level_custom_prorating_rules($level)
     return $level;
 }
 
-
 /**
  * -------------------------------------------------------------
- * --- THE DOWNGRADE DELAY ENGINE (STEALTH SQL VERSION) ---
- * Prevents immediate feature loss by stealthily manipulating 
- * the raw database to bypass PMPro's aggressive cancellation hooks.
+ * --- THE GHOST ACCESS ENGINE ---
+ * Grants the user access to their old tier features and 
+ * visually modifies the dashboard without fighting the gateway.
  * -------------------------------------------------------------
  */
 
 /**
- * 1. Intercept the Downgrade Checkout & Webhook Defense
+ * 2. Grant Access to the Old Tier Features Natively
  */
-function dd_stealth_preserve_old_level_on_downgrade($level_id, $user_id, $cancel_level)
-{
-    // --- PART 1: INITIAL CHECKOUT INTERCEPT (STEALTH SWAP) ---
-    $intent_old_level = get_user_meta($user_id, 'dd_checkout_intent_old_level', true);
-    $intent_new_level = get_user_meta($user_id, 'dd_checkout_intent_new_level', true);
-    $expiration_timestamp = get_user_meta($user_id, 'dd_checkout_intent_expiration', true);
-
-    if (!empty($intent_old_level) && $level_id == $intent_new_level) {
-        if (!empty($expiration_timestamp)) {
-            global $wpdb;
-
-            // 1. Lock the parameters into the DB for the Daily Worker and Webhook Defense
-            update_user_meta($user_id, 'dd_future_downgrade_level', $intent_new_level);
-            update_user_meta($user_id, 'dd_future_downgrade_date', $expiration_timestamp);
-            update_user_meta($user_id, 'dd_preserved_old_level', $intent_old_level);
-
-            // 2. Clean up the initial checkout intent so it doesn't loop
-            delete_user_meta($user_id, 'dd_checkout_intent_old_level');
-            delete_user_meta($user_id, 'dd_checkout_intent_new_level');
-            delete_user_meta($user_id, 'dd_checkout_intent_expiration');
-
-            // 3. THE STEALTH SWAP: Directly update the raw database row.
-            // This bypasses pmpro_changeMembershipLevel entirely, preventing recursive loops and Stripe cancellations.
-            $formatted_date = date('Y-m-d H:i:s', $expiration_timestamp);
-            $wpdb->query($wpdb->prepare(
-                "UPDATE {$wpdb->pmpro_memberships_users}
-                 SET membership_id = %d, enddate = %s
-                 WHERE user_id = %d AND status = 'active' AND membership_id = %d",
-                $intent_old_level, $formatted_date, $user_id, $intent_new_level
-            ));
-
-            // 4. Clear PMPro's cache so the frontend dashboard instantly reflects the restored higher level
-            if (function_exists('pmpro_clean_membership_cache')) {
-                pmpro_clean_membership_cache($user_id);
+function dd_ghost_level_access($has_level, $user_id, $levels) {
+    if ($has_level) return true; // They already have access natively
+    
+    $ghost_id = get_user_meta($user_id, 'dd_ghost_level_id', true);
+    $ghost_exp = get_user_meta($user_id, 'dd_ghost_level_exp', true);
+    
+    if (!empty($ghost_id) && !empty($ghost_exp)) {
+        if (current_time('timestamp') < $ghost_exp) {
+            // If they are trying to view content restricted to their old tier, let them in!
+            if (in_array($ghost_id, (array)$levels) || in_array((string)$ghost_id, (array)$levels)) {
+                return true;
             }
-            return; // Exit here so we don't process part 2 on the same run
+        } else {
+            // Time's up. Delete the ghost completely.
+            delete_user_meta($user_id, 'dd_ghost_level_id');
+            delete_user_meta($user_id, 'dd_ghost_new_level_id');
+            delete_user_meta($user_id, 'dd_ghost_level_exp');
         }
     }
-
-    // --- PART 2: STRIPE WEBHOOK DEFENSE ---
-    // If a webhook fires seconds later trying to aggressively force the downgrade, block it!
-    $future_downgrade_level = get_user_meta($user_id, 'dd_future_downgrade_level', true);
-    $future_downgrade_date  = get_user_meta($user_id, 'dd_future_downgrade_date', true);
-    $preserved_old_level    = get_user_meta($user_id, 'dd_preserved_old_level', true);
-
-    if (!empty($future_downgrade_level) && $level_id == $future_downgrade_level && current_time('timestamp') < $future_downgrade_date) {
-        if (!empty($preserved_old_level)) {
-            global $wpdb;
-
-            // A webhook tried to downgrade them. Run the Stealth Swap again to block it.
-            $formatted_date = date('Y-m-d H:i:s', $future_downgrade_date);
-            $wpdb->query($wpdb->prepare(
-                "UPDATE {$wpdb->pmpro_memberships_users}
-                 SET membership_id = %d, enddate = %s
-                 WHERE user_id = %d AND status = 'active' AND membership_id = %d",
-                $preserved_old_level, $formatted_date, $user_id, $level_id
-            ));
-
-            // Clear PMPro cache
-            if (function_exists('pmpro_clean_membership_cache')) {
-                pmpro_clean_membership_cache($user_id);
-            }
-        }
-    }
+    return $has_level;
 }
-// Run at Priority 99 so we intercept the database AFTER PMPro has finished all of its native operations!
-add_action('pmpro_after_change_membership_level', 'dd_stealth_preserve_old_level_on_downgrade', 99, 3);
-
+add_filter('pmpro_has_membership_level', 'dd_ghost_level_access', 10, 3);
 
 /**
- * 2. The Daily Background Worker (CRON)
+ * 3. Modify the Frontend Account Dashboard Visually
  */
-function dd_process_pending_downgrades() {
-    global $wpdb;
-    $today_timestamp = current_time( 'timestamp' );
-
-    // Find all users who have a pending downgrade scheduled
-    $pending_downgrades = $wpdb->get_results( "SELECT user_id, meta_value as downgrade_date FROM {$wpdb->usermeta} WHERE meta_key = 'dd_future_downgrade_date'" );
-
-    foreach ( $pending_downgrades as $pending ) {
-        $user_id = $pending->user_id;
-        $downgrade_date = (int) $pending->downgrade_date;
-
-        // If their banked time is officially up today (or past)
-        if ( $today_timestamp >= $downgrade_date ) {
-            $future_level_id = get_user_meta( $user_id, 'dd_future_downgrade_level', true );
-
-            if ( ! empty( $future_level_id ) ) {
-                // Because this runs on a background Cron (not during checkout), it is perfectly 
-                // safe to use PMPro's official function to safely transition their gateway profile.
-                pmpro_changeMembershipLevel( $future_level_id, $user_id );
-
-                // Clean up the database so this user doesn't get processed again
-                delete_user_meta( $user_id, 'dd_future_downgrade_level' );
-                delete_user_meta( $user_id, 'dd_future_downgrade_date' );
-                delete_user_meta( $user_id, 'dd_preserved_old_level' );
+function dd_ghost_frontend_display($levels, $user_id) {
+    // Do not trick the backend, webhooks, or system processes. This is purely visual.
+    if (is_admin() || wp_doing_ajax() || wp_doing_cron() || defined('REST_REQUEST')) {
+        return $levels;
+    }
+    
+    $ghost_id = get_user_meta($user_id, 'dd_ghost_level_id', true);
+    $ghost_exp = get_user_meta($user_id, 'dd_ghost_level_exp', true);
+    $ghost_new_id = get_user_meta($user_id, 'dd_ghost_new_level_id', true);
+    
+    if (!empty($ghost_id) && !empty($ghost_new_id) && !empty($ghost_exp)) {
+        if (current_time('timestamp') < $ghost_exp) {
+            $ghost_level_obj = pmpro_getLevel($ghost_id);
+            
+            // If they are actively viewing their new downgraded level in the UI, rename it!
+            if (isset($levels[$ghost_new_id]) && $ghost_level_obj) {
+                $formatted_date = date(get_option('date_format'), $ghost_exp);
+                $levels[$ghost_new_id]->name = $ghost_level_obj->name . ' (Downgrades to ' . $levels[$ghost_new_id]->name . ' on ' . $formatted_date . ')';
             }
         }
     }
+    
+    return $levels;
 }
-add_action( 'dd_daily_downgrade_worker', 'dd_process_pending_downgrades' );
-
-/**
- * 3. Theme-Optimized Cron Scheduler
- * Wraps the scheduling check in 'init' so it doesn't run raw on every page load
- */
-function dd_register_downgrade_cron() {
-    if ( ! wp_next_scheduled( 'dd_daily_downgrade_worker' ) ) {
-        wp_schedule_event( time(), 'daily', 'dd_daily_downgrade_worker' );
-    }
-}
-add_action( 'init', 'dd_register_downgrade_cron' );
+add_filter('pmpro_get_membership_levels_for_user', 'dd_ghost_frontend_display', 10, 2);
 
 /** End of Codes to fix pricing and subscription when changing payment plans and membership*/
