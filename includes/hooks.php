@@ -78,16 +78,15 @@ function action_wp_head()
     if ($search_type == 'fullbrief') {
         echo "#filter-col{ display: none; }";
         echo "#results-col{ --width: 100% !important; }";
+        echo "#my-loop-grid-container{grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))}"
     } else {
         echo "#match-score{  display: none !important;  }";
     }
     if ($is_no_membership) {
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
-       # echo ".filtered-search{ display: flex !important }";
     }
 
-    $current_balance = get_current_user_remaining_mycred_balance();
 
     $recently_viewed = get_recent_influencer_ids_array(5);
     $current_user_id = get_current_user_id();
@@ -105,10 +104,8 @@ function action_wp_head()
         $ranked_niches_stats = false;
     }
     if ($ranked_niches_stats == false && $recently_viewed_stats == false) {
-        #echo '#starts-a-search { display: flex !important; }';
         echo '#dashboard-activity { display: none !important; }';
     } else {
-        #echo '#starts-a-search { display: none !important; }';
     }
 
 
