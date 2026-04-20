@@ -1311,33 +1311,44 @@ add_action('pmpro_after_change_membership_level', 'dd_custom_preserve_old_level_
 /**
  * 2. The Daily Background Worker (CRON)
  */
-function dd_process_pending_downgrades()
-{
+function dd_process_pending_downgrades() {
     global $wpdb;
-    $today_timestamp = current_time('timestamp');
+    $today_timestamp = current_time( 'timestamp' );
 
     // Find all users who have a pending downgrade scheduled
-    $pending_downgrades = $wpdb->get_results("SELECT user_id, meta_value as downgrade_date FROM {$wpdb->usermeta} WHERE meta_key = 'dd_future_downgrade_date'");
+    $pending_downgrades = $wpdb->get_results( "SELECT user_id, meta_value as downgrade_date FROM {$wpdb->usermeta} WHERE meta_key = 'dd_future_downgrade_date'" );
 
-    foreach ($pending_downgrades as $pending) {
+    foreach ( $pending_downgrades as $pending ) {
         $user_id = $pending->user_id;
         $downgrade_date = (int) $pending->downgrade_date;
 
         // If their banked time is officially up today (or past)
-        if ($today_timestamp >= $downgrade_date) {
-            $future_level_id = get_user_meta($user_id, 'dd_future_downgrade_level', true);
+        if ( $today_timestamp >= $downgrade_date ) {
+            $future_level_id = get_user_meta( $user_id, 'dd_future_downgrade_level', true );
 
-            if (! empty($future_level_id)) {
+            if ( ! empty( $future_level_id ) ) {
                 // Safely drop them to their new downgraded tier
-                pmpro_changeMembershipLevel($future_level_id, $user_id);
+                pmpro_changeMembershipLevel( $future_level_id, $user_id );
 
                 // Clean up the database so this user doesn't get processed again
-                delete_user_meta($user_id, 'dd_future_downgrade_level');
-                delete_user_meta($user_id, 'dd_future_downgrade_date');
+                delete_user_meta( $user_id, 'dd_future_downgrade_level' );
+                delete_user_meta( $user_id, 'dd_future_downgrade_date' );
             }
         }
     }
 }
+add_action( 'dd_daily_downgrade_worker', 'dd_process_pending_downgrades' );
+
+/**
+ * 3. Theme-Optimized Cron Scheduler
+ * Wraps the scheduling check in 'init' so it doesn't run raw on every page load
+ */
+function dd_register_downgrade_cron() {
+    if ( ! wp_next_scheduled( 'dd_daily_downgrade_worker' ) ) {
+        wp_schedule_event( time(), 'daily', 'dd_daily_downgrade_worker' );
+    }
+}
+add_action( 'init', 'dd_register_downgrade_cron' );
 // Hook into WordPress's daily cron
 if (! wp_next_scheduled('dd_daily_downgrade_worker')) {
     wp_schedule_event(time(), 'daily', 'dd_daily_downgrade_worker');
@@ -1345,3 +1356,4 @@ if (! wp_next_scheduled('dd_daily_downgrade_worker')) {
 add_action('dd_daily_downgrade_worker', 'dd_process_pending_downgrades');
 
 /** End of Codes to fix pricing and subscription when changing payment plans and membership*/
+
