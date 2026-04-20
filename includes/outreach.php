@@ -1173,7 +1173,7 @@ class DD_Outreach_Manager
             .dd-item-name { display: block; font-size: 15px; font-weight: 500; color: #000000; }
             
             /* Top Left Favorite Star */
-            .dd-fav-star { position: absolute; top: 12px; left: 8px; color: #FFD700; font-size: 18px; line-height: 1; z-index: 5; }
+            .dd-fav-star { position: absolute; top: 5px; left: 5px; color: var(--e-global-color-accent); font-size: 18px; line-height: 1; z-index: 5; }
             
             .dd-item-handle { display: block; color: #000000; font-size: 14px; font-weight: 400; }
             .dd-item-title { display: block; font-size: 14px; color: #034146; font-weight: bold; margin-top: 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
