@@ -1124,3 +1124,22 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
     return $checkout_level;
 }
 add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
+
+
+function dd_dynamic_initial_payment_proration_fix( $checkout_level ) {
+    // 1. The Target Audience: Ignore brand new customers.
+    if ( ! pmpro_hasMembershipLevel() ) {
+        return $checkout_level;
+    }
+
+    // 2. The Delay Check: Look for a delay on this specific plan.
+    $has_delay = get_option( 'pmpro_subscription_delay_' . $checkout_level->id, '' );
+
+    // 3. The Trigger: If NO delay exists, force the initial payment to match the recurring billing amount.
+    if ( empty( $has_delay ) && $checkout_level->billing_amount > 0 ) {
+        $checkout_level->initial_payment = $checkout_level->billing_amount;
+    }
+
+    return $checkout_level;
+}
+add_filter( 'pmpro_checkout_level', 'dd_dynamic_initial_payment_proration_fix', 20, 1 );
