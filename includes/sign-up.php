@@ -207,7 +207,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                     'profile'      => true,
                     'preview'      => true,
                     'allow_delete' => true,
-                    'hint'         => 'Recommended size: 200x200 pixels.',
+                    'hint'         => 'Recommended size: 360x360 pixels.',
                 )
             );
 
