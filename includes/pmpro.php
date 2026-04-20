@@ -389,6 +389,8 @@ add_action('template_redirect', 'dd_force_free_members_to_upgrade');
  * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
  * Reorders DOM elements, securely hides the payment plan selector, builds an influencer-style 
  * Summary block ABOVE the payment info, injects the user avatar, and populates uniform bullet points.
+ * * UPDATED: Includes dynamic parsing for prorated checkout totals and injects a custom 
+ * informational notice explaining the price adjustment.
  *
  * @return void
  */
@@ -420,8 +422,12 @@ function dd_influencer_style_pmpro_checkout()
     // Safely get the dynamic Membership Levels page URL for the "Change plan" link
     $levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
 
+    // Calculate Prorating State for JS Injection
+    $current_user_id = get_current_user_id();
+    $is_switching = ($current_user_id && function_exists('pmpro_hasMembershipLevel') && pmpro_hasMembershipLevel($current_user_id)) ? true : false;
+    $prorating_notice = "Your total today has been prorated based on your previous active plan and banked time.";
+
     // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
-    // By only using 'default', these bullets will apply to ALL payment plans uniformly.
     $dynamic_plan_details = [
         'default' => [
             'account_type' => '1 Account',
@@ -438,330 +444,51 @@ function dd_influencer_style_pmpro_checkout()
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
-      
-
-        #pmpro_form {
-            max-width: 600px;
-            margin: 0 auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #000;
-        }
-
-        .dd-influencer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 15px;
-        }
-
-
-        .dd-checkout-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e5e5e5;
-            padding-bottom: 20px;
-        }
-
-        .dd-checkout-title-row h2 {
-            font-size: clamp(20px, 1.5vw, 32px) !important;
-            font-weight: 700 !important;
-            margin: 0 !important;
-            color: #000;
-            letter-spacing: -0.5px;
-        }
-
-        .dd-checkout-title-row a {
-            color: var(--e-global-color-accent);
-            text-decoration: underline;
-            font-weight: 500;
-            font-size: 14px;
-            transition: color 0.2s ease;
-        }
-
-        .dd-checkout-title-row a:hover {
-            color: #000;
-        }
-
-        .dd-avatar-wrapper {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            overflow: hidden;
-            background: #eee;
-            border: 2px solid #ddd;
-        }
-
-        .dd-avatar-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* Neutralize the heavy boxed styling of PMPro default sections */
-        .pmpro_checkout-section {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin-bottom: 30px !important;
-        }
-
-        .pmpro_checkout-section h3,
-        .pmpro_checkout-section h2 {
-            font-size: 20px !important;
-            font-weight: 700 !important;
-            border: none !important;
-            margin-bottom: 15px !important;
-            padding-bottom: 0 !important;
-            color: #000;
-        }
-
-        /* Hide unwanted default sections and specific PMPro fields */
-        #pmpro_level_cost,
-        #pmpropp_payment_plans,
-        #pmpro_pricing_fields,
-        #pmpro_user_fields,
-        #pmpropp_select_payment_plan {
-            display: none !important;
-        }
-
-
-
-        .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items {
-            flex-direction: column;
-            gap: 0;
-        }
-
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item {
-            width: 100%;
-        }
-
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label {
-            font-size: 1rem;
-            color: #000;
-        }
-
-        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input {
-            width: auto;
-        }
-
-        .pmpro_check_instructions.pmpro_check_instructions {
-            box-shadow: none;
-            border: none;
-            border-radius: 0;
-            margin-top: 0;
-        }
-
-        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title {
-            padding: 0;
-        }
-
-        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content {
-            padding: 0;
-        }
-
-        #pmpro_payment_information_fields .pmpro_card,
-        #pmpro_payment_method .pmpro_card {
-            border-radius: 0;
-            margin: 0;
-            border: none;
-            box-shadow: none;
-        }
-
-        #pmpro_payment_method .pmpro_card {
-            margin-bottom: 30px;
-        }
-
-        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content,
-        #pmpro_payment_method .pmpro_card .pmpro_card_content {
-            padding: 0;
-        }
-
-        /* influencer Card Styles */
-        #dd-influencer-summary {
-            margin-top: 20px !important;
-            margin-bottom: 20px !important;
-            border-bottom: 1px solid #e5e5e5 !important;
-            padding-bottom: 20px !important;
-        }
-
-        .infl-summary-card {
-            background: transparent;
-        }
-
-        .infl-header-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-
-        .infl-icon {
-            width: 50px;
-            height: 50px;
-            background: var(--e-global-color-secondary);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            margin-right: 15px;
-            color: #fff;
-        }
-
-        .infl-icon img {
-            width: 30px;
-            height: 30px;
-        }
-
-        .infl-plan-info {
-            flex-grow: 1;
-        }
-
-        .infl-plan-info h4 {
-            margin: 0 0 2px 0 !important;
-            font-size: 16px !important;
-            font-weight: 700 !important;
-        }
-
-        .infl-plan-info span {
-            font-size: 14px;
-            color: #b3b3b3;
-        }
-
-        .infl-price-info {
-            text-align: right;
-        }
-
-        .infl-price-info h4 {
-            margin: 0 0 2px 0 !important;
-            font-size: 16px !important;
-            font-weight: 700 !important;
-        }
-
-        .infl-price-info span {
-            font-size: 14px;
-            color: #b3b3b3;
-        }
-
-        body:not(.page-id-4144) span#pmpro_submit_span {
-            width: 100%;
-        }
-
-
-        .pmpro_form_submit {
-            flex-direction: column;
-        }
-
-        /* Timeline Styles */
-        .infl-timeline {
-            position: relative;
-            padding-left: 15px;
-            margin-bottom: 20px;
-        }
-
-        .infl-timeline::before {
-            content: '';
-            position: absolute;
-            left: 19px;
-            top: 10px;
-            bottom: 25px;
-            width: 1px;
-            background: #000;
-        }
-
-        .infl-timeline-item {
-            position: relative;
-            padding-left: 20px;
-            margin-bottom: 20px;
-        }
-
-        .infl-dot {
-            position: absolute;
-            left: 0;
-            top: 6px;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #000;
-            z-index: 2;
-        }
-
-        .infl-dot.hollow {
-            background: #fff;
-            border: 2px solid #000;
-            left: 0px;
-            width: 9px;
-            height: 9px;
-        }
-
-        .infl-content p {
-            margin: 0 0 2px 0 !important;
-            font-size: 15px;
-            font-weight: 500;
-        }
-
-        .infl-content span {
-            font-size: 14px;
-            color: #b3b3b3;
-        }
-
-        /* Bullet Points */
-        .infl-bullets.infl-bullets {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 13px !important;
-            color: #6a6a6a;
-            line-height: 1.5;
-        }
-
-        .infl-bullets li {
-            position: relative;
-            padding-left: 15px;
-            margin-bottom: 6px;
-        }
-
-        .infl-bullets li::before {
-            content: '•';
-            position: absolute;
-            left: 0;
-            top: 0;
-            color: #6a6a6a;
-        }
-
-        .infl-bullets a {
-            color: #6a6a6a;
-            text-decoration: underline;
-        }
-
-        /* Submit Button */
-        #pmpro_btn-submit {
-            background-color: #1ed760 !important;
-            color: #000 !important;
-            border-radius: 500px !important;
-            padding: 16px 30px !important;
-            font-size: 16px !important;
-            font-weight: 700 !important;
-            border: none !important;
-            width: 100% !important;
-            text-transform: none !important;
-            transition: transform 0.2s ease, background-color 0.2s ease;
-            margin-top: 20px;
-        }
-
-        #pmpro_btn-submit:hover {
-            background-color: #1fdf64 !important;
-            transform: scale(1.02);
-        }
-
-        /* Clean up residual Account Info if logged out */
-        .dd-clean-account-info h2,
-        .dd-clean-account-info h3,
-        .dd-clean-account-info hr,
-        .dd-clean-account-info p.pmpro_logged_in_text {
-            display: none !important;
-        }
+        #pmpro_form { max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000; }
+        .dd-influencer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; }
+        .dd-checkout-title-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; }
+        .dd-checkout-title-row h2 { font-size: clamp(20px, 1.5vw, 32px) !important; font-weight: 700 !important; margin: 0 !important; color: #000; letter-spacing: -0.5px; }
+        .dd-checkout-title-row a { color: var(--e-global-color-accent); text-decoration: underline; font-weight: 500; font-size: 14px; transition: color 0.2s ease; }
+        .dd-checkout-title-row a:hover { color: #000; }
+        .dd-avatar-wrapper { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #eee; border: 2px solid #ddd; }
+        .dd-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .pmpro_checkout-section { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 30px !important; }
+        .pmpro_checkout-section h3, .pmpro_checkout-section h2 { font-size: 20px !important; font-weight: 700 !important; border: none !important; margin-bottom: 15px !important; padding-bottom: 0 !important; color: #000; }
+        #pmpro_level_cost, #pmpropp_payment_plans, #pmpro_pricing_fields, #pmpro_user_fields, #pmpropp_select_payment_plan { display: none !important; }
+        .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items { flex-direction: column; gap: 0; }
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item { width: 100%; }
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label { font-size: 1rem; color: #000; }
+        .pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input { width: auto; }
+        .pmpro_check_instructions.pmpro_check_instructions { box-shadow: none; border: none; border-radius: 0; margin-top: 0; }
+        .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title, .pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content { padding: 0; }
+        #pmpro_payment_information_fields .pmpro_card, #pmpro_payment_method .pmpro_card { border-radius: 0; margin: 0; border: none; box-shadow: none; }
+        #pmpro_payment_method .pmpro_card { margin-bottom: 30px; }
+        #pmpro_payment_information_fields .pmpro_card .pmpro_card_content, #pmpro_payment_method .pmpro_card .pmpro_card_content { padding: 0; }
+        #dd-influencer-summary { margin-top: 20px !important; margin-bottom: 20px !important; border-bottom: 1px solid #e5e5e5 !important; padding-bottom: 20px !important; }
+        .infl-summary-card { background: transparent; }
+        .infl-header-row { display: flex; align-items: center; margin-bottom: 25px; }
+        .infl-icon { width: 50px; height: 50px; background: var(--e-global-color-secondary); border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; margin-right: 15px; color: #fff; }
+        .infl-icon img { width: 30px; height: 30px; }
+        .infl-plan-info { flex-grow: 1; }
+        .infl-plan-info h4, .infl-price-info h4 { margin: 0 0 2px 0 !important; font-size: 16px !important; font-weight: 700 !important; }
+        .infl-plan-info span, .infl-price-info span { font-size: 14px; color: #b3b3b3; }
+        .infl-price-info { text-align: right; }
+        body:not(.page-id-4144) span#pmpro_submit_span { width: 100%; }
+        .pmpro_form_submit { flex-direction: column; }
+        .infl-timeline { position: relative; padding-left: 15px; margin-bottom: 20px; }
+        .infl-timeline::before { content: ''; position: absolute; left: 19px; top: 10px; bottom: 25px; width: 1px; background: #000; }
+        .infl-timeline-item { position: relative; padding-left: 20px; margin-bottom: 20px; }
+        .infl-dot { position: absolute; left: 0; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: #000; z-index: 2; }
+        .infl-dot.hollow { background: #fff; border: 2px solid #000; left: 0px; width: 9px; height: 9px; }
+        .infl-content p { margin: 0 0 2px 0 !important; font-size: 15px; font-weight: 500; }
+        .infl-content span { font-size: 14px; color: #b3b3b3; }
+        .infl-bullets.infl-bullets { list-style: none; padding: 0; margin: 0; font-size: 13px !important; color: #6a6a6a; line-height: 1.5; }
+        .infl-bullets li { position: relative; padding-left: 15px; margin-bottom: 6px; }
+        .infl-bullets li::before { content: '•'; position: absolute; left: 0; top: 0; color: #6a6a6a; }
+        .infl-bullets a { color: #6a6a6a; text-decoration: underline; }
+        #pmpro_btn-submit { background-color: #1ed760 !important; color: #000 !important; border-radius: 500px !important; padding: 16px 30px !important; font-size: 16px !important; font-weight: 700 !important; border: none !important; width: 100% !important; text-transform: none !important; transition: transform 0.2s ease, background-color 0.2s ease; margin-top: 20px; }
+        #pmpro_btn-submit:hover { background-color: #1fdf64 !important; transform: scale(1.02); }
+        .dd-clean-account-info h2, .dd-clean-account-info h3, .dd-clean-account-info hr, .dd-clean-account-info p.pmpro_logged_in_text { display: none !important; }
     </style>
 
     <script>
@@ -774,6 +501,8 @@ function dd_influencer_style_pmpro_checkout()
             var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
             var planDescription = <?php echo wp_json_encode($plan_description); ?>;
             var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
+            var isSwitching = <?php echo wp_json_encode($is_switching); ?>;
+            var proratingNotice = <?php echo wp_json_encode($prorating_notice); ?>;
 
             // 1. Inject Header and Title Row immediately
             var headerHtml = '<div class="dd-influencer-header">' +
@@ -801,7 +530,6 @@ function dd_influencer_style_pmpro_checkout()
                     var chosenPlanUrlValue = urlParams.get('pmpropp_chosen_plan');
                     var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
 
-                    // Force PMPro to check the correct radio button based on the URL (prevents Annual defaulting bugs)
                     if ($radios.length > 0) {
                         if (chosenPlanUrlValue) {
                             $radios.filter('[value="' + chosenPlanUrlValue + '"]').prop('checked', true);
@@ -824,39 +552,53 @@ function dd_influencer_style_pmpro_checkout()
                         }
                     });
 
-                    // 4. Extract Pricing Data explicitly from the checked radio
-                    var labelText = $('input[name="pmpropp_chosen_plan"]:checked').siblings('label').text().trim() || $levelCost.text().trim();
+                    // 4. Extract Pricing Data EXPLICITLY from the dynamic #pmpro_level_cost text to support Prorating hooks
+                    var $checkedRadio = $('input[name="pmpropp_chosen_plan"]:checked');
+                    var radioLabel = $checkedRadio.length ? $checkedRadio.siblings('label').text().trim() : '';
+                    var costText = $levelCost.length ? $levelCost.text().trim() : '';
+
+                    // Prioritize the dynamically filtered costText. Fallback to radio label.
+                    var sourceText = costText ? costText : (radioLabel ? radioLabel : '');
 
                     var planName = realPlanName;
-                    var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
+                    var isAnnual = sourceText.toLowerCase().includes('annual') || sourceText.toLowerCase().includes('year');
                     if (isAnnual) planName = planName + " (Annual)";
 
-                    var nowPrice = "₱0.00";
+                    var nowPrice = "$0.00"; 
                     var recurringPrice = "";
                     var cycle = "month";
                     var trialDays = 0;
 
-                    var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
-                    if (nowMatch) nowPrice = nowMatch[1];
+                    // Robust currency regex (supports ₱199.00, $50, 20 EUR, etc.)
+                    var currencyPattern = "((?:[^\\d\\sA-Za-z]+\\s*)?\\d{1,3}(?:[,.]\\d{3})*(?:[,.]\\d+)?(?:\\s*[^\\d\\sA-Za-z]+|\\s*[A-Z]{3})?)";
 
-                    var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
+                    var nowRegex = new RegExp(currencyPattern + "\\s*now", "i");
+                    var nowMatch = sourceText.match(nowRegex);
+
+                    var recRegex = new RegExp(currencyPattern + "\\s*per\\s+([a-zA-Z]+)", "i");
+                    var recMatch = sourceText.match(recRegex);
+
+                    var trialMatch = sourceText.match(/(\d+)\s+day trial/i);
+
+                    if (nowMatch) nowPrice = nowMatch[1].trim();
                     if (recMatch) {
-                        recurringPrice = recMatch[1];
+                        recurringPrice = recMatch[1].trim();
                         cycle = recMatch[2].toLowerCase();
                     }
-
-                    var trialMatch = labelText.match(/(\d+)\s+day trial/i);
                     if (trialMatch) trialDays = parseInt(trialMatch[1], 10);
 
+                    // PMPro omits the word "now" entirely when initial equals recurring.
                     if (!nowMatch && recMatch) {
                         nowPrice = recurringPrice;
                     }
 
-                    var options = {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                    };
+                    // Catch edge cases for Free upgrades or Downgrades explicitly returned as $0.00
+                    if (sourceText.toLowerCase().includes('free now') || sourceText.toLowerCase().includes('0.00 now') || sourceText.toLowerCase().includes('0,00 now')) {
+                        var zeroExtract = sourceText.match(/([^\d\sA-Za-z]+\s*0[.,]00)/);
+                        if (zeroExtract) { nowPrice = zeroExtract[1]; }
+                    }
+
+                    var options = { month: 'short', day: 'numeric', year: 'numeric' };
                     var today = new Date();
                     var startDateStr = "Now";
 
@@ -869,9 +611,19 @@ function dd_influencer_style_pmpro_checkout()
                     // Build Dynamic Bullets from Array
                     var bulletsHtml = '';
 
-                    // Inject the PMPro database description as the very first bullet
                     if (planDescription) {
                         bulletsHtml += '<li>' + planDescription + '</li>';
+                    }
+
+                    // Dynamically Inform user of backend prorating logic
+                    if (isSwitching) {
+                        var cleanNow = parseFloat(nowPrice.replace(/[^\d.]/g, ''));
+                        var cleanRec = parseFloat(recurringPrice.replace(/[^\d.]/g, ''));
+
+                        // If the Initial Payment mathematically differs from the recurring base OR equals 0 via downgrade
+                        if (!isNaN(cleanNow) && !isNaN(cleanRec) && cleanNow !== cleanRec) {
+                             bulletsHtml += '<li><strong>Plan Adjustment:</strong> ' + proratingNotice + '</li>';
+                        }
                     }
 
                     planDetails.bullets.forEach(function(bullet) {
@@ -919,7 +671,6 @@ function dd_influencer_style_pmpro_checkout()
                     var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
                     $summarySection.append(influencerHtml);
 
-                    // Map potential insertion anchors
                     var $paymentPlanSelector = $('#pmpropp_select_payment_plan').closest('.pmpro_checkout-section');
                     if (!$paymentPlanSelector.length) $paymentPlanSelector = $('#pmpropp_select_payment_plan');
 
@@ -929,7 +680,6 @@ function dd_influencer_style_pmpro_checkout()
                     var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
                     if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
 
-                    // Prioritize layout injection hierarchy 
                     if ($paymentPlanSelector.length) {
                         $paymentPlanSelector.before($summarySection);
                     } else if ($paymentMethodSelector.length) {
@@ -957,11 +707,12 @@ function dd_influencer_style_pmpro_checkout()
 
                     if ($levelCost.length) $levelCost.hide();
                 }
-            }, 100); // Poll every 100ms until DOM is ready
+            }, 100); 
         });
     </script>
 <?php
 }
+add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 
 /**
@@ -1053,59 +804,63 @@ function dd_pmpro_save_name_fields_to_usermeta($user_id, $morder)
 add_action('pmpro_after_checkout', 'dd_pmpro_save_name_fields_to_usermeta', 10, 2);
 
 
+/** Codes to fix pricing and subscription when changing payment plans and membership*/
+
 /**
  * Remove subscription delay for logged-in current or past members. 
  * EXCEPTION: Leaves the delay active for Level 15.
  */
-function my_pmpro_one_time_sub_delay( $checkout_level ) {
+function my_pmpro_one_time_sub_delay($checkout_level)
+{
 
     // Logged-out users should always get the trial/delay.
-    if ( ! is_user_logged_in() ) {
+    if (! is_user_logged_in()) {
         return $checkout_level;
     }
 
     // --- LEVEL 15 EXCEPTION ---
     // If the user currently HAS Level 15, OR they are PURCHASING Level 15,
     // bail out immediately so the Subscription Delay remains fully active.
-    if ( pmpro_hasMembershipLevel( 15 ) || $checkout_level->id == 15 ) {
+    if (pmpro_hasMembershipLevel(15) || $checkout_level->id == 15) {
         return $checkout_level;
     }
 
     $order     = new MemberOrder();
-    $lastorder = $order->getLastMemberOrder( null, array( 'success', 'cancelled' ) );
-    $has_delay = get_option( 'pmpro_subscription_delay_' . $checkout_level->id, '' );
+    $lastorder = $order->getLastMemberOrder(null, array('success', 'cancelled'));
+    $has_delay = get_option('pmpro_subscription_delay_' . $checkout_level->id, '');
 
     // If user currently has a membership level or previously had a membership level, remove subscription delay.
-    if ( ( pmpro_hasMembershipLevel() || ! empty( $lastorder ) ) && ! empty( $has_delay ) ) {
+    if ((pmpro_hasMembershipLevel() || ! empty($lastorder)) && ! empty($has_delay)) {
 
         // Remove subscription delay filters and actions (standard).
-        remove_filter( 'pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2 );
-        remove_action( 'pmpro_after_checkout', 'pmprosd_pmpro_after_checkout' );
-        remove_filter( 'pmpro_next_payment', 'pmprosd_pmpro_next_payment', 10, 3 );
-        remove_filter( 'pmpro_level_cost_text', 'pmprosd_level_cost_text', 10, 2 );
-        remove_action( 'pmpro_save_discount_code_level', 'pmprosd_pmpro_save_discount_code_level', 10, 2 );
+        remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
+        remove_action('pmpro_after_checkout', 'pmprosd_pmpro_after_checkout');
+        remove_filter('pmpro_next_payment', 'pmprosd_pmpro_next_payment', 10, 3);
+        remove_filter('pmpro_level_cost_text', 'pmprosd_level_cost_text', 10, 2);
+        remove_action('pmpro_save_discount_code_level', 'pmprosd_pmpro_save_discount_code_level', 10, 2);
 
         // Remove the updated filter added in PMPro Subscription Delays 3.4+.
-        remove_filter( 'pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2 );
+        remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2);
 
         // Set the initial amount to match the billing amount.
-        if ( $checkout_level->billing_amount > 0 ) {
+        if ($checkout_level->billing_amount > 0) {
             $checkout_level->initial_payment = $checkout_level->billing_amount;
         }
-    } 
+    }
     return $checkout_level;
 }
-add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
+add_filter('pmpro_checkout_level', 'my_pmpro_one_time_sub_delay');
 
 /**
  * Helper function to force correct start date for different billing periods
  */
-function dd_force_new_billing_cycle_start_date( $startdate, $order ) {
+function dd_force_new_billing_cycle_start_date($startdate, $order)
+{
     global $dd_new_cycle_number, $dd_new_cycle_period;
-    
-    if ( ! empty( $dd_new_cycle_number ) && ! empty( $dd_new_cycle_period ) ) {
+
+    if (! empty($dd_new_cycle_number) && ! empty($dd_new_cycle_period)) {
         // Calculate the exact future date based on the new plan's cycle
-        return date( 'Y-m-d\TH:i:s', current_time( 'timestamp' ) + strtotime( "+ {$dd_new_cycle_number} {$dd_new_cycle_period}", 0 ) );
+        return date('Y-m-d\TH:i:s', current_time('timestamp') + strtotime("+ {$dd_new_cycle_number} {$dd_new_cycle_period}", 0));
     }
     return $startdate;
 }
@@ -1113,134 +868,136 @@ function dd_force_new_billing_cycle_start_date( $startdate, $order ) {
 /**
  * Swap in our custom prorating function.
  */
-function init_custom_prorating_rules() {
-    remove_filter( 'pmpro_checkout_level', 'pmprorate_pmpro_checkout_level', 10, 1 );
-    add_filter( 'pmpro_checkout_level', 'pmpro_checkout_level_custom_prorating_rules', 10, 1 );
+function init_custom_prorating_rules()
+{
+    remove_filter('pmpro_checkout_level', 'pmprorate_pmpro_checkout_level', 10, 1);
+    add_filter('pmpro_checkout_level', 'pmpro_checkout_level_custom_prorating_rules', 10, 1);
 }
-add_action( 'init', 'init_custom_prorating_rules');
+add_action('init', 'init_custom_prorating_rules');
 
 /**
  * Our custom prorating function
  */
-function pmpro_checkout_level_custom_prorating_rules( $level ) {
+function pmpro_checkout_level_custom_prorating_rules($level)
+{
     // Can only prorate if they already have a level
-    if ( pmpro_hasMembershipLevel() ) {
+    if (pmpro_hasMembershipLevel()) {
         global $current_user;
         $clevel = $current_user->membership_level;
         $morder = new MemberOrder();
-        $morder->getLastMemberOrder( $current_user->ID, array( 'success', '', 'cancelled' ) );
-        
+        $morder->getLastMemberOrder($current_user->ID, array('success', '', 'cancelled'));
+
         // No prorating needed if they don't have an order
-        if ( empty( $morder->timestamp ) ) {
+        if (empty($morder->timestamp)) {
             return $level;
         }
-        
+
         // Safely determine the base cost for the new level
-        $base_new_level_cost = ( $level->initial_payment > 0 ) ? $level->initial_payment : $level->billing_amount;
+        $base_new_level_cost = ($level->initial_payment > 0) ? $level->initial_payment : $level->billing_amount;
 
         // Do not rely on Level IDs. Check the actual cycle text (e.g. "Month" vs "Year")
-        $is_same_period = ( $clevel->cycle_number == $level->cycle_number && $clevel->cycle_period == $level->cycle_period );
+        $is_same_period = ($clevel->cycle_number == $level->cycle_number && $clevel->cycle_period == $level->cycle_period);
 
         // DOWNGRADE LOGIC
-        if ( pmprorate_isDowngrade( $clevel->id, $level->id ) ) {
-            
+        if (pmprorate_isDowngrade($clevel->id, $level->id)) {
+
             $level->initial_payment = 0;
             global $pmpro_checkout_old_level;
-            $pmpro_checkout_old_level = $clevel;            
-            
-            add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );
-            
-        // UPGRADE LOGIC (SAME BILLING PERIOD)
-        } elseif( $is_same_period ) { 
-            
-            $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
-            $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
-            $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
-            $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
-            
-            if ( $days_in_period <= 0 ) return $level;
-            
-            $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
-            $per_passed = $days_passed / $days_in_period;        
+            $pmpro_checkout_old_level = $clevel;
+
+            add_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2);
+
+            // UPGRADE LOGIC (SAME BILLING PERIOD)
+        } elseif ($is_same_period) {
+
+            $payment_date = pmprorate_trim_timestamp($morder->timestamp);
+            $next_payment_date = pmprorate_trim_timestamp(pmpro_next_payment($current_user->ID));
+            $today = pmprorate_trim_timestamp(current_time('timestamp'));
+            $days_in_period = ceil(($next_payment_date - $payment_date) / 3600 / 24);
+
+            if ($days_in_period <= 0) return $level;
+
+            $days_passed = ceil(($today - $payment_date) / 3600 / 24);
+            $per_passed = $days_passed / $days_in_period;
             $per_left   = 1 - $per_passed;
-            
+
             $new_level_cost = $level->billing_amount * $per_left;
             $old_level_cost = $clevel->billing_amount * $per_passed;
-            
+
             // HOPSCOTCH FIX: Prevent $0 subtotals from breaking Same-Period math
-            $subtotal_to_use = ( $morder->subtotal > 0 ) ? $morder->subtotal : $clevel->billing_amount;
-            
-            $level->initial_payment = min( $base_new_level_cost, round( $new_level_cost + $old_level_cost - $subtotal_to_use, 2 ) );
-            
-            if ( $level->initial_payment < 0 ) {
+            $subtotal_to_use = ($morder->subtotal > 0) ? $morder->subtotal : $clevel->billing_amount;
+
+            $level->initial_payment = min($base_new_level_cost, round($new_level_cost + $old_level_cost - $subtotal_to_use, 2));
+
+            if ($level->initial_payment < 0) {
                 $level->initial_payment = 0;
             }
-            
-            add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );            
-            
-        // UPGRADE / DOWNGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly <-> Annual)
+
+            add_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2);
+
+            // UPGRADE / DOWNGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly <-> Annual)
         } else {
-            
-            $payment_date = pmprorate_trim_timestamp( $morder->timestamp );
-            $next_payment_date = pmprorate_trim_timestamp( pmpro_next_payment( $current_user->ID ) );
-            $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
-            
-            $days_left = ceil( ( $next_payment_date - $today ) / 3600 / 24 );
-            
-            if ( $days_left <= 0 ) return $level;
+
+            $payment_date = pmprorate_trim_timestamp($morder->timestamp);
+            $next_payment_date = pmprorate_trim_timestamp(pmpro_next_payment($current_user->ID));
+            $today = pmprorate_trim_timestamp(current_time('timestamp'));
+
+            $days_left = ceil(($next_payment_date - $today) / 3600 / 24);
+
+            if ($days_left <= 0) return $level;
 
             // THE HOPSCOTCH FIX: Accurately calculate credit even if the last order was $0
-            if ( $morder->subtotal > 0 ) {
-                $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
-                $per_passed = ( $days_in_period - $days_left ) / $days_in_period;        
+            if ($morder->subtotal > 0) {
+                $days_in_period = ceil(($next_payment_date - $payment_date) / 3600 / 24);
+                $per_passed = ($days_in_period - $days_left) / $days_in_period;
                 $per_left   = 1 - $per_passed;
-                $credit = $morder->subtotal * $per_left; 
+                $credit = $morder->subtotal * $per_left;
             } else {
                 // Last checkout was $0. Calculate the true value of their banked days.
                 $cycle_days = 30; // Default to Monthly
-                if ( $clevel->cycle_period == 'Year' ) $cycle_days = 365 * $clevel->cycle_number;
-                elseif ( $clevel->cycle_period == 'Week' ) $cycle_days = 7 * $clevel->cycle_number;
-                elseif ( $clevel->cycle_period == 'Day' ) $cycle_days = $clevel->cycle_number;
+                if ($clevel->cycle_period == 'Year') $cycle_days = 365 * $clevel->cycle_number;
+                elseif ($clevel->cycle_period == 'Week') $cycle_days = 7 * $clevel->cycle_number;
+                elseif ($clevel->cycle_period == 'Day') $cycle_days = $clevel->cycle_number;
 
                 $daily_rate = $clevel->billing_amount / $cycle_days;
 
                 // Fallback to new plan's daily rate if old plan was completely free
-                if ( $daily_rate <= 0 ) {
+                if ($daily_rate <= 0) {
                     $new_cycle_days = 30;
-                    if ( $level->cycle_period == 'Year' ) $new_cycle_days = 365 * $level->cycle_number;
-                    elseif ( $level->cycle_period == 'Week' ) $new_cycle_days = 7 * $level->cycle_number;
-                    elseif ( $level->cycle_period == 'Day' ) $new_cycle_days = $level->cycle_number;
+                    if ($level->cycle_period == 'Year') $new_cycle_days = 365 * $level->cycle_number;
+                    elseif ($level->cycle_period == 'Week') $new_cycle_days = 7 * $level->cycle_number;
+                    elseif ($level->cycle_period == 'Day') $new_cycle_days = $level->cycle_number;
 
                     $daily_rate = $base_new_level_cost / $new_cycle_days;
                 }
 
                 $credit = $days_left * $daily_rate;
             }
-            
-            $level->initial_payment = round( $base_new_level_cost - $credit, 2 );
-            
+
+            $level->initial_payment = round($base_new_level_cost - $credit, 2);
+
             // Unhook any lingering Same-Period filters from PMPro core just to be safe
-            remove_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10 );
+            remove_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10);
 
             // Check if they have surplus credit (e.g. Annual -> Monthly OR Hopscotching)
-            if ( $level->initial_payment <= 0 ) {
-                
+            if ($level->initial_payment <= 0) {
+
                 // Zero out the cost today
                 $level->initial_payment = 0;
-                
+
                 // Force the start date to map exactly to their EXISTING expiration date so they keep their banked time!
-                add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 99, 2 );
-                
+                add_filter('pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 99, 2);
             } else {
-                
+
                 // They owe money today. Force the start date to map exactly to the NEW billing cycle!
                 global $dd_new_cycle_number, $dd_new_cycle_period;
                 $dd_new_cycle_number = $level->cycle_number; // e.g., 1
                 $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
-                
-                add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
+
+                add_filter('pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2);
             }
-        }       
+        }
     }
     return $level;
 }
+/** End of Codes to fix pricing and subscription when changing payment plans and membership*/

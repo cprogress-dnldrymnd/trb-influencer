@@ -80,51 +80,91 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
+	 * Data retrieval and standard card rendering logic.
+	 * UPDATED: Runs base plans through `pmpro_checkout_level` strictly for logged-in 
+	 * users so the table accurately reflects customized prorated quotes.
+	 */
+	private function get_level_data($level_id)
+	{
+		if (! function_exists('pmpro_getLevel')) {
+			return false;
+		}
+		$level = pmpro_getLevel($level_id);
+		if (empty($level)) {
+			return false;
+		}
+
+		// Apply PMPro checkout filters to capture dynamic prorating for active members
+		if (is_user_logged_in() && function_exists('pmpro_hasMembershipLevel') && pmpro_hasMembershipLevel()) {
+			$cloned_level = clone $level;
+			$cloned_level = apply_filters('pmpro_checkout_level', $cloned_level);
+			
+			// Use the dynamically filtered initial payment if it was prorated
+			$price = $cloned_level->initial_payment;
+		} else {
+			// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
+			$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
+		}
+
+		return [
+			'id'        => $level->id,
+			'price'     => pmpro_formatPrice((float)$price),
+			'raw_price' => (float)$price,
+			'url'       => pmpro_url('checkout', '?level=' . $level->id)
+		];
+	}
+
+	/**
 	 * Retrieves the 'Annual' payment plan data for a given PMPro level.
-	 * Scans all level meta to guarantee extraction regardless of the specific meta key used by the add-on.
-	 * @param int $level_id The PMPro Level ID.
-	 * @return array|false Returns an array containing the 'id' (formatted for checkout), 'price' (formatted), and 'raw_price' (float) or false if undetected.
+	 * UPDATED: Passes the deserialized custom payment plan parameters through the prorating
+	 * engine to ensure Yearly tiers also reflect exact real-world costs at checkout.
 	 */
 	private function get_annual_payment_plan($level_id)
 	{
 		global $wpdb;
 
-		// The PMPro Level Meta table where the Payment Plans Add On serializes data
 		$meta_table = $wpdb->prefix . 'pmpro_membership_levelmeta';
 
 		if ($wpdb->get_var("SHOW TABLES LIKE '{$meta_table}'") === $meta_table) {
 
-			// Extract all meta for this level to bypass guessing the exact meta_key
 			$all_meta = $wpdb->get_results($wpdb->prepare("SELECT meta_key, meta_value FROM {$meta_table} WHERE pmpro_membership_level_id = %d", $level_id));
 
 			foreach ($all_meta as $meta) {
 				$val = maybe_unserialize($meta->meta_value);
 
-				// The Payment Plans add-on stores plans as an array
 				if (is_array($val)) {
 					foreach ($val as $plan_id => $plan) {
-						// Support both object and associative array formats
 						$p_name   = is_object($plan) ? ($plan->name ?? '') : ($plan['name'] ?? '');
 						$p_status = is_object($plan) ? ($plan->status ?? 'active') : ($plan['status'] ?? 'active');
 
-						// Search for the "Annual" plan identifier
 						if (!empty($p_name) && stripos($p_name, 'annual') !== false && strtolower($p_status) === 'active') {
 
-							// Prioritize initial_payment; fallback to billing_amount
 							$initial = is_object($plan) ? ($plan->initial_payment ?? 0) : ($plan['initial_payment'] ?? 0);
 							$billing = is_object($plan) ? ($plan->billing_amount ?? 0) : ($plan['billing_amount'] ?? 0);
+							
 							$p_price = (float)$initial > 0 ? $initial : $billing;
 
-							// Extract internal Plan ID (Usually the array key which may already contain the prefix)
-							$inner_id = is_object($plan) ? ($plan->id ?? $plan_id) : ($plan['id'] ?? $plan_id);
+							// Simulate prorating on the extracted Annual Plan strictly for active members
+							if (is_user_logged_in() && function_exists('pmpro_hasMembershipLevel') && pmpro_hasMembershipLevel()) {
+								$mock_level = pmpro_getLevel($level_id);
+								if ($mock_level) {
+									$mock_level->initial_payment = $initial;
+									$mock_level->billing_amount  = $billing;
+									$mock_level->cycle_period    = is_object($plan) ? ($plan->cycle_period ?? 'Year') : ($plan['cycle_period'] ?? 'Year');
+									$mock_level->cycle_number    = is_object($plan) ? ($plan->cycle_number ?? 1) : ($plan['cycle_number'] ?? 1);
+									
+									$mock_level = apply_filters('pmpro_checkout_level', $mock_level);
+									$p_price    = $mock_level->initial_payment;
+								}
+							}
 
-							// Prevent prefix duplication: If the ID already starts with 'L-', use it directly.
+							$inner_id = is_object($plan) ? ($plan->id ?? $plan_id) : ($plan['id'] ?? $plan_id);
 							$plan_identifier = (strpos((string)$inner_id, 'L-') === 0) ? $inner_id : 'L-' . $level_id . '-P-' . $inner_id;
 
 							return [
 								'id'        => $plan_identifier,
 								'price'     => pmpro_formatPrice((float)$p_price),
-								'raw_price' => (float)$p_price // Passed for mathematical comparison during state detection
+								'raw_price' => (float)$p_price 
 							];
 						}
 					}
@@ -132,7 +172,7 @@ class DD_PMPro_Frontend_Pricing
 			}
 		}
 
-		return false; // Return false if no active Annual plan configuration is discovered.
+		return false; 
 	}
 
 	/**
@@ -536,8 +576,9 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Data retrieval and standard card rendering logic
-	 * Includes raw_price for tier hierarchy evaluation.
+	 * Data retrieval and standard card rendering logic.
+	 * UPDATED: Runs base plans through `pmpro_checkout_level` strictly for logged-in 
+	 * users so the table accurately reflects customized prorated quotes.
 	 */
 	private function get_level_data($level_id)
 	{
@@ -549,8 +590,17 @@ class DD_PMPro_Frontend_Pricing
 			return false;
 		}
 
-		// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
-		$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
+		// Apply PMPro checkout filters to capture dynamic prorating for active members
+		if (is_user_logged_in() && function_exists('pmpro_hasMembershipLevel') && pmpro_hasMembershipLevel()) {
+			$cloned_level = clone $level;
+			$cloned_level = apply_filters('pmpro_checkout_level', $cloned_level);
+			
+			// Use the dynamically filtered initial payment if it was prorated
+			$price = $cloned_level->initial_payment;
+		} else {
+			// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
+			$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
+		}
 
 		return [
 			'id'        => $level->id,
