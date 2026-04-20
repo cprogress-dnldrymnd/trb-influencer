@@ -193,3 +193,24 @@ function influencer_dynamic_initial_payment( $level ) {
 }
 // Set priority to 50 so it runs after standard PMPro level generation but before checkout overrides
 add_filter( 'pmpro_checkout_level', 'influencer_dynamic_initial_payment', 50, 1 );
+
+function influencer_dynamic_initial_payment(  ) {
+
+    // 1. Bail if the user is logged out or doesn't have an active plan (we only want plan switchers)
+    if ( ! is_user_logged_in() || ! pmpro_hasMembershipLevel() ) {
+        echo $level;
+    }
+
+    // 2. Check if the PMPro Subscription Delays Add-on has a delay set for this specific level ID
+    $has_delay = get_option( 'pmpro_subscription_delay_' . $level->id, '' );
+
+    // 3. If there is NO delay configured for this level, AND it has a recurring billing amount...
+    if ( empty( $has_delay ) && $level->billing_amount > 0 ) {
+        
+        // 4. Force the initial payment today to match the recurring billing amount
+      echo $level->billing_amount;
+    }
+
+}
+// Set priority to 50 so it runs after standard PMPro level generation but before checkout overrides
+add_action( 'init', 'influencer_dynamic_initial_payment');
