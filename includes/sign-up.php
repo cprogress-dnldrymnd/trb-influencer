@@ -253,7 +253,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 'terms_acceptance',
                 'checkbox',
                 array(
-                    'label'    => '',
+                    'label'    => ' ',
                     'text'     => $label_html, // Use 'text' instead of 'options' array for a single boolean checkbox
                     'required' => true,        // Enforces validation on checkout rendering
                     'profile'  => false,       // Keeps this out of the user profile edit screen
