@@ -97,12 +97,12 @@ add_action('init', function () {
 });
 
 
-function my_pmprosd_subscription_delay_for_switching( $delay, $level_id, $user_id ) {
+function my_pmprosd_subscription_delay_for_switching(  ) {
     // Check if user already has an active membership
     if ( pmpro_hasMembershipLevel( NULL, $user_id ) ) {
-           echo 'has-membership'; // No delay for existing members
+        echo 'has-membership'; // No delay for existing members
     }
-           echo 'has-no-membership'; // No delay for existing members
+        echo 'has-no-membership'; // No delay for existing members
 
 }
-add_action( 'init', 'my_pmprosd_subscription_delay_for_switching', 10, 3 );
+add_action( 'init', 'my_pmprosd_subscription_delay_for_switching');
