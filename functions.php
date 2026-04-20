@@ -97,3 +97,47 @@ add_action('init', function () {
 });
 
 
+/**
+ * 1. BACKEND OVERRIDE: Push the next payment date to the existing expiration date, bypassing the delay.
+ */
+add_filter( 'pmpro_profile_start_date', 'influencer_collective_fix_delay_on_switch', 10, 2 );
+function influencer_collective_fix_delay_on_switch( $startdate, $order ) {
+    // Only apply to logged-in users who are upgrading/switching
+    if ( ! is_user_logged_in() ) {
+        return $startdate;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    // Check if the user has an active level with a future payment date
+    if ( ! empty( $current_level ) && ! empty( $current_level->next_payment ) ) {
+        // Override the 3-day delay and force the new plan to start when the current banked time expires
+        $startdate = date( "Y-m-d\TH:i:s", $current_level->next_payment );
+    }
+    
+    return $startdate;
+}
+
+/**
+ * 2. FRONTEND OVERRIDE: Fix the pricing text on the checkout page so it doesn't say "3 day trial".
+ */
+add_filter( 'pmpro_level_cost_text', 'influencer_collective_fix_checkout_text', 10, 4 );
+function influencer_collective_fix_checkout_text( $text, $level, $tags, $short ) {
+    if ( ! is_user_logged_in() ) {
+        return $text;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    // If they have banked time, rewrite the display text
+    if ( ! empty( $current_level ) && ! empty( $current_level->next_payment ) ) {
+        $formatted_date = date_i18n( get_option( 'date_format' ), $current_level->next_payment );
+        
+        // Dynamically replace the default trial text with their actual next payment date
+        $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
+    }
+    
+    return $text;
+}
