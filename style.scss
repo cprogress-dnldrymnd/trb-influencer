@@ -1869,7 +1869,7 @@ body:not(.page-id-4144) {
     justify-content: center;
     font-weight: bold;
 }
-#terms_acceptance_div label[for="terms_acceptance"] {
+#terms_acceptance_div label[for="terms_acceptance"]:first-child {
     display: none !important;
 }
 /*responsive*/
