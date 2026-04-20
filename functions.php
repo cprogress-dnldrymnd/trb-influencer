@@ -95,3 +95,87 @@ add_shortcode('influencers_meta', 'influencers_meta');
 add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
+
+/**
+ * 1. FORCE LEVEL OVERRIDE: Strip out all trials/delays triggered by the $0 initial payment.
+ */
+add_filter( 'pmpro_checkout_level', 'influencer_collective_force_level_for_upgrades', 999 );
+function influencer_collective_force_level_for_upgrades( $level ) {
+    // Only apply to logged-in users checking out
+    if ( ! is_user_logged_in() || empty( $level ) ) {
+        return $level;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    // If the user already has an active, paid plan...
+    if ( ! empty( $current_level ) ) {
+        // Forcefully eradicate any trials or delays injected by the $0 initial payment or add-ons
+        $level->custom_trial = 0;
+        $level->trial_amount = 0;
+        $level->trial_limit  = 0;
+    }
+    
+    return $level;
+}
+
+/**
+ * 2. FORCE START DATE: Lock the new billing cycle to their exact banked expiration date.
+ */
+add_filter( 'pmpro_profile_start_date', 'influencer_collective_force_start_date', 999, 2 );
+function influencer_collective_force_start_date( $startdate, $order ) {
+    if ( ! is_user_logged_in() ) {
+        return $startdate;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    if ( ! empty( $current_level ) ) {
+        // Securely grab their banked time
+        $next_payment_timestamp = pmpro_next_payment( $user_id );
+        
+        // Fallback for manual/bank transfer gateways
+        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
+            $next_payment_timestamp = $current_level->enddate;
+        }
+
+        // Force the gateway to delay the first charge until their banked time expires
+        if ( ! empty( $next_payment_timestamp ) ) {
+            $startdate = date( "Y-m-d\TH:i:s", $next_payment_timestamp );
+        }
+    }
+    
+    return $startdate;
+}
+
+/**
+ * 3. FORCE FRONTEND UI: Fix the text on the checkout page so it doesn't say "3 day trial".
+ */
+add_filter( 'pmpro_level_cost_text', 'influencer_collective_force_checkout_text', 999, 4 );
+function influencer_collective_force_checkout_text( $text, $level, $tags, $short ) {
+    if ( ! is_user_logged_in() ) {
+        return $text;
+    }
+    
+    $user_id = get_current_user_id();
+    $current_level = pmpro_getMembershipLevelForUser( $user_id );
+
+    if ( ! empty( $current_level ) ) {
+        $next_payment_timestamp = pmpro_next_payment( $user_id );
+        
+        if ( empty( $next_payment_timestamp ) && ! empty( $current_level->enddate ) ) {
+            $next_payment_timestamp = $current_level->enddate;
+        }
+
+        if ( ! empty( $next_payment_timestamp ) ) {
+            $formatted_date = date_i18n( get_option( 'date_format' ), $next_payment_timestamp );
+            
+            // Scrub the trial text and replace it with their true start date
+            $text = preg_replace( '/after your \d+ day trial/i', 'starting on ' . $formatted_date, $text );
+        }
+    }
+    
+    return $text;
+}
