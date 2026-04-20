@@ -1156,7 +1156,6 @@ class DD_Outreach_Manager
             .dd-pill-filters-wrapper {padding: 20px;}
             .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #8F8F8F; text-decoration: none; font-weight: 600; width: 100%; font-family: Inter; font-size: 14px; }
             .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
-            .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
             .dd-archive-link.active { color: #034146; font-weight: bold; }
             
             .dd-pill-filters { display: flex; gap: 10px; }
