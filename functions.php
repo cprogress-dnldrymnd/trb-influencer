@@ -142,6 +142,19 @@ function my_pmpro_one_time_sub_delay( $checkout_level ) {
 add_filter( 'pmpro_checkout_level', 'my_pmpro_one_time_sub_delay' );
 
 /**
+ * Helper function to force correct start date for different billing periods
+ */
+function dd_force_new_billing_cycle_start_date( $startdate, $order ) {
+    global $dd_new_cycle_number, $dd_new_cycle_period;
+    
+    if ( ! empty( $dd_new_cycle_number ) && ! empty( $dd_new_cycle_period ) ) {
+        // Calculate the exact future date based on the new plan's cycle (e.g., "+ 1 Year")
+        return date( 'Y-m-d\TH:i:s', current_time( 'timestamp' ) + strtotime( "+ {$dd_new_cycle_number} {$dd_new_cycle_period}", 0 ) );
+    }
+    return $startdate;
+}
+
+/**
  * Swap in our custom prorating function.
  */
 function init_custom_prorating_rules() {
@@ -161,23 +174,21 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
         $morder = new MemberOrder();
         $morder->getLastMemberOrder( $current_user->ID, array( 'success', '', 'cancelled' ) );
         
-        // No prorating needed if they don't have an order (were given the level by an admin/etc)
+        // No prorating needed if they don't have an order
         if ( empty( $morder->timestamp ) ) {
             return $level;
         }
         
-        // Safely determine the base cost for the new level (prevents the $0 Initial Payment bug)
+        // Safely determine the base cost for the new level
         $base_new_level_cost = ( $level->initial_payment > 0 ) ? $level->initial_payment : $level->billing_amount;
 
         // DOWNGRADE LOGIC
         if ( pmprorate_isDowngrade( $clevel->id, $level->id ) ) {
             
-            // 1. Charge $0 today.
             $level->initial_payment = 0;
             global $pmpro_checkout_old_level;
             $pmpro_checkout_old_level = $clevel;            
             
-            // 2. THE FIX: Explicitly force the gateway to delay the new subscription until the current banked time expires.
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );
             
         // UPGRADE LOGIC (SAME BILLING PERIOD)
@@ -188,26 +199,21 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
             $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
             
-            if ( $days_in_period <= 0 ) {
-                return $level;
-            }
+            if ( $days_in_period <= 0 ) return $level;
             
             $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
             $per_passed = $days_passed / $days_in_period;        
             $per_left   = 1 - $per_passed;
             
-            // Calculate costs based on the billing amount, not the potentially $0 initial payment
             $new_level_cost = $level->billing_amount * $per_left;
             $old_level_cost = $clevel->billing_amount * $per_passed;
             
-            // Apply calculation safely to the initial payment
             $level->initial_payment = min( $base_new_level_cost, round( $new_level_cost + $old_level_cost - $morder->subtotal, 2 ) );
             
             if ( $level->initial_payment < 0 ) {
                 $level->initial_payment = 0;
             }
             
-            // Force the recurring billing to start on the correct future date
             add_filter( 'pmpro_profile_start_date', 'pmprorate_set_startdate_to_next_payment_date', 10, 2 );            
             
         // UPGRADE LOGIC (DIFFERENT BILLING PERIODS - e.g., Monthly to Annual)
@@ -218,9 +224,7 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             $today = pmprorate_trim_timestamp( current_time( 'timestamp' ) );
             $days_in_period = ceil( ( $next_payment_date - $payment_date ) / 3600 / 24 );
             
-            if ( $days_in_period <= 0 ) {
-                return $level;
-            }
+            if ( $days_in_period <= 0 ) return $level;
             
             $days_passed = ceil( ( $today - $payment_date ) / 3600 / 24 );
             $per_passed = $days_passed / $days_in_period;        
@@ -229,12 +233,19 @@ function pmpro_checkout_level_custom_prorating_rules( $level ) {
             // Calculate their exact dollar credit from their old plan
             $credit = $morder->subtotal * $per_left;            
             
-            // THE FIX: Subtract the credit from the Base Cost (Billing Amount) to ensure they actually get the discount!
             $level->initial_payment = round( $base_new_level_cost - $credit, 2 );
             
             if ( $level->initial_payment < 0 ) {
                 $level->initial_payment = 0;
             }
+
+            // THE NEW FIX: Force the start date to map exactly to the NEW billing cycle!
+            global $dd_new_cycle_number, $dd_new_cycle_period;
+            $dd_new_cycle_number = $level->cycle_number; // e.g., 1
+            $dd_new_cycle_period = $level->cycle_period; // e.g., 'Year'
+            
+            // Hook in at priority 99 to override PMPro's confused defaults
+            add_filter( 'pmpro_profile_start_date', 'dd_force_new_billing_cycle_start_date', 99, 2 );
         }       
     }
     return $level;
