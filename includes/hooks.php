@@ -78,7 +78,7 @@ function action_wp_head()
     if ($search_type == 'fullbrief') {
         echo "#filter-col{ display: none; }";
         echo "#results-col{ --width: 100% !important; }";
-        echo "#my-loop-grid-container{grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))}"
+        echo "#my-loop-grid-container{grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))}";
     } else {
         echo "#match-score{  display: none !important;  }";
     }
