@@ -1153,6 +1153,7 @@ class DD_Outreach_Manager
                 padding: 20px;
                 border-bottom: 1px solid #BCBCBC;
             }
+            .dd-pill-filters-wrapper {padding: 20px;}
             .dd-archive-link { display: flex; justify-content: space-between; align-items: center; color: #555; text-decoration: none; font-weight: 500; margin-bottom: 15px; width: 100%; }
             .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
             .dd-archive-count-badge { font-weight: bold; font-size: 16px; color: #034146; }
@@ -1831,9 +1832,11 @@ class DD_Outreach_Manager
                         <span class="dd-archive-count-badge" id="dd-archive-count-badge"><?php echo esc_html($total_archived); ?></span>
                     </a>
                 </div>
-                <div class="dd-pill-filters">
-                    <button class="dd-status-pill active" data-status="all">All</button>
-                    <button class="dd-status-pill" data-status="favorites">Favourites</button>
+                <div class="dd-pill-filters-wrapper">
+                    <div class="dd-pill-filters">
+                        <button class="dd-status-pill active" data-status="all">All</button>
+                        <button class="dd-status-pill" data-status="favorites">Favourites</button>
+                    </div>
                 </div>
             </div>
 
