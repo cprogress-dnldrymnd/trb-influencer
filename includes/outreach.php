@@ -748,7 +748,8 @@ class DD_Outreach_Manager
         <br>
         <p>Best regards,<br>{sender_name}<br>{job_title} at {brand_name}</p>
         <p>Country: {country}</p>
-        <img src="{avatar_url}" width="60" style="border-radius:50%;" />
+        <div style="margin-bottom: 10px;">{influencer_avatar}</div>
+        <div style="margin-bottom: 10px;">{user_avatar}</div>
         <br><br>
         <a href="mailto:{sender_email}">Reply to {brand_name}</a>
     </div>
@@ -924,7 +925,7 @@ class DD_Outreach_Manager
                             <div style="margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                                 <strong>Global Merge Tags (Click field to focus, then click tag to insert):</strong><br>
                                 <?php
-                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{avatar_url}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}', '{subject}', '{site_url}'];
+                                $tags = ['{influencer_email}', '{influencer_name}', '{brand_name}', '{sender_name}', '{sender_email}', '{job_title}', '{country}', '{user_avatar}', '{influencer_avatar}', '{project_type}', '{project_length}', '{project_dates}', '{budget}', '{message}', '{subject}', '{site_url}'];
                                 foreach ($tags as $tag) {
                                     echo '<button type="button" class="button button-small dd-merge-tag" data-tag="' . esc_attr($tag) . '" style="margin: 2px;">' . esc_html($tag) . '</button>';
                                 }
@@ -1068,9 +1069,10 @@ class DD_Outreach_Manager
             'brand_name'      => 'Acme Health Co.',
             'sender_name'     => 'Jane Doe',
             'job_title'       => 'Partnerships Director',
-            'country_display' => $this->get_country_display('US'),
-            'avatar_url'      => 'https://via.placeholder.com/60x60',
-            'project_type'    => 'Affiliate partnership',
+            'country_display'   => $this->get_country_display('US'),
+            'user_avatar'       => '<img src="https://via.placeholder.com/60x60" style="border-radius:50%; width:60px; height:60px;" alt="User"/>',
+            'influencer_avatar' => '<img src="https://via.placeholder.com/60x60" style="border-radius:50%; width:60px; height:60px;" alt="Influencer"/>',
+            'project_type'      => 'Affiliate partnership',
             'project_length'  => 'Ongoing / long-term',
             'project_dates'   => 'Flexible',
             'budget'          => '$1,000 - $5,000',
@@ -1102,15 +1104,14 @@ class DD_Outreach_Manager
             $brand_name      = !empty($meta_brand_name) ? esc_html($meta_brand_name) : esc_html($sender_name);
             $meta_country    = get_user_meta($author_id, 'country', true);
             $country_display = $this->get_country_display($meta_country);
-            $avatar_meta = get_user_meta($author_id, 'user_avatar', true);
-            $avatar_url  = 'https://via.placeholder.com/60x60';
-            if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-                $avatar_url = $avatar_meta['fullurl'];
-            }
 
             $influencer_id    = get_post_meta($post_id, 'influencer_id', true);
             $influencer_name  = $influencer_id ? get_the_title($influencer_id) : 'Unknown Creator';
             $influencer_email = $influencer_id ? get_post_meta($influencer_id, 'creator_contact_emails', true) : 'creator@example.com';
+
+            // Generate HTML using your existing shortcodes
+            $user_avatar       = do_shortcode('[user_avatar]');
+            $influencer_avatar = do_shortcode('[influencer_avatar post_id="' . $influencer_id . '"]');
 
             $project_type   = get_post_meta($post_id, 'project_type', true) ?: 'N/A';
             $project_length = get_post_meta($post_id, 'project_length', true) ?: 'Ongoing';
@@ -1125,9 +1126,10 @@ class DD_Outreach_Manager
                 'brand_name'      => esc_html($brand_name),
                 'sender_name'     => esc_html($sender_name),
                 'job_title'       => esc_html($job_title),
-                'country_display' => $country_display,
-                'avatar_url'      => esc_url($avatar_url),
-                'project_type'    => esc_html($project_type),
+                'country_display'   => $country_display,
+                'user_avatar'       => $user_avatar,
+                'influencer_avatar' => $influencer_avatar,
+                'project_type'      => esc_html($project_type),
                 'project_length'  => esc_html($project_length),
                 'project_dates'   => esc_html($project_dates),
                 'budget'          => esc_html($budget),
@@ -1144,9 +1146,10 @@ class DD_Outreach_Manager
             '{brand_name}'      => $preview_data['brand_name'],
             '{sender_name}'     => $preview_data['sender_name'],
             '{job_title}'       => $preview_data['job_title'],
-            '{country}'         => $preview_data['country_display'],
-            '{avatar_url}'      => $preview_data['avatar_url'],
-            '{project_type}'    => $preview_data['project_type'],
+            '{country}'           => $preview_data['country_display'],
+            '{user_avatar}'       => $preview_data['user_avatar'],
+            '{influencer_avatar}' => $preview_data['influencer_avatar'],
+            '{project_type}'      => $preview_data['project_type'],
             '{project_length}'  => $preview_data['project_length'],
             '{project_dates}'   => $preview_data['project_dates'],
             '{budget}'          => $preview_data['budget'],
@@ -2047,15 +2050,12 @@ class DD_Outreach_Manager
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_display = $this->get_country_display($meta_country);
 
-        $avatar_meta = get_user_meta($current_user_id, 'user_avatar', true);
-        $avatar_url  = 'https://via.placeholder.com/60x60';
-        if (!empty($avatar_meta) && is_array($avatar_meta) && !empty($avatar_meta['fullurl'])) {
-            $avatar_url = $avatar_meta['fullurl'];
-        }
-
         $influencer_id   = absint($data['influencer_id']);
         $influencer_name = get_the_title($influencer_id);
-        $influencer_email = get_post_meta($influencer_id, 'influencer_email', true);
+
+        // Execute the shortcodes to grab the HTML avatars
+        $user_avatar_html       = do_shortcode('[user_avatar]');
+        $influencer_avatar_html = do_shortcode('[influencer_avatar post_id="' . $influencer_id . '"]');
 
         if (empty($influencer_email) || !is_email($influencer_email)) {
             $influencer_post = get_post($influencer_id);
@@ -2075,9 +2075,10 @@ class DD_Outreach_Manager
             '{sender_name}'     => $sender_name,
             '{sender_email}'    => $sender_email,
             '{job_title}'       => $job_title,
-            '{country}'         => $country_display,
-            '{avatar_url}'      => esc_url($avatar_url),
-            '{project_type}'    => esc_html($data['project_type'] ?? 'N/A'),
+            '{country}'           => $country_display,
+            '{user_avatar}'       => $user_avatar_html,
+            '{influencer_avatar}' => $influencer_avatar_html,
+            '{project_type}'      => esc_html($data['project_type'] ?? 'N/A'),
             '{project_length}'  => esc_html($data['project_length'] ?? 'N/A'),
             '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
             '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
