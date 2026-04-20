@@ -1158,11 +1158,11 @@ class DD_Outreach_Manager
             .dd-archive-link-left { display: flex; align-items: center; gap: 8px; }
             .dd-archive-link.active { color: #034146; font-weight: bold; }
             
-            .dd-pill-filters { display: flex; gap: 10px; font-family: Inter; font-size: 14px; font-weight: 500; }
+            .dd-pill-filters { display: flex; gap: 10px; font-family: Inter; }
             
             /* Force strict override to prevent Elementor button bleeding */
-            .dd-status-pill { padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #8F8F8F !important; background: transparent !important; cursor: pointer !important; color: #8F8F8F !important; font-size: 13px !important; font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
-            .dd-status-pill.active { background: #034146 !important; border-color: #034146 !important; color: #fff !important; font-weight: bold !important; }
+            .dd-status-pill { font-family: Inherit !important; padding: 8px 20px !important; border-radius: 999px !important; border: 1px solid #8F8F8F !important; background: transparent !important; cursor: pointer !important; color: #8F8F8F !important; font-size: 14px !important;  font-weight: 500 !important; line-height: 1 !important; box-shadow: none !important; outline: none !important; text-decoration: none !important; margin: 0 !important; }
+            .dd-status-pill.active { background: #F0FFF4 !important; border-color: #034146 !important; color: #034146 !important; font-weight: bold !important; }
 
             .dd-item-list { max-height: 600px; overflow-y: auto; }
             .dd-outreach-item { display: flex; padding: 15px 20px; border-bottom: 1px solid #eee; border-top: 1px solid transparent; cursor: pointer; transition: background 0.2s; position: relative; }
