@@ -49,6 +49,7 @@ $dir = get_stylesheet_directory();
 
 // Direct, unrolled require statements. 
 // This is the fastest execution path in PHP for procedural files.
+require $dir . '/includes/sign-up.php';
 require $dir . '/includes/influencers.php';
 require $dir . '/includes/hooks.php';
 require $dir . '/includes/custom-functions.php';
@@ -61,7 +62,6 @@ require $dir . '/includes/pmpro-dynamic-pricing.php';
 require $dir . '/includes/pmpro-mycred-rewards-manager.php';
 require $dir . '/includes/email-template-manager.php';
 require $dir . '/includes/acf.php';
-require $dir . '/includes/sign-up.php';
 require $dir . '/includes/elementor.php';
 require $dir . '/includes/outreach.php';
 require $dir . '/includes/charts.php';
