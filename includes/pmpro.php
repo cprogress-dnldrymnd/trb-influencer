@@ -992,6 +992,7 @@ function dd_influencer_style_pmpro_checkout()
     </script>
 <?php
 }
+add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 
 /**
  * Renders the First Name and Last Name input fields on the PMPro checkout form.
