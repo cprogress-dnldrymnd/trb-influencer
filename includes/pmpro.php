@@ -250,8 +250,11 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     $user_id = get_current_user_id();
     $old_level = pmpro_getMembershipLevelForUser($user_id);
 
-    // Abort if the user lacks an active subscription or is attempting to checkout for the exact same level.
-    if (empty($old_level) || $old_level->id == $level->id) {
+    // -------------------------------------------------------------------------
+    // THE FIX: Do not abort if they are just switching payment plans within the same tier!
+    // We now strictly abort ONLY if the Level ID AND the Cycle Period are identical.
+    // -------------------------------------------------------------------------
+    if (empty($old_level) || ($old_level->id == $level->id && $old_level->cycle_period == $level->cycle_period)) {
         return $level;
     }
 
@@ -269,27 +272,26 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     $old_cycle_period = ! empty($old_level->cycle_period) ? $old_level->cycle_period : 'Month';
 
     // -------------------------------------------------------------------------
-    // NEW LOGIC: Explicitly check for downgrades, upgrades, and same-cycle switches
+    // SCENARIO LOGIC
     // -------------------------------------------------------------------------
     
     if ($old_cycle_period === 'Year' && $new_cycle_period === 'Month') {
-        // SCENARIO 1: Annual to Monthly (Downgrade)
+        // SCENARIO 1: Annual to Monthly (Downgrade or Same-Tier Switch)
         $level->initial_payment = 0;
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
 
     } elseif ($old_cycle_period === 'Month' && $new_cycle_period === 'Year') {
-        // SCENARIO 2: Monthly to Annual (Upgrade)
+        // SCENARIO 2: Monthly to Annual (Upgrade or Same-Tier Switch)
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
         $new_start_timestamp = strtotime($strtotime_modifier, $next_payment_timestamp);
         $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
 
     } else {
-        // SCENARIO 3: Same Cycle (Month-to-Month or Year-to-Year)
-        // Keeps the exact same next payment date without adding extra time!
+        // SCENARIO 3: Same Cycle (Month-to-Month or Year-to-Year to a different Level ID)
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
     }
 
-    // Ensure the PMPro Subscription Delays add-on doesn't overwrite our calculated date (from previous fix)
+    // Ensure the PMPro Subscription Delays add-on doesn't overwrite our calculated date
     remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
 
     return $level;
