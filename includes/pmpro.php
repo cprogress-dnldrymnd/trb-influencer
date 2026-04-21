@@ -259,9 +259,15 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     // Retrieve the UNIX timestamp for the next scheduled payment of the current active subscription.
     $next_payment_timestamp = pmpro_next_payment($user_id);
 
-    // If no future payment date exists (e.g., cancelled or expired), rely on default PMPro behavior.
+    // FIX: If no future payment date exists (common with scheduled downgrades where the recurring profile is cancelled), 
+    // fallback to the old level's expiration date if it exists in the future.
     if (! $next_payment_timestamp || $next_payment_timestamp <= current_time('timestamp')) {
-        return $level;
+        if (! empty($old_level->enddate) && $old_level->enddate > current_time('timestamp')) {
+            $next_payment_timestamp = $old_level->enddate;
+        } else {
+            // Truly no future active time; rely on default PMPro behavior.
+            return $level;
+        }
     }
 
     // Extract cycle parameters for comparison and calculation.
@@ -304,8 +310,6 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 
     return $level;
 }
-// THE FIX: Changed priority from 10 to 5. This guarantees our script sets the price 
-// BEFORE the PMPro Proration Add-on runs, allowing it to correctly calculate their credit!
 add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 5, 1);
 
 /**
