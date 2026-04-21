@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.25
+ * Version: 1.0.26
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -227,15 +227,8 @@ class DD_PMPro_Frontend_Pricing
 	/**
 	 * Detects if the user has a scheduled (delayed) downgrade pending and returns the target level ID.
 	 *
-	 * Uses five independent detection strategies to maximise compatibility across PMPro
-	 * Proration, Delayed Downgrade, and Payment Plans Add-Ons regardless of addon version:
-	 *
-	 * M0 – Native PMPro function (pmpro_getNextMembershipLevelForUser), if the addon exposes one.
-	 * M1 – Broad user-meta scan: iterates every pmpro/membership-related meta key whose name
-	 * contains a "future change" keyword.
-	 * M2 – WordPress Cron scan: looks for any PMPro-related scheduled event.
-	 * M3 – Direct DB query on pmpro_memberships_users for a record whose startdate is in the future.
-	 * M4 - Direct DB query on pmprorate_downgrades custom table used by the Proration Addon.
+	 * Uses multiple robust detection strategies to maximise compatibility across PMPro
+	 * Proration, Delayed Downgrade, and Payment Plans Add-Ons regardless of addon version.
 	 *
 	 * @param int $user_id The WordPress User ID.
 	 * @return int|false The pending downgrade level ID, or false if none detected.
@@ -248,13 +241,25 @@ class DD_PMPro_Frontend_Pricing
 
 		global $wpdb;
 
-		// ── Method 4: PMPro Proration Addon custom table (Highest Priority) ────────────
+		// ── Method 1: PMPro Proration Addon Native Function (Most Reliable) ────────────
+		if (function_exists('pmprorate_get_downgrades')) {
+			$downgrades = pmprorate_get_downgrades($user_id, 'pending');
+			if (!empty($downgrades)) {
+				// Use reset to grab the first pending downgrade safely
+				$downgrade = reset($downgrades);
+				if (!empty($downgrade->new_level_id)) {
+					return (int) $downgrade->new_level_id;
+				}
+			}
+		}
+
+		// ── Method 2: Direct DB query on pmprorate_downgrades (Fallback) ───────────────
 		$prorate_table = $wpdb->prefix . 'pmprorate_downgrades';
 		if ($wpdb->get_var("SHOW TABLES LIKE '{$prorate_table}'") === $prorate_table) {
-			// Find the latest pending downgrade record for this user.
-			// It is crucial to exclude 'error' or 'cancelled' records retained for historical logs.
-			$prorate_row = $wpdb->get_row($wpdb->prepare(
-				"SELECT original_level_id, new_level_id
+			// Extract the target level without enforcing strict ownership of original plan, 
+			// bypassing string-to-int mismatches caused by Payment Plans Addon tracking.
+			$new_level_id = $wpdb->get_var($wpdb->prepare(
+				"SELECT new_level_id
 				 FROM {$prorate_table}
 				 WHERE user_id = %d
 				 AND status = 'pending'
@@ -263,118 +268,61 @@ class DD_PMPro_Frontend_Pricing
 				$user_id
 			));
 
-			if ($prorate_row) {
-				// Verify the user still holds the originating level to ensure this isn't an obsolete record
-				$user_levels = function_exists('pmpro_getMembershipLevelsForUser') ? pmpro_getMembershipLevelsForUser($user_id) : [];
-				$owns_original = false;
-				
-				if (!empty($user_levels)) {
-					foreach ($user_levels as $l) {
-						if ((int)$l->id === (int)$prorate_row->original_level_id) {
-							$owns_original = true;
-							break;
-						}
-					}
-				}
-
-				if ($owns_original) {
-					return (int) $prorate_row->new_level_id;
-				}
+			if ($new_level_id) {
+				return (int) $new_level_id;
 			}
 		}
 
-		// ── Method 0: Use a native addon function if available ─────────────────────────
-		if (function_exists('pmpro_getNextMembershipLevelForUser')) {
-			$next = pmpro_getNextMembershipLevelForUser($user_id);
-			if (!empty($next)) {
-				if (is_object($next) && isset($next->id))              return (int) $next->id;
-				if (is_array($next)  && isset($next['id']))            return (int) $next['id'];
-				if (is_numeric($next))                                  return (int) $next;
-			}
-		}
-
-		// ── Method 1: Broad user-meta scan ─────────────────────────────────────────────
-		$signal_words = ['next', 'downgrade', 'delay', 'scheduled', 'pending', 'change_level', 'level_change'];
-
-		$all_meta = get_user_meta($user_id);
-		foreach ($all_meta as $meta_key => $meta_values) {
-			if (stripos($meta_key, 'pmpro') === false && stripos($meta_key, 'membership') === false) {
-				continue;
-			}
-
-			$relevant = false;
-			foreach ($signal_words as $word) {
-				if (stripos($meta_key, $word) !== false) {
-					$relevant = true;
-					break;
-				}
-			}
-			if (!$relevant) {
-				continue;
-			}
-
-			foreach ($meta_values as $raw) {
-				$val = maybe_unserialize($raw);
-
-				if (is_numeric($val) && (int) $val > 0) {
-					return (int) $val;
-				}
-				if (is_object($val)) {
-					if (isset($val->id)            && is_numeric($val->id))            return (int) $val->id;
-					if (isset($val->membership_id) && is_numeric($val->membership_id)) return (int) $val->membership_id;
-					if (isset($val->level_id)      && is_numeric($val->level_id))      return (int) $val->level_id;
-				}
+		// ── Method 3: Broad user-meta scan for scheduled level changes ──────────────────
+		$meta_keys = ['pmpro_scheduled_level_changes', 'pmpro_delayed_downgrade', 'pmpro_next_level'];
+		foreach ($meta_keys as $key) {
+			$val = get_user_meta($user_id, $key, true);
+			if (!empty($val)) {
+				if (is_numeric($val) && (int)$val > 0) return (int) $val;
 				if (is_array($val)) {
-					if (isset($val['id'])            && is_numeric($val['id']))            return (int) $val['id'];
-					if (isset($val['membership_id']) && is_numeric($val['membership_id'])) return (int) $val['membership_id'];
-					if (isset($val['level_id'])      && is_numeric($val['level_id']))      return (int) $val['level_id'];
-					
-					$vals = array_values($val);
-					if (count($vals) === 2 && (int) $vals[0] === (int) $user_id && is_numeric($vals[1])) {
-						return (int) $vals[1];
-					}
+					$found_id = $this->_recursive_find_level_id($val);
+					if ($found_id) return (int) $found_id;
 				}
 			}
 		}
 
-		// ── Method 2: WordPress Cron scan ──────────────────────────────────────────────
-		$cron_array = _get_cron_array();
-		if (is_array($cron_array)) {
-			foreach ($cron_array as $hooks) {
-				if (!is_array($hooks)) continue;
-				foreach ($hooks as $hook => $events) {
-					if (stripos($hook, 'pmpro') === false && stripos($hook, 'membership') === false) continue;
-					foreach ($events as $event) {
-						$args = isset($event['args']) ? $event['args'] : [];
-						if (empty($args)) continue;
-
-						$flat = (is_array(reset($args)) && count($args) === 1) ? reset($args) : $args;
-						$flat = array_values($flat);
-
-						if (count($flat) >= 2 && (int) $flat[0] === (int) $user_id && is_numeric($flat[1]) && (int) $flat[1] > 0) {
-							return (int) $flat[1];
-						}
-					}
-				}
-			}
-		}
-
-		// ── Method 3: pmpro_memberships_users future-startdate row ─────────────────────
+		// ── Method 4: pmpro_memberships_users future-startdate row ─────────────────────
 		$future_level_id = $wpdb->get_var($wpdb->prepare(
 			"SELECT membership_id
 			 FROM {$wpdb->prefix}pmpro_memberships_users
 			 WHERE user_id   = %d
 			   AND status    = 'active'
-			   AND startdate > NOW()
+			   AND startdate > %s
 			 ORDER BY startdate ASC
 			 LIMIT 1",
-			$user_id
+			$user_id,
+			current_time('mysql', true)
 		));
 
 		if ($future_level_id) {
 			return (int) $future_level_id;
 		}
 
+		return false;
+	}
+
+	/**
+	 * Helper function to recursively hunt for a level ID inside complex meta arrays.
+	 * Required when add-ons nest scheduled tracking deep inside multidimensional arrays.
+	 */
+	private function _recursive_find_level_id($arr)
+	{
+		if (!is_array($arr)) return false;
+		if (isset($arr['new_level_id'])) return $arr['new_level_id'];
+		if (isset($arr['level_id'])) return $arr['level_id'];
+		if (isset($arr['id'])) return $arr['id'];
+
+		foreach ($arr as $v) {
+			if (is_array($v)) {
+				$res = $this->_recursive_find_level_id($v);
+				if ($res) return $res;
+			}
+		}
 		return false;
 	}
 
@@ -857,7 +805,11 @@ class DD_PMPro_Frontend_Pricing
 			}
 		}
 
-		// Implement robust lock out if user is on a free trial phase
+		// Evaluate Structural Lockdown States
+		$is_target_downgrade = ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id);
+		$is_leaving_current_plan = ($pending_downgrade_level_id && $has_any_plan);
+
+		// Implement robust lock out evaluation based on states
 		if ($is_on_free_trial) {
 			if ($owns_current_view) {
 				$btn_text = 'CURRENT PLAN (TRIAL)';
@@ -866,9 +818,14 @@ class DD_PMPro_Frontend_Pricing
 			}
 			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
 			$current_url = '';
-		} elseif ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id) {
+		} elseif ($is_target_downgrade) {
 			// This card is the target of a scheduled delayed downgrade — block checkout entirely
 			$btn_text    = 'PENDING DOWNGRADE';
+			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
+			$current_url = '';
+		} elseif ($is_leaving_current_plan) {
+			// The user is actively leaving their current plan via a downgrade, lock other payment options to prevent errors
+			$btn_text    = $owns_current_view ? 'CURRENT PLAN' : 'CHANGES LOCKED';
 			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
 			$current_url = '';
 		} else {
@@ -888,7 +845,8 @@ class DD_PMPro_Frontend_Pricing
 			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
 			data-action-verb="<?php echo esc_attr($action_verb); ?>"
 			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>"
-			data-is-pending-downgrade="<?php echo ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id) ? 'true' : 'false'; ?>">
+			data-is-pending-downgrade="<?php echo $is_target_downgrade ? 'true' : 'false'; ?>"
+			data-is-leaving-plan="<?php echo $is_leaving_current_plan ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -1182,8 +1140,10 @@ class DD_PMPro_Frontend_Pricing
 							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
+
 							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
-							const isPendingDowngrade = card.getAttribute('data-is-pending-downgrade') === 'true';
+							const isTargetDowngrade = card.getAttribute('data-is-pending-downgrade') === 'true';
+							const isLeavingPlan = card.getAttribute('data-is-leaving-plan') === 'true';
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
@@ -1191,15 +1151,21 @@ class DD_PMPro_Frontend_Pricing
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
 							const userOwnsOtherView = isYearly ? ownsMonthly : ownsAnnual;
 
-							// If the user is on a free trial, strictly evaluate the button lockdown
+							// Feature A: Trial Lockdown
 							if (isOnTrial) {
 								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							}
-							// If this card is a scheduled delayed-downgrade target, block checkout regardless of toggle
-							else if (isPendingDowngrade) {
+							// Feature B: Target Downgrade Block (Disable BOTH Monthly and Yearly views of the target plan)
+							else if (isTargetDowngrade) {
 								btnEl.textContent = 'PENDING DOWNGRADE';
+								btnEl.classList.add('dd-btn-disabled');
+								btnEl.removeAttribute('href');
+							}
+							// Feature C: Leaving Current Plan Block (Disable changing terms on a plan actively being left)
+							else if (isLeavingPlan) {
+								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN' : 'CHANGES LOCKED';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							}
