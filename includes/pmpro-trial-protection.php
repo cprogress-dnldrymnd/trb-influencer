@@ -6,7 +6,7 @@ if (! defined('ABSPATH')) {
 /**
  * Class DD_PMPro_Trial_Protection
  * Description: Implements strict email and Stripe card fingerprint tracking to prevent free trial abuse. 
- * Integrates one-time subscription delay rules with exception handling for specific tiers.
+ * Integrates one-time subscription delay rules with exception handling for specific tiers. Handles both Payment Methods and Legacy Tokens across Stripe Connect and Legacy environments.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -30,8 +30,8 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // LAYER 2: Advanced Stripe Fingerprint Validation (Processing Level)
             add_filter('pmpro_registration_checks', [$this, 'validate_stripe_fingerprint_before_checkout'], 20, 2);
 
-            // Log the fingerprint after a successful trial checkout
-            add_action('pmpro_after_checkout', [$this, 'log_fingerprint_after_checkout'], 10, 2);
+            // LAYER 3: Bulletproof Fingerprint Logging (Fires when membership is officially granted)
+            add_action('pmpro_after_change_membership_level', [$this, 'log_fingerprint_after_level_change'], 10, 3);
         }
 
         /**
@@ -62,6 +62,56 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
                 dbDelta($sql);
             }
+        }
+
+        /**
+         * Resolves the correct Stripe API key dynamically from Paid Memberships Pro settings.
+         * Architecture is designed to automatically adapt to Sandbox vs Live environments 
+         * regardless of whether legacy keys or Stripe Connect OAuth is used.
+         *
+         * @return string|false Returns the resolved API key/token or false if unavailable.
+         */
+        private function get_pmpro_stripe_api_key()
+        {
+            // Determine the currently active gateway environment
+            $env = pmpro_getOption('gateway_environment');
+
+            if ($env === 'sandbox') {
+                // Pulls the test key (Populated by Stripe Connect Test Mode or Manual entry)
+                $api_key = pmpro_getOption('stripe_test_secretkey');
+            } else {
+                // Pulls the live key (Populated by Stripe Connect Live Mode or Manual entry)
+                $api_key = pmpro_getOption('stripe_secretkey');
+            }
+
+            return !empty($api_key) ? $api_key : false;
+        }
+
+        /**
+         * Resolves the Stripe Card Fingerprint from either a Payment Method ID or a Legacy Token.
+         *
+         * @param string $token The Stripe token (starts with 'pm_' or 'tok_').
+         * @return string|false Returns the fingerprint string, or false if extraction fails.
+         */
+        private function get_stripe_fingerprint($token)
+        {
+            if (empty($token)) {
+                return false;
+            }
+
+            try {
+                if (strpos($token, 'tok_') === 0) {
+                    $token_obj = \Stripe\Token::retrieve($token);
+                    return $token_obj->card->fingerprint ?? false;
+                } elseif (strpos($token, 'pm_') === 0) {
+                    $pm_obj = \Stripe\PaymentMethod::retrieve($token);
+                    return $pm_obj->card->fingerprint ?? false;
+                }
+            } catch (Exception $e) {
+                error_log('DD PMPro Stripe Fingerprint API Error: ' . $e->getMessage());
+            }
+
+            return false;
         }
 
         /**
@@ -112,7 +162,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
         }
 
         /**
-         * LAYER 2: Intercepts the checkout submission, queries Stripe for the card fingerprint, 
+         * LAYER 2: Intercepts the checkout submission, parses the token/payment_method payload, 
          * and halts the checkout if the card has already been used for a trial.
          *
          * @param bool $continue Current boolean state of the PMPro registration validation.
@@ -120,94 +170,95 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
          */
         public function validate_stripe_fingerprint_before_checkout($continue)
         {
-            // Abort if upstream validation already failed or if not using Stripe
-            if (!$continue || empty($_REQUEST['payment_method_id']) || pmpro_getOption('gateway') !== 'stripe') {
+            if (!$continue || pmpro_getOption('gateway') !== 'stripe') {
                 return $continue;
             }
 
-            // Ensure the Stripe PHP SDK is loaded natively via PMPro
+            // Extract token from standard Payment Method field or Legacy Token field
+            $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
+
+            if (!$live_token) {
+                return $continue; // Abort silently if no token is passed in the payload
+            }
+
+            // Resolve the dynamic Stripe API key required for authentication
+            $api_key = $this->get_pmpro_stripe_api_key();
+            if (empty($api_key)) {
+                error_log('DD PMPro Trial Error - Validation Check: Could not resolve a valid Stripe API Key.');
+                return $continue; 
+            }
+
             if (!class_exists('\Stripe\Stripe')) {
                 require_once(PMPRO_DIR . '/includes/lib/Stripe/init.php');
             }
+            \Stripe\Stripe::setApiKey($api_key);
 
-            \Stripe\Stripe::setApiKey(pmpro_getOption('stripe_secretkey'));
+            $fingerprint = $this->get_stripe_fingerprint($live_token);
 
-            $payment_method_id = sanitize_text_field($_REQUEST['payment_method_id']);
+            if ($fingerprint) {
+                global $wpdb;
+                $table_name = $wpdb->prefix . 'dd_stripe_fingerprints';
 
-            try {
-                // Call Stripe API to retrieve the payment method details mapped to the frontend token
-                $payment_method = \Stripe\PaymentMethod::retrieve($payment_method_id);
+                // Query custom table to check for existing fingerprint blocks
+                $has_trial = $wpdb->get_var($wpdb->prepare("SELECT COUNT(id) FROM $table_name WHERE fingerprint = %s", $fingerprint));
 
-                if (!empty($payment_method->card->fingerprint)) {
-                    global $wpdb;
-                    $table_name = $wpdb->prefix . 'dd_stripe_fingerprints';
-                    $fingerprint = $payment_method->card->fingerprint;
-
-                    // Query our custom table to see if this fingerprint is already blacklisted
-                    $has_trial = $wpdb->get_var($wpdb->prepare("
-                        SELECT COUNT(id) FROM $table_name WHERE fingerprint = %s
-                    ", $fingerprint));
-
-                    if ($has_trial > 0) {
-                        // Halt checkout with clear messaging to maintain payment compliance
-                        pmpro_setMessage(__('This payment card has already been used to claim a free trial. Please use a different card or upgrade without a trial.', 'pmpro'), 'pmpro_error');
-                        return false;
-                    }
+                if ($has_trial > 0) {
+                    pmpro_setMessage(__('This payment card has already been used to claim a free trial. Please use a different card or upgrade without a trial.', 'pmpro'), 'pmpro_error');
+                    return false;
                 }
-            } catch (Exception $e) {
-                // If Stripe API fails, fail safe and allow PMPro core to handle the gateway error down the line
-                error_log('PMPro Stripe Fingerprint API Error: ' . $e->getMessage());
             }
 
             return $continue;
         }
 
-       /**
-         * Logs the Stripe card fingerprint into the custom database table immediately 
-         * after a successful checkout. Bypasses PMPro's $morder object to ensure 
-         * $0.00 initial trial checkouts are reliably captured.
+        /**
+         * LAYER 3: Logs the fingerprint upon successful assignment of the membership level.
+         * Uses a 3-tier fallback system to bypass the missing $morder object during $0 initial checkouts.
          *
-         * @param int    $user_id The WordPress User ID.
-         * @param object $morder  The PMPro Membership Order object (often null on $0 trials).
+         * @param int $level_id     The ID of the new level being assigned.
+         * @param int $user_id      The ID of the user.
+         * @param int $cancel_level The ID of the level being cancelled.
          * @return void
          */
-        public function log_fingerprint_after_checkout($user_id, $morder)
+        public function log_fingerprint_after_level_change($level_id, $user_id, $cancel_level)
         {
-            // 1. Decouple from $morder and rely on global PMPro gateway settings
-            if (pmpro_getOption('gateway') !== 'stripe') {
+            // Abort if cancelling a level or not using Stripe
+            if ($level_id == 0 || pmpro_getOption('gateway') !== 'stripe') {
                 return;
             }
 
-            // Ensure the Stripe PHP SDK is loaded natively
+            // Resolve the dynamic Stripe API key required for authentication
+            $api_key = $this->get_pmpro_stripe_api_key();
+            if (empty($api_key)) {
+                error_log('DD PMPro Trial Error - Logging Check: Could not resolve a valid Stripe API Key.');
+                return; 
+            }
+
             if (!class_exists('\Stripe\Stripe')) {
                 require_once(PMPRO_DIR . '/includes/lib/Stripe/init.php');
             }
-            \Stripe\Stripe::setApiKey(pmpro_getOption('stripe_secretkey'));
+            \Stripe\Stripe::setApiKey($api_key);
 
-            $payment_method_id = '';
+            $fingerprint = false;
 
-            // TIER 1: Intercept the ID directly from the live checkout payload
-            if (!empty($_REQUEST['payment_method_id'])) {
-                $payment_method_id = sanitize_text_field($_REQUEST['payment_method_id']);
+            // TIER 1: Try to grab the live payload token first (supports pm_ and tok_)
+            $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
+            
+            if ($live_token) {
+                $fingerprint = $this->get_stripe_fingerprint($live_token);
             }
 
-            // TIER 2: Retrieve from PMPro User Meta (Written during gateway processing)
-            if (empty($payment_method_id)) {
-                $payment_method_id = get_user_meta($user_id, 'pmpro_stripe_payment_method_id', true);
-            }
-
-            // TIER 3: Stripe API Deep-Dive (Extracts default card directly from the newly created Customer profile)
-            if (empty($payment_method_id)) {
+            // TIER 2 & 3: Fallback Customer Query if live token is missing (Webhooks/Delayed execution)
+            if (!$fingerprint) {
                 $customer_id = get_user_meta($user_id, 'pmpro_stripe_customerid', true);
                 
-                if (!empty($customer_id)) {
+                if ($customer_id) {
                     try {
                         $customer = \Stripe\Customer::retrieve($customer_id);
+                        $payment_method_id = $customer->invoice_settings->default_payment_method ?? '';
                         
-                        // Check invoice default first, fallback to querying the customer's attached cards
-                        if (!empty($customer->invoice_settings->default_payment_method)) {
-                            $payment_method_id = $customer->invoice_settings->default_payment_method;
-                        } else {
+                        // Deep query if invoice default is not explicitly set
+                        if (!$payment_method_id) {
                             $payment_methods = \Stripe\PaymentMethod::all([
                                 'customer' => $customer_id,
                                 'type'     => 'card',
@@ -217,53 +268,38 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                                 $payment_method_id = $payment_methods->data[0]->id;
                             }
                         }
-                    } catch (Exception $e) {
-                        error_log('DD PMPro Trial Error - Stripe Customer Retrieve Failed: ' . $e->getMessage());
-                    }
-                }
-            }
 
-            // Abort and log if all 3 tiers failed to find a valid Payment Method ID
-            if (empty($payment_method_id) || strpos($payment_method_id, 'pm_') !== 0) {
-                error_log('DD PMPro Trial Error - Failed to locate a valid Stripe Payment Method ID for User ID: ' . $user_id);
-                return;
-            }
-
-            // Proceed to query Stripe for the specific card fingerprint
-            try {
-                $payment_method = \Stripe\PaymentMethod::retrieve($payment_method_id);
-
-                if (!empty($payment_method->card->fingerprint)) {
-                    global $wpdb;
-                    $table_name = $wpdb->prefix . 'dd_stripe_fingerprints';
-                    $fingerprint = $payment_method->card->fingerprint;
-
-                    // Ensure we don't log duplicate entries for the exact same fingerprint
-                    $exists = $wpdb->get_var($wpdb->prepare("
-                        SELECT id FROM $table_name WHERE fingerprint = %s LIMIT 1
-                    ", $fingerprint));
-
-                    if (!$exists) {
-                        $user = get_userdata($user_id);
-                        $inserted = $wpdb->insert(
-                            $table_name,
-                            [
-                                'user_id'     => $user_id,
-                                'email'       => $user->user_email,
-                                'fingerprint' => $fingerprint
-                            ],
-                            ['%d', '%s', '%s']
-                        );
-                        
-                        if (!$inserted) {
-                             error_log('DD PMPro Trial Error - Database Insert Failed: ' . $wpdb->last_error);
+                        if ($payment_method_id) {
+                            $fingerprint = $this->get_stripe_fingerprint($payment_method_id);
                         }
+                    } catch (Exception $e) {
+                        error_log('DD PMPro Trial Logging - Stripe Customer Query Failed: ' . $e->getMessage());
                     }
-                } else {
-                    error_log('DD PMPro Trial Error - The retrieved Stripe Payment Method object did not contain a card fingerprint.');
                 }
-            } catch (Exception $e) {
-                error_log('DD PMPro Trial Error - Stripe API Verification Failed: ' . $e->getMessage());
+            }
+
+            // Execute the DB insert strictly if a valid fingerprint was resolved
+            if ($fingerprint) {
+                global $wpdb;
+                $table_name = $wpdb->prefix . 'dd_stripe_fingerprints';
+
+                // Prevent duplicate logging of the exact same fingerprint
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE fingerprint = %s LIMIT 1", $fingerprint));
+
+                if (!$exists) {
+                    $user = get_userdata($user_id);
+                    $wpdb->insert(
+                        $table_name,
+                        [
+                            'user_id'     => $user_id,
+                            'email'       => $user->user_email,
+                            'fingerprint' => $fingerprint
+                        ],
+                        ['%d', '%s', '%s']
+                    );
+                }
+            } else {
+                error_log("DD PMPro Trial Logging Error: Could not locate Stripe fingerprint to log for User $user_id");
             }
         }
     }
