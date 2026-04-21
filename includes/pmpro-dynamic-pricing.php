@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.24
+ * Version: 1.0.25
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -251,18 +251,20 @@ class DD_PMPro_Frontend_Pricing
 		// ── Method 4: PMPro Proration Addon custom table (Highest Priority) ────────────
 		$prorate_table = $wpdb->prefix . 'pmprorate_downgrades';
 		if ($wpdb->get_var("SHOW TABLES LIKE '{$prorate_table}'") === $prorate_table) {
-			// Find the latest downgrade record for this user
+			// Find the latest pending downgrade record for this user.
+			// It is crucial to exclude 'error' or 'cancelled' records retained for historical logs.
 			$prorate_row = $wpdb->get_row($wpdb->prepare(
 				"SELECT original_level_id, new_level_id
 				 FROM {$prorate_table}
 				 WHERE user_id = %d
+				 AND status = 'pending'
 				 ORDER BY id DESC
 				 LIMIT 1",
 				$user_id
 			));
 
 			if ($prorate_row) {
-				// Verify the user still holds the originating level to ensure this isn't an old, processed row
+				// Verify the user still holds the originating level to ensure this isn't an obsolete record
 				$user_levels = function_exists('pmpro_getMembershipLevelsForUser') ? pmpro_getMembershipLevelsForUser($user_id) : [];
 				$owns_original = false;
 				
