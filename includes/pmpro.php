@@ -400,7 +400,7 @@ add_action('template_redirect', 'dd_force_free_members_to_upgrade');
  */
 function dd_influencer_style_pmpro_checkout()
 {
-    global $pmpro_pages;
+    global $pmpro_pages, $pmpro_level; // Added $pmpro_level to pull live checkout math
 
     // Abort if we are not on the explicit PMPro checkout page
     if (empty($pmpro_pages['checkout']) || ! is_page($pmpro_pages['checkout'])) {
@@ -417,17 +417,31 @@ function dd_influencer_style_pmpro_checkout()
         if (! empty($level)) {
             $real_plan_name = $level->name;
             if (! empty($level->description)) {
-                // Strip tags so the description fits cleanly inside a single bullet point
                 $plan_description = wp_strip_all_tags($level->description);
             }
         }
     }
 
+    // 2. EXTRACT DYNAMIC PRICING MATH FOR TIMELINE
+    $paying_now = isset($pmpro_level->initial_payment) ? (float) $pmpro_level->initial_payment : 0;
+    $paying_now_formatted = pmpro_formatPrice($paying_now);
+
+    $payment_reason = 'Standard initial payment';
+    if ($paying_now == 0) {
+        $payment_reason = 'Adjusted for banked time';
+    } elseif (isset($pmpro_level->billing_amount) && $paying_now > 0 && $paying_now < (float)$pmpro_level->billing_amount) {
+        $payment_reason = 'Prorated upgrade cost';
+    }
+
+    $start_date_str = "Now";
+    if (!empty($pmpro_level->profile_start_date)) {
+        $start_date_str = date_i18n(get_option('date_format'), strtotime($pmpro_level->profile_start_date));
+    }
+
     // Safely get the dynamic Membership Levels page URL for the "Change plan" link
     $levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
 
-    // 2. DEFINE YOUR GLOBAL PLAN DETAILS HERE
-    // By only using 'default', these bullets will apply to ALL payment plans uniformly.
+    // 3. DEFINE YOUR GLOBAL PLAN DETAILS HERE
     $dynamic_plan_details = [
         'default' => [
             'account_type' => '1 Account',
@@ -444,8 +458,6 @@ function dd_influencer_style_pmpro_checkout()
 ?>
     <style>
         /* influencer-style CSS Overrides for PMPro */
-
-
         #pmpro_form {
             max-width: 600px;
             margin: 0 auto;
@@ -459,7 +471,6 @@ function dd_influencer_style_pmpro_checkout()
             align-items: center;
             padding-bottom: 15px;
         }
-
 
         .dd-checkout-title-row {
             display: flex;
@@ -505,7 +516,6 @@ function dd_influencer_style_pmpro_checkout()
             object-fit: cover;
         }
 
-        /* Neutralize the heavy boxed styling of PMPro default sections */
         .pmpro_checkout-section {
             background: transparent !important;
             border: none !important;
@@ -524,7 +534,6 @@ function dd_influencer_style_pmpro_checkout()
             color: #000;
         }
 
-        /* Hide unwanted default sections and specific PMPro fields */
         #pmpro_level_cost,
         #pmpropp_payment_plans,
         #pmpro_pricing_fields,
@@ -532,8 +541,6 @@ function dd_influencer_style_pmpro_checkout()
         #pmpropp_select_payment_plan {
             display: none !important;
         }
-
-
 
         .pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items {
             flex-direction: column;
@@ -653,7 +660,6 @@ function dd_influencer_style_pmpro_checkout()
         body:not(.page-id-4144) span#pmpro_submit_span {
             width: 100%;
         }
-
 
         .pmpro_form_submit {
             flex-direction: column;
@@ -780,6 +786,11 @@ function dd_influencer_style_pmpro_checkout()
             var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
             var planDescription = <?php echo wp_json_encode($plan_description); ?>;
             var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
+            
+            // Dynamic Pricing injected directly from PMPro Live Logic
+            var dynamicPayingNow = <?php echo wp_json_encode($paying_now_formatted); ?>;
+            var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
+            var dynamicStartDate = <?php echo wp_json_encode($start_date_str); ?>;
 
             // 1. Inject Header and Title Row immediately
             var headerHtml = '<div class="dd-influencer-header">' +
@@ -807,7 +818,7 @@ function dd_influencer_style_pmpro_checkout()
                     var chosenPlanUrlValue = urlParams.get('pmpropp_chosen_plan');
                     var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
 
-                    // Force PMPro to check the correct radio button based on the URL (prevents Annual defaulting bugs)
+                    // Force PMPro to check the correct radio button based on the URL
                     if ($radios.length > 0) {
                         if (chosenPlanUrlValue) {
                             $radios.filter('[value="' + chosenPlanUrlValue + '"]').prop('checked', true);
@@ -837,39 +848,13 @@ function dd_influencer_style_pmpro_checkout()
                     var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
                     if (isAnnual) planName = planName + " (Annual)";
 
-                    var nowPrice = "₱0.00";
                     var recurringPrice = "";
                     var cycle = "month";
-                    var trialDays = 0;
-
-                    var nowMatch = labelText.match(/(\$[0-9,.]+)\s+now/i);
-                    if (nowMatch) nowPrice = nowMatch[1];
 
                     var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
                     if (recMatch) {
                         recurringPrice = recMatch[1];
                         cycle = recMatch[2].toLowerCase();
-                    }
-
-                    var trialMatch = labelText.match(/(\d+)\s+day trial/i);
-                    if (trialMatch) trialDays = parseInt(trialMatch[1], 10);
-
-                    if (!nowMatch && recMatch) {
-                        nowPrice = recurringPrice;
-                    }
-
-                    var options = {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                    };
-                    var today = new Date();
-                    var startDateStr = "Now";
-
-                    if (trialDays > 0) {
-                        var startDate = new Date();
-                        startDate.setDate(today.getDate() + trialDays);
-                        startDateStr = startDate.toLocaleDateString('en-US', options);
                     }
 
                     // Build Dynamic Bullets from Array
@@ -884,7 +869,7 @@ function dd_influencer_style_pmpro_checkout()
                         bulletsHtml += '<li>' + bullet + '</li>';
                     });
 
-                    // 5. Build Summary HTML
+                    // 5. Build Summary HTML Using New Live Math Logic
                     var influencerHtml = `
                     <div class="infl-summary-card">
                         <div class="infl-header-row">
@@ -904,14 +889,14 @@ function dd_influencer_style_pmpro_checkout()
                             <div class="infl-timeline-item">
                                 <div class="infl-dot filled"></div>
                                 <div class="infl-content">
-                                    <p><strong>Now:</strong> ${nowPrice}</p>
-                                    <span>${realPlanName}</span>
+                                    <p><strong>Paying Now:</strong> ${dynamicPayingNow}</p>
+                                    <span>${paymentReason}</span>
                                 </div>
                             </div>
                             <div class="infl-timeline-item">
                                 <div class="infl-dot hollow"></div>
                                 <div class="infl-content">
-                                    <p><strong>Starting ${startDateStr}:</strong> ${recurringPrice} /${cycle}</p>
+                                    <p><strong>Starting ${dynamicStartDate}:</strong> ${recurringPrice} /${cycle}</p>
                                     <span>${planName}</span>
                                 </div>
                             </div>
