@@ -58,6 +58,7 @@ require $dir . '/includes/saves-manager.php';
 require $dir . '/includes/mycred.php';
 require $dir . '/includes/mycred-frontend-log.php';
 require $dir . '/includes/pmpro.php';
+require $dir . '/includes/pmpro-trial-protection.php';
 require $dir . '/includes/pmpro-dynamic-pricing.php';
 require $dir . '/includes/pmpro-mycred-rewards-manager.php';
 require $dir . '/includes/email-template-manager.php';
