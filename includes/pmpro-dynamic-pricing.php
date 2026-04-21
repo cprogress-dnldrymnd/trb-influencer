@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.23
+ * Version: 1.0.24
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -30,7 +30,6 @@ class DD_PMPro_Frontend_Pricing
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
 		add_action('template_redirect', [$this, 'prevent_checkout_for_pending_downgrade']); // Block checkout on pending-downgrade target level
-		add_action('wp_footer', [$this, 'maybe_output_downgrade_debug']); // Admin-only debug output — safe to remove once working
 	}
 
 	/**
@@ -228,18 +227,15 @@ class DD_PMPro_Frontend_Pricing
 	/**
 	 * Detects if the user has a scheduled (delayed) downgrade pending and returns the target level ID.
 	 *
-	 * Uses four independent detection strategies to maximise compatibility across PMPro
+	 * Uses five independent detection strategies to maximise compatibility across PMPro
 	 * Proration, Delayed Downgrade, and Payment Plans Add-Ons regardless of addon version:
 	 *
-	 *   M0 – Native PMPro function (pmpro_getNextMembershipLevelForUser), if the addon exposes one.
-	 *   M1 – Broad user-meta scan: iterates every pmpro/membership-related meta key whose name
-	 *         contains a "future change" keyword and extracts a level ID from the stored value,
-	 *         handling integer, array, and object formats.
-	 *   M2 – WordPress Cron scan: looks for any PMPro-related scheduled event whose arguments
-	 *         include this user_id followed by a level_id.
-	 *   M3 – Direct DB query on pmpro_memberships_users for a record whose startdate (stored as
-	 *         a UNIX timestamp) is in the future — the pattern used by the Delayed Downgrade addon
-	 *         when it pre-inserts the next level row.
+	 * M0 – Native PMPro function (pmpro_getNextMembershipLevelForUser), if the addon exposes one.
+	 * M1 – Broad user-meta scan: iterates every pmpro/membership-related meta key whose name
+	 * contains a "future change" keyword.
+	 * M2 – WordPress Cron scan: looks for any PMPro-related scheduled event.
+	 * M3 – Direct DB query on pmpro_memberships_users for a record whose startdate is in the future.
+	 * M4 - Direct DB query on pmprorate_downgrades custom table used by the Proration Addon.
 	 *
 	 * @param int $user_id The WordPress User ID.
 	 * @return int|false The pending downgrade level ID, or false if none detected.
@@ -248,6 +244,41 @@ class DD_PMPro_Frontend_Pricing
 	{
 		if (!$user_id) {
 			return false;
+		}
+
+		global $wpdb;
+
+		// ── Method 4: PMPro Proration Addon custom table (Highest Priority) ────────────
+		$prorate_table = $wpdb->prefix . 'pmprorate_downgrades';
+		if ($wpdb->get_var("SHOW TABLES LIKE '{$prorate_table}'") === $prorate_table) {
+			// Find the latest downgrade record for this user
+			$prorate_row = $wpdb->get_row($wpdb->prepare(
+				"SELECT original_level_id, new_level_id
+				 FROM {$prorate_table}
+				 WHERE user_id = %d
+				 ORDER BY id DESC
+				 LIMIT 1",
+				$user_id
+			));
+
+			if ($prorate_row) {
+				// Verify the user still holds the originating level to ensure this isn't an old, processed row
+				$user_levels = function_exists('pmpro_getMembershipLevelsForUser') ? pmpro_getMembershipLevelsForUser($user_id) : [];
+				$owns_original = false;
+				
+				if (!empty($user_levels)) {
+					foreach ($user_levels as $l) {
+						if ((int)$l->id === (int)$prorate_row->original_level_id) {
+							$owns_original = true;
+							break;
+						}
+					}
+				}
+
+				if ($owns_original) {
+					return (int) $prorate_row->new_level_id;
+				}
+			}
 		}
 
 		// ── Method 0: Use a native addon function if available ─────────────────────────
@@ -261,18 +292,14 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		// ── Method 1: Broad user-meta scan ─────────────────────────────────────────────
-		// Keywords that appear in meta keys written by the Delayed Downgrade / Proration addons.
 		$signal_words = ['next', 'downgrade', 'delay', 'scheduled', 'pending', 'change_level', 'level_change'];
 
 		$all_meta = get_user_meta($user_id);
 		foreach ($all_meta as $meta_key => $meta_values) {
-
-			// Only inspect meta keys that mention pmpro or membership
 			if (stripos($meta_key, 'pmpro') === false && stripos($meta_key, 'membership') === false) {
 				continue;
 			}
 
-			// Only inspect keys whose name hints at a future level action
 			$relevant = false;
 			foreach ($signal_words as $word) {
 				if (stripos($meta_key, $word) !== false) {
@@ -299,7 +326,7 @@ class DD_PMPro_Frontend_Pricing
 					if (isset($val['id'])            && is_numeric($val['id']))            return (int) $val['id'];
 					if (isset($val['membership_id']) && is_numeric($val['membership_id'])) return (int) $val['membership_id'];
 					if (isset($val['level_id'])      && is_numeric($val['level_id']))      return (int) $val['level_id'];
-					// Pattern: [user_id, level_id]
+					
 					$vals = array_values($val);
 					if (count($vals) === 2 && (int) $vals[0] === (int) $user_id && is_numeric($vals[1])) {
 						return (int) $vals[1];
@@ -309,8 +336,6 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		// ── Method 2: WordPress Cron scan ──────────────────────────────────────────────
-		// The Proration / Delayed Downgrade addon schedules a single WP-Cron event in the
-		// form: wp_schedule_single_event( $timestamp, 'pmpro_*', [ $user_id, $level_id ] )
 		$cron_array = _get_cron_array();
 		if (is_array($cron_array)) {
 			foreach ($cron_array as $hooks) {
@@ -321,7 +346,6 @@ class DD_PMPro_Frontend_Pricing
 						$args = isset($event['args']) ? $event['args'] : [];
 						if (empty($args)) continue;
 
-						// Args may be nested: [ [ $user_id, $level_id ] ] or flat: [ $user_id, $level_id ]
 						$flat = (is_array(reset($args)) && count($args) === 1) ? reset($args) : $args;
 						$flat = array_values($flat);
 
@@ -334,8 +358,6 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		// ── Method 3: pmpro_memberships_users future-startdate row ─────────────────────
-		// startdate is stored as a datetime column in PMPro — compare against NOW(), not UNIX_TIMESTAMP().
-		global $wpdb;
 		$future_level_id = $wpdb->get_var($wpdb->prepare(
 			"SELECT membership_id
 			 FROM {$wpdb->prefix}pmpro_memberships_users
@@ -1204,110 +1226,6 @@ class DD_PMPro_Frontend_Pricing
 		</script>
 <?php
 		return ob_get_clean();
-	}
-
-	/**
-	 * DEBUG HELPER — Admins only, visible in the browser console.
-	 * REMOVE this method and its add_action once detection is confirmed working.
-	 * @return void
-	 */
-	public function maybe_output_downgrade_debug()
-	{
-		
-		$user_id = get_current_user_id();
-		if (!$user_id) return;
-
-		global $wpdb;
-
-		$detected = $this->get_pending_downgrade_level_id($user_id);
-
-		// 1. All pmpro/membership user meta
-		$pmpro_meta = [];
-		foreach (get_user_meta($user_id) as $key => $values) {
-			if (stripos($key, 'pmpro') !== false || stripos($key, 'membership') !== false) {
-				$pmpro_meta[$key] = maybe_unserialize($values[0] ?? '');
-			}
-		}
-
-		// 2. WP-Cron PMPro events
-		$pmpro_crons = [];
-		foreach ((array) _get_cron_array() as $timestamp => $hooks) {
-			foreach ((array) $hooks as $hook => $events) {
-				if (stripos($hook, 'pmpro') !== false || stripos($hook, 'membership') !== false) {
-					$pmpro_crons[] = [
-						'hook' => $hook,
-						'time' => gmdate('Y-m-d H:i:s', $timestamp),
-						'args' => array_values($events)[0]['args'] ?? [],
-					];
-				}
-			}
-		}
-
-		// 3. pmpro_memberships_users — all rows for this user
-		$mu_rows = $wpdb->get_results($wpdb->prepare(
-			"SELECT membership_id, startdate, enddate, status
-			 FROM {$wpdb->prefix}pmpro_memberships_users
-			 WHERE user_id = %d
-			 ORDER BY id DESC LIMIT 10",
-			$user_id
-		));
-
-		// 4. ALL wp_options rows whose option_name contains 'pmpro' AND the user_id
-		$opts_by_uid = $wpdb->get_results($wpdb->prepare(
-			"SELECT option_name, option_value
-			 FROM {$wpdb->prefix}options
-			 WHERE option_name LIKE %s
-			 LIMIT 30",
-			'%' . $wpdb->esc_like($user_id) . '%pmpro%'
-		));
-		// Also try reversed pattern
-		$opts_by_uid2 = $wpdb->get_results($wpdb->prepare(
-			"SELECT option_name, option_value
-			 FROM {$wpdb->prefix}options
-			 WHERE option_name LIKE %s
-			 LIMIT 30",
-			'%pmpro%' . $wpdb->esc_like($user_id) . '%'
-		));
-		$all_opts = array_merge((array) $opts_by_uid, (array) $opts_by_uid2);
-		$opt_map = [];
-		foreach ($all_opts as $o) {
-			$opt_map[$o->option_name] = maybe_unserialize($o->option_value);
-		}
-
-		// 5. pmpro_membership_orders — most recent 10 for this user
-		$orders = $wpdb->get_results($wpdb->prepare(
-			"SELECT id, membership_id, timestamp, status, notes, payment_transaction_id, subscription_transaction_id
-			 FROM {$wpdb->prefix}pmpro_membership_orders
-			 WHERE user_id = %d
-			 ORDER BY id DESC LIMIT 10",
-			$user_id
-		));
-
-		// 6. Any custom DB tables containing 'pmpro' and 'downgrade'/'delay'/'next'
-		$all_tables = $wpdb->get_col("SHOW TABLES");
-		$pmpro_extra_tables = array_filter($all_tables, function($t) {
-			return stripos($t, 'pmpro') !== false &&
-				   (stripos($t, 'downgrade') !== false || stripos($t, 'delay') !== false || stripos($t, 'next') !== false || stripos($t, 'schedule') !== false || stripos($t, 'pending') !== false);
-		});
-		$extra_table_data = [];
-		foreach ($pmpro_extra_tables as $tbl) {
-			$rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM `{$tbl}` WHERE user_id = %d LIMIT 5", $user_id));
-			$extra_table_data[$tbl] = $rows;
-		}
-
-		// 7. ALL pmpro_* tables for reference (just names)
-		$all_pmpro_tables = array_filter($all_tables, fn($t) => stripos($t, 'pmpro') !== false);
-
-		echo '<script>console.group("DD PMPro Downgrade Debug v2 (admin only)");'
-			. 'console.log("1. Detected pending_downgrade_level_id:", ' . json_encode($detected) . ');'
-			. 'console.log("2. PMPro user meta:", ' . json_encode($pmpro_meta) . ');'
-			. 'console.log("3. pmpro_memberships_users rows:", ' . json_encode($mu_rows) . ');'
-			. 'console.log("4. wp_options rows containing user_id+pmpro:", ' . json_encode($opt_map) . ');'
-			. 'console.log("5. pmpro_membership_orders (latest 10):", ' . json_encode($orders) . ');'
-			. 'console.log("6. Custom PMPro addon tables (downgrade/delay/next/schedule/pending):", ' . json_encode($extra_table_data) . ');'
-			. 'console.log("7. All pmpro_* table names:", ' . json_encode(array_values($all_pmpro_tables)) . ');'
-			. 'console.log("--- WP-Cron PMPro events:", ' . json_encode($pmpro_crons) . ');'
-			. 'console.groupEnd();</script>';
 	}
 }
 
