@@ -297,7 +297,6 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1);
 
 
-
 /**
  * Intercepts frontend page loads to handle two specific free-tier redirections:
  * 1. Redirects users completing checkout for the Free Level (15) directly to the pricing page.
