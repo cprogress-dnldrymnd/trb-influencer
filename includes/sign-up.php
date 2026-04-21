@@ -47,13 +47,13 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
-            
+
             // Shift the acceptance field to the 'wp' hook at priority 0.
             // This delays execution until the main query is parsed, allowing us to accurately 
             // use is_page() for conditional rendering, while executing just before PMPro 
             // processes the checkout logic (which runs at priority 1).
             add_action('wp', array($this, 'add_acceptance_field'), 0);
-            
+
             // Hook early into checkout validation to prevent ghost user creation.
             add_filter('pmpro_registration_checks', array($this, 'validate_acceptance_field'));
         }
@@ -77,18 +77,12 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             if (is_page(4144)) {
 ?>
                 <script type="text/javascript">
-                    /**
-                     * PMPro AJAX Signup Form Handler
-                     * Intercepts the checkout submission, processes the POST request silently,
-                     * and dynamically injects validation errors back into the shortcode UI 
-                     * without allowing the browser to redirect to the main checkout page.
-                     */
                     document.addEventListener('DOMContentLoaded', function() {
-
                         const form = document.getElementById('pmpro_form');
                         if (!form) return;
 
-                        form.addEventListener('submit', async function(e) {
+                        // FIX 1: Explicitly name the handler to avoid Strict Mode arguments.callee crashes
+                        const ajaxSubmitHandler = async function(e) {
                             e.preventDefault();
 
                             const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
@@ -113,38 +107,34 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                             }
 
                             // Inject a context identifier into the payload.
-                            // This allows the server-side logic to enforce required field validation 
-                            // specifically for this custom AJAX flow, distinguishing it from the native checkout.
                             formData.append('is_custom_ajax_signup', '1');
 
-                            // Target the form's native action URL (typically /membership-checkout/)
+                            // Target the form's native action URL
                             const fetchUrl = form.action || window.location.href;
 
                             try {
-                                // Execute POST request. redirect: 'follow' ensures the Fetch API 
-                                // transparently resolves the 302 redirect returning the final HTML.
                                 const response = await fetch(fetchUrl, {
                                     method: 'POST',
                                     body: formData,
                                     redirect: 'follow'
                                 });
 
-                                // Parse the virtual DOM from the final resolved URL
                                 const html = await response.text();
                                 const parser = new DOMParser();
                                 const doc = parser.parseFromString(html, 'text/html');
 
-                                const pmproMessage = doc.querySelector('#pmpro_message, .pmpro_error');
+                                // FIX 2: Target ONLY populated errors, intelligently bypassing empty hidden wrappers
+                                const pmproError = doc.querySelector('.pmpro_error:not(:empty), #pmpro_message.pmpro_error');
                                 const existingMessage = document.querySelector('#pmpro_message, .pmpro_error');
 
-                                // Evaluate if the resulting page contains a validation error
-                                if (pmproMessage && pmproMessage.classList.contains('pmpro_error')) {
+                                // Evaluate if the resulting page contains a real validation error
+                                if (pmproError) {
 
-                                    // Inject the error message dynamically into the current /sign-up/ page
+                                    // Inject the error dynamically into the current /sign-up/ page
                                     if (existingMessage) {
-                                        existingMessage.replaceWith(pmproMessage);
+                                        existingMessage.replaceWith(pmproError);
                                     } else {
-                                        form.parentNode.insertBefore(pmproMessage, form);
+                                        form.parentNode.insertBefore(pmproError, form);
                                     }
 
                                     // Restore button state
@@ -155,7 +145,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                                     }
                                     submitBtn.disabled = false;
 
-                                    pmproMessage.scrollIntoView({
+                                    pmproError.scrollIntoView({
                                         behavior: 'smooth',
                                         block: 'center'
                                     });
@@ -175,10 +165,13 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
 
                             } catch (error) {
                                 console.error('PMPro AJAX Validation Error:', error);
-                                form.removeEventListener('submit', arguments.callee);
+                                // FIX 3: Safely remove the named listener and fallback cleanly
+                                form.removeEventListener('submit', ajaxSubmitHandler);
                                 form.submit();
                             }
-                        });
+                        };
+
+                        form.addEventListener('submit', ajaxSubmitHandler);
                     });
                 </script>
 <?php
