@@ -454,18 +454,38 @@ function dd_influencer_style_pmpro_checkout()
     $current_user_id = get_current_user_id();
     $has_existing_level = pmpro_hasMembershipLevel(0, $current_user_id);
 
+    // Upgrade/Proration Safeguard: Query the user's global order history to see if they have ANY 
+    // successful payment > $0 within the last 365 days.
+    global $wpdb;
+    $has_recent_paid_order = false;
+    if ($current_user_id) {
+        $has_recent_paid_order = $wpdb->get_var($wpdb->prepare("
+            SELECT id FROM {$wpdb->prefix}pmpro_membership_orders 
+            WHERE user_id = %d 
+            AND total > 0 
+            AND status IN ('success', 'pending') 
+            AND timestamp >= DATE_SUB(NOW(), INTERVAL 365 DAY)
+            LIMIT 1
+        ", $current_user_id));
+    }
+
     $payment_reason = 'Standard initial payment';
     
     if ($paying_now == 0) {
-        if (isset($pmpro_level->trial_limit) && $pmpro_level->trial_limit > 0) {
-            // Context: User is utilizing a natively configured free trial
+        // Evaluate if a trial is actively configured via Core or the Subscription Delays Add On
+        $has_native_trial = isset($pmpro_level->trial_limit) && $pmpro_level->trial_limit > 0;
+        $delay_days = get_option('pmpro_subscription_delay_' . $level_id, '');
+        $has_delay_addon = !empty($delay_days) && is_numeric($delay_days);
+
+        if (!$has_recent_paid_order && ($has_native_trial || $has_delay_addon)) {
+            // Context: User is utilizing a configured free trial and has no recent paid history
             $payment_reason = 'Free trial period';
-        } elseif ($has_existing_level) {
-            // Context: User is downgrading; the $0 is a result of time proration
+        } elseif ($has_existing_level && $has_recent_paid_order) {
+            // Context: User is downgrading; the $0 is a structural result of time proration
             $payment_reason = 'Adjusted for banked time';
         } else {
             // Context: Standard free level or fully discounted checkout for new/guest users
-            $payment_reason = 'Free trial period'; 
+            $payment_reason = 'Free entry'; 
         }
     } elseif (isset($pmpro_level->billing_amount) && $paying_now > 0 && $paying_now < (float)$pmpro_level->billing_amount) {
         // Context: User is upgrading; the cost is a monetary proration
@@ -992,7 +1012,6 @@ function dd_influencer_style_pmpro_checkout()
     </script>
 <?php
 }
-add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 
 /**
  * Renders the First Name and Last Name input fields on the PMPro checkout form.
