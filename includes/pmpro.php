@@ -450,10 +450,25 @@ function dd_influencer_style_pmpro_checkout()
     $paying_now = isset($pmpro_level->initial_payment) ? (float) $pmpro_level->initial_payment : 0;
     $paying_now_formatted = pmpro_formatPrice($paying_now);
 
+    // Determine the context of the user to output accurate timeline reasoning
+    $current_user_id = get_current_user_id();
+    $has_existing_level = pmpro_hasMembershipLevel(0, $current_user_id);
+
     $payment_reason = 'Standard initial payment';
+    
     if ($paying_now == 0) {
-        $payment_reason = 'Adjusted for banked time';
+        if (isset($pmpro_level->trial_limit) && $pmpro_level->trial_limit > 0) {
+            // Context: User is utilizing a natively configured free trial
+            $payment_reason = 'Free trial period';
+        } elseif ($has_existing_level) {
+            // Context: User is downgrading; the $0 is a result of time proration
+            $payment_reason = 'Adjusted for banked time';
+        } else {
+            // Context: Standard free level or fully discounted checkout for new/guest users
+            $payment_reason = 'Free entry'; 
+        }
     } elseif (isset($pmpro_level->billing_amount) && $paying_now > 0 && $paying_now < (float)$pmpro_level->billing_amount) {
+        // Context: User is upgrading; the cost is a monetary proration
         $payment_reason = 'Prorated upgrade cost';
     }
 
@@ -977,7 +992,6 @@ function dd_influencer_style_pmpro_checkout()
     </script>
 <?php
 }
-add_action('wp_footer', 'dd_influencer_style_pmpro_checkout', 50);
 
 /**
  * Renders the First Name and Last Name input fields on the PMPro checkout form.
