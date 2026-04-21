@@ -1213,8 +1213,7 @@ class DD_PMPro_Frontend_Pricing
 	 */
 	public function maybe_output_downgrade_debug()
 	{
-		if (!current_user_can('manage_options')) return;
-
+		
 		$user_id = get_current_user_id();
 		if (!$user_id) return;
 
