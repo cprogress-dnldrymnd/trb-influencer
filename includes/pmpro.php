@@ -235,7 +235,7 @@ add_filter('logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3);
 
 /**
  * Adjusts the profile_start_date and initial_payment for the new membership level during checkout.
- * This ensures the new billing cycle appends to the existing subscription's next payment date appropriately.
+ * Manually calculates monetary proration for users upgrading with scheduled downgrades.
  *
  * @param object $level The membership level object being processed at checkout.
  * @return object The modified membership level object.
@@ -259,8 +259,8 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     // Retrieve the UNIX timestamp for the next scheduled payment of the current active subscription.
     $next_payment_timestamp = pmpro_next_payment($user_id);
 
-    // FIX: If no future payment date exists (common with scheduled downgrades where the recurring profile is cancelled), 
-    // fallback to the old level's expiration date if it exists in the future.
+    // Fallback: If no future payment date exists (due to scheduled downgrades cancelling the gateway profile), 
+    // utilize the old level's expiration date if it exists in the future.
     if (! $next_payment_timestamp || $next_payment_timestamp <= current_time('timestamp')) {
         if (! empty($old_level->enddate) && $old_level->enddate > current_time('timestamp')) {
             $next_payment_timestamp = $old_level->enddate;
@@ -275,37 +275,60 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     $new_cycle_period = ! empty($level->cycle_period) ? $level->cycle_period : 'Month';
     $old_cycle_period = ! empty($old_level->cycle_period) ? $old_level->cycle_period : 'Month';
 
+    // Calculate remaining time for monetary credit mapping
+    $current_time = current_time('timestamp');
+    $days_remaining = ceil(($next_payment_timestamp - $current_time) / DAY_IN_SECONDS);
+
     // -------------------------------------------------------------------------
     // SCENARIO LOGIC
     // -------------------------------------------------------------------------
     
     if ($old_cycle_period === 'Year' && $new_cycle_period === 'Month') {
         // SCENARIO 1: Annual to Monthly (Downgrade)
+        // Action: Time Proration. Owe nothing today, append new cycle to the end of the paid year.
         $level->initial_payment = 0;
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
 
     } elseif ($old_cycle_period === 'Month' && $new_cycle_period === 'Year') {
         // SCENARIO 2: Monthly to Annual (Upgrade)
-        // THE FIX: Explicitly bypass the $0 backend setting so they are charged today.
-        $level->initial_payment = $level->billing_amount;
+        // Action: Monetary Proration. Start new cycle today, discount the initial payment.
         
+        // 1. Calculate the monetary credit for the unused days of the current month (based on a 30-day average)
+        $daily_rate = (float) $old_level->billing_amount / 30;
+        $credit = $daily_rate * $days_remaining;
+
+        // 2. Apply the credit to the initial payment (ensure it doesn't drop below 0 mathematically)
+        $new_initial_payment = (float) $level->billing_amount - $credit;
+        $level->initial_payment = max(0, round($new_initial_payment, 2));
+        
+        // 3. Start the new Annual cycle exactly from TODAY
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
-        $new_start_timestamp = strtotime($strtotime_modifier, $next_payment_timestamp);
+        $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
         $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
 
     } else {
-        // SCENARIO 3: Same Cycle (Month-to-Month or Year-to-Year switch to a different Level ID)
+        // SCENARIO 3: Same Cycle Switch (Month-to-Month or Year-to-Year switch to a different tier)
         if ((float)$level->billing_amount > (float)$old_level->billing_amount) {
-            // Upgrade: Force the payment today
-            $level->initial_payment = $level->billing_amount;
+            // Upgrade Action: Monetary Proration. Start today, discount the initial payment.
+            $divisor = ($old_cycle_period === 'Year') ? 365 : 30;
+            $daily_rate = (float) $old_level->billing_amount / $divisor;
+            $credit = $daily_rate * $days_remaining;
+            
+            $new_initial_payment = (float) $level->billing_amount - $credit;
+            $level->initial_payment = max(0, round($new_initial_payment, 2));
+            
+            $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
+            $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
+            $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
+
         } else {
-            // Downgrade: Owe nothing today
+            // Downgrade Action: Time Proration. Owe nothing today, append time.
             $level->initial_payment = 0;
+            $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
         }
-        $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
     }
 
-    // Ensure the PMPro Subscription Delays add-on doesn't overwrite our calculated date
+    // Ensure the PMPro Subscription Delays add-on doesn't overwrite our newly calculated date
     remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
 
     return $level;
