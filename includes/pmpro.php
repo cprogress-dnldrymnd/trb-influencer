@@ -250,10 +250,8 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     $user_id = get_current_user_id();
     $old_level = pmpro_getMembershipLevelForUser($user_id);
 
-    // -------------------------------------------------------------------------
-    // THE FIX: Do not abort if they are just switching payment plans within the same tier!
-    // We now strictly abort ONLY if the Level ID AND the Cycle Period are identical.
-    // -------------------------------------------------------------------------
+    // Do not abort if they are just switching payment plans within the same tier!
+    // Abort ONLY if the Level ID AND the Cycle Period are identical.
     if (empty($old_level) || ($old_level->id == $level->id && $old_level->cycle_period == $level->cycle_period)) {
         return $level;
     }
@@ -276,18 +274,28 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     // -------------------------------------------------------------------------
     
     if ($old_cycle_period === 'Year' && $new_cycle_period === 'Month') {
-        // SCENARIO 1: Annual to Monthly (Downgrade or Same-Tier Switch)
+        // SCENARIO 1: Annual to Monthly (Downgrade)
         $level->initial_payment = 0;
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
 
     } elseif ($old_cycle_period === 'Month' && $new_cycle_period === 'Year') {
-        // SCENARIO 2: Monthly to Annual (Upgrade or Same-Tier Switch)
+        // SCENARIO 2: Monthly to Annual (Upgrade)
+        // THE FIX: Explicitly bypass the $0 backend setting so they are charged today.
+        $level->initial_payment = $level->billing_amount;
+        
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
         $new_start_timestamp = strtotime($strtotime_modifier, $next_payment_timestamp);
         $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
 
     } else {
-        // SCENARIO 3: Same Cycle (Month-to-Month or Year-to-Year to a different Level ID)
+        // SCENARIO 3: Same Cycle (Month-to-Month or Year-to-Year switch to a different Level ID)
+        if ((float)$level->billing_amount > (float)$old_level->billing_amount) {
+            // Upgrade: Force the payment today
+            $level->initial_payment = $level->billing_amount;
+        } else {
+            // Downgrade: Owe nothing today
+            $level->initial_payment = 0;
+        }
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
     }
 
@@ -296,7 +304,9 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 
     return $level;
 }
-add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 10, 1);
+// THE FIX: Changed priority from 10 to 5. This guarantees our script sets the price 
+// BEFORE the PMPro Proration Add-on runs, allowing it to correctly calculate their credit!
+add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 5, 1);
 
 /**
  * Intercepts frontend page loads to handle two specific free-tier redirections:
