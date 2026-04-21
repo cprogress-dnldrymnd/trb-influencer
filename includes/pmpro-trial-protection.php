@@ -164,44 +164,73 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
        /**
          * Logs the Stripe card fingerprint into the custom database table immediately 
-         * after a successful checkout.
+         * after a successful checkout. Bypasses PMPro's $morder object to ensure 
+         * $0.00 initial trial checkouts are reliably captured.
          *
          * @param int    $user_id The WordPress User ID.
-         * @param object $morder  The PMPro Membership Order object containing gateway data.
+         * @param object $morder  The PMPro Membership Order object (often null on $0 trials).
          * @return void
          */
         public function log_fingerprint_after_checkout($user_id, $morder)
         {
-            // Only log if the gateway is Stripe and the transaction was successful
-            if (empty($morder) || $morder->gateway !== 'stripe' || $morder->status === 'error') {
+            // 1. Decouple from $morder and rely on global PMPro gateway settings
+            if (pmpro_getOption('gateway') !== 'stripe') {
                 return;
             }
 
-            // FIX: Intercept the ID directly from the live checkout payload to bypass PMPro's delayed DB writes
-            $payment_method_id = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : '';
+            // Ensure the Stripe PHP SDK is loaded natively
+            if (!class_exists('\Stripe\Stripe')) {
+                require_once(PMPRO_DIR . '/includes/lib/Stripe/init.php');
+            }
+            \Stripe\Stripe::setApiKey(pmpro_getOption('stripe_secretkey'));
 
-            // Fallback to user meta strictly for backend renewals or alternative checkout flows
+            $payment_method_id = '';
+
+            // TIER 1: Intercept the ID directly from the live checkout payload
+            if (!empty($_REQUEST['payment_method_id'])) {
+                $payment_method_id = sanitize_text_field($_REQUEST['payment_method_id']);
+            }
+
+            // TIER 2: Retrieve from PMPro User Meta (Written during gateway processing)
             if (empty($payment_method_id)) {
                 $payment_method_id = get_user_meta($user_id, 'pmpro_stripe_payment_method_id', true);
             }
 
-            // Fallback to order transaction ID if neither of the above exist
-            if (empty($payment_method_id) && !empty($morder->subscription_transaction_id)) {
-                $payment_method_id = $morder->subscription_transaction_id; 
+            // TIER 3: Stripe API Deep-Dive (Extracts default card directly from the newly created Customer profile)
+            if (empty($payment_method_id)) {
+                $customer_id = get_user_meta($user_id, 'pmpro_stripe_customerid', true);
+                
+                if (!empty($customer_id)) {
+                    try {
+                        $customer = \Stripe\Customer::retrieve($customer_id);
+                        
+                        // Check invoice default first, fallback to querying the customer's attached cards
+                        if (!empty($customer->invoice_settings->default_payment_method)) {
+                            $payment_method_id = $customer->invoice_settings->default_payment_method;
+                        } else {
+                            $payment_methods = \Stripe\PaymentMethod::all([
+                                'customer' => $customer_id,
+                                'type'     => 'card',
+                                'limit'    => 1
+                            ]);
+                            if (!empty($payment_methods->data)) {
+                                $payment_method_id = $payment_methods->data[0]->id;
+                            }
+                        }
+                    } catch (Exception $e) {
+                        error_log('DD PMPro Trial Error - Stripe Customer Retrieve Failed: ' . $e->getMessage());
+                    }
+                }
             }
 
+            // Abort and log if all 3 tiers failed to find a valid Payment Method ID
             if (empty($payment_method_id) || strpos($payment_method_id, 'pm_') !== 0) {
+                error_log('DD PMPro Trial Error - Failed to locate a valid Stripe Payment Method ID for User ID: ' . $user_id);
                 return;
             }
 
-            if (!class_exists('\Stripe\Stripe')) {
-                require_once(PMPRO_DIR . '/includes/lib/Stripe/init.php');
-            }
-
-            \Stripe\Stripe::setApiKey(pmpro_getOption('stripe_secretkey'));
-
+            // Proceed to query Stripe for the specific card fingerprint
             try {
-                // Retrieve the actual card fingerprint from Stripe
                 $payment_method = \Stripe\PaymentMethod::retrieve($payment_method_id);
 
                 if (!empty($payment_method->card->fingerprint)) {
@@ -209,14 +238,14 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                     $table_name = $wpdb->prefix . 'dd_stripe_fingerprints';
                     $fingerprint = $payment_method->card->fingerprint;
 
-                    // Ensure we don't log duplicate entries for the same fingerprint
+                    // Ensure we don't log duplicate entries for the exact same fingerprint
                     $exists = $wpdb->get_var($wpdb->prepare("
                         SELECT id FROM $table_name WHERE fingerprint = %s LIMIT 1
                     ", $fingerprint));
 
                     if (!$exists) {
                         $user = get_userdata($user_id);
-                        $wpdb->insert(
+                        $inserted = $wpdb->insert(
                             $table_name,
                             [
                                 'user_id'     => $user_id,
@@ -225,10 +254,16 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                             ],
                             ['%d', '%s', '%s']
                         );
+                        
+                        if (!$inserted) {
+                             error_log('DD PMPro Trial Error - Database Insert Failed: ' . $wpdb->last_error);
+                        }
                     }
+                } else {
+                    error_log('DD PMPro Trial Error - The retrieved Stripe Payment Method object did not contain a card fingerprint.');
                 }
             } catch (Exception $e) {
-                error_log('PMPro Stripe Fingerprint Logging Error: ' . $e->getMessage());
+                error_log('DD PMPro Trial Error - Stripe API Verification Failed: ' . $e->getMessage());
             }
         }
     }
