@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.21
+ * Version: 1.0.22
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -179,7 +179,7 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Checks if the user is scheduled to downgrade or switch to this level in the future.
-	 * Evaluates if a membership record exists with a future start date.
+	 * Evaluates both the PMPro Delayed Downgrades add-on user meta queue and core database future dates.
 	 *
 	 * @param int $user_id The WordPress User ID.
 	 * @param int $level_id The PMPro Level ID.
@@ -191,6 +191,17 @@ class DD_PMPro_Frontend_Pricing
 			return false;
 		}
 
+		// 1. Evaluate PMPro Delayed Downgrades Addon User Meta
+		$delayed_downgrades = get_user_meta($user_id, 'pmpro_delayed_downgrades', true);
+		if (!empty($delayed_downgrades) && is_array($delayed_downgrades)) {
+			foreach ($delayed_downgrades as $downgrade) {
+				if (isset($downgrade['level_id']) && (int)$downgrade['level_id'] === (int)$level_id) {
+					return true;
+				}
+			}
+		}
+
+		// 2. Evaluate Core PMPro future-dated membership records
 		global $wpdb;
 		$scheduled_count = $wpdb->get_var($wpdb->prepare("
 			SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_memberships_users 
