@@ -206,7 +206,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Validation Check: Could not resolve a valid Stripe API Key.');
-                return $continue; 
+                return $continue;
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -224,7 +224,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 $has_trial = $wpdb->get_var($wpdb->prepare("SELECT COUNT(id) FROM $table_name WHERE fingerprint = %s", $fingerprint));
 
                 if ($has_trial > 0) {
-                    pmpro_setMessage(__('This payment card has already been used to claim a free trial. Please use a different card or upgrade without a trial.', 'pmpro'), 'pmpro_error');
+                    pmpro_setMessage(__('This payment card has already been used to claim a free trial. Please use a different card.', 'pmpro'), 'pmpro_error');
                     return false;
                 }
             }
@@ -252,7 +252,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Logging Check: Could not resolve a valid Stripe API Key.');
-                return; 
+                return;
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -264,7 +264,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
             // TIER 1: Try to grab the live payload token first (supports pm_ and tok_)
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
-            
+
             if ($live_token) {
                 $fingerprint = $this->get_stripe_fingerprint($live_token);
             }
@@ -272,12 +272,12 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // TIER 2 & 3: Fallback Customer Query if live token is missing (Webhooks/Delayed execution)
             if (!$fingerprint) {
                 $customer_id = get_user_meta($user_id, 'pmpro_stripe_customerid', true);
-                
+
                 if ($customer_id) {
                     try {
                         $customer = \Stripe\Customer::retrieve($customer_id);
                         $payment_method_id = $customer->invoice_settings->default_payment_method ?? '';
-                        
+
                         // Deep query if invoice default is not explicitly set
                         if (!$payment_method_id) {
                             $payment_methods = \Stripe\PaymentMethod::all([
