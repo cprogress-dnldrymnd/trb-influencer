@@ -6,7 +6,7 @@ if (! defined('ABSPATH')) {
 /**
  * Class DD_PMPro_Trial_Protection
  * Description: Implements strict email and Stripe card fingerprint tracking to prevent free trial abuse. 
- * Integrates one-time subscription delay rules with exception handling for specific tiers. Handles both Payment Methods and Legacy Tokens across Stripe Connect and Legacy environments.
+ * Integrates one-time subscription delay rules and standardizes free-trial detection logic.
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  */
@@ -136,6 +136,54 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
         }
 
         /**
+         * Standardizes the evaluation of a Free Trial checkout.
+         * Mirrors the 365-day historical query standard established in the PMPro Dynamic Pricing plugin
+         * to prevent prorated upgrades/switches from being incorrectly flagged as free trials.
+         *
+         * @return bool True if the current checkout is a genuine new free trial, false otherwise.
+         */
+        private function is_checkout_a_new_free_trial()
+        {
+            global $pmpro_level;
+
+            if (empty($pmpro_level)) {
+                return false;
+            }
+
+            // 1. If they are paying money today, it is not a free trial.
+            if (isset($pmpro_level->initial_payment) && (float)$pmpro_level->initial_payment > 0) {
+                return false;
+            }
+
+            // 2. If the plan has no recurring cost, it's a completely free tier, not a trial.
+            if (empty($pmpro_level->billing_amount) || (float)$pmpro_level->billing_amount <= 0) {
+                return false;
+            }
+
+            // 3. Evaluate user history using the 365-day standard from the dynamic pricing plugin
+            $user_id = get_current_user_id();
+            if ($user_id) {
+                global $wpdb;
+                $has_recent_paid_order = $wpdb->get_var($wpdb->prepare("
+                    SELECT id FROM {$wpdb->prefix}pmpro_membership_orders 
+                    WHERE user_id = %d 
+                    AND total > 0 
+                    AND status IN ('success', 'pending', 'cancelled') 
+                    AND timestamp >= DATE_SUB(NOW(), INTERVAL 365 DAY)
+                    LIMIT 1
+                ", $user_id));
+
+                // If they have a recent paid order, this $0 checkout is a prorated switch/banked time, NOT a new trial.
+                if ($has_recent_paid_order) {
+                    return false;
+                }
+            }
+
+            // If they owe $0 today, have a recurring amount, and no recent paid history, it IS a new free trial.
+            return true;
+        }
+
+        /**
          * LAYER 1: Remove subscription delay for logged-in current or past members. 
          * EXCEPTION: Leaves the delay active for Level 15.
          *
@@ -195,36 +243,10 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 return $continue;
             }
 
-            // --- NEW GUARDRAIL: Only block if the checkout is actively claiming a new Free Trial ---
-            global $pmpro_level;
-
-            if (!empty($pmpro_level)) {
-                // 1. If they are paying money today, they are NOT on a trial. Bypass the block.
-                if (isset($pmpro_level->initial_payment) && (float)$pmpro_level->initial_payment > 0) {
-                    return $continue;
-                }
-
-                // 2. If the plan has no recurring cost (completely free tier forever), bypass the block.
-                if (empty($pmpro_level->billing_amount) || (float)$pmpro_level->billing_amount <= 0) {
-                    return $continue;
-                }
-
-                // 3. If they owe $0 today, but have a history of successful paid orders, 
-                //    this is a Prorated Switch (banked time), NOT a new free trial. Bypass the block.
-                $user_id = get_current_user_id();
-                if ($user_id) {
-                    global $wpdb;
-                    $past_paid_orders = $wpdb->get_var($wpdb->prepare("
-                        SELECT COUNT(id) FROM {$wpdb->prefix}pmpro_membership_orders 
-                        WHERE user_id = %d AND total > 0 AND status IN ('success', 'cancelled')
-                    ", $user_id));
-                    
-                    if ($past_paid_orders > 0) {
-                        return $continue;
-                    }
-                }
+            // --- GUARDRAIL: Only block if the checkout is actively claiming a new Free Trial ---
+            if (!$this->is_checkout_a_new_free_trial()) {
+                return $continue;
             }
-            // -----------------------------------------------------------------------------------
 
             // Extract token from standard Payment Method field or Legacy Token field
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
