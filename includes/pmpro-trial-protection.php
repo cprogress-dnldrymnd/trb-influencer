@@ -65,26 +65,47 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
         }
 
         /**
-         * Resolves the correct Stripe API key dynamically from Paid Memberships Pro settings.
-         * Architecture is designed to automatically adapt to Sandbox vs Live environments 
-         * regardless of whether legacy keys or Stripe Connect OAuth is used.
+         * Resolves the correct Stripe API key dynamically by directly querying the WordPress options table.
+         * Aggressively scans all PMPro Stripe key permutations to support Connect OAuth and Manual keys.
          *
          * @return string|false Returns the resolved API key/token or false if unavailable.
          */
         private function get_pmpro_stripe_api_key()
         {
-            // Determine the currently active gateway environment
-            $env = pmpro_getOption('gateway_environment');
+            $api_key = false;
+            $env = get_option('pmpro_gateway_environment', 'sandbox');
 
+            // Route 1: Target the specific environment first
             if ($env === 'sandbox') {
-                // Pulls the test key (Populated by Stripe Connect Test Mode or Manual entry)
-                $api_key = pmpro_getOption('stripe_test_secretkey');
+                $api_key = get_option('pmpro_stripe_connect_test_access_token');
+                if (empty($api_key)) {
+                    $api_key = get_option('pmpro_stripe_test_secretkey');
+                }
             } else {
-                // Pulls the live key (Populated by Stripe Connect Live Mode or Manual entry)
-                $api_key = pmpro_getOption('stripe_secretkey');
+                $api_key = get_option('pmpro_stripe_connect_access_token');
+                if (empty($api_key)) {
+                    $api_key = get_option('pmpro_stripe_secretkey');
+                }
             }
 
-            return !empty($api_key) ? $api_key : false;
+            // Route 2: Universal Fallback. If still empty, scan all possible DB columns
+            if (empty($api_key)) {
+                $candidates = [
+                    'pmpro_stripe_connect_test_access_token',
+                    'pmpro_stripe_test_secretkey',
+                    'pmpro_stripe_connect_access_token',
+                    'pmpro_stripe_secretkey'
+                ];
+                foreach ($candidates as $candidate) {
+                    $val = get_option($candidate);
+                    if (!empty($val)) {
+                        $api_key = $val;
+                        break;
+                    }
+                }
+            }
+
+            return !empty($api_key) ? trim($api_key) : false;
         }
 
         /**
