@@ -195,6 +195,37 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 return $continue;
             }
 
+            // --- NEW GUARDRAIL: Only block if the checkout is actively claiming a new Free Trial ---
+            global $pmpro_level;
+
+            if (!empty($pmpro_level)) {
+                // 1. If they are paying money today, they are NOT on a trial. Bypass the block.
+                if (isset($pmpro_level->initial_payment) && (float)$pmpro_level->initial_payment > 0) {
+                    return $continue;
+                }
+
+                // 2. If the plan has no recurring cost (completely free tier forever), bypass the block.
+                if (empty($pmpro_level->billing_amount) || (float)$pmpro_level->billing_amount <= 0) {
+                    return $continue;
+                }
+
+                // 3. If they owe $0 today, but have a history of successful paid orders, 
+                //    this is a Prorated Switch (banked time), NOT a new free trial. Bypass the block.
+                $user_id = get_current_user_id();
+                if ($user_id) {
+                    global $wpdb;
+                    $past_paid_orders = $wpdb->get_var($wpdb->prepare("
+                        SELECT COUNT(id) FROM {$wpdb->prefix}pmpro_membership_orders 
+                        WHERE user_id = %d AND total > 0 AND status IN ('success', 'cancelled')
+                    ", $user_id));
+                    
+                    if ($past_paid_orders > 0) {
+                        return $continue;
+                    }
+                }
+            }
+            // -----------------------------------------------------------------------------------
+
             // Extract token from standard Payment Method field or Legacy Token field
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
 
@@ -206,7 +237,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Validation Check: Could not resolve a valid Stripe API Key.');
-                return $continue;
+                return $continue; 
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -252,7 +283,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Logging Check: Could not resolve a valid Stripe API Key.');
-                return;
+                return; 
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -264,7 +295,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
             // TIER 1: Try to grab the live payload token first (supports pm_ and tok_)
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
-
+            
             if ($live_token) {
                 $fingerprint = $this->get_stripe_fingerprint($live_token);
             }
@@ -272,12 +303,12 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // TIER 2 & 3: Fallback Customer Query if live token is missing (Webhooks/Delayed execution)
             if (!$fingerprint) {
                 $customer_id = get_user_meta($user_id, 'pmpro_stripe_customerid', true);
-
+                
                 if ($customer_id) {
                     try {
                         $customer = \Stripe\Customer::retrieve($customer_id);
                         $payment_method_id = $customer->invoice_settings->default_payment_method ?? '';
-
+                        
                         // Deep query if invoice default is not explicitly set
                         if (!$payment_method_id) {
                             $payment_methods = \Stripe\PaymentMethod::all([
