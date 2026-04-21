@@ -180,10 +180,9 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Checks if the user is currently on a free trial.
-	 * Evaluates if the user's most recent order for their active level was exactly $0.00.
-	 * Overcomes PMPro timezone mismatches and checkout timing delays between user-level creation and order logging.
-	 * * @param int $user_id The WordPress User ID.
-	 * @return bool True if active on a trial (last order was $0), false otherwise.
+	 * Evaluates if the user holds an active paid membership but has exactly 0 payments > $0.00 since starting it.
+	 * @param int $user_id The WordPress User ID.
+	 * @return bool True if active on a trial, false otherwise.
 	 */
 	private function is_user_on_free_trial($user_id)
 	{
@@ -202,22 +201,21 @@ class DD_PMPro_Frontend_Pricing
 			// Ensure the plan is meant to be paid (has a billing amount or initial payment > 0)
 			if ((float)$level->billing_amount > 0 || (float)$level->initial_payment > 0) {
 
-				// Retrieve the total value of the most recent order for this specific membership level.
-				// This bypasses the strict timestamp comparison which fails due to:
-				// 1. Order generation happening milliseconds before level assignment.
-				// 2. gmdate() (UTC) vs PMPro's WP local time MySQL storage.
-				$latest_order_total = $wpdb->get_var($wpdb->prepare("
-					SELECT total FROM {$wpdb->prefix}pmpro_membership_orders 
+				// Safely parse startdate (PMPro often returns it as a UNIX timestamp natively)
+				$startdate_str = is_numeric($level->startdate) ? gmdate('Y-m-d H:i:s', $level->startdate) : $level->startdate;
+
+				// Verify if they have ANY successful order > $0 since they started this membership
+				$paid_orders_count = $wpdb->get_var($wpdb->prepare("
+					SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_membership_orders 
 					WHERE user_id = %d 
 					AND membership_id = %d 
 					AND status IN ('success', 'pending') 
-					ORDER BY timestamp DESC
-					LIMIT 1
-				", $user_id, $level->id));
+					AND total > 0
+					AND timestamp >= %s
+				", $user_id, $level->id, $startdate_str));
 
-				// If an order exists and its total is exactly $0.00, they are currently on a trial period.
-				// If no order exists (e.g., an admin manually granted the tier), we default to false to prevent permanent lockouts.
-				if ($latest_order_total !== null && (float)$latest_order_total == 0) {
+				// If they haven't paid anything > $0 yet but have a paid plan active, they are currently on a free trial.
+				if ($paid_orders_count == 0) {
 					return true;
 				}
 			}
