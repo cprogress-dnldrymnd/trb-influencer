@@ -281,7 +281,7 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
         // User pays the initial fee today (covering the new annual cycle). 
         // The next recurring payment pushes out exactly one year from their CURRENT next payment date.
         // E.g., Upgrading on Mar 12. Current next payment: Apr 12 2024. New Start: Apr 12 2025.
-      // UPGRADE SCENARIO: Monthly to Annual 
+        // UPGRADE SCENARIO: Monthly to Annual 
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
         $new_start_timestamp = strtotime($strtotime_modifier, $next_payment_timestamp);
 
@@ -979,14 +979,14 @@ function dd_pmpro_add_name_fields_to_checkout()
     <div class="pmpro_checkout-fields">
         <div class="pmpro_form_field pmpro_form_field-text pmpro_checkout-field-first_name">
             <label for="first_name" class="pmpro_form_label"><?php esc_html_e('First Name', 'pmpro'); ?></label>
-            <input id="first_name" name="first_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr($first_name); ?>" required />
+            <input id="first_name" name="first_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr($first_name); ?>" />
         </div>
 
     </div>
     <div class="pmpro_checkout-fields">
         <div class="pmpro_form_field pmpro_form_field-text pmpro_checkout-field-last_name">
             <label for="last_name" class="pmpro_form_label"><?php esc_html_e('Last Name', 'pmpro'); ?></label>
-            <input id="last_name" name="last_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr($last_name); ?>" required />
+            <input id="last_name" name="last_name" type="text" class="pmpro_form_input pmpro_form_input-text pmpro_required" size="30" value="<?php echo esc_attr($last_name); ?>" />
         </div>
     </div>
 
@@ -1086,8 +1086,6 @@ function my_pmpro_one_time_sub_delay($checkout_level)
 
         // Remove the updated filter added in PMPro Subscription Delays 3.4+.
         remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2);
-
-        
     }
     return $checkout_level;
 }
