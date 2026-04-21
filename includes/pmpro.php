@@ -281,12 +281,16 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
         // User pays the initial fee today (covering the new annual cycle). 
         // The next recurring payment pushes out exactly one year from their CURRENT next payment date.
         // E.g., Upgrading on Mar 12. Current next payment: Apr 12 2024. New Start: Apr 12 2025.
+      // UPGRADE SCENARIO: Monthly to Annual 
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
         $new_start_timestamp = strtotime($strtotime_modifier, $next_payment_timestamp);
 
-        // Format the date for PMPro gateways (requires Y-m-d\TH:i:s format).
+        // Format the date for PMPro gateways
         $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
     }
+
+    // NEW FIX: Stop the Subscription Delays add-on from destroying the date we just calculated above.
+    remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
 
     return $level;
 }
@@ -1083,10 +1087,7 @@ function my_pmpro_one_time_sub_delay($checkout_level)
         // Remove the updated filter added in PMPro Subscription Delays 3.4+.
         remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2);
 
-        // Set the initial amount to match the billing amount.
-        if ($checkout_level->billing_amount > 0) {
-            $checkout_level->initial_payment = $checkout_level->billing_amount;
-        }
+        
     }
     return $checkout_level;
 }
