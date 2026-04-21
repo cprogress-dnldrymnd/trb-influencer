@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.22
+ * Version: 1.0.23
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -179,7 +179,7 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Checks if the user is scheduled to downgrade or switch to this level in the future.
-	 * Evaluates both the PMPro Delayed Downgrades add-on user meta queue and core database future dates.
+	 * Robustly evaluates PMPro Delayed Downgrades user meta (handling objects, arrays, and keys) and core future-dated records.
 	 *
 	 * @param int $user_id The WordPress User ID.
 	 * @param int $level_id The PMPro Level ID.
@@ -194,22 +194,34 @@ class DD_PMPro_Frontend_Pricing
 		// 1. Evaluate PMPro Delayed Downgrades Addon User Meta
 		$delayed_downgrades = get_user_meta($user_id, 'pmpro_delayed_downgrades', true);
 		if (!empty($delayed_downgrades) && is_array($delayed_downgrades)) {
-			foreach ($delayed_downgrades as $downgrade) {
-				if (isset($downgrade['level_id']) && (int)$downgrade['level_id'] === (int)$level_id) {
+			
+			// Some versions key the array directly by the level ID being downgraded TO
+			if (isset($delayed_downgrades[$level_id])) {
+				return true;
+			}
+
+			foreach ($delayed_downgrades as $key => $downgrade) {
+				// The downgrade data might be an object or an array depending on the exact addon version/snippet
+				$downgrade_level_id = is_object($downgrade) ? ($downgrade->level_id ?? $downgrade->membership_id ?? 0) : (is_array($downgrade) ? ($downgrade['level_id'] ?? $downgrade['membership_id'] ?? 0) : 0);
+				
+				if ((int)$downgrade_level_id === (int)$level_id || (int)$key === (int)$level_id) {
 					return true;
 				}
 			}
 		}
 
-		// 2. Evaluate Core PMPro future-dated membership records
+		// 2. Evaluate Core PMPro future-dated membership records (Broad Check)
 		global $wpdb;
+		$current_mysql_time = current_time('mysql');
+		
+		// Use NOT IN for statuses to safely catch custom statuses like 'downgraded', 'delayed', or 'scheduled'
 		$scheduled_count = $wpdb->get_var($wpdb->prepare("
 			SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_memberships_users 
 			WHERE user_id = %d 
 			AND membership_id = %d 
-			AND status IN ('active', 'pending') 
-			AND startdate > NOW()
-		", $user_id, $level_id));
+			AND status NOT IN ('cancelled', 'expired', 'admin_cancelled', 'inactive')
+			AND startdate > %s
+		", $user_id, $level_id, $current_mysql_time));
 
 		return $scheduled_count > 0;
 	}
