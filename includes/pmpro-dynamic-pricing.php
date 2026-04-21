@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.23
+ * Version: 1.0.21
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -29,6 +29,7 @@ class DD_PMPro_Frontend_Pricing
 		add_action('admin_init', [$this, 'register_plugin_settings']);
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
+		add_action('template_redirect', [$this, 'prevent_checkout_for_pending_downgrade']); // Block checkout on pending-downgrade target level
 	}
 
 	/**
@@ -178,55 +179,6 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Checks if the user is scheduled to downgrade or switch to this level in the future.
-	 * Robustly evaluates PMPro Delayed Downgrades user meta (handling objects, arrays, and keys) and core future-dated records.
-	 *
-	 * @param int $user_id The WordPress User ID.
-	 * @param int $level_id The PMPro Level ID.
-	 * @return bool True if scheduled for the level, false otherwise.
-	 */
-	private function is_user_scheduled_for_level($user_id, $level_id)
-	{
-		if (!$user_id || !$level_id) {
-			return false;
-		}
-
-		// 1. Evaluate PMPro Delayed Downgrades Addon User Meta
-		$delayed_downgrades = get_user_meta($user_id, 'pmpro_delayed_downgrades', true);
-		if (!empty($delayed_downgrades) && is_array($delayed_downgrades)) {
-			
-			// Some versions key the array directly by the level ID being downgraded TO
-			if (isset($delayed_downgrades[$level_id])) {
-				return true;
-			}
-
-			foreach ($delayed_downgrades as $key => $downgrade) {
-				// The downgrade data might be an object or an array depending on the exact addon version/snippet
-				$downgrade_level_id = is_object($downgrade) ? ($downgrade->level_id ?? $downgrade->membership_id ?? 0) : (is_array($downgrade) ? ($downgrade['level_id'] ?? $downgrade['membership_id'] ?? 0) : 0);
-				
-				if ((int)$downgrade_level_id === (int)$level_id || (int)$key === (int)$level_id) {
-					return true;
-				}
-			}
-		}
-
-		// 2. Evaluate Core PMPro future-dated membership records (Broad Check)
-		global $wpdb;
-		$current_mysql_time = current_time('mysql');
-		
-		// Use NOT IN for statuses to safely catch custom statuses like 'downgraded', 'delayed', or 'scheduled'
-		$scheduled_count = $wpdb->get_var($wpdb->prepare("
-			SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_memberships_users 
-			WHERE user_id = %d 
-			AND membership_id = %d 
-			AND status NOT IN ('cancelled', 'expired', 'admin_cancelled', 'inactive')
-			AND startdate > %s
-		", $user_id, $level_id, $current_mysql_time));
-
-		return $scheduled_count > 0;
-	}
-
-	/**
 	 * Checks if the user is currently on a free trial.
 	 * Evaluates if the user holds an active paid membership but has exactly 0 payments > $0.00 since starting it.
 	 * @param int $user_id The WordPress User ID.
@@ -273,6 +225,60 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
+	 * Detects if the user has a scheduled (delayed) downgrade pending and returns the target level ID.
+	 * Checks user meta (PMPro Delayed Downgrade Add-On) and future-dated orders as a fallback.
+	 * @param int $user_id The WordPress User ID.
+	 * @return int|false The pending downgrade level ID, or false if none detected.
+	 */
+	private function get_pending_downgrade_level_id($user_id)
+	{
+		if (!$user_id) {
+			return false;
+		}
+
+		// Method 1: PMPro Delayed Downgrade Add-On — primary user meta key
+		$next_level = get_user_meta($user_id, 'pmpro_next_membership_level', true);
+		if (!empty($next_level)) {
+			if (is_object($next_level) && isset($next_level->id)) {
+				return (int) $next_level->id;
+			}
+			if (is_numeric($next_level)) {
+				return (int) $next_level;
+			}
+		}
+
+		// Method 2: Alternative meta key used by some addon versions
+		$delayed = get_user_meta($user_id, 'pmpro_delayed_downgrade', true);
+		if (!empty($delayed)) {
+			if (is_array($delayed) && isset($delayed['level_id'])) {
+				return (int) $delayed['level_id'];
+			}
+			if (is_numeric($delayed)) {
+				return (int) $delayed;
+			}
+		}
+
+		// Method 3: Fallback — scan for a future-dated successful order in the orders table
+		global $wpdb;
+		$future_level_id = $wpdb->get_var($wpdb->prepare(
+			"SELECT membership_id
+			 FROM {$wpdb->prefix}pmpro_membership_orders
+			 WHERE user_id = %d
+			   AND status = 'success'
+			   AND membership_startdate > NOW()
+			 ORDER BY membership_startdate ASC
+			 LIMIT 1",
+			$user_id
+		));
+
+		if ($future_level_id) {
+			return (int) $future_level_id;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Intercepts page requests to the Checkout page.
 	 * If the user is on a free trial, they are forcefully redirected to their account page with an error message.
 	 * @return void
@@ -302,6 +308,44 @@ class DD_PMPro_Frontend_Pricing
 			}
 
 			// Bounce them back to the member account dashboard (or homepage fallback)
+			$redirect_url = function_exists('pmpro_url') ? pmpro_url('account') : home_url();
+			wp_redirect($redirect_url);
+			exit;
+		}
+	}
+
+	/**
+	 * Intercepts page requests to the Checkout page.
+	 * If the requested level is the target of the user's currently scheduled delayed downgrade,
+	 * they are redirected to their account page — preventing a duplicate or conflicting checkout.
+	 * @return void
+	 */
+	public function prevent_checkout_for_pending_downgrade()
+	{
+		global $pmpro_pages;
+
+		// Only run on the true checkout page
+		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		if (!$user_id) {
+			return;
+		}
+
+		$level_id = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
+		if (!$level_id) {
+			return;
+		}
+
+		$pending_downgrade_level_id = $this->get_pending_downgrade_level_id($user_id);
+
+		// Block checkout if this level is already the scheduled downgrade target
+		if ($pending_downgrade_level_id && $pending_downgrade_level_id === $level_id) {
+			if (function_exists('pmpro_setMessage')) {
+				pmpro_setMessage('You already have a downgrade to this plan scheduled. It will take effect at the end of your current billing period.', 'pmpro_error');
+			}
 			$redirect_url = function_exists('pmpro_url') ? pmpro_url('account') : home_url();
 			wp_redirect($redirect_url);
 			exit;
@@ -651,7 +695,7 @@ class DD_PMPro_Frontend_Pricing
 	 * @param bool $is_on_free_trial Dictates if the user is locked out due to a trial state.
 	 * @return string The generated HTML markup.
 	 */
-	private function build_pricing_card($name, $description, $level_id, $annual_plan, $is_on_free_trial = false)
+	private function build_pricing_card($name, $description, $level_id, $annual_plan, $is_on_free_trial = false, $pending_downgrade_level_id = false)
 	{
 		$monthly_data = $this->get_level_data($level_id);
 
@@ -665,10 +709,9 @@ class DD_PMPro_Frontend_Pricing
 			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpropp_chosen_plan=' . $annual_plan['id'])
 		];
 
-		$current_user_id  = get_current_user_id();
-		$owns_monthly     = false;
-		$owns_annual      = false;
-		$is_scheduled     = $this->is_user_scheduled_for_level($current_user_id, $level_id);
+		$current_user_id = get_current_user_id();
+		$owns_monthly    = false;
+		$owns_annual     = false;
 
 		// Fetch the active plan value mapped to this user and translate it to boolean states
 		$owned_plan_value = $this->get_user_active_plan_value($current_user_id, $level_id);
@@ -714,17 +757,18 @@ class DD_PMPro_Frontend_Pricing
 			}
 		}
 
-		// Implement robust lock out if user is scheduled for a downgrade or on a free trial phase
-		if ($is_scheduled) {
-			$btn_text    = 'PENDING DOWNGRADE';
-			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
-			$current_url = '';
-		} elseif ($is_on_free_trial) {
+		// Implement robust lock out if user is on a free trial phase
+		if ($is_on_free_trial) {
 			if ($owns_current_view) {
 				$btn_text = 'CURRENT PLAN (TRIAL)';
 			} else {
 				$btn_text = 'LOCKED DURING TRIAL';
 			}
+			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
+			$current_url = '';
+		} elseif ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id) {
+			// This card is the target of a scheduled delayed downgrade — block checkout entirely
+			$btn_text    = 'PENDING DOWNGRADE';
 			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
 			$current_url = '';
 		} else {
@@ -744,7 +788,7 @@ class DD_PMPro_Frontend_Pricing
 			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
 			data-action-verb="<?php echo esc_attr($action_verb); ?>"
 			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>"
-			data-is-scheduled="<?php echo $is_scheduled ? 'true' : 'false'; ?>">
+			data-is-pending-downgrade="<?php echo ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id) ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -777,6 +821,7 @@ class DD_PMPro_Frontend_Pricing
 		$current_user_id = get_current_user_id();
 		$is_on_free_trial = $current_user_id ? $this->is_user_on_free_trial($current_user_id) : false;
 		$user_max_base_price = $current_user_id ? $this->get_user_max_tier_base_price($current_user_id) : 0.00;
+		$pending_downgrade_level_id = $current_user_id ? $this->get_pending_downgrade_level_id($current_user_id) : false;
 
 		ob_start();
 	?>
@@ -989,7 +1034,7 @@ class DD_PMPro_Frontend_Pricing
 				foreach ($pairs as $pair) {
 					$default_desc = 'Discover features included in the ' . esc_html($pair['name']) . ' plan.';
 					$description  = get_option($pair['option_key'], $default_desc);
-					echo $this->build_pricing_card($pair['name'], $description, $pair['monthly_id'], $pair['annual_plan'], $is_on_free_trial);
+					echo $this->build_pricing_card($pair['name'], $description, $pair['monthly_id'], $pair['annual_plan'], $is_on_free_trial, $pending_downgrade_level_id);
 				}
 			}
 
@@ -1038,7 +1083,7 @@ class DD_PMPro_Frontend_Pricing
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
 							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
-							const isScheduled = card.getAttribute('data-is-scheduled') === 'true';
+							const isPendingDowngrade = card.getAttribute('data-is-pending-downgrade') === 'true';
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
@@ -1046,15 +1091,15 @@ class DD_PMPro_Frontend_Pricing
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
 							const userOwnsOtherView = isYearly ? ownsMonthly : ownsAnnual;
 
-							// If scheduled for a downgrade to this level
-							if (isScheduled) {
-								btnEl.textContent = 'PENDING DOWNGRADE';
+							// If the user is on a free trial, strictly evaluate the button lockdown
+							if (isOnTrial) {
+								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							}
-							// If the user is on a free trial, strictly evaluate the button lockdown
-							else if (isOnTrial) {
-								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
+							// If this card is a scheduled delayed-downgrade target, block checkout regardless of toggle
+							else if (isPendingDowngrade) {
+								btnEl.textContent = 'PENDING DOWNGRADE';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
 							}
