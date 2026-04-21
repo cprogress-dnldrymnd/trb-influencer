@@ -180,9 +180,11 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Checks if the user is currently on a free trial.
-	 * Evaluates if the user holds an active paid membership but has exactly 0 payments > $0.00 since starting it.
-	 * @param int $user_id The WordPress User ID.
-	 * @return bool True if active on a trial, false otherwise.
+	 * Evaluates if the latest order is exactly $0.00 AND ensures the user has no recent paid history.
+	 * This prevents false positives caused by Prorated Upgrades or mid-cycle Plan Changes, 
+	 * which structurally generate $0.00 setup orders in PMPro to adjust billing dates.
+	 * * @param int $user_id The WordPress User ID.
+	 * @return bool True if active on a true free trial, false if it's an upgrade artifact or paid plan.
 	 */
 	private function is_user_on_free_trial($user_id)
 	{
@@ -201,22 +203,35 @@ class DD_PMPro_Frontend_Pricing
 			// Ensure the plan is meant to be paid (has a billing amount or initial payment > 0)
 			if ((float)$level->billing_amount > 0 || (float)$level->initial_payment > 0) {
 
-				// Safely parse startdate (PMPro often returns it as a UNIX timestamp natively)
-				$startdate_str = is_numeric($level->startdate) ? gmdate('Y-m-d H:i:s', $level->startdate) : $level->startdate;
-
-				// Verify if they have ANY successful order > $0 since they started this membership
-				$paid_orders_count = $wpdb->get_var($wpdb->prepare("
-					SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_membership_orders 
+				// 1. Retrieve the total value of the most recent order for this specific active level.
+				$latest_order_total = $wpdb->get_var($wpdb->prepare("
+					SELECT total FROM {$wpdb->prefix}pmpro_membership_orders 
 					WHERE user_id = %d 
 					AND membership_id = %d 
 					AND status IN ('success', 'pending') 
-					AND total > 0
-					AND timestamp >= %s
-				", $user_id, $level->id, $startdate_str));
+					ORDER BY timestamp DESC
+					LIMIT 1
+				", $user_id, $level->id));
 
-				// If they haven't paid anything > $0 yet but have a paid plan active, they are currently on a free trial.
-				if ($paid_orders_count == 0) {
-					return true;
+				// 2. If the latest order is exactly $0.00, evaluate for a true trial vs an upgrade.
+				if ($latest_order_total !== null && (float)$latest_order_total == 0) {
+					
+					// Upgrade/Proration Safeguard:
+					// Query the user's global order history to see if they have ANY successful payment > $0 
+					// within the last 365 days, regardless of the membership level.
+					$has_recent_paid_order = $wpdb->get_var($wpdb->prepare("
+						SELECT id FROM {$wpdb->prefix}pmpro_membership_orders 
+						WHERE user_id = %d 
+						AND total > 0 
+						AND status IN ('success', 'pending') 
+						AND timestamp >= DATE_SUB(NOW(), INTERVAL 365 DAY)
+						LIMIT 1
+					", $user_id));
+
+					// If no recent paid history exists, the $0.00 order is a legitimate new free trial.
+					if (!$has_recent_paid_order) {
+						return true;
+					}
 				}
 			}
 		}
