@@ -277,7 +277,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 $has_trial = $wpdb->get_var($wpdb->prepare("SELECT COUNT(id) FROM $table_name WHERE fingerprint = %s", $fingerprint));
 
                 if ($has_trial > 0) {
-                    pmpro_setMessage(__('This payment card has already been used to claim a free trial. Please use a different card.', 'pmpro'), 'pmpro_error');
+                    pmpro_setMessage(__('Payment Declined. Please use another card.', 'pmpro'), 'pmpro_error');
                     return false;
                 }
             }
