@@ -282,17 +282,16 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     // -------------------------------------------------------------------------
     // SCENARIO LOGIC
     // -------------------------------------------------------------------------
-    
+
     if ($old_cycle_period === 'Year' && $new_cycle_period === 'Month') {
         // SCENARIO 1: Annual to Monthly (Downgrade)
         // Action: Time Proration. Owe nothing today, append new cycle to the end of the paid year.
         $level->initial_payment = 0;
         $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
-
     } elseif ($old_cycle_period === 'Month' && $new_cycle_period === 'Year') {
         // SCENARIO 2: Monthly to Annual (Upgrade)
         // Action: Monetary Proration. Start new cycle today, discount the initial payment.
-        
+
         // 1. Calculate the monetary credit for the unused days of the current month (based on a 30-day average)
         $daily_rate = (float) $old_level->billing_amount / 30;
         $credit = $daily_rate * $days_remaining;
@@ -300,12 +299,11 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
         // 2. Apply the credit to the initial payment (ensure it doesn't drop below 0 mathematically)
         $new_initial_payment = (float) $level->billing_amount - $credit;
         $level->initial_payment = max(0, round($new_initial_payment, 2));
-        
+
         // 3. Start the new Annual cycle exactly from TODAY
         $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
         $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
         $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
-
     } else {
         // SCENARIO 3: Same Cycle Switch (Month-to-Month or Year-to-Year switch to a different tier)
         if ((float)$level->billing_amount > (float)$old_level->billing_amount) {
@@ -313,14 +311,13 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
             $divisor = ($old_cycle_period === 'Year') ? 365 : 30;
             $daily_rate = (float) $old_level->billing_amount / $divisor;
             $credit = $daily_rate * $days_remaining;
-            
+
             $new_initial_payment = (float) $level->billing_amount - $credit;
             $level->initial_payment = max(0, round($new_initial_payment, 2));
-            
+
             $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
             $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
             $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
-
         } else {
             // Downgrade Action: Time Proration. Owe nothing today, append time.
             $level->initial_payment = 0;
@@ -813,7 +810,7 @@ function dd_influencer_style_pmpro_checkout()
             var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
             var planDescription = <?php echo wp_json_encode($plan_description); ?>;
             var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
-            
+
             // Dynamic Pricing injected directly from PMPro Live Logic
             var dynamicPayingNow = <?php echo wp_json_encode($paying_now_formatted); ?>;
             var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
