@@ -162,7 +162,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             return $continue;
         }
 
-        /**
+       /**
          * Logs the Stripe card fingerprint into the custom database table immediately 
          * after a successful checkout.
          *
@@ -177,12 +177,17 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 return;
             }
 
-            // Retrieve the Stripe Payment Method ID stored by PMPro during checkout
-            $payment_method_id = get_user_meta($user_id, 'pmpro_stripe_payment_method_id', true);
+            // FIX: Intercept the ID directly from the live checkout payload to bypass PMPro's delayed DB writes
+            $payment_method_id = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : '';
 
-            // Fallback: Check order metadata if user meta is not yet synchronized
+            // Fallback to user meta strictly for backend renewals or alternative checkout flows
+            if (empty($payment_method_id)) {
+                $payment_method_id = get_user_meta($user_id, 'pmpro_stripe_payment_method_id', true);
+            }
+
+            // Fallback to order transaction ID if neither of the above exist
             if (empty($payment_method_id) && !empty($morder->subscription_transaction_id)) {
-                $payment_method_id = $morder->subscription_transaction_id;
+                $payment_method_id = $morder->subscription_transaction_id; 
             }
 
             if (empty($payment_method_id) || strpos($payment_method_id, 'pm_') !== 0) {
