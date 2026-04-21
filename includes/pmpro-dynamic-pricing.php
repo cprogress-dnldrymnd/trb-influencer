@@ -30,6 +30,7 @@ class DD_PMPro_Frontend_Pricing
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
 		add_action('template_redirect', [$this, 'prevent_checkout_for_pending_downgrade']); // Block checkout on pending-downgrade target level
+		add_action('wp_footer', [$this, 'influencer_style_pmpro_checkout'], 50); // Influencer UI Override
 	}
 
 	/**
@@ -215,7 +216,7 @@ class DD_PMPro_Frontend_Pricing
 
 				// 2. If the latest order is exactly $0.00, evaluate for a true trial vs an upgrade.
 				if ($latest_order_total !== null && (float)$latest_order_total == 0) {
-					
+
 					// Upgrade/Proration Safeguard:
 					// Query the user's global order history to see if they have ANY successful payment > $0 
 					// within the last 365 days, regardless of the membership level.
@@ -560,6 +561,604 @@ class DD_PMPro_Frontend_Pricing
 				});
 
 				observer.observe(targetNode, config);
+			});
+		</script>
+	<?php
+	}
+
+	/**
+	 * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
+	 * Reorders DOM elements, securely hides the payment plan selector, builds an influencer-style 
+	 * Summary block ABOVE the payment info, injects the user avatar, and populates uniform bullet points.
+	 *
+	 * @return void
+	 */
+	public function influencer_style_pmpro_checkout()
+	{
+		global $pmpro_pages, $pmpro_level; // Added $pmpro_level to pull live checkout math
+
+		// Abort if we are not on the explicit PMPro checkout page
+		if (empty($pmpro_pages['checkout']) || ! is_page($pmpro_pages['checkout'])) {
+			return;
+		}
+
+		// 1. EXTRACT REAL PLAN NAME & DESCRIPTION FROM PMPRO DATABASE
+		$level_id = isset($_REQUEST['level']) ? intval($_REQUEST['level']) : 0;
+		$real_plan_name = 'Membership Plan'; // Fallback
+		$plan_description = '';
+
+		if ($level_id > 0 && function_exists('pmpro_getLevel')) {
+			$level = pmpro_getLevel($level_id);
+			if (! empty($level)) {
+				$real_plan_name = $level->name;
+				if (! empty($level->description)) {
+					$plan_description = wp_strip_all_tags($level->description);
+				}
+			}
+		}
+
+		// 2. EXTRACT DYNAMIC PRICING MATH FOR TIMELINE
+		$paying_now = isset($pmpro_level->initial_payment) ? (float) $pmpro_level->initial_payment : 0;
+		$paying_now_formatted = pmpro_formatPrice($paying_now);
+
+		// Determine the context of the user to output accurate timeline reasoning
+		$current_user_id = get_current_user_id();
+		$has_existing_level = pmpro_hasMembershipLevel(0, $current_user_id);
+
+		// Upgrade/Proration Safeguard: Query the user's global order history to see if they have ANY 
+		// successful payment > $0 within the last 365 days.
+		global $wpdb;
+		$has_recent_paid_order = false;
+		if ($current_user_id) {
+			$has_recent_paid_order = $wpdb->get_var($wpdb->prepare("
+                SELECT id FROM {$wpdb->prefix}pmpro_membership_orders 
+                WHERE user_id = %d 
+                AND total > 0 
+                AND status IN ('success', 'pending') 
+                AND timestamp >= DATE_SUB(NOW(), INTERVAL 365 DAY)
+                LIMIT 1
+            ", $current_user_id));
+		}
+
+		$payment_reason = 'Standard initial payment';
+
+		if ($paying_now == 0) {
+			// Evaluate if a trial is actively configured via Core or the Subscription Delays Add On
+			$has_native_trial = isset($pmpro_level->trial_limit) && $pmpro_level->trial_limit > 0;
+			$delay_days = get_option('pmpro_subscription_delay_' . $level_id, '');
+			$has_delay_addon = !empty($delay_days) && is_numeric($delay_days);
+
+			if (!$has_recent_paid_order && ($has_native_trial || $has_delay_addon)) {
+				// Context: User is utilizing a configured free trial and has no recent paid history
+				$payment_reason = 'Free trial period';
+			} elseif ($has_existing_level && $has_recent_paid_order) {
+				// Context: User is downgrading; the $0 is a structural result of time proration
+				$payment_reason = 'Adjusted for banked time';
+			} else {
+				// Context: Standard free level or fully discounted checkout for new/guest users
+				$payment_reason = 'Free entry';
+			}
+		} elseif (isset($pmpro_level->billing_amount) && $paying_now > 0 && $paying_now < (float)$pmpro_level->billing_amount) {
+			// Context: User is upgrading; the cost is a monetary proration
+			$payment_reason = 'Prorated upgrade cost';
+		}
+
+		$start_date_str = "Now";
+		if (!empty($pmpro_level->profile_start_date)) {
+			$start_date_str = date_i18n(get_option('date_format'), strtotime($pmpro_level->profile_start_date));
+		}
+
+		// Safely get the dynamic Membership Levels page URL for the "Change plan" link
+		$levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
+
+		// 3. DEFINE YOUR GLOBAL PLAN DETAILS HERE
+		$dynamic_plan_details = [
+			'default' => [
+				'account_type' => '1 Account',
+				'bullets' => [
+					'Enjoy unlimited access to your selected plan features.',
+					'From the starting date shown, you\'ll be charged for your updated subscription.',
+					'Cancel anytime online. <a href="/terms-of-use/">Terms apply</a>.'
+				]
+			]
+		];
+
+		// Execute your custom avatar shortcode safely
+		$avatar_html = do_shortcode('[user_avatar]');
+	?>
+		<style>
+			/* influencer-style CSS Overrides for PMPro */
+			#pmpro_form {
+				max-width: 600px;
+				margin: 0 auto;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+				color: #000;
+			}
+
+			.dd-influencer-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding-bottom: 15px;
+			}
+
+			.dd-checkout-title-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: baseline;
+				margin-bottom: 20px;
+				border-bottom: 1px solid #e5e5e5;
+				padding-bottom: 20px;
+			}
+
+			.dd-checkout-title-row h2 {
+				font-size: clamp(20px, 1.5vw, 32px) !important;
+				font-weight: 700 !important;
+				margin: 0 !important;
+				color: #000;
+				letter-spacing: -0.5px;
+			}
+
+			.dd-checkout-title-row a {
+				color: var(--e-global-color-accent);
+				text-decoration: underline;
+				font-weight: 500;
+				font-size: 14px;
+				transition: color 0.2s ease;
+			}
+
+			.dd-checkout-title-row a:hover {
+				color: #000;
+			}
+
+			.dd-avatar-wrapper {
+				width: 60px;
+				height: 60px;
+				border-radius: 50%;
+				overflow: hidden;
+				background: #eee;
+				border: 2px solid #ddd;
+			}
+
+			.dd-avatar-wrapper img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+			}
+
+			.pmpro_checkout-section {
+				background: transparent !important;
+				border: none !important;
+				box-shadow: none !important;
+				padding: 0 !important;
+				margin-bottom: 30px !important;
+			}
+
+			.pmpro_checkout-section h3,
+			.pmpro_checkout-section h2 {
+				font-size: 20px !important;
+				font-weight: 700 !important;
+				border: none !important;
+				margin-bottom: 15px !important;
+				padding-bottom: 0 !important;
+				color: #000;
+			}
+
+			#pmpro_level_cost,
+			#pmpropp_payment_plans,
+			#pmpro_pricing_fields,
+			#pmpro_user_fields,
+			#pmpropp_select_payment_plan {
+				display: none !important;
+			}
+
+			.pmpro_form_field-radio-items.pmpro_form_field-radio-items.pmpro_form_field-radio-items {
+				flex-direction: column;
+				gap: 0;
+			}
+
+			.pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item {
+				width: 100%;
+			}
+
+			.pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item .pmpro_form_label {
+				font-size: 1rem;
+				color: #000;
+			}
+
+			.pmpro_form_field-radio-item.pmpro_form_field-radio-item.pmpro_form_field-radio-item input {
+				width: auto;
+			}
+
+			.pmpro_check_instructions.pmpro_check_instructions {
+				box-shadow: none;
+				border: none;
+				border-radius: 0;
+				margin-top: 0;
+			}
+
+			.pmpro_check_instructions.pmpro_check_instructions .pmpro_card_title {
+				padding: 0;
+			}
+
+			.pmpro_check_instructions.pmpro_check_instructions .pmpro_card_content {
+				padding: 0;
+			}
+
+			#pmpro_payment_information_fields .pmpro_card,
+			#pmpro_payment_method .pmpro_card {
+				border-radius: 0;
+				margin: 0;
+				border: none;
+				box-shadow: none;
+			}
+
+			#pmpro_payment_method .pmpro_card {
+				margin-bottom: 30px;
+			}
+
+			#pmpro_payment_information_fields .pmpro_card .pmpro_card_content,
+			#pmpro_payment_method .pmpro_card .pmpro_card_content {
+				padding: 0;
+			}
+
+			/* influencer Card Styles */
+			#dd-influencer-summary {
+				margin-top: 20px !important;
+				margin-bottom: 20px !important;
+				border-bottom: 1px solid #e5e5e5 !important;
+				padding-bottom: 20px !important;
+			}
+
+			.infl-summary-card {
+				background: transparent;
+			}
+
+			.infl-header-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 25px;
+			}
+
+			.infl-icon {
+				width: 50px;
+				height: 50px;
+				background: var(--e-global-color-secondary);
+				border-radius: 6px;
+				display: flex;
+				align-items: center;
+				justify-content: flex-end;
+				margin-right: 15px;
+				color: #fff;
+			}
+
+			.infl-icon img {
+				width: 30px;
+				height: 30px;
+			}
+
+			.infl-plan-info {
+				flex-grow: 1;
+			}
+
+			.infl-plan-info h4 {
+				margin: 0 0 2px 0 !important;
+				font-size: 16px !important;
+				font-weight: 700 !important;
+			}
+
+			.infl-plan-info span {
+				font-size: 14px;
+				color: #b3b3b3;
+			}
+
+			.infl-price-info {
+				text-align: right;
+			}
+
+			.infl-price-info h4 {
+				margin: 0 0 2px 0 !important;
+				font-size: 16px !important;
+				font-weight: 700 !important;
+			}
+
+			.infl-price-info span {
+				font-size: 14px;
+				color: #b3b3b3;
+			}
+
+			body:not(.page-id-4144) span#pmpro_submit_span {
+				width: 100%;
+			}
+
+			.pmpro_form_submit {
+				flex-direction: column;
+			}
+
+			/* Timeline Styles */
+			.infl-timeline {
+				position: relative;
+				padding-left: 15px;
+				margin-bottom: 20px;
+			}
+
+			.infl-timeline::before {
+				content: '';
+				position: absolute;
+				left: 19px;
+				top: 10px;
+				bottom: 25px;
+				width: 1px;
+				background: #000;
+			}
+
+			.infl-timeline-item {
+				position: relative;
+				padding-left: 20px;
+				margin-bottom: 20px;
+			}
+
+			.infl-dot {
+				position: absolute;
+				left: 0;
+				top: 6px;
+				width: 9px;
+				height: 9px;
+				border-radius: 50%;
+				background: #000;
+				z-index: 2;
+			}
+
+			.infl-dot.hollow {
+				background: #fff;
+				border: 2px solid #000;
+				left: 0px;
+				width: 9px;
+				height: 9px;
+			}
+
+			.infl-content p {
+				margin: 0 0 2px 0 !important;
+				font-size: 15px;
+				font-weight: 500;
+			}
+
+			.infl-content span {
+				font-size: 14px;
+				color: #b3b3b3;
+			}
+
+			/* Bullet Points */
+			.infl-bullets.infl-bullets {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				font-size: 13px !important;
+				color: #6a6a6a;
+				line-height: 1.5;
+			}
+
+			.infl-bullets li {
+				position: relative;
+				padding-left: 15px;
+				margin-bottom: 6px;
+			}
+
+			.infl-bullets li::before {
+				content: '•';
+				position: absolute;
+				left: 0;
+				top: 0;
+				color: #6a6a6a;
+			}
+
+			.infl-bullets a {
+				color: #6a6a6a;
+				text-decoration: underline;
+			}
+
+			/* Submit Button */
+			#pmpro_btn-submit {
+				background-color: #1ed760 !important;
+				color: #000 !important;
+				border-radius: 500px !important;
+				padding: 16px 30px !important;
+				font-size: 16px !important;
+				font-weight: 700 !important;
+				border: none !important;
+				width: 100% !important;
+				text-transform: none !important;
+				transition: transform 0.2s ease, background-color 0.2s ease;
+				margin-top: 20px;
+			}
+
+			#pmpro_btn-submit:hover {
+				background-color: #1fdf64 !important;
+				transform: scale(1.02);
+			}
+
+			/* Clean up residual Account Info if logged out */
+			.dd-clean-account-info h2,
+			.dd-clean-account-info h3,
+			.dd-clean-account-info hr,
+			.dd-clean-account-info p.pmpro_logged_in_text {
+				display: none !important;
+			}
+		</style>
+
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				if (typeof jQuery === 'undefined') return;
+				var $ = jQuery;
+
+				var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
+				var dynamicPlanMeta = <?php echo wp_json_encode($dynamic_plan_details); ?>;
+				var realPlanName = <?php echo wp_json_encode($real_plan_name); ?>;
+				var planDescription = <?php echo wp_json_encode($plan_description); ?>;
+				var levelsUrl = <?php echo wp_json_encode($levels_url); ?>;
+
+				// Dynamic Pricing injected directly from PMPro Live Logic
+				var dynamicPayingNow = <?php echo wp_json_encode($paying_now_formatted); ?>;
+				var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
+				var dynamicStartDate = <?php echo wp_json_encode($start_date_str); ?>;
+
+				// 1. Inject Header and Title Row immediately
+				var headerHtml = '<div class="dd-influencer-header">' +
+					'<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
+					'<div class="dd-avatar-wrapper">' + (avatarHtml ? avatarHtml : '') + '</div>' +
+					'</div>' +
+					'<div class="dd-checkout-title-row">' +
+					'<h2>Checkout</h2>' +
+					'<a href="' + levelsUrl + '">Change plan</a>' +
+					'</div>';
+				$('#pmpro_form').prepend(headerHtml);
+
+				// Wait for the Payment Plans DOM to be fully injected via AJAX
+				var pollDOM = setInterval(function() {
+					var $radios = $('input[name="pmpropp_chosen_plan"]');
+					var $levelCost = $('#pmpro_level_cost');
+
+					// Only proceed if PMPro has successfully rendered the pricing elements
+					if ($radios.length > 0 || $levelCost.length > 0) {
+						clearInterval(pollDOM);
+
+						// 2. Safely parse URL to enforce accurate plan selection
+						var urlParams = new URLSearchParams(window.location.search);
+						var currentLevelId = urlParams.get('level') || '';
+						var chosenPlanUrlValue = urlParams.get('pmpropp_chosen_plan');
+						var planDetails = dynamicPlanMeta[currentLevelId] ? dynamicPlanMeta[currentLevelId] : dynamicPlanMeta['default'];
+
+						// Force PMPro to check the correct radio button based on the URL
+						if ($radios.length > 0) {
+							if (chosenPlanUrlValue) {
+								$radios.filter('[value="' + chosenPlanUrlValue + '"]').prop('checked', true);
+							} else if (currentLevelId) {
+								$radios.filter('[value="' + currentLevelId + '"]').prop('checked', true);
+							}
+						}
+
+						// 3. Hide Native Elements
+						var $paymentPlanWrapper = $('#pmpropp_payment_plans').closest('.pmpro_checkout-section');
+						if ($paymentPlanWrapper.length === 0) $paymentPlanWrapper = $('#pmpropp_payment_plans');
+						$paymentPlanWrapper.hide();
+						$paymentPlanWrapper.prev('h2, h3, hr').hide();
+
+						$('.pmpro_checkout-section h2, .pmpro_checkout-section h3').each(function() {
+							var txt = $(this).text().trim();
+							if (txt.indexOf('Payment Plan') !== -1 || txt.indexOf('Membership Information') !== -1) {
+								$(this).hide();
+								if ($(this).siblings().length === 0) $(this).closest('.pmpro_checkout-section').hide();
+							}
+						});
+
+						// 4. Extract Pricing Data explicitly from the checked radio
+						var labelText = $('input[name="pmpropp_chosen_plan"]:checked').siblings('label').text().trim() || $levelCost.text().trim();
+
+						var planName = realPlanName;
+						var isAnnual = labelText.toLowerCase().includes('annual') || labelText.toLowerCase().includes('year');
+						if (isAnnual) planName = planName + " (Annual)";
+
+						var recurringPrice = "";
+						var cycle = "month";
+
+						var recMatch = labelText.match(/(\$[0-9,.]+)\s+per\s+([a-zA-Z]+)/i);
+						if (recMatch) {
+							recurringPrice = recMatch[1];
+							cycle = recMatch[2].toLowerCase();
+						}
+
+						// Build Dynamic Bullets from Array
+						var bulletsHtml = '';
+
+						// Inject the PMPro database description as the very first bullet
+						if (planDescription) {
+							bulletsHtml += '<li>' + planDescription + '</li>';
+						}
+
+						planDetails.bullets.forEach(function(bullet) {
+							bulletsHtml += '<li>' + bullet + '</li>';
+						});
+
+						// 5. Build Summary HTML Using New Live Math Logic
+						var influencerHtml = `
+                        <div class="infl-summary-card">
+                            <div class="infl-header-row">
+                                <div class="infl-icon">
+                                   <img src="/wp-content/uploads/2026/02/cropped-cropped-cropped-favicon-192x192-1.png" alt="Plan Icon">
+                                </div>
+                                <div class="infl-plan-info">
+                                    <h4>${planName}</h4>
+                                    <span>${planDetails.account_type}</span>
+                                </div>
+                                <div class="infl-price-info">
+                                    <h4>${recurringPrice} </h4>
+                                    <span>/${cycle}</span>
+                                </div>
+                            </div>
+                            <div class="infl-timeline">
+                                <div class="infl-timeline-item">
+                                    <div class="infl-dot filled"></div>
+                                    <div class="infl-content">
+                                        <p><strong>Paying Now:</strong> ${dynamicPayingNow}</p>
+                                        <span>${paymentReason}</span>
+                                    </div>
+                                </div>
+                                <div class="infl-timeline-item">
+                                    <div class="infl-dot hollow"></div>
+                                    <div class="infl-content">
+                                        <p><strong>Starting ${dynamicStartDate}:</strong> ${recurringPrice} /${cycle}</p>
+                                        <span>${planName}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <ul class="infl-bullets">
+                                ${bulletsHtml}
+                            </ul>
+                        </div>`;
+
+						// 6. Inject Summary Block
+						var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
+						$summarySection.append(influencerHtml);
+
+						// Map potential insertion anchors
+						var $paymentPlanSelector = $('#pmpropp_select_payment_plan').closest('.pmpro_checkout-section');
+						if (!$paymentPlanSelector.length) $paymentPlanSelector = $('#pmpropp_select_payment_plan');
+
+						var $paymentMethodSelector = $('#pmpro_payment_method').closest('.pmpro_checkout-section');
+						if (!$paymentMethodSelector.length) $paymentMethodSelector = $('#pmpro_payment_method');
+
+						var $paymentFields = $('#pmpro_payment_information_fields').closest('.pmpro_checkout-section');
+						if (!$paymentFields.length) $paymentFields = $('#pmpro_payment_information_fields');
+
+						// Prioritize layout injection hierarchy 
+						if ($paymentPlanSelector.length) {
+							$paymentPlanSelector.before($summarySection);
+						} else if ($paymentMethodSelector.length) {
+							$paymentMethodSelector.before($summarySection);
+						} else if ($paymentFields.length) {
+							$paymentFields.before($summarySection);
+						} else {
+							$('#pmpro_form').prepend($summarySection);
+						}
+
+						// 7. Clean Up Account Information
+						var $accInfo = $('#pmpro_account').closest('.pmpro_checkout-section');
+						if (!$accInfo.length) $accInfo = $('#pmpro_account');
+						if (!$accInfo.length) $accInfo = $('.pmpro_checkout-section:contains("Account Information")');
+
+						if ($accInfo.length) {
+							$accInfo.addClass('dd-clean-account-info');
+							if ($accInfo.find('input[type="text"]').length > 0 || $accInfo.find('input[type="password"]').length > 0) {
+								$summarySection.append($accInfo);
+								$accInfo.show();
+							} else {
+								$accInfo.hide();
+							}
+						}
+
+						if ($levelCost.length) $levelCost.hide();
+					}
+				}, 100); // Poll every 100ms until DOM is ready
 			});
 		</script>
 	<?php
