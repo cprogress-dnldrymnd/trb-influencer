@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.20
+ * Version: 1.0.21
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -175,6 +175,32 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		return false;
+	}
+
+	/**
+	 * Checks if the user is scheduled to downgrade or switch to this level in the future.
+	 * Evaluates if a membership record exists with a future start date.
+	 *
+	 * @param int $user_id The WordPress User ID.
+	 * @param int $level_id The PMPro Level ID.
+	 * @return bool True if scheduled for the level, false otherwise.
+	 */
+	private function is_user_scheduled_for_level($user_id, $level_id)
+	{
+		if (!$user_id || !$level_id) {
+			return false;
+		}
+
+		global $wpdb;
+		$scheduled_count = $wpdb->get_var($wpdb->prepare("
+			SELECT COUNT(*) FROM {$wpdb->prefix}pmpro_memberships_users 
+			WHERE user_id = %d 
+			AND membership_id = %d 
+			AND status IN ('active', 'pending') 
+			AND startdate > NOW()
+		", $user_id, $level_id));
+
+		return $scheduled_count > 0;
 	}
 
 	/**
@@ -616,9 +642,10 @@ class DD_PMPro_Frontend_Pricing
 			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpropp_chosen_plan=' . $annual_plan['id'])
 		];
 
-		$current_user_id = get_current_user_id();
-		$owns_monthly    = false;
-		$owns_annual     = false;
+		$current_user_id  = get_current_user_id();
+		$owns_monthly     = false;
+		$owns_annual      = false;
+		$is_scheduled     = $this->is_user_scheduled_for_level($current_user_id, $level_id);
 
 		// Fetch the active plan value mapped to this user and translate it to boolean states
 		$owned_plan_value = $this->get_user_active_plan_value($current_user_id, $level_id);
@@ -664,8 +691,12 @@ class DD_PMPro_Frontend_Pricing
 			}
 		}
 
-		// Implement robust lock out if user is on a free trial phase
-		if ($is_on_free_trial) {
+		// Implement robust lock out if user is scheduled for a downgrade or on a free trial phase
+		if ($is_scheduled) {
+			$btn_text    = 'PENDING DOWNGRADE';
+			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
+			$current_url = '';
+		} elseif ($is_on_free_trial) {
 			if ($owns_current_view) {
 				$btn_text = 'CURRENT PLAN (TRIAL)';
 			} else {
@@ -689,7 +720,8 @@ class DD_PMPro_Frontend_Pricing
 			data-url-annual="<?php echo esc_url($annual_data['url']); ?>"
 			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
 			data-action-verb="<?php echo esc_attr($action_verb); ?>"
-			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>">
+			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>"
+			data-is-scheduled="<?php echo $is_scheduled ? 'true' : 'false'; ?>">
 			<?php echo wp_kses_post($badge_html); ?>
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
@@ -983,6 +1015,7 @@ class DD_PMPro_Frontend_Pricing
 							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
 							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
 							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
+							const isScheduled = card.getAttribute('data-is-scheduled') === 'true';
 
 							// Update visual price based on toggle state
 							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
@@ -990,8 +1023,14 @@ class DD_PMPro_Frontend_Pricing
 							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
 							const userOwnsOtherView = isYearly ? ownsMonthly : ownsAnnual;
 
+							// If scheduled for a downgrade to this level
+							if (isScheduled) {
+								btnEl.textContent = 'PENDING DOWNGRADE';
+								btnEl.classList.add('dd-btn-disabled');
+								btnEl.removeAttribute('href');
+							}
 							// If the user is on a free trial, strictly evaluate the button lockdown
-							if (isOnTrial) {
+							else if (isOnTrial) {
 								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
 								btnEl.classList.add('dd-btn-disabled');
 								btnEl.removeAttribute('href');
