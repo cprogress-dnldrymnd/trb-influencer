@@ -607,7 +607,7 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
     $result = $mycred->add_creds(
         'buy_creds_with_bank_pending',
         $user_id,
-        1,
+        0,
         'Bank transfer payment pending — Payment ID: %post_id%',
         $post_id,
         array( 'ref_type' => 'post' ),
