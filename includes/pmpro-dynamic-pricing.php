@@ -1144,12 +1144,7 @@ class DD_PMPro_Frontend_Pricing
 								if (typeof $el.data('dd-original-html') === 'undefined') {
 									$el.data('dd-original-html', $el.html());
 								}
-								if (gateway === 'check') {
-									var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial\.?/gi, '');
-									$el.html(cleanHtml);
-								} else {
-									$el.html($el.data('dd-original-html'));
-								}
+								
 							});
 						}
 
@@ -1169,7 +1164,6 @@ class DD_PMPro_Frontend_Pricing
 										if (typeof $(this).data('dd-original-html') === 'undefined') {
 											$(this).data('dd-original-html', txt);
 										}
-										$(this).html(txt.replace(/\s*after your .*? trial\.?/gi, ''));
 									}
 								});
 							}
