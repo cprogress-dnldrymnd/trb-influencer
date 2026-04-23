@@ -520,7 +520,14 @@ class DD_PMPro_Frontend_Pricing
 					}
 
 					// Feature 2: Sync Trial Text to Payment Plans securely
-					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
+					// NEW LOGIC: Explicitly target ONLY Payment Plan radios, ignoring all Payment Gateway labels
+					const planRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
+					const labels = [];
+					planRadios.forEach(radio => {
+						const label = document.querySelector('label[for="' + radio.id + '"]');
+						if (label) labels.push(label);
+					});
+
 					if (labels.length > 0) {
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
@@ -537,7 +544,7 @@ class DD_PMPro_Frontend_Pricing
 							}
 
 							if (gateway === 'check') {
-								// Strip trial text entirely from ALL radio buttons if paying by check
+								// Strip trial text entirely from ALL plan radio buttons if paying by check
 								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
 							} else {
 								// Append/keep trial text normally for Stripe
@@ -599,7 +606,6 @@ class DD_PMPro_Frontend_Pricing
 		</script>
 	<?php
 	}
-
 	/**
 	 * Transforms the PMPro Checkout into a cleaner, influencer-style layout.
 	 * Reorders DOM elements, securely hides the payment plan selector, builds an influencer-style 
