@@ -418,15 +418,14 @@ class DD_PMPro_Frontend_Pricing
 
 	/**
 	 * Injects a robust MutationObserver script on the PMPro Checkout page.
-	 * Acts as a global DOM cleaner to remove broken Payment Plan injections on non-checkout pages (like the signup shortcode).
-	 * Handles DOM parsing securely to prevent duplicate trial-text appending and ensures the current active plan remains locked out during plan transitions.
+	 * Disables the current plan and trial-locked plans without interfering with payment gateway labels.
 	 * @return void
 	 */
 	public function modify_checkout_plans_dom()
 	{
 		global $pmpro_pages;
 
-		// 1. NON-CHECKOUT PAGE CLEANUP (Fixes the empty box on [pmpro_signup] pages)
+		// 1. NON-CHECKOUT PAGE CLEANUP
 		if (empty($pmpro_pages['checkout']) || !is_page($pmpro_pages['checkout'])) {
 ?>
 			<script>
@@ -434,15 +433,11 @@ class DD_PMPro_Frontend_Pricing
 					const ppContainer = document.getElementById('pmpropp_payment_plans');
 					if (ppContainer) {
 						ppContainer.style.display = 'none';
-
-						// Remove the rogue "Select a Payment Plan" heading
 						let prev = ppContainer.previousElementSibling;
 						if (prev && prev.textContent.toLowerCase().includes('payment plan')) {
 							prev.style.display = 'none';
 						}
 					}
-
-					// Catch any stray headings injected by the Add On independently
 					const headings = document.querySelectorAll('h2, h3, h4, label, legend, p');
 					headings.forEach(h => {
 						if (h.textContent.trim() === 'Select a Payment Plan') {
@@ -452,7 +447,7 @@ class DD_PMPro_Frontend_Pricing
 				});
 			</script>
 		<?php
-			return; // Abort further execution as we are not on the true checkout page
+			return;
 		}
 
 		// 2. CHECKOUT PAGE MUTATION LOGIC
@@ -463,7 +458,6 @@ class DD_PMPro_Frontend_Pricing
 			return;
 		}
 
-		// Retrieve the precise radio button value the user currently owns (returns false if guest/unowned)
 		$owned_plan_value = $this->get_user_active_plan_value($user_id, $level_id);
 		$is_on_free_trial = $this->is_user_on_free_trial($user_id);
 
@@ -475,21 +469,18 @@ class DD_PMPro_Frontend_Pricing
 				const isOnTrial = <?php echo $is_on_free_trial ? 'true' : 'false'; ?>;
 
 				const processCheckoutDOM = function() {
-
-					let gateway = document.querySelector('input[name=gateway]:checked');
-					gateway = gateway ? gateway.value : (document.getElementById('gateway') ? document.getElementById('gateway').value : '');
-
-					// Feature 0: If currently on a trial, entirely lock down the checkout logic
+					// FEATURE: Lock down plans if user is on a trial
 					if (isOnTrial) {
-						const allRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
-						allRadios.forEach(radio => {
+						// Strictly target only payment plan radios
+						const planRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
+						planRadios.forEach(radio => {
 							radio.disabled = true;
 							const label = document.querySelector('label[for="' + radio.id + '"]');
 							if (label && !label.classList.contains('dd-plan-disabled')) {
 								label.classList.add('dd-plan-disabled');
 								label.style.opacity = '0.5';
 								label.style.cursor = 'not-allowed';
-								if (ownedValue && radio.value === ownedValue) {
+								if (ownedValue && radio.value === ownedValue && !label.innerHTML.includes('(Trial Active)')) {
 									label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Trial Active)</span>';
 								}
 							}
@@ -503,104 +494,36 @@ class DD_PMPro_Frontend_Pricing
 							submitBtn.style.cursor = 'not-allowed';
 						}
 					}
-					// Feature 1: Disable Current Plan Logic resilient against plan switches
+					// FEATURE: Disable the radio button for the plan the user already owns
 					else if (ownedValue) {
 						const radioBtn = document.querySelector('input[name="pmpropp_chosen_plan"][value="' + ownedValue + '"]');
 						if (radioBtn && !radioBtn.disabled) {
 							radioBtn.disabled = true;
-
 							const label = document.querySelector('label[for="' + radioBtn.id + '"]');
 							if (label && !label.classList.contains('dd-plan-disabled')) {
 								label.classList.add('dd-plan-disabled');
 								label.style.opacity = '0.5';
 								label.style.cursor = 'not-allowed';
-								label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Current Plan)</span>';
-							}
-						}
-					}
-
-					// Feature 2: Sync Trial Text to Payment Plans securely
-					// NEW LOGIC: Explicitly target ONLY Payment Plan radios, ignoring all Payment Gateway labels
-					const planRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
-					const labels = [];
-					planRadios.forEach(radio => {
-						const label = document.querySelector('label[for="' + radio.id + '"]');
-						if (label) labels.push(label);
-					});
-
-					if (labels.length > 0) {
-						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
-						const baseLabel = labels[0];
-
-						if (!baseLabel.hasAttribute('data-original-html')) {
-							baseLabel.setAttribute('data-original-html', baseLabel.innerHTML);
-						}
-
-						const trialMatch = baseLabel.getAttribute('data-original-html').match(/(after your .*? trial\.?)/i);
-
-						for (let i = 0; i < labels.length; i++) {
-							if (!labels[i].hasAttribute('data-original-html')) {
-								labels[i].setAttribute('data-original-html', labels[i].innerHTML);
-							}
-
-							if (gateway === 'check') {
-								// Strip trial text entirely from ALL plan radio buttons if paying by check
-								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
-							} else {
-								// Append/keep trial text normally for Stripe
-								if (trialMatch && trialMatch[1]) {
-									let trialText = trialMatch[1].trim();
-									if (!trialText.endsWith('.')) {
-										trialText += '.';
-									}
-
-									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
-										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
-									} else {
-										labels[i].innerHTML = labels[i].getAttribute('data-original-html');
-									}
-								} else {
-									labels[i].innerHTML = labels[i].getAttribute('data-original-html');
+								if (!label.innerHTML.includes('(Current Plan)')) {
+									label.innerHTML += ' <span style="color:red; font-size:0.9em; margin-left:5px;">(Current Plan)</span>';
 								}
 							}
 						}
 					}
 				};
 
-				// Execute immediately in case elements are already parsed
 				processCheckoutDOM();
 
-				// Ensure re-check on gateway changes
-				document.body.addEventListener('change', function(e) {
-					if (e.target.name === 'gateway' || e.target.id === 'gateway') {
-						processCheckoutDOM();
-					}
-				});
-
-				// Attach a MutationObserver to instantly intercept and mutate nodes injected by the PMPro Payment Plans Addon
 				const targetNode = document.body;
 				const config = {
 					childList: true,
 					subtree: true
 				};
-
 				const observer = new MutationObserver(function(mutationsList) {
-					// BUG FIX: Temporarily pause the observer to prevent infinite loop
 					observer.disconnect();
-					let hasChildListMutation = false;
-					for (const mutation of mutationsList) {
-						if (mutation.type === 'childList') {
-							hasChildListMutation = true;
-							break;
-						}
-					}
-					if (hasChildListMutation) {
-						processCheckoutDOM();
-					}
-					// Resume observer
+					processCheckoutDOM();
 					observer.observe(targetNode, config);
 				});
-
 				observer.observe(targetNode, config);
 			});
 		</script>
