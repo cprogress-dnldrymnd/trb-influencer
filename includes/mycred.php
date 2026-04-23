@@ -569,43 +569,32 @@ function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
         return;
     }
 
-    // 2. Extract transaction details to populate your email tags
-    $user_id    = get_post_meta( $post_id, 'from', true ) ?: $post->post_author;
+    // 2. Extract transaction details directly from buyCRED post meta
+    $user_id = get_post_meta( $post_id, 'from', true );
+    if ( empty( $user_id ) ) {
+        $user_id = $post->post_author;
+    }
+    
     $points     = get_post_meta( $post_id, 'amount', true );
-    $point_type = get_post_meta( $post_id, 'point_type', true ) ?: 'mycred_default';
+    $point_type = get_post_meta( $post_id, 'point_type', true );
+    if ( empty( $point_type ) ) {
+        $point_type = 'mycred_default';
+    }
 
-    // 3. The myCred Request Array (Powers the dynamic tags in the email)
+    // 3. The myCred Request Array
+    // This matches the exact structure the Email Add-on expects to find in the filter
     $request = array(
         'ref'     => 'buy_creds_with_bank_pending', 
+        'ref_id'  => $post_id,
         'user_id' => $user_id,
-        'creds'   => $points,
-        'amount'  => $points, 
+        'amount'  => $points,
+        'type'    => $point_type,
     );
 
-    // 4. Actively hunt for your custom email notice and trigger it
-    if ( function_exists( 'mycred_get_email_notice' ) ) {
-        $emails = get_posts( array(
-            'post_type'      => 'mycred_email',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish'
-        ) );
-
-        if ( $emails ) {
-            foreach ( $emails as $email_post ) {
-                // Instantiate the specific myCRED_Email object
-                $email_obj = mycred_get_email_notice( $email_post->ID );
-                if ( ! $email_obj ) continue;
-
-                // Extract the references set in the backend UI
-                $trigger = $email_obj->get_trigger();
-                $triggers = array_map( 'trim', explode( ',', $trigger ) );
-
-                // If this email is set up to listen for your custom reference, send it!
-                if ( in_array( 'buy_creds_with_bank_pending', $triggers ) ) {
-                    $email_obj->send( $request, $point_type );
-                }
-            }
-        }
+    // 4. Trigger the native myCred filter
+    // The Email Notice Add-on listens here at priority 50. It will see your custom reference and fire the email.
+    if ( function_exists( 'mycred' ) ) {
+        apply_filters( 'mycred_add_finished', true, $request, mycred( $point_type ) );
     }
 
     // 5. Secure the duplicate lock
