@@ -483,7 +483,7 @@ class DD_PMPro_Frontend_Pricing
 					if (isOnTrial) {
 						const allRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
 						allRadios.forEach(radio => {
-							if (!radio.disabled) radio.disabled = true; // Loop prevention
+							radio.disabled = true;
 							const label = document.querySelector('label[for="' + radio.id + '"]');
 							if (label && !label.classList.contains('dd-plan-disabled')) {
 								label.classList.add('dd-plan-disabled');
@@ -524,7 +524,7 @@ class DD_PMPro_Frontend_Pricing
 					if (labels.length > 0) {
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
-						
+
 						if (!baseLabel.hasAttribute('data-original-html')) {
 							baseLabel.setAttribute('data-original-html', baseLabel.innerHTML);
 						}
@@ -536,11 +536,9 @@ class DD_PMPro_Frontend_Pricing
 								labels[i].setAttribute('data-original-html', labels[i].innerHTML);
 							}
 
-							let targetHtml = labels[i].getAttribute('data-original-html');
-
 							if (gateway === 'check') {
 								// Strip trial text entirely from ALL radio buttons if paying by check
-								targetHtml = targetHtml.replace(/\s*after your .*? trial\.?/gi, '');
+								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
 							} else {
 								// Append/keep trial text normally for Stripe
 								if (trialMatch && trialMatch[1]) {
@@ -548,16 +546,15 @@ class DD_PMPro_Frontend_Pricing
 									if (!trialText.endsWith('.')) {
 										trialText += '.';
 									}
-									
-									if (i > 0 && !targetHtml.toLowerCase().includes('trial')) {
-										targetHtml = targetHtml.replace(/\.$/, '').trim() + ' ' + trialText;
-									}
-								}
-							}
 
-							// INFINITE LOOP FIX: Only modify the DOM if the exact output differs
-							if (labels[i].innerHTML !== targetHtml) {
-								labels[i].innerHTML = targetHtml;
+									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
+									} else {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html');
+									}
+								} else {
+									labels[i].innerHTML = labels[i].getAttribute('data-original-html');
+								}
 							}
 						}
 					}
@@ -575,12 +572,26 @@ class DD_PMPro_Frontend_Pricing
 
 				// Attach a MutationObserver to instantly intercept and mutate nodes injected by the PMPro Payment Plans Addon
 				const targetNode = document.body;
-				const config = { childList: true, subtree: true };
+				const config = {
+					childList: true,
+					subtree: true
+				};
 
 				const observer = new MutationObserver(function(mutationsList) {
-					observer.disconnect(); // Prevent our changes from triggering the observer again
-					processCheckoutDOM();
-					observer.observe(targetNode, config); // Resume
+					// BUG FIX: Temporarily pause the observer to prevent infinite loop
+					observer.disconnect();
+					let hasChildListMutation = false;
+					for (const mutation of mutationsList) {
+						if (mutation.type === 'childList') {
+							hasChildListMutation = true;
+							break;
+						}
+					}
+					if (hasChildListMutation) {
+						processCheckoutDOM();
+					}
+					// Resume observer
+					observer.observe(targetNode, config);
 				});
 
 				observer.observe(targetNode, config);
@@ -1025,7 +1036,7 @@ class DD_PMPro_Frontend_Pricing
 				var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
 				var dynamicStartDate = <?php echo wp_json_encode($start_date_str); ?>;
 
-				// 1. Inject Header and Title Row immediately (using strict duplicate check)
+				// 1. Inject Header and Title Row immediately
 				$('.dd-influencer-header, .dd-checkout-title-row').remove();
 				var headerHtml = '<div class="dd-influencer-header">' +
 					'<div class="dd-influencer-logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="134.712" height="68.251" viewBox="0 0 134.712 68.251"><defs><clipPath id="clip-path"><rect id="Rectangle_9" data-name="Rectangle 9" width="134.712" height="68.251" fill="currentColor"/></clipPath></defs><g id="Group_9" data-name="Group 9" transform="translate(0 0)"><g id="Group_8" data-name="Group 8" transform="translate(0 0)" clip-path="url(#clip-path)"><path id="Path_6" data-name="Path 6" d="M7.342,45.71H6.154V54.9H2.659V33.234H7.2c4.893,0,8.108,2.306,8.108,6.116a5.3,5.3,0,0,1-3.7,5.067c2.866,1.083,4.753,7.758,8.807,7.758l-.7,2.936c-6.92,0-7.164-9.4-12.372-9.4m.21-9.75h-1.4v7.059h1.5c2.481,0,4.194-1.294,4.194-3.6,0-2.2-1.782-3.459-4.3-3.459" transform="translate(-1.191 -14.885)" fill="currentColor"/><path id="Path_7" data-name="Path 7" d="M76.659,54.929H71.522V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,81.1,42.8c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M76.17,35.988H75.017v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H75.017v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-32.034 -14.914)" fill="currentColor"/><path id="Path_8" data-name="Path 8" d="M118.811,54.929h-5.137V33.3h4.264c5,0,8.387,1.572,8.387,5.452A3.966,3.966,0,0,1,123.25,42.8c3.075.489,4.963,2.271,4.963,5.731,0,4.683-3.6,6.4-9.4,6.4m-.489-18.941h-1.153v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422h-2.551v7.653h2.551c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-50.914 -14.914)" fill="currentColor"/><path id="Path_9" data-name="Path 9" d="M165.111,54.926c-6.221,0-11.182-4.055-11.182-11.149,0-7.059,4.961-11.113,11.182-11.113S176.3,36.718,176.3,43.812c0,7.059-4.963,11.114-11.184,11.114m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.584-2.936,7.584-8.178c0-5.207-3.425-8.247-7.584-8.247" transform="translate(-68.944 -14.63)" fill="currentColor"/><path id="Path_10" data-name="Path 10" d="M213.754,39.84V54.448h-3.5V32.222h.489l14.643,15.132V32.781h3.494V54.9H228.4Z" transform="translate(-94.174 -14.432)" fill="currentColor"/><path id="Path_11" data-name="Path 11" d="M7.8,105.564H2.659V83.932H6.923c5,0,8.387,1.572,8.387,5.452a3.966,3.966,0,0,1-3.075,4.054c3.075.489,4.962,2.271,4.962,5.731,0,4.683-3.6,6.4-9.4,6.4M7.307,86.623H6.154v5.7h1.4c3.285,0,4.229-1.083,4.229-2.761.035-2.062-1.328-2.936-4.473-2.936m1.4,8.422H6.154V102.7H8.705c3.984,0,4.823-1.573,4.928-3.7,0-1.887-.874-3.949-4.928-3.949" transform="translate(-1.191 -37.593)" fill="currentColor"/><path id="Path_12" data-name="Path 12" d="M54.1,105.56c-6.221,0-11.183-4.054-11.183-11.148,0-7.059,4.962-11.113,11.183-11.113s11.183,4.054,11.183,11.148c0,7.059-4.962,11.113-11.183,11.113m0-19.361c-4.158,0-7.583,3.04-7.583,8.213,0,5.278,3.425,8.213,7.583,8.213s7.583-2.936,7.583-8.178c0-5.207-3.424-8.247-7.583-8.247" transform="translate(-19.22 -37.309)" fill="currentColor"/><path id="Path_13" data-name="Path 13" d="M97.3,105.536H93.421l7.933-12.686-5.7-8.982h4.019l3.53,6.326,3.53-6.326h4.019l-5.661,8.982,7.9,12.686h-3.88l-5.905-10.169Z" transform="translate(-41.843 -37.564)" fill="currentColor"/><path id="Path_14" data-name="Path 14" d="M141.863,120.176a2.048,2.048,0,0,1-2.237-2.062,2,2,0,0,1,2.237-2.027,2.051,2.051,0,0,1,2.306,2.062,2.082,2.082,0,0,1-2.306,2.027" transform="translate(-62.538 -51.995)" fill="currentColor"/><path id="Path_15" data-name="Path 15" d="M4.717,1.362,2.708,10.83H.978L2.97,1.362H0L.612,0h7.2L7.529,1.362Z" transform="translate(0 0)" fill="currentColor"/><path id="Path_16" data-name="Path 16" d="M24.528,10.83l1.118-5.275h-5.66L18.868,10.83H17.121L19.41,0h1.747l-.891,4.192h5.66L26.816,0h1.765L26.275,10.83Z" transform="translate(-7.669 0)" fill="currentColor"/><path id="Path_17" data-name="Path 17" d="M46.163,1.362l-.611,2.9h3.371l-.279,1.362H45.255l-.8,3.826H50.3l-.612,1.38H42.408L44.7,0h6.166l-.3,1.362Z" transform="translate(-18.994 0)" fill="currentColor"/><path id="Path_18" data-name="Path 18" d="M47.471,37.22V54.977h3.495V33.4Z" transform="translate(-21.262 -14.961)" fill="currentColor"/></g></g></svg></div>' +
@@ -1140,8 +1151,8 @@ class DD_PMPro_Frontend_Pricing
                             </ul>
                         </div>`;
 
-						// 6. Inject Summary Block (using strict duplicate check)
-						$('#dd-influencer-summary').remove();
+						// 6. Inject Summary Block
+						$('#dd-influencer-summary').remove(); // <-- ADD THIS FIX
 						var $summarySection = $('<div id="dd-influencer-summary" class="pmpro_checkout-section"></div>');
 						$summarySection.append(influencerHtml);
 
@@ -1186,66 +1197,64 @@ class DD_PMPro_Frontend_Pricing
 						// --- GATEWAY LISTENER FOR TIMELINE & PMPro INSTRUCTIONS ---
 						function ddHandleGatewaySwitch() {
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
-							var optedOut = $('#dd_opt_out_free_trial').is(':checked');
-							
-							// A) Update Timeline UI (using safe DOM checks)
-							var payingNowValTarget = (gateway === 'check' || optedOut) ? recurringPrice : dynamicPayingNow;
-							var payingNowReasonTarget = (gateway === 'check' || optedOut) ? 'Standard initial payment (Trial disabled)' : paymentReason;
 
-							if ($('.dd-paying-now-val').html() !== payingNowValTarget) {
-								$('.dd-paying-now-val').html(payingNowValTarget);
-							}
-							if ($('.dd-paying-now-reason').text() !== payingNowReasonTarget) {
-								$('.dd-paying-now-reason').text(payingNowReasonTarget);
-							}
-
-							var timelineLaterTarget = (gateway === 'check' || optedOut) ? 'none' : 'block';
-							if ($('#dd-timeline-later').css('display') !== timelineLaterTarget) {
-								$('#dd-timeline-later').css('display', timelineLaterTarget);
+							// A) Update Timeline UI
+							if (gateway === 'check') {
+								$('.dd-paying-now-val').html(recurringPrice); // <-- Changed to .html
+								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
+								$('#dd-timeline-later').hide();
+							} else {
+								$('.dd-paying-now-val').html(dynamicPayingNow); // <-- Changed to .html
+								$('.dd-paying-now-reason').text(paymentReason);
+								$('#dd-timeline-later').show();
 							}
 
-							// B) Scrub native Check Instructions & Gateway Labels (using safe HTML mutation checks)
-							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions, #pmpro_payment_method label').each(function() {
+							// B) Scrub native Check Instructions
+							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
 								var $el = $(this);
 								if (typeof $el.data('dd-original-html') === 'undefined') {
 									$el.data('dd-original-html', $el.html());
 								}
-								
-								var html = $el.data('dd-original-html');
-								var isCheckElement = $el.find('input[value="check"]').length > 0 || 
-													 $el.attr('for') === 'gateway_check' || 
-													 $el.hasClass('pmpro_checkout-instructions-check') || 
-													 $el.hasClass('pmpro_check_instructions');
-
-								var targetHtml = html;
-
-								if (isCheckElement) {
-									targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
+								if (gateway === 'check') {
+									var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial\.?/gi, '');
+									$el.html(cleanHtml);
 								} else {
-									if (optedOut) {
-										targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
-									}
-								}
-								
-								// INFINITE LOOP FIX: Only modify the DOM if the exact output differs
-								if ($el.html() !== targetHtml) {
-									$el.html(targetHtml);
+									$el.html($el.data('dd-original-html'));
 								}
 							});
 						}
 
 						ddHandleGatewaySwitch(); // Initial run
-						
-						// Listen to gateway changes AND opt-out checkbox changes
-						$(document).off('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial').on('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial', ddHandleGatewaySwitch);
+						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
 
-						// MutationObserver to catch PMPro's AJAX injections
+						// MutationObserver to catch PMPro's AJAX injection of check instructions
 						var instrObserver = new MutationObserver(function() {
-							instrObserver.disconnect(); // Pause to prevent infinite loop
-							ddHandleGatewaySwitch();    // Run the safe, checked update
-							instrObserver.observe(document.body, { childList: true, subtree: true }); // Resume observation safely
+							// BUG FIX: Temporarily pause the observer to prevent infinite loop
+							instrObserver.disconnect();
+
+							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
+							if (gateway === 'check') {
+								$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
+									var txt = $(this).html();
+									if (txt.toLowerCase().includes('trial')) {
+										if (typeof $(this).data('dd-original-html') === 'undefined') {
+											$(this).data('dd-original-html', txt);
+										}
+										$(this).html(txt.replace(/\s*after your .*? trial\.?/gi, ''));
+									}
+								});
+							}
+
+							// Resume observer
+							instrObserver.observe(document.body, {
+								childList: true,
+								subtree: true
+							});
 						});
-						instrObserver.observe(document.body, { childList: true, subtree: true });
+						instrObserver.observe(document.body, {
+							childList: true,
+							subtree: true
+						});
 					}
 				}, 100); // Poll every 100ms until DOM is ready
 			});
