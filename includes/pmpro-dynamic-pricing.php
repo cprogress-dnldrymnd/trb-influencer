@@ -520,9 +520,9 @@ class DD_PMPro_Frontend_Pricing
 					}
 
 					// Feature 2: Sync Trial Text to Payment Plans securely
-					// Dynamic Trial Sync & Scrubber Logic
 					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
 					if (labels.length > 0) {
+						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
 
 						if (!baseLabel.hasAttribute('data-original-html')) {
@@ -536,26 +536,25 @@ class DD_PMPro_Frontend_Pricing
 								labels[i].setAttribute('data-original-html', labels[i].innerHTML);
 							}
 
-							let targetHtml = labels[i].getAttribute('data-original-html');
-
 							if (gateway === 'check') {
-								targetHtml = targetHtml.replace(/\s*after your .*? trial\.?/gi, '');
+								// Strip trial text entirely from ALL radio buttons if paying by check
+								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
 							} else {
+								// Append/keep trial text normally for Stripe
 								if (trialMatch && trialMatch[1]) {
 									let trialText = trialMatch[1].trim();
 									if (!trialText.endsWith('.')) {
 										trialText += '.';
 									}
 
-									if (i > 0 && !targetHtml.toLowerCase().includes('trial')) {
-										targetHtml = targetHtml.replace(/\.$/, '').trim() + ' ' + trialText;
+									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
+									} else {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html');
 									}
+								} else {
+									labels[i].innerHTML = labels[i].getAttribute('data-original-html');
 								}
-							}
-
-							// BREAK THE LOOP: Only update the DOM if the text actually changed
-							if (labels[i].innerHTML !== targetHtml) {
-								labels[i].innerHTML = targetHtml;
 							}
 						}
 					}
@@ -1198,62 +1197,59 @@ class DD_PMPro_Frontend_Pricing
 						// --- GATEWAY LISTENER FOR TIMELINE & PMPro INSTRUCTIONS ---
 						function ddHandleGatewaySwitch() {
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
-							var optedOut = $('#dd_opt_out_free_trial').is(':checked');
 
 							// A) Update Timeline UI
-							if (gateway === 'check' || optedOut) {
-								$('.dd-paying-now-val').html(recurringPrice);
+							if (gateway === 'check') {
+								$('.dd-paying-now-val').html(recurringPrice); // <-- Changed to .html
 								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
 								$('#dd-timeline-later').hide();
 							} else {
-								$('.dd-paying-now-val').html(dynamicPayingNow);
+								$('.dd-paying-now-val').html(dynamicPayingNow); // <-- Changed to .html
 								$('.dd-paying-now-reason').text(paymentReason);
 								$('#dd-timeline-later').show();
 							}
 
-							// B) Scrub native Check Instructions & Gateway Labels
-							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions, #pmpro_payment_method label').each(function() {
+							// B) Scrub native Check Instructions
+							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
 								var $el = $(this);
 								if (typeof $el.data('dd-original-html') === 'undefined') {
 									$el.data('dd-original-html', $el.html());
 								}
-
-								var html = $el.data('dd-original-html');
-								var isCheckElement = $el.find('input[value="check"]').length > 0 ||
-									$el.attr('for') === 'gateway_check' ||
-									$el.hasClass('pmpro_checkout-instructions-check') ||
-									$el.hasClass('pmpro_check_instructions');
-
-								var targetHtml = html;
-
-								if (isCheckElement) {
-									targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
+								if (gateway === 'check') {
+									var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial\.?/gi, '');
+									$el.html(cleanHtml);
 								} else {
-									if (optedOut) {
-										targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
-									}
-								}
-
-								// BREAK THE LOOP: Only update the DOM if the text actually changed
-								if ($el.html() !== targetHtml) {
-									$el.html(targetHtml);
+									$el.html($el.data('dd-original-html'));
 								}
 							});
 						}
 
 						ddHandleGatewaySwitch(); // Initial run
+						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
 
-						// Listen to gateway changes AND opt-out checkbox changes
-						$(document).off('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial').on('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial', ddHandleGatewaySwitch);
-
-						// MutationObserver to catch PMPro's AJAX injections
+						// MutationObserver to catch PMPro's AJAX injection of check instructions
 						var instrObserver = new MutationObserver(function() {
-							instrObserver.disconnect(); // Pause observer
-							ddHandleGatewaySwitch(); // Run the safe update
+							// BUG FIX: Temporarily pause the observer to prevent infinite loop
+							instrObserver.disconnect();
+
+							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
+							if (gateway === 'check') {
+								$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
+									var txt = $(this).html();
+									if (txt.toLowerCase().includes('trial')) {
+										if (typeof $(this).data('dd-original-html') === 'undefined') {
+											$(this).data('dd-original-html', txt);
+										}
+										$(this).html(txt.replace(/\s*after your .*? trial\.?/gi, ''));
+									}
+								});
+							}
+
+							// Resume observer
 							instrObserver.observe(document.body, {
 								childList: true,
 								subtree: true
-							}); // Resume
+							});
 						});
 						instrObserver.observe(document.body, {
 							childList: true,
