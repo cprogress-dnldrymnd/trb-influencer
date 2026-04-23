@@ -184,7 +184,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                     <strong>Notice:</strong> If you choose to pay by bank transfer, your order and account will be held pending until we’ve received and confirmed your payment. <strong>The free trial is not available when paying via bank transfer.</strong>
                 </div>
                 
-                <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer;">
+                <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer; font-size: 1rem: color: #000;">
                     <input type="checkbox" id="dd_opt_out_free_trial" name="dd_opt_out_free_trial" value="1" <?php checked($opt_out, '1'); ?> />
                     I understand and agree to opt-out of the free trial to proceed.
                 </label>
