@@ -559,26 +559,55 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 add_action( 'save_post_buycred_payment', 'dd_trigger_mycred_custom_event_email', 10, 3 );
 
 function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
-    // 1. The Duplicate Lock: Prevent multiple emails if the hook fires 2-3 times
+    // 1. The Duplicate Lock: Prevent multiple emails on save
     if ( get_post_meta( $post_id, '_dd_bank_email_sent', true ) ) {
         return; 
     }
 
-    // Ensure this is actually a pending bank transfer status before proceeding
+    // Ensure this is actually a pending bank transfer
     if ( $post->post_status !== 'pending' ) {
         return;
     }
 
-    // 2. The myCred Reference Update
+    // 2. Extract transaction details to populate your email tags
+    $user_id    = get_post_meta( $post_id, 'from', true ) ?: $post->post_author;
+    $points     = get_post_meta( $post_id, 'amount', true );
+    $point_type = get_post_meta( $post_id, 'point_type', true ) ?: 'mycred_default';
+
+    // 3. The myCred Request Array (Powers the dynamic tags in the email)
     $request = array(
-        'ref'    => 'buy_creds_with_bank_pending', 
-        // Passing this array allows dynamic tags like %amount% to work in your email builder
+        'ref'     => 'buy_creds_with_bank_pending', 
+        'user_id' => $user_id,
+        'creds'   => $points,
+        'amount'  => $points, 
     );
 
-    // 3. Trigger the native myCred email system using your custom reference
-    // (Ensure your specific myCred email trigger function/hook is called here, passing $request)
-    do_action( 'mycred_run_email_notices', $request ); 
+    // 4. Actively hunt for your custom email notice and trigger it
+    if ( function_exists( 'mycred_get_email_notice' ) ) {
+        $emails = get_posts( array(
+            'post_type'      => 'mycred_email',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish'
+        ) );
 
-    // 4. Secure the duplicate lock so it only fires exactly once
+        if ( $emails ) {
+            foreach ( $emails as $email_post ) {
+                // Instantiate the specific myCRED_Email object
+                $email_obj = mycred_get_email_notice( $email_post->ID );
+                if ( ! $email_obj ) continue;
+
+                // Extract the references set in the backend UI
+                $trigger = $email_obj->get_trigger();
+                $triggers = array_map( 'trim', explode( ',', $trigger ) );
+
+                // If this email is set up to listen for your custom reference, send it!
+                if ( in_array( 'buy_creds_with_bank_pending', $triggers ) ) {
+                    $email_obj->send( $request, $point_type );
+                }
+            }
+        }
+    }
+
+    // 5. Secure the duplicate lock
     update_post_meta( $post_id, '_dd_bank_email_sent', '1' );
 }
