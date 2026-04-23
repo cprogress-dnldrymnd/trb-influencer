@@ -605,3 +605,15 @@ function trigger_mycred_bank_transfer_pending_notification($post_id, $post, $upd
         $point_type
     );
 }
+
+/**
+ * TEMPORARY DEBUG — Remove after testing
+ * Logs all post meta when a buycred_payment post is created/updated
+ */
+add_action( 'save_post_buycred_payment', function( $post_id, $post, $update ) {
+    $meta = get_post_meta( $post_id );
+    error_log( '=== buycred_payment POST ID: ' . $post_id . ' ===' );
+    error_log( '=== IS UPDATE: ' . ( $update ? 'YES' : 'NO' ) . ' ===' );
+    error_log( '=== POST META: ' . print_r( $meta, true ) );
+    error_log( '=== POST STATUS: ' . $post->post_status );
+}, 10, 3 );
