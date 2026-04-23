@@ -598,7 +598,7 @@ function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
     // This tells the myCred Email Add-on that a transaction happened so it sends your email, 
     // without actually modifying the user's database points balance yet.
     $request = array(
-        'ref'     => 'buy_creds_with_bank', // MUST match the Custom Reference in your screenshot exactly
+        'ref'     => 'buy_creds_with_bank_pending', // MUST match the Custom Reference in your screenshot exactly
         'user_id' => (int) $buyer_id,
         'amount'  => (float) $amount,
         'entry'   => 'Pending Bank Transfer (Email Trigger)',
