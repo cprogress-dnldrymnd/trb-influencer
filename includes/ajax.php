@@ -181,6 +181,10 @@ function my_custom_loop_filter_handler()
         $args['meta_query'] = $combined_meta_query;
     }
 
+// --- DEBUG: Log args to wp-content/debug.log ---
+    error_log('--- INFLUENCER AJAX ARGS ---');
+    error_log(print_r($args, true));
+
     // 4. EXECUTE QUERY
     $query = new WP_Query($args);
 
