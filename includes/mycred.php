@@ -556,6 +556,8 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
 
+add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
+
 function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_value ) {
 
     if ( $meta_key !== 'gateway' ) return;
@@ -573,10 +575,32 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
     $already_triggered = get_post_meta( $post_id, '_bank_pending_notif_sent', true );
     if ( $already_triggered ) return;
 
+    if ( ! function_exists( 'mycred' ) ) return;
+    $mycred = mycred( $point_type );
+
     update_post_meta( $post_id, '_bank_pending_notif_sent', true );
 
-    // ✅ Fire the email notification action directly
-    // This triggers myCred's email listener WITHOUT modifying balance or log history
-    do_action( 'mycred_add', 'buy_creds_with_bank_pending', $user_id, 1, 'Bank transfer payment pending', $post_id, array( 'ref_type' => 'post' ), $point_type );
+    // ✅ Add 1 credit to trigger the email notification
+    $mycred->add_creds(
+        'buy_creds_with_bank_pending',
+        $user_id,
+        1,
+        'Bank transfer payment pending — Payment ID: %post_id%',
+        $post_id,
+        array( 'ref_type' => 'post' ),
+        $point_type
+    );
+
+    // ✅ Immediately delete that log entry from myCred's log table
+    global $wpdb;
+    $wpdb->delete(
+        $wpdb->prefix . 'myCRED_log',
+        array(
+            'ref'     => 'buy_creds_with_bank_pending',
+            'user_id' => $user_id,
+            'ref_id'  => $post_id,
+        ),
+        array( '%s', '%d', '%d' )
+    );
 
 }
