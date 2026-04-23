@@ -117,7 +117,6 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
-
         #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
         #buycred-checkout-page h2.gateway-title {
             font-size: 1.5rem;
@@ -556,82 +555,53 @@ function dd_influencer_style_mycred_checkout()
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 
-add_action( 'added_post_meta', 'dd_trigger_mycred_custom_event_email', 10, 4 );
-add_action( 'updated_post_meta', 'dd_trigger_mycred_custom_event_email', 10, 4 );
+/**
+ * Trigger myCred custom reference email notification
+ * when a buycred_payment post is created via Bank Transfer gateway.
+ */
+add_action('save_post_buycred_payment', 'trigger_mycred_bank_transfer_pending_notification', 10, 3);
 
-function dd_trigger_mycred_custom_event_email( $meta_id, $post_id, $meta_key, $meta_value ) {
-    // 1. Only listen for buyCRED specific meta keys being saved
-    $relevant_keys = array( 'amount', 'from', 'point_type', 'gateway' );
-    if ( ! in_array( $meta_key, $relevant_keys ) ) {
-        return;
-    }
+function trigger_mycred_bank_transfer_pending_notification($post_id, $post, $update)
+{
 
-    // 2. Ensure this is a pending buyCRED payment
-    if ( get_post_type( $post_id ) !== 'buycred_payment' ) {
-        return;
-    }
+    // ✅ Only trigger on NEW post creation, not on updates
+    if ($update) return;
 
-    $post = get_post( $post_id );
-    if ( ! $post || $post->post_status !== 'pending' ) {
-        return;
-    }
+    // ✅ Avoid autosave/revision triggers
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
 
-    // 3. The Duplicate Lock
-    if ( get_post_meta( $post_id, '_dd_bank_email_sent', true ) ) {
-        return; 
-    }
+    // ✅ Get the gateway used for this payment
+    $gateway = get_post_meta($post_id, 'gateway', true);
 
-    // 4. Extract transaction details
-    $user_id = get_post_meta( $post_id, 'from', true );
-    $points  = get_post_meta( $post_id, 'amount', true );
-    
-    // 5. Race Condition Safety Check
-    // If the 'from' or 'amount' meta hasn't been saved yet, we abort here.
-    // The function will automatically fire again a fraction of a second later 
-    // when the next meta key is saved, guaranteeing we have the full data.
-    if ( empty( $user_id ) || empty( $points ) ) {
-        return;
-    }
+    // ✅ Only proceed if the gateway is Bank Transfer
+    if ($gateway !== 'bank-transfer') return;
 
-    $point_type = get_post_meta( $post_id, 'point_type', true );
-    if ( empty( $point_type ) ) {
+    // ✅ Get buyer's user ID
+    $user_id = (int) get_post_meta($post_id, 'buyer', true);
+    if (! $user_id) return;
+
+    // ✅ Get the credits/points amount being purchased
+    $amount = (float) get_post_meta($post_id, 'credits', true);
+    if (! $amount) return;
+
+    // ✅ Get point type (defaults to 'mycred_default' if not set)
+    $point_type = get_post_meta($post_id, 'point_type', true);
+    if (empty($point_type)) {
         $point_type = 'mycred_default';
     }
 
-    // 6. Construct the myCred Request Array (Powers your %amount% tags)
-    $request = array(
-        'ref'     => 'buy_creds_with_bank_pending', 
-        'ref_id'  => $post_id,
-        'user_id' => $user_id,
-        'creds'   => $points,
-        'amount'  => $points, 
-        'time'    => current_time( 'timestamp' ),
+    // ✅ Load myCred
+    if (! function_exists('mycred_add')) return;
+    $mycred = mycred($point_type);
+
+    // ✅ Fire the custom reference — this triggers the email notification
+    $mycred->add_creds(
+        'buy_creds_with_bank_pending',  // Must match your Custom Reference field exactly
+        $user_id,
+        0,                              // 0 = log only, no actual points awarded yet (payment still pending)
+        'Bank transfer payment pending — Payment ID: %post_id%',
+        $post_id,
+        array('ref_type' => 'post'),
+        $point_type
     );
-
-    // 7. Actively hunt for your custom email notice and trigger it
-    if ( function_exists( 'mycred_get_email_notice' ) ) {
-        $emails = get_posts( array(
-            'post_type'      => 'mycred_email',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish'
-        ) );
-
-        if ( $emails ) {
-            foreach ( $emails as $email_post ) {
-                $email_obj = mycred_get_email_notice( $email_post->ID );
-                if ( ! $email_obj ) continue;
-
-                $trigger = $email_obj->get_trigger();
-                $triggers = array_map( 'trim', explode( ',', $trigger ) );
-
-                // If the backend trigger matches your custom string, fire the email payload
-                if ( in_array( 'buy_creds_with_bank_pending', $triggers ) ) {
-                    $email_obj->send( $request, $point_type );
-                }
-            }
-        }
-    }
-
-    // 8. Secure the duplicate lock so they only get the email once
-    update_post_meta( $post_id, '_dd_bank_email_sent', '1' );
 }
