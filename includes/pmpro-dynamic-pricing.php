@@ -1200,11 +1200,11 @@ class DD_PMPro_Frontend_Pricing
 
 							// A) Update Timeline UI
 							if (gateway === 'check') {
-								$('.dd-paying-now-val').text(recurringPrice);
+								$('.dd-paying-now-val').html(recurringPrice); // <-- Changed to .html
 								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
 								$('#dd-timeline-later').hide();
 							} else {
-								$('.dd-paying-now-val').text(dynamicPayingNow);
+								$('.dd-paying-now-val').html(dynamicPayingNow); // <-- Changed to .html
 								$('.dd-paying-now-reason').text(paymentReason);
 								$('#dd-timeline-later').show();
 							}
