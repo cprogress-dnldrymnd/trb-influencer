@@ -556,35 +556,25 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 
 /**
- * Trigger myCred email notification after buycred_payment post
- * AND its meta are fully saved — Bank Transfer gateway only.
+ * Trigger myCred email notification when gateway meta is saved
+ * on a buycred_payment post — fires when gateway = 'bank'
  */
-add_action( 'wp_after_insert_post', 'trigger_mycred_bank_transfer_pending_notification', 10, 4 );
+add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
 
-function trigger_mycred_bank_transfer_pending_notification( $post_id, $post, $update, $post_before ) {
+function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_value ) {
 
-    // ✅ Only target buycred_payment post type
-    if ( $post->post_type !== 'buycred_payment' ) return;
+    // ✅ Only act when the 'gateway' meta key is being saved
+    if ( $meta_key !== 'gateway' ) return;
 
-    // ✅ Only on NEW post creation, not updates
-    if ( $update ) return;
+    // ✅ Only for bank gateway
+    if ( $meta_value !== 'bank' ) return;
 
-    // ✅ Avoid autosave
-    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+    // ✅ Confirm this is a buycred_payment post
+    $post = get_post( $post_id );
+    if ( ! $post || $post->post_type !== 'buycred_payment' ) return;
 
-    // ✅ Debug — log meta AFTER insert (remove once confirmed working)
-    error_log( '=== [AFTER INSERT] POST ID: ' . $post_id . ' ===' );
-    error_log( '=== META: ' . print_r( get_post_meta( $post_id ), true ) );
-
-    // ✅ Get gateway
-    $gateway = get_post_meta( $post_id, 'gateway', true );
-    error_log( '=== GATEWAY: ' . $gateway );
-
-    // ✅ Only proceed for bank transfer
-    if ( $gateway !== 'bank-transfer' ) return;
-
-    // ✅ Get buyer user ID
-    $user_id = (int) get_post_meta( $post_id, 'buyer', true );
+    // ✅ Get buyer user ID from 'from' meta key
+    $user_id = (int) get_post_meta( $post_id, 'from', true );
     if ( ! $user_id ) return;
 
     // ✅ Get point type
@@ -595,18 +585,23 @@ function trigger_mycred_bank_transfer_pending_notification( $post_id, $post, $up
     if ( ! function_exists( 'mycred' ) ) return;
     $mycred = mycred( $point_type );
 
-    // ✅ Fire custom reference to trigger email notification
+    // ✅ Prevent duplicate triggers
+    $already_triggered = get_post_meta( $post_id, '_bank_pending_notif_sent', true );
+    if ( $already_triggered ) return;
+    update_post_meta( $post_id, '_bank_pending_notif_sent', true );
+
+    // ✅ Fire the custom reference — triggers the myCred email notification
     $mycred->add_creds(
-        'buy_creds_with_bank_pending',
+        'buy_creds_with_bank_pending',  // Must match your Custom Reference field exactly
         $user_id,
-        0,
+        0,                              // 0 = no points awarded yet, pending payment
         'Bank transfer payment pending — Payment ID: %post_id%',
         $post_id,
         array( 'ref_type' => 'post' ),
         $point_type
     );
 
-    error_log( '=== myCred email notification triggered for user: ' . $user_id );
+    error_log( '=== myCred bank pending notification triggered for user: ' . $user_id . ' post: ' . $post_id );
 }
 /**
  * TEMPORARY DEBUG — Remove after testing
