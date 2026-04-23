@@ -1144,7 +1144,6 @@ class DD_PMPro_Frontend_Pricing
 								if (typeof $el.data('dd-original-html') === 'undefined') {
 									$el.data('dd-original-html', $el.html());
 								}
-								
 							});
 						}
 
