@@ -1197,9 +1197,10 @@ class DD_PMPro_Frontend_Pricing
 						// --- GATEWAY LISTENER FOR TIMELINE & PMPro INSTRUCTIONS ---
 						function ddHandleGatewaySwitch() {
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
+							var optedOut = $('#dd_opt_out_free_trial').is(':checked');
 
 							// A) Update Timeline UI
-							if (gateway === 'check') {
+							if (gateway === 'check' || optedOut) {
 								$('.dd-paying-now-val').html(recurringPrice);
 								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
 								$('#dd-timeline-later').hide();
@@ -1209,47 +1210,74 @@ class DD_PMPro_Frontend_Pricing
 								$('#dd-timeline-later').show();
 							}
 
-							// B) Scrub native Check Instructions
-							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
+							// B) Scrub native Check Instructions & Gateway Labels
+							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions, #pmpro_payment_method label').each(function() {
 								var $el = $(this);
 								if (typeof $el.data('dd-original-html') === 'undefined') {
 									$el.data('dd-original-html', $el.html());
 								}
-								if (gateway === 'check') {
-									var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial\.?/gi, '');
-									$el.html(cleanHtml);
+
+								var html = $el.data('dd-original-html');
+
+								// Detect if this specific label belongs to the Bank Transfer option
+								var isCheckElement = $el.find('input[value="check"]').length > 0 ||
+									$el.attr('for') === 'gateway_check' ||
+									$el.hasClass('pmpro_checkout-instructions-check') ||
+									$el.hasClass('pmpro_check_instructions');
+
+								if (isCheckElement) {
+									// Bank Transfer ALWAYS loses the trial text, even if Credit Card is currently selected
+									$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
 								} else {
-									$el.html($el.data('dd-original-html'));
+									// Stripe/Other gateways lose the trial text ONLY if the user explicitly opts out
+									if (optedOut) {
+										$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
+									} else {
+										$el.html(html);
+									}
 								}
 							});
 						}
 
 						ddHandleGatewaySwitch(); // Initial run
-						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
 
-						// MutationObserver to catch PMPro's AJAX injection of check instructions
+						// Listen to gateway changes AND opt-out checkbox changes
+						$(document).off('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial').on('change', 'input[name=gateway], #gateway, #dd_opt_out_free_trial', ddHandleGatewaySwitch);
+
+						// MutationObserver to catch PMPro's AJAX injections
 						var instrObserver = new MutationObserver(function() {
-							// BUG FIX: Temporarily pause the observer to prevent infinite loop
-							instrObserver.disconnect();
+							instrObserver.disconnect(); // Pause to prevent infinite loop
 
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
-							if (gateway === 'check') {
-								$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
-									var txt = $(this).html();
-									if (txt.toLowerCase().includes('trial')) {
-										if (typeof $(this).data('dd-original-html') === 'undefined') {
-											$(this).data('dd-original-html', txt);
-										}
-										$(this).html(txt.replace(/\s*after your .*? trial\.?/gi, ''));
-									}
-								});
-							}
+							var optedOut = $('#dd_opt_out_free_trial').is(':checked');
 
-							// Resume observer
+							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions, #pmpro_payment_method label').each(function() {
+								var $el = $(this);
+								if (typeof $el.data('dd-original-html') === 'undefined') {
+									$el.data('dd-original-html', $el.html());
+								}
+
+								var html = $el.data('dd-original-html');
+								var isCheckElement = $el.find('input[value="check"]').length > 0 ||
+									$el.attr('for') === 'gateway_check' ||
+									$el.hasClass('pmpro_checkout-instructions-check') ||
+									$el.hasClass('pmpro_check_instructions');
+
+								if (isCheckElement) {
+									$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
+								} else {
+									if (optedOut) {
+										$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
+									} else {
+										$el.html(html);
+									}
+								}
+							});
+
 							instrObserver.observe(document.body, {
 								childList: true,
 								subtree: true
-							});
+							}); // Resume
 						});
 						instrObserver.observe(document.body, {
 							childList: true,
