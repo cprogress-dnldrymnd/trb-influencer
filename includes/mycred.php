@@ -555,25 +555,63 @@ function dd_influencer_style_mycred_checkout()
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
-
 /**
- * Triggers an email notification when a PMPro checkout is completed via Bank Transfer.
+ * Intercept pending Bank Transfers and trigger the myCred Custom Event Email
  */
-add_action( 'pmpro_after_checkout', 'dd_notify_admin_on_bank_transfer', 10, 2 );
-function dd_notify_admin_on_bank_transfer( $user_id, $order ) {
-    // Only trigger if the gateway used was 'check' (Bank Transfer/Manual Payment)
-    if ( $order->gateway == 'check' ) {
-        $user = get_userdata( $user_id );
-        $admin_email = get_option( 'admin_email' );
-        
-        $subject = 'Action Required: New Pending Bank Transfer - ' . $user->display_name;
-        
-        $message = "A new membership order is pending manual bank transfer verification.\n\n";
-        $message .= "User: " . $user->display_name . " (" . $user->user_email . ")\n";
-        $message .= "Order ID: " . $order->code . "\n";
-        $message .= "Total Amount: " . pmpro_formatPrice( $order->total ) . "\n\n";
-        $message .= "Please log in to the dashboard to approve this membership once payment is received.";
-
-        wp_mail( $admin_email, $subject, $message );
+function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
+    // 1. Abort on updates (we only want to email on the initial order creation)
+    if ( $update ) {
+        return;
     }
+
+    // 2. Prevent duplicate sends
+    if ( get_post_meta( $post_id, '_dd_bank_email_sent', true ) ) {
+        return;
+    }
+
+    // 3. Verify myCred API exists
+    if ( ! function_exists( 'buycred_get_pending_payment' ) || ! function_exists( 'mycred' ) ) {
+        return;
+    }
+
+    // 4. Retrieve the pending payment object
+    $payment = buycred_get_pending_payment( $post_id );
+    if ( $payment === false ) {
+        return;
+    }
+
+    // 5. Verify Gateway is Bank Transfer
+    $gateway_id = isset( $payment->gateway_id ) ? $payment->gateway_id : '';
+    if ( empty( $gateway_id ) && isset( $_REQUEST['gateway'] ) ) {
+        $gateway_id = sanitize_text_field( $_REQUEST['gateway'] );
+    }
+
+    $allowed_gateways = array( 'bank', 'check', 'manual', 'bank_transfer' );
+    if ( ! in_array( $gateway_id, $allowed_gateways ) ) {
+        return; 
+    }
+
+    $buyer_id = isset( $payment->buyer_id ) ? $payment->buyer_id : $post->post_author;
+    $amount   = isset( $payment->amount ) ? $payment->amount : (isset($_REQUEST['amount']) ? sanitize_text_field($_REQUEST['amount']) : 0);
+    
+    // 6. Build a "Ghost" Transaction Request
+    // This tells the myCred Email Add-on that a transaction happened so it sends your email, 
+    // without actually modifying the user's database points balance yet.
+    $request = array(
+        'ref'     => 'buy_creds_with_bank', // MUST match the Custom Reference in your screenshot exactly
+        'user_id' => (int) $buyer_id,
+        'amount'  => (float) $amount,
+        'entry'   => 'Pending Bank Transfer (Email Trigger)',
+        'ref_id'  => (int) $post_id,
+        'data'    => '',
+        'type'    => 'mycred_default' // Assuming standard "Credits" point type
+    );
+
+    // 7. Fire the myCred action that the Email Add-on listens to
+    $mycred = mycred( 'mycred_default' );
+    do_action( 'mycred_add_finished', true, $request, $mycred );
+
+    // 8. Lock it down so it never sends twice for the same order
+    update_post_meta( $post_id, '_dd_bank_email_sent', '1' );
 }
+add_action( 'save_post_buycred_payment', 'dd_trigger_mycred_custom_event_email', 99, 3 );
