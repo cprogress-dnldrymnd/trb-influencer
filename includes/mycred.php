@@ -554,3 +554,26 @@ function dd_influencer_style_mycred_checkout()
 <?php
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
+
+
+/**
+ * Triggers an email notification when a PMPro checkout is completed via Bank Transfer.
+ */
+add_action( 'pmpro_after_checkout', 'dd_notify_admin_on_bank_transfer', 10, 2 );
+function dd_notify_admin_on_bank_transfer( $user_id, $order ) {
+    // Only trigger if the gateway used was 'check' (Bank Transfer/Manual Payment)
+    if ( $order->gateway == 'check' ) {
+        $user = get_userdata( $user_id );
+        $admin_email = get_option( 'admin_email' );
+        
+        $subject = 'Action Required: New Pending Bank Transfer - ' . $user->display_name;
+        
+        $message = "A new membership order is pending manual bank transfer verification.\n\n";
+        $message .= "User: " . $user->display_name . " (" . $user->user_email . ")\n";
+        $message .= "Order ID: " . $order->code . "\n";
+        $message .= "Total Amount: " . pmpro_formatPrice( $order->total ) . "\n\n";
+        $message .= "Please log in to the dashboard to approve this membership once payment is received.";
+
+        wp_mail( $admin_email, $subject, $message );
+    }
+}
