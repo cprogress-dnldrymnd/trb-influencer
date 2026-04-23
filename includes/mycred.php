@@ -555,63 +555,30 @@ function dd_influencer_style_mycred_checkout()
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
-/**
- * Intercept pending Bank Transfers and trigger the myCred Custom Event Email
- */
+
+add_action( 'save_post_buycred_payment', 'dd_trigger_mycred_custom_event_email', 10, 3 );
+
 function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
-    // 1. Abort on updates (we only want to email on the initial order creation)
-    if ( $update ) {
-        return;
-    }
-
-    // 2. Prevent duplicate sends
+    // 1. The Duplicate Lock: Prevent multiple emails if the hook fires 2-3 times
     if ( get_post_meta( $post_id, '_dd_bank_email_sent', true ) ) {
-        return;
-    }
-
-    // 3. Verify myCred API exists
-    if ( ! function_exists( 'buycred_get_pending_payment' ) || ! function_exists( 'mycred' ) ) {
-        return;
-    }
-
-    // 4. Retrieve the pending payment object
-    $payment = buycred_get_pending_payment( $post_id );
-    if ( $payment === false ) {
-        return;
-    }
-
-    // 5. Verify Gateway is Bank Transfer
-    $gateway_id = isset( $payment->gateway_id ) ? $payment->gateway_id : '';
-    if ( empty( $gateway_id ) && isset( $_REQUEST['gateway'] ) ) {
-        $gateway_id = sanitize_text_field( $_REQUEST['gateway'] );
-    }
-
-    $allowed_gateways = array( 'bank', 'check', 'manual', 'bank_transfer' );
-    if ( ! in_array( $gateway_id, $allowed_gateways ) ) {
         return; 
     }
 
-    $buyer_id = isset( $payment->buyer_id ) ? $payment->buyer_id : $post->post_author;
-    $amount   = isset( $payment->amount ) ? $payment->amount : (isset($_REQUEST['amount']) ? sanitize_text_field($_REQUEST['amount']) : 0);
-    
-    // 6. Build a "Ghost" Transaction Request
-    // This tells the myCred Email Add-on that a transaction happened so it sends your email, 
-    // without actually modifying the user's database points balance yet.
+    // Ensure this is actually a pending bank transfer status before proceeding
+    if ( $post->post_status !== 'pending' ) {
+        return;
+    }
+
+    // 2. The myCred Reference Update
     $request = array(
-        'ref'     => 'buy_creds_with_bank_pending', // MUST match the Custom Reference in your screenshot exactly
-        'user_id' => (int) $buyer_id,
-        'amount'  => (float) $amount,
-        'entry'   => 'Pending Bank Transfer (Email Trigger)',
-        'ref_id'  => (int) $post_id,
-        'data'    => '',
-        'type'    => 'mycred_default' // Assuming standard "Credits" point type
+        'ref'    => 'buy_creds_with_bank_pending', 
+        // Passing this array allows dynamic tags like %amount% to work in your email builder
     );
 
-    // 7. Fire the myCred action that the Email Add-on listens to
-    $mycred = mycred( 'mycred_default' );
-    do_action( 'mycred_add_finished', true, $request, $mycred );
+    // 3. Trigger the native myCred email system using your custom reference
+    // (Ensure your specific myCred email trigger function/hook is called here, passing $request)
+    do_action( 'mycred_run_email_notices', $request ); 
 
-    // 8. Lock it down so it never sends twice for the same order
+    // 4. Secure the duplicate lock so it only fires exactly once
     update_post_meta( $post_id, '_dd_bank_email_sent', '1' );
 }
-add_action( 'save_post_buycred_payment', 'dd_trigger_mycred_custom_event_email', 99, 3 );
