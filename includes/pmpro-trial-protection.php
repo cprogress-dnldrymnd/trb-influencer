@@ -24,6 +24,8 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // Initialize custom database table on admin load
             add_action('admin_init', [$this, 'initialize_fingerprint_table']);
 
+            add_filter('pmpro_checkout_level', [$this, 'disable_subscription_delay_for_checks'], 5, 1);
+
             // LAYER 1: Enforce account-level trial logic (Includes your custom Level 15 exception)
             add_filter('pmpro_checkout_level', [$this, 'enforce_one_time_subscription_delay'], 15, 1);
 
@@ -181,6 +183,35 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
             // If they owe $0 today, have a recurring amount, and no recent paid history, it IS a new free trial.
             return true;
+        }
+
+        /**
+         * Disable PMPro Subscription Delays for Bank Transfers (Check Gateway).
+         * Intercepts the checkout level evaluation and thoroughly removes the 
+         * Subscription Delays hooks if the user has opted to pay via Bank Transfer / Check.
+         *
+         * @param object $level The PMPro membership level object at checkout.
+         * @return object The modified PMPro membership level object.
+         */
+        public function disable_subscription_delay_for_checks($level)
+        {
+            if (empty($level)) {
+                return $level;
+            }
+
+            // Check if the payload indicates they are paying via the 'check' gateway
+            if (isset($_REQUEST['gateway']) && $_REQUEST['gateway'] === 'check') {
+                
+                // Comprehensively remove all Subscription Delay filters and actions
+                remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
+                remove_action('pmpro_after_checkout', 'pmprosd_pmpro_after_checkout');
+                remove_filter('pmpro_next_payment', 'pmprosd_pmpro_next_payment', 10, 3);
+                remove_filter('pmpro_level_cost_text', 'pmprosd_level_cost_text', 10, 2);
+                remove_action('pmpro_save_discount_code_level', 'pmprosd_pmpro_save_discount_code_level', 10, 2);
+                remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2);
+            }
+
+            return $level;
         }
 
         /**
