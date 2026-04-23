@@ -556,8 +556,6 @@ add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
 
-add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
-
 function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_value ) {
 
     if ( $meta_key !== 'gateway' ) return;
