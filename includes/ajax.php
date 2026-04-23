@@ -291,7 +291,7 @@ function my_custom_loop_filter_handler()
     }
 // --- DEBUG: Log args to wp-content/debug.log ---
     error_log('--- INFLUENCER AJAX ARGS ---');
-    error_log(print_r($args, true));
+    error_log(print_r($last_resort_args, true));
     if ($query->have_posts()) {
         $search_criteria = [
             'niche'       => $niche,
