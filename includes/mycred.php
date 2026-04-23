@@ -117,7 +117,10 @@ function dd_influencer_style_mycred_checkout()
     $avatar_html = do_shortcode('[user_avatar]');
 ?>
     <style>
-        
+
+            .buycred-checkout-step2 h2 {
+
+            }
 
         #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
         #buycred-checkout-page h2.gateway-title {
@@ -197,6 +200,7 @@ function dd_influencer_style_mycred_checkout()
             padding-bottom: 0 !important;
             color: #000;
             text-align: left !important;
+            font-family: Inter;
         }
 
         /* Base Form Font setup */
