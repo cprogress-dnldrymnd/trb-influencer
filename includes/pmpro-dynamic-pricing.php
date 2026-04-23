@@ -524,7 +524,7 @@ class DD_PMPro_Frontend_Pricing
 					if (labels.length > 0) {
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
-						
+
 						if (!baseLabel.hasAttribute('data-original-html')) {
 							baseLabel.setAttribute('data-original-html', baseLabel.innerHTML);
 						}
@@ -546,7 +546,7 @@ class DD_PMPro_Frontend_Pricing
 									if (!trialText.endsWith('.')) {
 										trialText += '.';
 									}
-									
+
 									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
 										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
 									} else {
@@ -578,11 +578,20 @@ class DD_PMPro_Frontend_Pricing
 				};
 
 				const observer = new MutationObserver(function(mutationsList) {
+					// BUG FIX: Temporarily pause the observer to prevent infinite loop
+					observer.disconnect();
+					let hasChildListMutation = false;
 					for (const mutation of mutationsList) {
 						if (mutation.type === 'childList') {
-							processCheckoutDOM();
+							hasChildListMutation = true;
+							break;
 						}
 					}
+					if (hasChildListMutation) {
+						processCheckoutDOM();
+					}
+					// Resume observer
+					observer.observe(targetNode, config);
 				});
 
 				observer.observe(targetNode, config);
@@ -1186,7 +1195,7 @@ class DD_PMPro_Frontend_Pricing
 						// --- GATEWAY LISTENER FOR TIMELINE & PMPro INSTRUCTIONS ---
 						function ddHandleGatewaySwitch() {
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
-							
+
 							// A) Update Timeline UI
 							if (gateway === 'check') {
 								$('.dd-paying-now-val').text(recurringPrice);
@@ -1218,6 +1227,9 @@ class DD_PMPro_Frontend_Pricing
 
 						// MutationObserver to catch PMPro's AJAX injection of check instructions
 						var instrObserver = new MutationObserver(function() {
+							// BUG FIX: Temporarily pause the observer to prevent infinite loop
+							instrObserver.disconnect();
+
 							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
 							if (gateway === 'check') {
 								$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
@@ -1230,8 +1242,17 @@ class DD_PMPro_Frontend_Pricing
 									}
 								});
 							}
+
+							// Resume observer
+							instrObserver.observe(document.body, {
+								childList: true,
+								subtree: true
+							});
 						});
-						instrObserver.observe(document.body, { childList: true, subtree: true });
+						instrObserver.observe(document.body, {
+							childList: true,
+							subtree: true
+						});
 					}
 				}, 100); // Poll every 100ms until DOM is ready
 			});
