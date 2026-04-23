@@ -118,10 +118,6 @@ function dd_influencer_style_mycred_checkout()
 ?>
     <style>
 
-            .buycred-checkout-step2 h2 {
-
-            }
-
         #buycred-checkout-wrapper.open #checkout-box h2.gateway-title,
         #buycred-checkout-page h2.gateway-title {
             font-size: 1.5rem;
