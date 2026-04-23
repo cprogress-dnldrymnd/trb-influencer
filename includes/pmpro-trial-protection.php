@@ -29,8 +29,11 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             add_action('pmpro_checkout_after_tos_fields', [$this, 'render_opt_out_checkbox']);
 
             // --- DELAY REMOVAL / OVERRIDES ---
-            // Removes subscription delay if the user explicitly checks the opt-out box
+            // Removes subscription delay hooks EARLY
             add_filter('pmpro_checkout_level', [$this, 'remove_delay_if_opted_out'], 5, 1);
+            
+            // Forces the Initial Payment to equal Billing Amount LATE (Bypasses Payment Plans Add-on overrides)
+            add_filter('pmpro_checkout_level', [$this, 'force_full_payment_if_opted_out'], 50, 1);
             
             // LAYER 1: Enforce account-level trial logic (Includes your custom Level 15 exception)
             add_filter('pmpro_checkout_level', [$this, 'enforce_one_time_subscription_delay'], 15, 1);
@@ -184,7 +187,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                     <strong>Notice:</strong> If you choose to pay by bank transfer, your order and account will be held pending until we’ve received and confirmed your payment. <strong>The free trial is not available when paying via bank transfer.</strong>
                 </div>
                 
-                <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer; font-size: 1rem; color: #000;">
+                <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer;">
                     <input type="checkbox" id="dd_opt_out_free_trial" name="dd_opt_out_free_trial" value="1" <?php checked($opt_out, '1'); ?> />
                     I understand and agree to opt-out of the free trial to proceed.
                 </label>
@@ -212,26 +215,6 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                             // Hide completely for clean Stripe loads
                             $('#dd_trial_opt_out_container').slideUp();
                         }
-
-                        // 2. Scrub "after your X day trial" text when Bank Transfer is selected
-                        var selectors = '#pmpro_level_cost, .pmpro_checkout-instructions-check';
-                        $(selectors).each(function() {
-                            var $el = $(this);
-                            
-                            // Save original text to data attribute on first run
-                            if (typeof $el.data('dd-original-html') === 'undefined') {
-                                $el.data('dd-original-html', $el.html());
-                            }
-                            
-                            if (gateway === 'check') {
-                                // Regex matches " after your X day trial", " after your X days trial", etc.
-                                var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial/gi, '');
-                                $el.html(cleanHtml);
-                            } else {
-                                // Restore original text for Stripe
-                                $el.html($el.data('dd-original-html'));
-                            }
-                        });
                     }
 
                     // Run checks on initial page load
@@ -294,6 +277,31 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 remove_filter('pmpro_level_cost_text', 'pmprosd_level_cost_text', 10, 2);
                 remove_action('pmpro_save_discount_code_level', 'pmprosd_pmpro_save_discount_code_level', 10, 2);
                 remove_filter('pmpro_checkout_level', 'pmprosd_pmpro_checkout_level', 10, 2);
+            }
+
+            return $level;
+        }
+
+        /**
+         * Forces the initial payment to equal the full billing amount if opted out.
+         * Runs late (Priority 50) to ensure the Payment Plans add-on doesn't override it back to $0.
+         */
+        public function force_full_payment_if_opted_out($level)
+        {
+            if (empty($level)) {
+                return $level;
+            }
+
+            if (isset($_REQUEST['dd_opt_out_free_trial']) && $_REQUEST['dd_opt_out_free_trial'] === '1') {
+                
+                // If there's a recurring billing amount, force the initial payment to match it
+                if (isset($level->billing_amount) && (float)$level->billing_amount > 0) {
+                    $level->initial_payment = $level->billing_amount;
+                }
+
+                // Wipe out any native PMPro trial settings so it bills immediately
+                $level->trial_limit = 0;
+                $level->trial_amount = 0;
             }
 
             return $level;
