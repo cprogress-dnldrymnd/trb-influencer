@@ -16,6 +16,9 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
     class DD_PMPro_Trial_Protection
     {
+        // Property to trigger the opt-out UI if Stripe validation fails
+        private $require_stripe_opt_out = false;
+
         public function __construct()
         {
             // Initialize custom database table on admin load
@@ -171,11 +174,14 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             }
 
             $opt_out = isset($_REQUEST['dd_opt_out_free_trial']) ? '1' : '0';
+            
+            // Evaluate if Stripe validation recently failed to force the UI to remain open
+            $force_stripe_ui = $this->require_stripe_opt_out ? 'true' : 'false';
             ?>
-            <div id="dd_trial_opt_out_container" class="pmpro_checkout-field pmpro_checkout-field-checkbox" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9;">
+            <div id="dd_trial_opt_out_container" class="pmpro_checkout-field pmpro_checkout-field-checkbox" style="display:none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9;">
                 
                 <div id="dd_bank_transfer_notice" style="display:none; margin-bottom: 15px; color: #8a6d3b; background-color: #fcf8e3; padding: 12px; border: 1px solid #faebcc; border-radius: 4px;">
-                    <strong>Notice:</strong> If you choose to pay by bank transfer, your order and account will be held pending until we’ve received and confirmed your payment. <strong>The 3-day free trial is not available when paying via bank transfer.</strong>
+                    <strong>Notice:</strong> If you choose to pay by bank transfer, your order and account will be held pending until we’ve received and confirmed your payment. <strong>The free trial is not available when paying via bank transfer.</strong>
                 </div>
                 
                 <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer;">
@@ -186,20 +192,49 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
             <script type="text/javascript">
                 jQuery(document).ready(function($) {
+                    var forceStripeOptOut = <?php echo $force_stripe_ui; ?>;
+                    
                     function dd_check_gateway() {
                         var gateway = $('input[name=gateway]:checked').val();
                         if (!gateway) {
                             gateway = $('#gateway').val();
                         }
                         
+                        // 1. Manage Visibility of the Opt-Out Container
                         if (gateway === 'check') {
+                            $('#dd_trial_opt_out_container').slideDown();
                             $('#dd_bank_transfer_notice').slideDown();
-                        } else {
+                        } else if (gateway === 'stripe' && forceStripeOptOut) {
+                            // Show checkbox for Stripe if validation failed, but keep bank transfer notice hidden
+                            $('#dd_trial_opt_out_container').slideDown();
                             $('#dd_bank_transfer_notice').slideUp();
+                        } else {
+                            // Hide completely for clean Stripe loads
+                            $('#dd_trial_opt_out_container').slideUp();
                         }
+
+                        // 2. Scrub "after your X day trial" text when Bank Transfer is selected
+                        var selectors = '#pmpro_level_cost, .pmpro_checkout-instructions-check';
+                        $(selectors).each(function() {
+                            var $el = $(this);
+                            
+                            // Save original text to data attribute on first run
+                            if (typeof $el.data('dd-original-html') === 'undefined') {
+                                $el.data('dd-original-html', $el.html());
+                            }
+                            
+                            if (gateway === 'check') {
+                                // Regex matches " after your X day trial", " after your X days trial", etc.
+                                var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial/gi, '');
+                                $el.html(cleanHtml);
+                            } else {
+                                // Restore original text for Stripe
+                                $el.html($el.data('dd-original-html'));
+                            }
+                        });
                     }
 
-                    // Run check on initial page load
+                    // Run checks on initial page load
                     dd_check_gateway();
 
                     // Listen for gateway changes (Radio buttons or Dropdown)
@@ -336,7 +371,10 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 $has_trial = $wpdb->get_var($wpdb->prepare("SELECT COUNT(id) FROM $table_name WHERE fingerprint = %s", $fingerprint));
 
                 if ($has_trial > 0) {
-                    // Update error message to instruct the user to check the box
+                    // Force the UI to remain open for the user to tick the box
+                    $this->require_stripe_opt_out = true;
+                    
+                    // Instruct the user to check the box
                     pmpro_setMessage(__('Payment Declined: It looks like you have already used your free trial. To proceed without a trial, please check the "opt-out" box below.', 'pmpro'), 'pmpro_error');
                     return false;
                 }
