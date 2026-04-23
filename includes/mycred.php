@@ -554,54 +554,67 @@ function dd_influencer_style_mycred_checkout()
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
-
 /**
- * Trigger myCred email notification when gateway meta is saved
- * on a buycred_payment post — fires when gateway = 'bank'
+ * DEBUG VERSION — Find exactly where it's failing
  */
 add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
 
 function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_value ) {
 
-    // ✅ Only act when the 'gateway' meta key is being saved
     if ( $meta_key !== 'gateway' ) return;
 
-    // ✅ Only for bank gateway
-    if ( $meta_value !== 'bank' ) return;
+    error_log( '=== GATEWAY META CAUGHT: ' . $meta_value . ' on post: ' . $post_id );
 
-    // ✅ Confirm this is a buycred_payment post
+    if ( $meta_value !== 'bank' ) {
+        error_log( '=== STOPPED: gateway is not bank, it is: ' . $meta_value );
+        return;
+    }
+
     $post = get_post( $post_id );
-    if ( ! $post || $post->post_type !== 'buycred_payment' ) return;
+    if ( ! $post || $post->post_type !== 'buycred_payment' ) {
+        error_log( '=== STOPPED: post type is: ' . ( $post ? $post->post_type : 'NULL' ) );
+        return;
+    }
 
-    // ✅ Get buyer user ID from 'from' meta key
     $user_id = (int) get_post_meta( $post_id, 'from', true );
-    if ( ! $user_id ) return;
+    error_log( '=== USER ID from meta: ' . $user_id );
+    if ( ! $user_id ) {
+        error_log( '=== STOPPED: no user_id found' );
+        return;
+    }
 
-    // ✅ Get point type
     $point_type = get_post_meta( $post_id, 'point_type', true );
     if ( empty( $point_type ) ) $point_type = 'mycred_default';
+    error_log( '=== POINT TYPE: ' . $point_type );
 
-    // ✅ Load myCred
-    if ( ! function_exists( 'mycred' ) ) return;
-    $mycred = mycred( $point_type );
-
-    // ✅ Prevent duplicate triggers
     $already_triggered = get_post_meta( $post_id, '_bank_pending_notif_sent', true );
-    if ( $already_triggered ) return;
+    if ( $already_triggered ) {
+        error_log( '=== STOPPED: already triggered' );
+        return;
+    }
+
+    if ( ! function_exists( 'mycred' ) ) {
+        error_log( '=== STOPPED: mycred() function not found' );
+        return;
+    }
+
+    $mycred = mycred( $point_type );
+    error_log( '=== myCred loaded: ' . ( $mycred ? 'YES' : 'NO' ) );
+
     update_post_meta( $post_id, '_bank_pending_notif_sent', true );
 
-    // ✅ Fire the custom reference — triggers the myCred email notification
-    $mycred->add_creds(
-        'buy_creds_with_bank_pending',  // Must match your Custom Reference field exactly
+    // Try with amount 1 instead of 0 — myCred may skip logging 0-amount entries
+    $result = $mycred->add_creds(
+        'buy_creds_with_bank_pending',
         $user_id,
-        0,                              // 0 = no points awarded yet, pending payment
+        1,
         'Bank transfer payment pending — Payment ID: %post_id%',
         $post_id,
         array( 'ref_type' => 'post' ),
         $point_type
     );
 
-    error_log( '=== myCred bank pending notification triggered for user: ' . $user_id . ' post: ' . $post_id );
+    error_log( '=== add_creds result: ' . print_r( $result, true ) );
 }
 /**
  * TEMPORARY DEBUG — Remove after testing
