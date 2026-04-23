@@ -556,47 +556,82 @@ function dd_influencer_style_mycred_checkout()
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
 
-add_action( 'save_post_buycred_payment', 'dd_trigger_mycred_custom_event_email', 10, 3 );
+add_action( 'added_post_meta', 'dd_trigger_mycred_custom_event_email', 10, 4 );
+add_action( 'updated_post_meta', 'dd_trigger_mycred_custom_event_email', 10, 4 );
 
-function dd_trigger_mycred_custom_event_email( $post_id, $post, $update ) {
-    // 1. The Duplicate Lock: Prevent multiple emails on save
+function dd_trigger_mycred_custom_event_email( $meta_id, $post_id, $meta_key, $meta_value ) {
+    // 1. Only listen for buyCRED specific meta keys being saved
+    $relevant_keys = array( 'amount', 'from', 'point_type', 'gateway' );
+    if ( ! in_array( $meta_key, $relevant_keys ) ) {
+        return;
+    }
+
+    // 2. Ensure this is a pending buyCRED payment
+    if ( get_post_type( $post_id ) !== 'buycred_payment' ) {
+        return;
+    }
+
+    $post = get_post( $post_id );
+    if ( ! $post || $post->post_status !== 'pending' ) {
+        return;
+    }
+
+    // 3. The Duplicate Lock
     if ( get_post_meta( $post_id, '_dd_bank_email_sent', true ) ) {
         return; 
     }
 
-    // Ensure this is actually a pending bank transfer
-    if ( $post->post_status !== 'pending' ) {
+    // 4. Extract transaction details
+    $user_id = get_post_meta( $post_id, 'from', true );
+    $points  = get_post_meta( $post_id, 'amount', true );
+    
+    // 5. Race Condition Safety Check
+    // If the 'from' or 'amount' meta hasn't been saved yet, we abort here.
+    // The function will automatically fire again a fraction of a second later 
+    // when the next meta key is saved, guaranteeing we have the full data.
+    if ( empty( $user_id ) || empty( $points ) ) {
         return;
     }
 
-    // 2. Extract transaction details directly from buyCRED post meta
-    $user_id = get_post_meta( $post_id, 'from', true );
-    if ( empty( $user_id ) ) {
-        $user_id = $post->post_author;
-    }
-    
-    $points     = get_post_meta( $post_id, 'amount', true );
     $point_type = get_post_meta( $post_id, 'point_type', true );
     if ( empty( $point_type ) ) {
         $point_type = 'mycred_default';
     }
 
-    // 3. The myCred Request Array
-    // This matches the exact structure the Email Add-on expects to find in the filter
+    // 6. Construct the myCred Request Array (Powers your %amount% tags)
     $request = array(
         'ref'     => 'buy_creds_with_bank_pending', 
         'ref_id'  => $post_id,
         'user_id' => $user_id,
-        'amount'  => $points,
-        'type'    => $point_type,
+        'creds'   => $points,
+        'amount'  => $points, 
+        'time'    => current_time( 'timestamp' ),
     );
 
-    // 4. Trigger the native myCred filter
-    // The Email Notice Add-on listens here at priority 50. It will see your custom reference and fire the email.
-    if ( function_exists( 'mycred' ) ) {
-        apply_filters( 'mycred_add_finished', true, $request, mycred( $point_type ) );
+    // 7. Actively hunt for your custom email notice and trigger it
+    if ( function_exists( 'mycred_get_email_notice' ) ) {
+        $emails = get_posts( array(
+            'post_type'      => 'mycred_email',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish'
+        ) );
+
+        if ( $emails ) {
+            foreach ( $emails as $email_post ) {
+                $email_obj = mycred_get_email_notice( $email_post->ID );
+                if ( ! $email_obj ) continue;
+
+                $trigger = $email_obj->get_trigger();
+                $triggers = array_map( 'trim', explode( ',', $trigger ) );
+
+                // If the backend trigger matches your custom string, fire the email payload
+                if ( in_array( 'buy_creds_with_bank_pending', $triggers ) ) {
+                    $email_obj->send( $request, $point_type );
+                }
+            }
+        }
     }
 
-    // 5. Secure the duplicate lock
+    // 8. Secure the duplicate lock so they only get the email once
     update_post_meta( $post_id, '_dd_bank_email_sent', '1' );
 }
