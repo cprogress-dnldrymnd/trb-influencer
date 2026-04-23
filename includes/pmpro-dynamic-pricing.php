@@ -476,6 +476,9 @@ class DD_PMPro_Frontend_Pricing
 
 				const processCheckoutDOM = function() {
 
+					let gateway = document.querySelector('input[name=gateway]:checked');
+					gateway = gateway ? gateway.value : (document.getElementById('gateway') ? document.getElementById('gateway').value : '');
+
 					// Feature 0: If currently on a trial, entirely lock down the checkout logic
 					if (isOnTrial) {
 						const allRadios = document.querySelectorAll('input[name="pmpropp_chosen_plan"]');
@@ -518,24 +521,39 @@ class DD_PMPro_Frontend_Pricing
 
 					// Feature 2: Sync Trial Text to Payment Plans securely
 					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
-					if (labels.length > 1) {
+					if (labels.length > 0) {
 						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
-						const trialMatch = baseLabel.innerHTML.match(/(after your .*? trial\.?)/i);
+						
+						if (!baseLabel.hasAttribute('data-original-html')) {
+							baseLabel.setAttribute('data-original-html', baseLabel.innerHTML);
+						}
 
-						if (trialMatch && trialMatch[1]) {
-							let trialText = trialMatch[1].trim();
-							// Ensure the cloned text ends gracefully
-							if (!trialText.endsWith('.')) {
-								trialText += '.';
+						const trialMatch = baseLabel.getAttribute('data-original-html').match(/(after your .*? trial\.?)/i);
+
+						for (let i = 0; i < labels.length; i++) {
+							if (!labels[i].hasAttribute('data-original-html')) {
+								labels[i].setAttribute('data-original-html', labels[i].innerHTML);
 							}
 
-							// Iterate through remaining dynamically generated plans (e.g., Annual)
-							for (let i = 1; i < labels.length; i++) {
-								// Prevent infinite string looping by strictly checking lowercase representation
-								if (!labels[i].innerHTML.toLowerCase().includes('trial')) {
-									// Strip the trailing period from the original string and append the trial text
-									labels[i].innerHTML = labels[i].innerHTML.replace(/\.$/, '').trim() + ' ' + trialText;
+							if (gateway === 'check') {
+								// Strip trial text entirely from ALL radio buttons if paying by check
+								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
+							} else {
+								// Append/keep trial text normally for Stripe
+								if (trialMatch && trialMatch[1]) {
+									let trialText = trialMatch[1].trim();
+									if (!trialText.endsWith('.')) {
+										trialText += '.';
+									}
+									
+									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
+									} else {
+										labels[i].innerHTML = labels[i].getAttribute('data-original-html');
+									}
+								} else {
+									labels[i].innerHTML = labels[i].getAttribute('data-original-html');
 								}
 							}
 						}
@@ -544,6 +562,13 @@ class DD_PMPro_Frontend_Pricing
 
 				// Execute immediately in case elements are already parsed
 				processCheckoutDOM();
+
+				// Ensure re-check on gateway changes
+				document.body.addEventListener('change', function(e) {
+					if (e.target.name === 'gateway' || e.target.id === 'gateway') {
+						processCheckoutDOM();
+					}
+				});
 
 				// Attach a MutationObserver to instantly intercept and mutate nodes injected by the PMPro Payment Plans Addon
 				const targetNode = document.body;
@@ -1096,14 +1121,14 @@ class DD_PMPro_Frontend_Pricing
                                 </div>
                             </div>
                             <div class="infl-timeline">
-                                <div class="infl-timeline-item">
+                                <div class="infl-timeline-item" id="dd-timeline-now">
                                     <div class="infl-dot filled"></div>
                                     <div class="infl-content">
-                                        <p><strong>Paying Now:</strong> ${dynamicPayingNow}</p>
-                                        <span>${paymentReason}</span>
+                                        <p><strong>Paying Now:</strong> <span class="dd-paying-now-val">${dynamicPayingNow}</span></p>
+                                        <span class="dd-paying-now-reason">${paymentReason}</span>
                                     </div>
                                 </div>
-                                <div class="infl-timeline-item">
+                                <div class="infl-timeline-item" id="dd-timeline-later">
                                     <div class="infl-dot hollow"></div>
                                     <div class="infl-content">
                                         <p><strong>Starting ${dynamicStartDate}:</strong> ${recurringPrice} /${cycle}</p>
@@ -1157,6 +1182,56 @@ class DD_PMPro_Frontend_Pricing
 						}
 
 						if ($levelCost.length) $levelCost.hide();
+
+						// --- GATEWAY LISTENER FOR TIMELINE & PMPro INSTRUCTIONS ---
+						function ddHandleGatewaySwitch() {
+							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
+							
+							// A) Update Timeline UI
+							if (gateway === 'check') {
+								$('.dd-paying-now-val').text(recurringPrice);
+								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
+								$('#dd-timeline-later').hide();
+							} else {
+								$('.dd-paying-now-val').text(dynamicPayingNow);
+								$('.dd-paying-now-reason').text(paymentReason);
+								$('#dd-timeline-later').show();
+							}
+
+							// B) Scrub native Check Instructions
+							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
+								var $el = $(this);
+								if (typeof $el.data('dd-original-html') === 'undefined') {
+									$el.data('dd-original-html', $el.html());
+								}
+								if (gateway === 'check') {
+									var cleanHtml = $el.data('dd-original-html').replace(/\s*after your .*? trial\.?/gi, '');
+									$el.html(cleanHtml);
+								} else {
+									$el.html($el.data('dd-original-html'));
+								}
+							});
+						}
+
+						ddHandleGatewaySwitch(); // Initial run
+						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
+
+						// MutationObserver to catch PMPro's AJAX injection of check instructions
+						var instrObserver = new MutationObserver(function() {
+							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
+							if (gateway === 'check') {
+								$('.pmpro_checkout-instructions-check, .pmpro_check_instructions').each(function() {
+									var txt = $(this).html();
+									if (txt.toLowerCase().includes('trial')) {
+										if (typeof $(this).data('dd-original-html') === 'undefined') {
+											$(this).data('dd-original-html', txt);
+										}
+										$(this).html(txt.replace(/\s*after your .*? trial\.?/gi, ''));
+									}
+								});
+							}
+						});
+						instrObserver.observe(document.body, { childList: true, subtree: true });
 					}
 				}, 100); // Poll every 100ms until DOM is ready
 			});
