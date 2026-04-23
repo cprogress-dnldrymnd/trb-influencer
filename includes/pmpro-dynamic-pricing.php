@@ -520,9 +520,9 @@ class DD_PMPro_Frontend_Pricing
 					}
 
 					// Feature 2: Sync Trial Text to Payment Plans securely
+					// Dynamic Trial Sync & Scrubber Logic
 					const labels = document.querySelectorAll('.pmpro_form_field-radio-item label');
 					if (labels.length > 0) {
-						// Extract trial text from the base monthly plan (which inherently respects the Subscription Delays Add On)
 						const baseLabel = labels[0];
 
 						if (!baseLabel.hasAttribute('data-original-html')) {
@@ -536,25 +536,26 @@ class DD_PMPro_Frontend_Pricing
 								labels[i].setAttribute('data-original-html', labels[i].innerHTML);
 							}
 
+							let targetHtml = labels[i].getAttribute('data-original-html');
+
 							if (gateway === 'check') {
-								// Strip trial text entirely from ALL radio buttons if paying by check
-								labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\s*after your .*? trial\.?/gi, '');
+								targetHtml = targetHtml.replace(/\s*after your .*? trial\.?/gi, '');
 							} else {
-								// Append/keep trial text normally for Stripe
 								if (trialMatch && trialMatch[1]) {
 									let trialText = trialMatch[1].trim();
 									if (!trialText.endsWith('.')) {
 										trialText += '.';
 									}
 
-									if (i > 0 && !labels[i].getAttribute('data-original-html').toLowerCase().includes('trial')) {
-										labels[i].innerHTML = labels[i].getAttribute('data-original-html').replace(/\.$/, '').trim() + ' ' + trialText;
-									} else {
-										labels[i].innerHTML = labels[i].getAttribute('data-original-html');
+									if (i > 0 && !targetHtml.toLowerCase().includes('trial')) {
+										targetHtml = targetHtml.replace(/\.$/, '').trim() + ' ' + trialText;
 									}
-								} else {
-									labels[i].innerHTML = labels[i].getAttribute('data-original-html');
 								}
+							}
+
+							// BREAK THE LOOP: Only update the DOM if the text actually changed
+							if (labels[i].innerHTML !== targetHtml) {
+								labels[i].innerHTML = targetHtml;
 							}
 						}
 					}
@@ -1218,23 +1219,24 @@ class DD_PMPro_Frontend_Pricing
 								}
 
 								var html = $el.data('dd-original-html');
-
-								// Detect if this specific label belongs to the Bank Transfer option
 								var isCheckElement = $el.find('input[value="check"]').length > 0 ||
 									$el.attr('for') === 'gateway_check' ||
 									$el.hasClass('pmpro_checkout-instructions-check') ||
 									$el.hasClass('pmpro_check_instructions');
 
+								var targetHtml = html;
+
 								if (isCheckElement) {
-									// Bank Transfer ALWAYS loses the trial text, even if Credit Card is currently selected
-									$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
+									targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
 								} else {
-									// Stripe/Other gateways lose the trial text ONLY if the user explicitly opts out
 									if (optedOut) {
-										$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
-									} else {
-										$el.html(html);
+										targetHtml = html.replace(/\s*after your .*? trial\.?/gi, '');
 									}
+								}
+
+								// BREAK THE LOOP: Only update the DOM if the text actually changed
+								if ($el.html() !== targetHtml) {
+									$el.html(targetHtml);
 								}
 							});
 						}
@@ -1246,34 +1248,8 @@ class DD_PMPro_Frontend_Pricing
 
 						// MutationObserver to catch PMPro's AJAX injections
 						var instrObserver = new MutationObserver(function() {
-							instrObserver.disconnect(); // Pause to prevent infinite loop
-
-							var gateway = $('input[name=gateway]:checked').val() || $('#gateway').val();
-							var optedOut = $('#dd_opt_out_free_trial').is(':checked');
-
-							$('.pmpro_checkout-instructions-check, .pmpro_check_instructions, #pmpro_payment_method label').each(function() {
-								var $el = $(this);
-								if (typeof $el.data('dd-original-html') === 'undefined') {
-									$el.data('dd-original-html', $el.html());
-								}
-
-								var html = $el.data('dd-original-html');
-								var isCheckElement = $el.find('input[value="check"]').length > 0 ||
-									$el.attr('for') === 'gateway_check' ||
-									$el.hasClass('pmpro_checkout-instructions-check') ||
-									$el.hasClass('pmpro_check_instructions');
-
-								if (isCheckElement) {
-									$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
-								} else {
-									if (optedOut) {
-										$el.html(html.replace(/\s*after your .*? trial\.?/gi, ''));
-									} else {
-										$el.html(html);
-									}
-								}
-							});
-
+							instrObserver.disconnect(); // Pause observer
+							ddHandleGatewaySwitch(); // Run the safe update
 							instrObserver.observe(document.body, {
 								childList: true,
 								subtree: true
