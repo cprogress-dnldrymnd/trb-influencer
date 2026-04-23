@@ -554,100 +554,29 @@ function dd_influencer_style_mycred_checkout()
 }
 add_action('wp_footer', 'dd_influencer_style_mycred_checkout', 55);
 
-/**
- * DEBUG VERSION — Find exactly where it's failing
- */
 add_action( 'added_post_meta', 'trigger_mycred_bank_transfer_on_meta', 10, 4 );
 
 function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_value ) {
 
     if ( $meta_key !== 'gateway' ) return;
-
-    error_log( '=== GATEWAY META CAUGHT: ' . $meta_value . ' on post: ' . $post_id );
-
-    if ( $meta_value !== 'bank' ) {
-        error_log( '=== STOPPED: gateway is not bank, it is: ' . $meta_value );
-        return;
-    }
-
-    $post = get_post( $post_id );
-    if ( ! $post || $post->post_type !== 'buycred_payment' ) {
-        error_log( '=== STOPPED: post type is: ' . ( $post ? $post->post_type : 'NULL' ) );
-        return;
-    }
-
-    $user_id = (int) get_post_meta( $post_id, 'from', true );
-    error_log( '=== USER ID from meta: ' . $user_id );
-    if ( ! $user_id ) {
-        error_log( '=== STOPPED: no user_id found' );
-        return;
-    }
-
-    $point_type = get_post_meta( $post_id, 'point_type', true );
-    if ( empty( $point_type ) ) $point_type = 'mycred_default';
-    error_log( '=== POINT TYPE: ' . $point_type );
-
-    $already_triggered = get_post_meta( $post_id, '_bank_pending_notif_sent', true );
-    if ( $already_triggered ) {
-        error_log( '=== STOPPED: already triggered' );
-        return;
-    }
-
-    if ( ! function_exists( 'mycred' ) ) {
-        error_log( '=== STOPPED: mycred() function not found' );
-        return;
-    }
-
-    $mycred = mycred( $point_type );
-    error_log( '=== myCred loaded: ' . ( $mycred ? 'YES' : 'NO' ) );
-
-    update_post_meta( $post_id, '_bank_pending_notif_sent', true );
-
-    // Try with amount 1 instead of 0 — myCred may skip logging 0-amount entries
-    $result = $mycred->add_creds(
-        'buy_creds_with_bank_pending',
-        $user_id,
-        0,
-        'Bank transfer payment pending — Payment ID: %post_id%',
-        $post_id,
-        array( 'ref_type' => 'post' ),
-        $point_type
-    );
-
-    error_log( '=== add_creds result: ' . print_r( $result, true ) );
-}
-/**
- * TEMPORARY DEBUG — Remove after testing
- * Logs all post meta when a buycred_payment post is created/updated
- */
-add_action( 'save_post_buycred_payment', function( $post_id, $post, $update ) {
-    $meta = get_post_meta( $post_id );
-    error_log( '=== buycred_payment POST ID: ' . $post_id . ' ===' );
-    error_log( '=== IS UPDATE: ' . ( $update ? 'YES' : 'NO' ) . ' ===' );
-    error_log( '=== POST META: ' . print_r( $meta, true ) );
-    error_log( '=== POST STATUS: ' . $post->post_status );
-}, 10, 3 );
-
-/**
- * DEBUG — Catches meta as it's being added to buycred_payment posts
- * Remove after testing
- */
-add_action( 'added_post_meta', function( $mid, $post_id, $meta_key, $meta_value ) {
+    if ( $meta_value !== 'bank' ) return;
 
     $post = get_post( $post_id );
     if ( ! $post || $post->post_type !== 'buycred_payment' ) return;
 
-    error_log( '=== META ADDED TO buycred_payment ID: ' . $post_id . ' ===' );
-    error_log( '=== KEY: ' . $meta_key );
-    error_log( '=== VALUE: ' . print_r( $meta_value, true ) );
+    $user_id = (int) get_post_meta( $post_id, 'from', true );
+    if ( ! $user_id ) return;
 
-}, 10, 4 );
+    $point_type = get_post_meta( $post_id, 'point_type', true );
+    if ( empty( $point_type ) ) $point_type = 'mycred_default';
 
-/**
- * DEBUG — Listen for any mycred_buycred hooks
- */
-add_action( 'all', function( $hook_name ) {
-    if ( strpos( $hook_name, 'mycred_buycred' ) !== false || strpos( $hook_name, 'buycred' ) !== false ) {
-        error_log( '=== BUYCRED HOOK FIRED: ' . $hook_name );
-    }
-});
+    $already_triggered = get_post_meta( $post_id, '_bank_pending_notif_sent', true );
+    if ( $already_triggered ) return;
+
+    update_post_meta( $post_id, '_bank_pending_notif_sent', true );
+
+    // ✅ Fire the email notification action directly
+    // This triggers myCred's email listener WITHOUT modifying balance or log history
+    do_action( 'mycred_add', 'buy_creds_with_bank_pending', $user_id, 1, 'Bank transfer payment pending', $post_id, array( 'ref_type' => 'post' ), $point_type );
+
+}
