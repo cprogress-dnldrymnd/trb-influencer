@@ -578,7 +578,11 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
 
     update_post_meta( $post_id, '_bank_pending_notif_sent', true );
 
-    // ✅ Add 1 credit to trigger the email notification
+    // ✅ 1. Temporarily suppress the frontend popup notice
+    // Returning an empty string tells the myCred Notice add-on to bail and not queue a popup.
+    add_filter( 'mycred_notifications_note', '__return_empty_string', 999 );
+
+    // ✅ 2. Add 1 credit to trigger the email notification
     $mycred->add_creds(
         'buy_creds_with_bank_pending',
         $user_id,
@@ -589,7 +593,10 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
         $point_type
     );
 
-    // ✅ Immediately delete that log entry from myCred's log table
+    // ✅ 3. Remove the suppression filter immediately so future transactions behave normally
+    remove_filter( 'mycred_notifications_note', '__return_empty_string', 999 );
+
+    // ✅ 4. Immediately delete that log entry from myCred's log table
     global $wpdb;
     $wpdb->delete(
         $wpdb->prefix . 'myCRED_log',
@@ -600,5 +607,12 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
         ),
         array( '%s', '%d', '%d' )
     );
+
+    // ✅ 5. FIX: Silently revert the 1 point from the user's actual balance!
+    // Deleting the log DOES NOT update the user's balance. We must remove the fake point manually.
+    $current_balance = get_user_meta( $user_id, $point_type, true );
+    if ( $current_balance !== '' ) {
+        update_user_meta( $user_id, $point_type, (float) $current_balance - 1 );
+    }
 
 }
