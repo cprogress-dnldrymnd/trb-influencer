@@ -619,3 +619,27 @@ add_action( 'save_post_buycred_payment', function( $post_id, $post, $update ) {
     error_log( '=== POST META: ' . print_r( $meta, true ) );
     error_log( '=== POST STATUS: ' . $post->post_status );
 }, 10, 3 );
+
+/**
+ * DEBUG — Catches meta as it's being added to buycred_payment posts
+ * Remove after testing
+ */
+add_action( 'added_post_meta', function( $mid, $post_id, $meta_key, $meta_value ) {
+
+    $post = get_post( $post_id );
+    if ( ! $post || $post->post_type !== 'buycred_payment' ) return;
+
+    error_log( '=== META ADDED TO buycred_payment ID: ' . $post_id . ' ===' );
+    error_log( '=== KEY: ' . $meta_key );
+    error_log( '=== VALUE: ' . print_r( $meta_value, true ) );
+
+}, 10, 4 );
+
+/**
+ * DEBUG — Listen for any mycred_buycred hooks
+ */
+add_action( 'all', function( $hook_name ) {
+    if ( strpos( $hook_name, 'mycred_buycred' ) !== false || strpos( $hook_name, 'buycred' ) !== false ) {
+        error_log( '=== BUYCRED HOOK FIRED: ' . $hook_name );
+    }
+});
