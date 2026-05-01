@@ -1222,7 +1222,7 @@ class Saves_Manager
                 width: 100%;
             }
 
-            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button {
+            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button,  .inf-remove-from-group-trigger.inf-remove-from-group-trigger.inf-remove-from-group-trigger button {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
                 font-size: var(--e-global-typography-2a20fd0-font-size);
                 font-weight: var(--e-global-typography-2a20fd0-font-weight);
