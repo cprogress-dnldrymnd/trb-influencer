@@ -28,6 +28,7 @@ class Saves_Manager
         add_action('wp_ajax_get_group_influencers', [$this, 'handle_get_group_influencers_ajax']);
         add_action('wp_ajax_upsert_influencer_group', [$this, 'handle_upsert_group_ajax']);
         add_action('wp_ajax_delete_influencer_group', [$this, 'handle_delete_group_ajax']);
+        add_action('wp_ajax_remove_influencer_from_group', [$this, 'handle_remove_influencer_from_group_ajax']);
         
         // Saved Searches Pagination & Deletion
         add_action('wp_ajax_load_more_saved_searches', [$this, 'handle_load_more_searches_ajax']);
@@ -36,6 +37,7 @@ class Saves_Manager
         // Shortcodes
         add_shortcode('my_saved_groups', [$this, 'render_saved_groups_shortcode']);
         add_shortcode('add_to_groups_btn', [$this, 'render_add_to_groups_shortcode']);
+        add_shortcode('remove_from_group_btn', [$this, 'render_remove_from_group_shortcode']);
         add_shortcode('my_saved_searches', [$this, 'render_saved_searches_shortcode']);
 
         // Frontend hooks for injecting variables, styles, and scripts
@@ -163,6 +165,42 @@ class Saves_Manager
                         </svg>
                     </span>
                     <span class="elementor-button-text"><?php echo esc_html($button_text); ?></span>
+                </span>
+            </button>
+        </div>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Shortcode: Remove from Group Button
+     * Used exclusively inside the group popup loop to remove an influencer from that list.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_remove_from_group_shortcode($atts)
+    {
+        if (! is_user_logged_in()) {
+            return '';
+        }
+
+        $influencer_id = get_the_ID();
+        if (! $influencer_id) {
+            return '';
+        }
+
+        ob_start();
+?>
+        <div class="elementor-button-wrapper remove-from-group inf-remove-from-group-trigger" data-influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
+            <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon">
+                        <svg aria-hidden="true" class="e-font-icon-svg e-fas-times" viewBox="0 0 352 512" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="currentColor" d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path>
+                        </svg>
+                    </span>
+                    <span class="elementor-button-text">REMOVE</span>
                 </span>
             </button>
         </div>
@@ -562,6 +600,43 @@ class Saves_Manager
             $message = sprintf('<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>');
             wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists)]);
         }
+    }
+
+    /**
+     * AJAX Handler: Remove Influencer from Group
+     * Instantly removes the specific influencer from the targeted list via the new shortcode button.
+     */
+    public function handle_remove_influencer_from_group_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+        $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+        $user_id = get_current_user_id();
+
+        if (empty($influencer_id) || empty($group_id)) {
+            wp_send_json_error(['message' => 'Missing influencer or group data.']);
+        }
+
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+        if ($post_id) {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($saved_in)) {
+                $saved_in = array_diff($saved_in, [$group_id]); // Strip the group out
+                
+                if (empty($saved_in)) {
+                    wp_delete_post($post_id, true); // If they belong to no other groups, purge the save
+                } else {
+                    update_post_meta($post_id, 'saved_in_lists', $saved_in);
+                }
+                
+                wp_send_json_success(['message' => 'Creator removed successfully.']);
+            }
+        }
+        
+        wp_send_json_error(['message' => 'Creator record not found in this group.']);
     }
 
     /**
@@ -1166,6 +1241,18 @@ class Saves_Manager
                 background-color: var(--e-global-color-accent);
                 color: #fff;
             }
+            
+            /* Remove from Group specific overrides */
+            .inf-remove-from-group-trigger button {
+                background-color: transparent !important;
+                color: var(--e-global-color-accent) !important;
+                transition: 0.2s;
+            }
+            
+            .inf-remove-from-group-trigger button:hover {
+                background-color: #ffe6e6 !important;
+                color: #dc3545 !important;
+            }
         </style>
 
         <div id="inf-modal-overlay" class="inf-modal-overlay">
@@ -1551,7 +1638,60 @@ class Saves_Manager
                     });
                 });
 
-                // 4. Search Form Saving Flow
+                // 4. Remove Single Influencer from Currently Opened Group List
+                $(document).on('click', '.inf-remove-from-group-trigger', function(e) {
+                    e.preventDefault();
+                    let $btnWrapper = $(this);
+                    let influencerId = $btnWrapper.attr('data-influencer-id');
+                    let groupId = state.viewingGroupId; 
+
+                    if (!groupId) {
+                        alert('Error: Unable to identify the current group context.');
+                        return;
+                    }
+
+                    if (!confirm("Are you sure you want to remove this creator from the current group?")) return;
+
+                    let $btnText = $btnWrapper.find('.elementor-button-text');
+                    let ogText = $btnText.text();
+                    $btnText.text('Removing...');
+                    $btnWrapper.css('pointer-events', 'none');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'remove_influencer_from_group',
+                            security: ajax_vars.save_influencer_nonce,
+                            influencer_id: influencerId,
+                            group_id: groupId
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                // Fade out the specific row inside the modal
+                                $btnWrapper.closest('.inf-loop-item-row').fadeOut(300, function() {
+                                    $(this).remove();
+                                    
+                                    // If this was the last creator, show empty state message
+                                    if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
+                                        $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                    }
+                                });
+                            } else {
+                                alert(res.data.message);
+                                $btnText.text(ogText);
+                                $btnWrapper.css('pointer-events', 'auto');
+                            }
+                        },
+                        error: function() {
+                            alert('A server error occurred. Please try again.');
+                            $btnText.text(ogText);
+                            $btnWrapper.css('pointer-events', 'auto');
+                        }
+                    });
+                });
+
+                // 5. Search Form Saving Flow
                 // Triggers the naming modal instead of immediately saving
                 $('.save-search-trigger').on('click', function(e) {
                     e.preventDefault();
@@ -1616,7 +1756,7 @@ class Saves_Manager
                     });
                 });
                 
-                // 5. Saved Searches Load More & Deletion
+                // 6. Saved Searches Load More & Deletion
                 let isFetchingSearches = false;
                 $('.inf-load-more-searches').on('click', function() {
                     if (isFetchingSearches) return;
