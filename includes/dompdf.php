@@ -50,7 +50,7 @@ if ( ! class_exists( 'Dompdf_Service' ) ) {
          */
         public function load_native_dependencies() {
             // Adjust the base path if dompdf is located inside a subdirectory like /inc/ or /assets/
-            $dompdf_autoloader = get_template_directory() . '/dompdf/autoload.inc.php';
+            $dompdf_autoloader = get_stylesheet_directory() . '/vendors/dompdf/autoload.inc.php';
 
             if ( file_exists( $dompdf_autoloader ) ) {
                 require_once $dompdf_autoloader;
