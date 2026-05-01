@@ -49,8 +49,8 @@ $dir = get_stylesheet_directory();
 
 // Direct, unrolled require statements. 
 // This is the fastest execution path in PHP for procedural files.
+require $dir . '/includes/dompdf.php';
 require $dir . '/includes/sign-up.php';
-//require $dir . '/includes/influencers.php';
 require $dir . '/includes/hooks.php';
 require $dir . '/includes/custom-functions.php';
 require $dir . '/includes/brief-parser.php';
@@ -69,6 +69,7 @@ require $dir . '/includes/charts.php';
 require $dir . '/includes/feeds.php';
 require $dir . '/includes/shortcodes.php';
 require $dir . '/includes/ajax.php';
+
 
 function influencers_meta()
 {
