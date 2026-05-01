@@ -1231,6 +1231,7 @@ class Saves_Manager
                 letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
                 padding: 15px 15px 15px 15px;
                 width: 100%;
+                text-transform: uppercase;
             }
 
             .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger:not(.delete-save) button {
