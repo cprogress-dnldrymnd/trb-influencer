@@ -56,6 +56,7 @@ class Saves_Manager
             'ajax_url'              => admin_url('admin-ajax.php'),
             'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
             'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
+            'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
         ]);
     }
 
@@ -1218,6 +1219,7 @@ class Saves_Manager
                     <div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>
                 </div>
                 <div style="padding: 0 24px;">
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-export-group-pdf" style="width: 100%; margin-bottom: 10px;">Export PDF</button>
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal" style="width: 100%;">Close</button>
                 </div>
             </div>
@@ -1258,7 +1260,9 @@ class Saves_Manager
                     triggerBtn: null,
                     groups: [],
                     activeIds: [],
-                    entryPoint: ''
+                    entryPoint: '',
+                    viewingGroupId: null,
+                    viewingGroupName: ''
                 };
 
                 function switchModalView(viewId) {
@@ -1475,6 +1479,8 @@ class Saves_Manager
                 $(document).on('click', '.view-group-influencers-trigger', function() {
                     let id = $(this).attr('data-group-id');
                     let name = $(this).attr('data-group-name');
+                    state.viewingGroupId = id;
+                    state.viewingGroupName = name;
                     $('#inf-view-group-title').text(name);
                     $('#inf-view-group-body').html('<div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>');
                     switchModalView('inf-view-influencers');
@@ -1492,6 +1498,28 @@ class Saves_Manager
                             else $('#inf-view-group-body').html('<div class="inf-alert">' + res.data.message + '</div>');
                         }
                     });
+                });
+
+                $(document).on('click', '#inf-export-group-pdf', function() {
+                    if (!state.viewingGroupId) {
+                        alert('No group selected.');
+                        return;
+                    }
+
+                    const form = $('<form>', {
+                        method: 'POST',
+                        action: ajax_vars.ajax_url
+                    });
+
+                    form.append($('<input>', { type: 'hidden', name: 'action', value: 'creatordb_export_saved_list_pdf' }));
+                    form.append($('<input>', { type: 'hidden', name: 'nonce', value: ajax_vars.export_pdf_nonce || '' }));
+                    form.append($('<input>', { type: 'hidden', name: 'security', value: ajax_vars.save_influencer_nonce || '' }));
+                    form.append($('<input>', { type: 'hidden', name: 'group_id', value: state.viewingGroupId }));
+                    form.append($('<input>', { type: 'hidden', name: 'list_name', value: state.viewingGroupName || '' }));
+
+                    $('body').append(form);
+                    form.trigger('submit');
+                    form.remove();
                 });
 
                 $(document).on('click', '.inf-trigger-delete-group', function(e) {
