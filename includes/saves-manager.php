@@ -1262,6 +1262,13 @@ class Saves_Manager
                 gap: 1rem;
                 border-top: 1px solid var(--e-global-color-2210fb2);
             }
+
+            #inf-export-group-pdf {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+            }
         </style>
 
         <div id="inf-modal-overlay" class="inf-modal-overlay">
