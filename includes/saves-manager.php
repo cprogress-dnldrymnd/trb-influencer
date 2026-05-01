@@ -29,7 +29,7 @@ class Saves_Manager
         add_action('wp_ajax_upsert_influencer_group', [$this, 'handle_upsert_group_ajax']);
         add_action('wp_ajax_delete_influencer_group', [$this, 'handle_delete_group_ajax']);
         add_action('wp_ajax_remove_influencer_from_group', [$this, 'handle_remove_influencer_from_group_ajax']);
-        
+
         // Saved Searches Pagination & Deletion
         add_action('wp_ajax_load_more_saved_searches', [$this, 'handle_load_more_searches_ajax']);
         add_action('wp_ajax_delete_saved_search', [$this, 'handle_delete_saved_search_ajax']);
@@ -191,7 +191,7 @@ class Saves_Manager
         }
 
         ob_start();
-?>
+    ?>
         <div class="elementor-button-wrapper remove-from-group inf-remove-from-group-trigger" data-influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
             <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
                 <span class="elementor-button-content-wrapper">
@@ -315,7 +315,7 @@ class Saves_Manager
 
         return ob_get_clean();
     }
-    
+
     /**
      * Helper: Generate a single Saved Search Card HTML block
      * Used by both the shortcode and the load more AJAX
@@ -338,12 +338,12 @@ class Saves_Manager
             $desc_parts[] = '<strong>' . esc_html($k_clean) . ':</strong> ' . esc_html($v);
         }
         $desc_text = !empty($desc_parts) ? implode(' | ', $desc_parts) : 'No specific filters applied';
-        
+
         // Define the base URL using the requested Page ID 1949
-        $search_url = get_permalink(1949) . $query; 
+        $search_url = get_permalink(1949) . $query;
 
         ob_start();
-        ?>
+    ?>
         <div class="inf-group-card" id="search-card-<?php echo esc_attr($post->ID); ?>">
             <div class="inf-card-header">
                 <div class="inf-group-header-left">
@@ -378,7 +378,7 @@ class Saves_Manager
                 </div>
             </div>
         </div>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
@@ -412,7 +412,7 @@ class Saves_Manager
         }
 
         ob_start();
-        ?>
+    ?>
         <div class="inf-groups-grid" id="inf-searches-shortcode-grid">
             <?php
             foreach ($q->posts as $p) {
@@ -425,7 +425,7 @@ class Saves_Manager
                 <button type="button" class="inf-btn inf-btn-save inf-load-more-searches" data-paged="1" style="width: auto; padding: 12px 24px !important;">Load More Searches</button>
             </div>
         <?php endif; ?>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
@@ -452,7 +452,7 @@ class Saves_Manager
 
         $q = new WP_Query($args);
         $html = '';
-        
+
         if ($q->have_posts()) {
             foreach ($q->posts as $p) {
                 $html .= $this->generate_search_card_html($p);
@@ -625,17 +625,17 @@ class Saves_Manager
             $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
             if (is_array($saved_in)) {
                 $saved_in = array_diff($saved_in, [$group_id]); // Strip the group out
-                
+
                 if (empty($saved_in)) {
                     wp_delete_post($post_id, true); // If they belong to no other groups, purge the save
                 } else {
                     update_post_meta($post_id, 'saved_in_lists', $saved_in);
                 }
-                
+
                 wp_send_json_success(['message' => 'Creator removed successfully.']);
             }
         }
-        
+
         wp_send_json_error(['message' => 'Creator record not found in this group.']);
     }
 
@@ -1222,7 +1222,8 @@ class Saves_Manager
                 width: 100%;
             }
 
-            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button,  .inf-remove-from-group-trigger.inf-remove-from-group-trigger.inf-remove-from-group-trigger button {
+            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button,
+            .inf-remove-from-group-trigger.inf-remove-from-group-trigger.inf-remove-from-group-trigger button {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
                 font-size: var(--e-global-typography-2a20fd0-font-size);
                 font-weight: var(--e-global-typography-2a20fd0-font-weight);
@@ -1241,17 +1242,25 @@ class Saves_Manager
                 background-color: var(--e-global-color-accent);
                 color: #fff;
             }
-            
+
             /* Remove from Group specific overrides */
             .inf-remove-from-group-trigger button {
                 background-color: transparent !important;
                 color: var(--e-global-color-accent) !important;
                 transition: 0.2s;
             }
-            
+
             .inf-remove-from-group-trigger button:hover {
                 background-color: #ffe6e6 !important;
                 color: #dc3545 !important;
+            }
+
+            .inf-view-group-footer {
+                padding: 24px;
+                display: flex;
+                flex-direction: row;
+                gap: 1rem;
+                border-top: 1px solid var(--e-global-color-2210fb2);
             }
         </style>
 
@@ -1305,8 +1314,12 @@ class Saves_Manager
                 <div id="inf-view-group-body">
                     <div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>
                 </div>
-                <div style="padding: 0 24px;">
-                    <button type="button" class="inf-btn inf-btn-save" id="inf-export-group-pdf" style="width: 100%; margin-bottom: 10px;">Export PDF</button>
+                <div class="inf-view-group-footer">
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-export-group-pdf" style="width: 100%; margin-bottom: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-pdf" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z" />
+                        </svg> Export PDF
+                    </button>
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal" style="width: 100%;">Close</button>
                 </div>
             </div>
@@ -1525,15 +1538,15 @@ class Saves_Manager
                                     let $card = $('#card-' + newGrp.id);
                                     if ($card.length) {
                                         $card.find('.inf-group-title').text(newGrp.name);
-                                        
+
                                         // Update the Description DOM element properly
                                         let $desc = $card.find('.inf-group-desc');
-                                        if(newGrp.desc) {
+                                        if (newGrp.desc) {
                                             $desc.text(newGrp.desc).show();
                                         } else {
                                             $desc.hide();
                                         }
-                                        
+
                                         $card.find('.inf-trigger-edit-group').attr('data-name', newGrp.name).attr('data-desc', newGrp.desc);
                                         $card.find('.view-group-influencers-trigger').attr('data-group-name', newGrp.name);
                                     } else {
@@ -1598,11 +1611,31 @@ class Saves_Manager
                         action: ajax_vars.ajax_url
                     });
 
-                    form.append($('<input>', { type: 'hidden', name: 'action', value: 'creatordb_export_saved_list_pdf' }));
-                    form.append($('<input>', { type: 'hidden', name: 'nonce', value: ajax_vars.export_pdf_nonce || '' }));
-                    form.append($('<input>', { type: 'hidden', name: 'security', value: ajax_vars.save_influencer_nonce || '' }));
-                    form.append($('<input>', { type: 'hidden', name: 'group_id', value: state.viewingGroupId }));
-                    form.append($('<input>', { type: 'hidden', name: 'list_name', value: state.viewingGroupName || '' }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'action',
+                        value: 'creatordb_export_saved_list_pdf'
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'nonce',
+                        value: ajax_vars.export_pdf_nonce || ''
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'security',
+                        value: ajax_vars.save_influencer_nonce || ''
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'group_id',
+                        value: state.viewingGroupId
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'list_name',
+                        value: state.viewingGroupName || ''
+                    }));
 
                     $('body').append(form);
                     form.trigger('submit');
@@ -1643,7 +1676,7 @@ class Saves_Manager
                     e.preventDefault();
                     let $btnWrapper = $(this);
                     let influencerId = $btnWrapper.attr('data-influencer-id');
-                    let groupId = state.viewingGroupId; 
+                    let groupId = state.viewingGroupId;
 
                     if (!groupId) {
                         alert('Error: Unable to identify the current group context.');
@@ -1671,7 +1704,7 @@ class Saves_Manager
                                 // Fade out the specific row inside the modal
                                 $btnWrapper.closest('.inf-loop-item-row').fadeOut(300, function() {
                                     $(this).remove();
-                                    
+
                                     // If this was the last creator, show empty state message
                                     if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
                                         $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
@@ -1743,7 +1776,7 @@ class Saves_Manager
                             if (res.success) {
                                 $('#inf-modal-overlay').hide();
                                 display_mycred_notice('<div class="my-cred-notice-text"><h4>Search Saved</h4><p>Your custom search has been successfully saved.</p></div>');
-                                
+
                                 let $trigger = $('.save-search-trigger');
                                 let origTriggerText = $trigger.text();
                                 $trigger.text('Saved!');
@@ -1755,16 +1788,16 @@ class Saves_Manager
                         }
                     });
                 });
-                
+
                 // 6. Saved Searches Load More & Deletion
                 let isFetchingSearches = false;
                 $('.inf-load-more-searches').on('click', function() {
                     if (isFetchingSearches) return;
-                    
+
                     let $btn = $(this);
                     let nextPage = parseInt($btn.attr('data-paged')) + 1;
                     isFetchingSearches = true;
-                    
+
                     let ogText = $btn.text();
                     $btn.text('Loading...');
 
@@ -1780,10 +1813,12 @@ class Saves_Manager
                             if (res.success) {
                                 $('#inf-searches-shortcode-grid').append(res.data.html);
                                 $btn.attr('data-paged', nextPage);
-                                
+
                                 // Remove button if no more pages exist
                                 if (!res.data.has_more) {
-                                    $btn.parent().fadeOut(300, function() { $(this).remove(); });
+                                    $btn.parent().fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
                                 } else {
                                     $btn.text(ogText);
                                 }
@@ -1804,7 +1839,7 @@ class Saves_Manager
                 $(document).on('click', '.inf-trigger-delete-search', function(e) {
                     e.stopPropagation();
                     $('.inf-dropdown-wrapper').removeClass('active');
-                    
+
                     if (!confirm("Are you sure you want to permanently delete this saved search?")) return;
 
                     let id = $(this).attr('data-id');
