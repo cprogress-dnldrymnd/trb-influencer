@@ -82,7 +82,7 @@ if ( ! class_exists( 'Dompdf_Service' ) ) {
 
             return new \Dompdf\Dompdf( $options );
         }
-    }6
+    }
 }
 
 // Initialize the singleton to register the setup hooks.
