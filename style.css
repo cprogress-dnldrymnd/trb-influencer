@@ -1291,7 +1291,7 @@ body:not(.page-id-4144) span#pmpro_submit_span {
     width: 100%;
     margin: 0 !important; }
   body:not(.page-id-4144) span#pmpro_submit_span:before {
-    content: "Choose Plan";
+    content: "Submit";
     position: absolute;
     left: 0;
     top: 0;
@@ -1505,6 +1505,12 @@ body:not(.page-id-4144) span#pmpro_submit_span {
 
 #pmpro_account-membership-15 {
   display: none !important; }
+
+.field-groups {
+  display: flex;
+  gap: 5px; }
+  .field-groups .filter-widget {
+    flex-grow: 1; }
 
 /*responsive*/
 @media (min-width: 1025px) {
