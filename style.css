@@ -1851,6 +1851,9 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   display: flex;
   gap: 5px;
 }
+.field-groups.field-groups-column {
+  flex-direction: column;
+}
 .field-groups .filter-widget {
   flex-grow: 1;
 }
