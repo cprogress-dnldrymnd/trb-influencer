@@ -9,6 +9,58 @@ if (!defined('ABSPATH')) {
 
 add_action('wp_ajax_my_custom_loop_filter', 'my_custom_loop_filter_handler');
 add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handler');
+add_action('wp_ajax_dd_search_niche_options', 'dd_search_niche_options_handler');
+add_action('wp_ajax_nopriv_dd_search_niche_options', 'dd_search_niche_options_handler');
+
+/**
+ * AJAX: Return niche options for typeahead filter dropdown.
+ * Behaviour:
+ * - No results before 3 chars
+ * - Partial, case-insensitive matching
+ * - Max 20 results
+ */
+function dd_search_niche_options_handler()
+{
+    $query = isset($_POST['q']) ? sanitize_text_field(wp_unslash($_POST['q'])) : '';
+    $query = trim($query);
+    $min_chars = 3;
+    $limit = 20;
+
+    if (strlen($query) < $min_chars) {
+        wp_send_json_success(['items' => []]);
+    }
+
+    $selected = isset($_POST['selected']) ? (array) $_POST['selected'] : [];
+    $selected = array_map('sanitize_title', $selected);
+    $selected_map = array_fill_keys($selected, true);
+
+    $terms = get_terms([
+        'taxonomy'   => 'niche',
+        'hide_empty' => false,
+        'name__like' => $query,
+        'number'     => $limit,
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+        'fields'     => 'all',
+    ]);
+
+    if (is_wp_error($terms) || !is_array($terms)) {
+        wp_send_json_success(['items' => []]);
+    }
+
+    $items = [];
+    foreach ($terms as $term) {
+        if (!is_object($term) || empty($term->slug)) continue;
+        $slug = (string) $term->slug;
+        $items[] = [
+            'value' => $slug,
+            'label' => (string) $term->name,
+            'selected' => !empty($selected_map[$slug]),
+        ];
+    }
+
+    wp_send_json_success(['items' => $items]);
+}
 
 /**
  * AJAX handler for filtering the custom loop of influencers.
@@ -25,7 +77,7 @@ function my_custom_loop_filter_handler()
         'country'       => isset($_POST['country']) ? $_POST['country'] : [],
         'lang'          => isset($_POST['lang']) ? $_POST['lang'] : [],
         
-        // Dedicated min/max follower inputs
+        // Dedicated min/max follower inputs (scalar)
         'min_followers' => isset($_POST['min_followers']) ? sanitize_text_field($_POST['min_followers']) : '',
         'max_followers' => isset($_POST['max_followers']) ? sanitize_text_field($_POST['max_followers']) : '',
         
@@ -34,7 +86,7 @@ function my_custom_loop_filter_handler()
         'content_tag'   => isset($_POST['content_tag']) ? $_POST['content_tag'] : [],
     ];
 
-    // Ensure arrays for array-expected inputs
+    // Ensure arrays for array-expected inputs (bypassing min_followers/max_followers)
     foreach (['niche', 'country', 'lang', 'filter', 'topic', 'content_tag'] as $k) {
         if (!isset($explicit[$k]) || !is_array($explicit[$k])) {
             $explicit[$k] = !empty($explicit[$k]) ? [$explicit[$k]] : [];
@@ -49,6 +101,7 @@ function my_custom_loop_filter_handler()
     }
 
     $niche         = $explicit['niche'];
+    // $platform      = $explicit['platform'];
     $country       = $explicit['country'];
     $lang          = $explicit['lang'];
     $min_followers = $explicit['min_followers'];
@@ -100,6 +153,14 @@ function my_custom_loop_filter_handler()
     } elseif (count($content_taxonomies) === 1) {
         $tax_query[] = $content_taxonomies[0];
     }
+    /*
+    if (!empty($platform)) {
+        $tax_query[] = [
+            'taxonomy' => 'platform',
+            'field'    => 'slug',
+            'terms'    => $platform,
+        ];
+    }*/
 
     if (!empty($tax_query)) {
         if (count($tax_query) > 1) {
@@ -110,17 +171,22 @@ function my_custom_loop_filter_handler()
 
     // --- Meta Query Setup ---
     $meta_query = [];
-    $strict_meta_query = []; // These filters will NEVER drop during fallback broadening
+    $strict_meta_query = []; // NEW: These filters will NEVER drop during fallback broadening
 
+    $country_meta_clause = [];
     if (!empty($country)) {
         $country_arr = is_array($country) ? $country : [$country];
+        $country_arr = array_map('trim', $country_arr);
+        $country_arr = array_filter($country_arr, function ($v) { return $v !== ''; });
         $country_arr = array_merge($country_arr, array_map('strtolower', $country_arr), array_map('strtoupper', $country_arr));
-        $country_arr = array_unique($country_arr);
-        $meta_query[] = [
+        $country_arr = array_values(array_unique($country_arr));
+        $country_meta_clause = [
             'key'     => 'country',
             'value'   => $country_arr,
             'compare' => 'IN',
         ];
+        // Country must be non-droppable across broadening/fallback.
+        $strict_meta_query[] = $country_meta_clause;
     }
 
     if (!empty($lang)) {
@@ -186,8 +252,8 @@ function my_custom_loop_filter_handler()
 
     // --- BROADENING / FALLBACK LOGIC ---
     $min_results = 6;
-    // Trigger broadening if any restrictive meta filters are applied
-    $has_droppable_filters = !empty($country) || !empty($lang) || $min_followers !== '' || $max_followers !== '';
+    // We only trigger broadening if they actually have droppable filters applied
+    $has_droppable_filters = !empty($lang) || $min_followers !== '' || $max_followers !== '';
 
     if ($query->found_posts < $min_results && $has_droppable_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
         $broadened_args = [
@@ -215,7 +281,11 @@ function my_custom_loop_filter_handler()
         } elseif (count($content_tax) === 1) {
             $broadened_tax[] = $content_tax[0];
         }
-
+        /*
+        if (!empty($platform)) {
+            $broadened_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
+        }
+        */
         if (count($broadened_tax) > 1) {
             $broadened_tax['relation'] = 'AND';
         }
@@ -223,7 +293,7 @@ function my_custom_loop_filter_handler()
             $broadened_args['tax_query'] = $broadened_tax;
         }
 
-        // Apply strict meta queries to broadened search (Never drop Verified/Expert)
+        // Apply strict meta queries to broadened search (Never drop Country/Verified/Expert)
         if (!empty($strict_meta_query)) {
             $strict_meta_query['relation'] = 'AND';
             $broadened_args['meta_query'] = $strict_meta_query;
@@ -232,7 +302,8 @@ function my_custom_loop_filter_handler()
         $query = new WP_Query($broadened_args);
     }
 
-    // Fallback: if 0 results with full filters, retry with just taxonomy filters
+    // Fallback: if 0 results with full filters, retry with taxonomy + strict filters.
+    // Country remains hard-locked and is never dropped.
     if (!$query->have_posts() && (!empty($niche) || !empty($platform) || !empty($country) || $min_followers !== '' || $max_followers !== '')) {
         $fallback_args = [
             'post_type'      => 'influencer',
@@ -245,7 +316,11 @@ function my_custom_loop_filter_handler()
         if (!empty($niche)) {
             $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
         }
-
+        /*
+        if (!empty($platform)) {
+            $fallback_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
+        }
+        */
         if (count($fallback_tax) > 1) {
             $fallback_tax['relation'] = 'AND';
         }
@@ -253,7 +328,7 @@ function my_custom_loop_filter_handler()
             $fallback_args['tax_query'] = $fallback_tax;
         }
 
-        // Apply strict meta queries to fallback search (Never drop Verified/Expert)
+        // Apply strict meta queries to fallback search (Never drop Country/Verified/Expert)
         if (!empty($strict_meta_query)) {
             $strict_meta_query['relation'] = 'AND';
             $fallback_args['meta_query'] = $strict_meta_query;
@@ -262,6 +337,7 @@ function my_custom_loop_filter_handler()
         $query = new WP_Query($fallback_args);
 
         // Last resort: if still 0, return all published matching strict filters
+        // (including country when selected).
         if (!$query->have_posts()) {
             $last_resort_args = [
                 'post_type'      => 'influencer',
@@ -270,7 +346,7 @@ function my_custom_loop_filter_handler()
                 'paged'          => $paged // <--- FIX 3: Add pagination to last resort
             ];
             
-            // Ensure even the last resort honors Verified/Expert if selected
+            // Ensure even the last resort honors Country/Verified/Expert if selected
             if (!empty($strict_meta_query)) {
                 $strict_meta_query['relation'] = 'AND';
                 $last_resort_args['meta_query'] = $strict_meta_query;
@@ -279,17 +355,17 @@ function my_custom_loop_filter_handler()
             $query = new WP_Query($last_resort_args);
         }
     }
-    
     // --- DEBUG: Log args to wp-content/debug.log ---
+    // Log the executed query args safely (avoids undefined variable notices).
     error_log('--- INFLUENCER AJAX ARGS ---');
-    error_log(print_r($last_resort_args ?? [], true));
-    
+    error_log(print_r($query->query_vars, true));
     if ($query->have_posts()) {
         $search_criteria = [
             'niche'         => $niche,
+            //'platform'    => $platform,
             'country'       => $country,
-            'min_followers' => $min_followers, // Updated criteria pass
-            'max_followers' => $max_followers, // Updated criteria pass
+            'min_followers' => $min_followers, // Passed to sorting function
+            'max_followers' => $max_followers, // Passed to sorting function
             'filter'        => $filter,
             'topic'         => $topic,
             'content_tag'   => $content_tag,
