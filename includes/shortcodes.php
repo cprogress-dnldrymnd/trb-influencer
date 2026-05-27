@@ -467,7 +467,7 @@ function shortcode_influencer_search_filter()
     <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
         <div class="influencer-search-filter-holder">
             <div class="influencer-search-item niche-filters">
-                <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '','checkbox', true) ?>
+                <?= select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
             </div>
             <!--
             <div class="influencer-search-item">
@@ -476,15 +476,18 @@ function shortcode_influencer_search_filter()
             </div>-->
 
             <div class="influencer-search-item">
-                <?= radio_filter('followers', 'Follower Range', $influencer_search_fields['followers'] ?? '') ?>
+                <?= select_filter('min_followers', false, 'Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+            </div>
+            <div class="influencer-search-item">
+                <?= select_filter('max_followers', false, 'Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '','checkbox', true) ?>
+                <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
             </div>
 
             <div class="influencer-search-item">
-                <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '','checkbox', true) ?>
+                <?= select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
             </div>
 
             <!--
@@ -548,42 +551,42 @@ function shortcode_influencer_search_filter_main()
             </div>
             <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search">
                 <div class="influencer-search-item">
-					<div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14.385" height="14.059" viewBox="0 0 14.385 14.059">
-						  <g id="location" transform="translate(-2.5 -2.724)">
-							<path id="Path_352" data-name="Path 352" d="M11.258,4.959a1.487,1.487,0,0,0,1.33,0L15.309,3.6a.744.744,0,0,1,1.076.666v9.491a.744.744,0,0,1-.411.665l-3.386,1.693a1.487,1.487,0,0,1-1.33,0L8.126,14.548a1.487,1.487,0,0,0-1.33,0L4.076,15.908A.744.744,0,0,1,3,15.241V5.751a.744.744,0,0,1,.411-.665L6.8,3.393a1.487,1.487,0,0,1,1.33,0Z" transform="translate(0 0)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_353" data-name="Path 353" d="M15,5.764V16.918" transform="translate(-3.077 -0.648)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_354" data-name="Path 354" d="M9,3.236V14.39" transform="translate(-1.538)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-						  </g>
-						</svg>
-						<span style="font-size: 16px; font-weight: 600;">Location</span>
-					</div>
+                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14.385" height="14.059" viewBox="0 0 14.385 14.059">
+                            <g id="location" transform="translate(-2.5 -2.724)">
+                                <path id="Path_352" data-name="Path 352" d="M11.258,4.959a1.487,1.487,0,0,0,1.33,0L15.309,3.6a.744.744,0,0,1,1.076.666v9.491a.744.744,0,0,1-.411.665l-3.386,1.693a1.487,1.487,0,0,1-1.33,0L8.126,14.548a1.487,1.487,0,0,0-1.33,0L4.076,15.908A.744.744,0,0,1,3,15.241V5.751a.744.744,0,0,1,.411-.665L6.8,3.393a1.487,1.487,0,0,1,1.33,0Z" transform="translate(0 0)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_353" data-name="Path 353" d="M15,5.764V16.918" transform="translate(-3.077 -0.648)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_354" data-name="Path 354" d="M9,3.236V14.39" transform="translate(-1.538)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                            </g>
+                        </svg>
+                        <span style="font-size: 16px; font-weight: 600;">Location</span>
+                    </div>
                     <?= select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
-					<div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
-						<svg xmlns="http://www.w3.org/2000/svg" width="13.937" height="13.937" viewBox="0 0 13.937 13.937">
-						  <g id="language" transform="translate(-1.488 -1.498)">
-							<path id="Path_348" data-name="Path 348" d="M2.641,11.267a1.292,1.292,0,0,1,.061.754l-.688,2.126a.646.646,0,0,0,.8.755l2.205-.645a1.292,1.292,0,0,1,.71.059,6.461,6.461,0,1,0-3.087-3.049" transform="translate(0 0)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_349" data-name="Path 349" d="M8,12h.006" transform="translate(-2.123 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_350" data-name="Path 350" d="M12,12h.006" transform="translate(-3.539 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_351" data-name="Path 351" d="M16,12h.006" transform="translate(-4.954 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-						  </g>
-						</svg>
-						<span style="font-size: 16px; font-weight: 600;">Language</span>
-					</div>
+                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13.937" height="13.937" viewBox="0 0 13.937 13.937">
+                            <g id="language" transform="translate(-1.488 -1.498)">
+                                <path id="Path_348" data-name="Path 348" d="M2.641,11.267a1.292,1.292,0,0,1,.061.754l-.688,2.126a.646.646,0,0,0,.8.755l2.205-.645a1.292,1.292,0,0,1,.71.059,6.461,6.461,0,1,0-3.087-3.049" transform="translate(0 0)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_349" data-name="Path 349" d="M8,12h.006" transform="translate(-2.123 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_350" data-name="Path 350" d="M12,12h.006" transform="translate(-3.539 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_351" data-name="Path 351" d="M16,12h.006" transform="translate(-4.954 -3.539)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                            </g>
+                        </svg>
+                        <span style="font-size: 16px; font-weight: 600;">Language</span>
+                    </div>
                     <?= select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item required-on-search">
-					<div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14.446" height="14.026" viewBox="0 0 14.446 14.026">
-						  <g id="niche" transform="translate(-1.5 -1.5)">
-							<path id="Path_347" data-name="Path 347" d="M9.119,2.378A1.374,1.374,0,0,0,8.168,2H3.345A1.319,1.319,0,0,0,2,3.291V7.92a1.265,1.265,0,0,0,.394.912l5.853,5.618a1.68,1.68,0,0,0,2.3,0L14.972,10.2a1.522,1.522,0,0,0,0-2.208Z" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<ellipse id="Ellipse_75" data-name="Ellipse 75" cx="0.336" cy="0.323" rx="0.336" ry="0.323" transform="translate(5.362 5.227)" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-						  </g>
-						</svg>
-						<span style="font-size: 16px; font-weight: 600;">Niche</span>
-					</div>
+                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14.446" height="14.026" viewBox="0 0 14.446 14.026">
+                            <g id="niche" transform="translate(-1.5 -1.5)">
+                                <path id="Path_347" data-name="Path 347" d="M9.119,2.378A1.374,1.374,0,0,0,8.168,2H3.345A1.319,1.319,0,0,0,2,3.291V7.92a1.265,1.265,0,0,0,.394.912l5.853,5.618a1.68,1.68,0,0,0,2.3,0L14.972,10.2a1.522,1.522,0,0,0,0-2.208Z" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <ellipse id="Ellipse_75" data-name="Ellipse 75" cx="0.336" cy="0.323" rx="0.336" ry="0.323" transform="translate(5.362 5.227)" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                            </g>
+                        </svg>
+                        <span style="font-size: 16px; font-weight: 600;">Niche</span>
+                    </div>
                     <?= select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                 </div>
                 <!--
@@ -592,16 +595,16 @@ function shortcode_influencer_search_filter_main()
                     ?>
                 </div>-->
                 <div class="influencer-search-item">
-					<div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
-						<svg xmlns="http://www.w3.org/2000/svg" width="14.332" height="13.906" viewBox="0 0 14.332 13.906">
-						  <g id="follower_count" data-name="follower count" transform="translate(-1.5 -1.406)">
-							<path id="Path_345" data-name="Path 345" d="M2,18.25a5.25,5.25,0,0,1,8.723-3.937" transform="translate(0 -3.437)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<circle id="Ellipse_74" data-name="Ellipse 74" cx="3.5" cy="3.5" r="3.5" transform="translate(3.562 1.906)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-							<path id="Path_346" data-name="Path 346" d="M16,18.313l1.313,1.313L19.938,17" transform="translate(-4.813 -4.813)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-						  </g>
-						</svg>
-						<span style="font-size: 16px; font-weight: 600;">Follower Count</span>
-					</div>
+                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14.332" height="13.906" viewBox="0 0 14.332 13.906">
+                            <g id="follower_count" data-name="follower count" transform="translate(-1.5 -1.406)">
+                                <path id="Path_345" data-name="Path 345" d="M2,18.25a5.25,5.25,0,0,1,8.723-3.937" transform="translate(0 -3.437)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <circle id="Ellipse_74" data-name="Ellipse 74" cx="3.5" cy="3.5" r="3.5" transform="translate(3.562 1.906)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                                <path id="Path_346" data-name="Path 346" d="M16,18.313l1.313,1.313L19.938,17" transform="translate(-4.813 -4.813)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+                            </g>
+                        </svg>
+                        <span style="font-size: 16px; font-weight: 600;">Follower Count</span>
+                    </div>
                     <div class="field-groups">
                         <?= select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                         <?= select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
@@ -612,18 +615,20 @@ function shortcode_influencer_search_filter_main()
                 <?= checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
             </div>
             <div class="influencer-search-item" style="display: flex; justify-content: space-between">
-				<button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm">
-					<span class="elementor-button-content-wrapper">
-						<span class="elementor-button-text">
-							RESET ALL
-						</span>
-					</span>
-				</button>
+                <button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-text">
+                            RESET ALL
+                        </span>
+                    </span>
+                </button>
                 <button type="submit" class="influencer-search-button  elementor-button elementor-button-link elementor-size-sm">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-text influencer-search-item-wrapper full-brief-search active" style="display: flex; align-items: center; gap: 5px">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 46.322 46.948"><path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path></svg>
-							GENERATE MATCHES</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 46.322 46.948">
+                                <path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path>
+                            </svg>
+                            GENERATE MATCHES</span>
                         <!--<span class="elementor-button-text influencer-search-item-wrapper filtered-search">SEARCH</span>-->
                     </span>
                 </button>
@@ -985,7 +990,7 @@ function dd_get_user_avatar_html($is_email_template = false)
     // 2. Prepare inline styles if it's an email template
     $img_style = '';
     $fallback_style = '';
-    
+
     if (filter_var($is_email_template, FILTER_VALIDATE_BOOLEAN)) {
         $base_style = 'width: 60px !important; height: 60px !important; border-radius: 50% !important; border: 1px solid #CCCCCC !important; object-fit: cover !important;';
         $img_style = " style='{$base_style}'";
@@ -1889,7 +1894,7 @@ function dd_influencer_avatar_shortcode($atts)
     // Prepare inline styles if it's an email template
     $img_style = '';
     $fallback_style = '';
-    
+
     if (filter_var($args['is_email_template'], FILTER_VALIDATE_BOOLEAN)) {
         $base_style = 'width: 60px !important; height: 60px !important; border-radius: 50% !important; border: 1px solid #CCCCCC !important; object-fit: cover !important;';
         $img_style = $base_style; // get_the_post_thumbnail takes raw CSS in the style array
