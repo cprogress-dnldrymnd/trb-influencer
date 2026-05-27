@@ -263,9 +263,12 @@
         var filter_niche = get_filter_values('niche[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
-        var filter_followers = get_filter_values('followers');
         var filter_filter = get_filter_values('filter[]');
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
+        var min_f_arr = get_filter_values('min_followers[]');
+        var max_f_arr = get_filter_values('max_followers[]');
+        var filter_min_followers = min_f_arr.length > 0 ? min_f_arr[0] : '';
+        var filter_max_followers = max_f_arr.length > 0 ? max_f_arr[0] : '';
 
         container.css('opacity', '0.5');
         button.text('Loading...'); 
