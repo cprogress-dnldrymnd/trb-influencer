@@ -2,7 +2,7 @@
     jQuery(document).ready(function () {
         // --- FIX: Sync URL Parameters to Checkboxes before anything else ---
         sync_url_params_to_dom();
-        
+
         // --- NEW: Sync the disabled states of follower min/max fields ---
         sync_follower_min_max_states();
 
@@ -10,7 +10,7 @@
             fetch_influencers(false);
         } else {
             // If we are on a pre-rendered page, sort the tags right away
-            prioritize_active_tags(); 
+            prioritize_active_tags();
         }
 
         nicheToggle();
@@ -31,13 +31,13 @@
      */
     function sync_url_params_to_dom() {
         const urlParams = new URLSearchParams(window.location.search);
-        
+
         if (urlParams.has('search-brief')) {
             $('#search-brief').val(urlParams.get('search-brief'));
         }
 
         urlParams.forEach((value, key) => {
-            $('input[name="' + key + '"]').each(function() {
+            $('input[name="' + key + '"]').each(function () {
                 if ($(this).attr('type') === 'checkbox' || $(this).attr('type') === 'radio') {
                     if ($(this).val() === value) {
                         $(this).prop('checked', true);
@@ -77,7 +77,7 @@
         maxRadios.forEach(radio => {
             const val = getNumericValue(radio.value, true);
             const label = radio.closest('.dropdown-item');
-            
+
             if (currentMin !== null && val <= currentMin) {
                 radio.disabled = true;
                 if (label) {
@@ -97,7 +97,7 @@
         minRadios.forEach(radio => {
             const val = getNumericValue(radio.value, false);
             const label = radio.closest('.dropdown-item');
-            
+
             if (currentMax !== null && val >= currentMax) {
                 radio.disabled = true;
                 if (label) {
@@ -121,7 +121,7 @@
     function prioritize_active_tags() {
         // 1. Gather all active tags from the sidebar
         let activeTags = [];
-        $('.tags-container .tag span:first-child').each(function() {
+        $('.tags-container .tag span:first-child').each(function () {
             activeTags.push($(this).text().trim().toLowerCase());
         });
 
@@ -129,7 +129,7 @@
         if (activeTags.length === 0) return;
 
         // 2. Loop through every creator card's tag container
-        $('.influencer-niche-container').each(function() {
+        $('.influencer-niche-container').each(function () {
             let $container = $(this);
             let $terms = $container.find('.niche-term');
             let $toggle = $container.find('.niche-toggle');
@@ -144,7 +144,7 @@
             let unmatched = [];
 
             // 3. Separate the tags into matched and unmatched arrays
-            $terms.each(function() {
+            $terms.each(function () {
                 let termText = $(this).text().trim().toLowerCase();
                 if (activeTags.includes(termText)) {
                     matched.push($(this));
@@ -164,7 +164,7 @@
             if ($toggle.length) $toggle.detach();
 
             // 4. Re-append the tags and recalculate visibility
-            $.each(sortedTerms, function(index, $term) {
+            $.each(sortedTerms, function (index, $term) {
                 if (index < visibleLimit) {
                     // Make visible
                     $term.removeClass('term-hidden').css('display', '');
@@ -271,7 +271,7 @@
         var filter_max_followers = max_f_arr.length > 0 ? max_f_arr[0] : '';
 
         container.css('opacity', '0.5');
-        button.text('Loading...'); 
+        button.text('Loading...');
 
         $.ajax({
             url: ajax_vars.ajax_url,
@@ -281,7 +281,8 @@
                 niche: filter_niche,
                 country: filter_country,
                 lang: filter_lang,
-                followers: filter_followers,
+                min_followers: filter_min_followers,
+                max_followers: filter_max_followers,
                 filter: filter_filter,
                 search_brief: search_brief,
                 paged: current_page,
@@ -441,7 +442,7 @@
                                     return '<label class="dropdown-item checkbox-list-item">' +
                                         '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="niche[]" ' + checked + '> ' +
                                         '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
-                                    '</label>';
+                                        '</label>';
                                 }).join('');
                                 updateTags();
                             },
@@ -461,7 +462,7 @@
                 const target = e.target;
                 if (target && target.matches('.dropdown-item input')) {
                     updateTags();
-                    
+
                     // --- NEW: Re-run state locking if a follower field was changed
                     if (target.name.includes('followers')) {
                         sync_follower_min_max_states();
@@ -482,7 +483,7 @@
                     }
                 }
                 updateTags();
-                
+
                 // --- NEW: Free up the disabled locks when resetting
                 sync_follower_min_max_states();
             });
@@ -518,7 +519,7 @@
                 closeBtn.addEventListener('click', () => {
                     linkedCheckbox.checked = false;
                     updateTags();
-                    
+
                     // --- NEW: Re-evaluate locks if a tag is removed
                     if (linkedCheckbox.name.includes('followers')) {
                         sync_follower_min_max_states();
