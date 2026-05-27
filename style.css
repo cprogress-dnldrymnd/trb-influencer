@@ -1886,6 +1886,15 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
     padding: clamp(12px, 0.833vw, 16px);
   }
 }
+@media (max-width: 575px) {
+  .field-groups {
+    flex-direction: column;
+    gap: 0;
+  }
+  .field-groups > .filter-widget:not(:last-child) {
+    padding-top: 0;
+  }
+}
 /*end responsive*/
 
 .checkbox-row .checkbox-lists .dropdown-item:first-child:after {
