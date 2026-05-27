@@ -476,13 +476,11 @@ function shortcode_influencer_search_filter()
             </div>-->
 
             <div class="influencer-search-item">
-                <div class="field-groups field-groups-column">
-                    <?= select_filter('min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                    <?= select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-
-                </div>
+                <?= select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
             </div>
-
+            <div class="influencer-search-item">
+                <?= select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+            </div>
             <div class="influencer-search-item">
                 <?= select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
             </div>
