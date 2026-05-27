@@ -1907,6 +1907,14 @@ body:not(.page-id-4144) {
 #pmpro_account-membership-15 {
     display: none !important;
 }
+.field-groups {
+    display: flex;
+    gap: 5px;
+    .filter-widget {
+        flex-grow: 1;
+    }
+}
+
 /*responsive*/
 @media (min-width: 1025px) {
     .checkbox-row .checkbox-lists .checkbox-list-item,
