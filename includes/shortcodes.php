@@ -602,7 +602,10 @@ function shortcode_influencer_search_filter_main()
 						</svg>
 						<span style="font-size: 16px; font-weight: 600;">Follower Count</span>
 					</div>
-                    <?= select_filter('followers', false, 'Follower Range', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                    <div class="field-groups">
+                        <?= select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                        <?= select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                    </div>
                 </div>
             </div>
             <div class="influencer-search-item checkbox-row">

@@ -12,7 +12,7 @@ add_action('wp_ajax_nopriv_my_custom_loop_filter', 'my_custom_loop_filter_handle
 
 /**
  * AJAX handler for filtering the custom loop of influencers.
- * * Captures user inputs, parses search briefs, builds taxonomy and meta queries, 
+ * Captures user inputs, parses search briefs, builds taxonomy and meta queries, 
  * handles fallback broadening logic for narrow searches, applies pagination, 
  * tracks search limits via user meta, and returns a JSON payload with rendered HTML.
  */
@@ -20,20 +20,24 @@ function my_custom_loop_filter_handler()
 {
     // 1. GATHER INPUTS (explicit form values)
     $explicit = [
-        'niche'        => isset($_POST['niche']) ? $_POST['niche'] : [],
-        //'platform'     => isset($_POST['platform']) ? $_POST['platform'] : [],
-        'country'      => isset($_POST['country']) ? $_POST['country'] : [],
-        'lang'         => isset($_POST['lang']) ? $_POST['lang'] : [],
-        'followers'    => isset($_POST['followers']) ? $_POST['followers'] : [],
-        'filter'       => isset($_POST['filter']) ? $_POST['filter'] : [],
-        'topic'        => isset($_POST['topic']) ? $_POST['topic'] : [],
-        'content_tag'  => isset($_POST['content_tag']) ? $_POST['content_tag'] : [],
+        'niche'         => isset($_POST['niche']) ? $_POST['niche'] : [],
+        //'platform'      => isset($_POST['platform']) ? $_POST['platform'] : [],
+        'country'       => isset($_POST['country']) ? $_POST['country'] : [],
+        'lang'          => isset($_POST['lang']) ? $_POST['lang'] : [],
+        
+        // Dedicated min/max follower inputs
+        'min_followers' => isset($_POST['min_followers']) ? sanitize_text_field($_POST['min_followers']) : '',
+        'max_followers' => isset($_POST['max_followers']) ? sanitize_text_field($_POST['max_followers']) : '',
+        
+        'filter'        => isset($_POST['filter']) ? $_POST['filter'] : [],
+        'topic'         => isset($_POST['topic']) ? $_POST['topic'] : [],
+        'content_tag'   => isset($_POST['content_tag']) ? $_POST['content_tag'] : [],
     ];
 
-    // Ensure arrays
-    foreach ($explicit as $k => $v) {
-        if (!is_array($v)) {
-            $explicit[$k] = $v ? [$v] : [];
+    // Ensure arrays for array-expected inputs
+    foreach (['niche', 'country', 'lang', 'filter', 'topic', 'content_tag'] as $k) {
+        if (!isset($explicit[$k]) || !is_array($explicit[$k])) {
+            $explicit[$k] = !empty($explicit[$k]) ? [$explicit[$k]] : [];
         }
     }
 
@@ -44,14 +48,14 @@ function my_custom_loop_filter_handler()
         $explicit = merge_brief_with_explicit_filters($parsed, $explicit);
     }
 
-    $niche        = $explicit['niche'];
-    // $platform     = $explicit['platform'];
-    $country      = $explicit['country'];
-    $lang         = $explicit['lang'];
-    $followers    = $explicit['followers'];
-    $filter       = $explicit['filter'];
-    $topic        = $explicit['topic'];
-    $content_tag  = $explicit['content_tag'];
+    $niche         = $explicit['niche'];
+    $country       = $explicit['country'];
+    $lang          = $explicit['lang'];
+    $min_followers = $explicit['min_followers'];
+    $max_followers = $explicit['max_followers'];
+    $filter        = $explicit['filter'];
+    $topic         = $explicit['topic'];
+    $content_tag   = $explicit['content_tag'];
 
     // --- FIX 1: Capture the current page number ---
     $paged = (isset($_POST['paged']) && $_POST['paged']) ? intval($_POST['paged']) : 1;
@@ -96,14 +100,6 @@ function my_custom_loop_filter_handler()
     } elseif (count($content_taxonomies) === 1) {
         $tax_query[] = $content_taxonomies[0];
     }
-    /*
-    if (!empty($platform)) {
-        $tax_query[] = [
-            'taxonomy' => 'platform',
-            'field'    => 'slug',
-            'terms'    => $platform,
-        ];
-    }*/
 
     if (!empty($tax_query)) {
         if (count($tax_query) > 1) {
@@ -114,7 +110,7 @@ function my_custom_loop_filter_handler()
 
     // --- Meta Query Setup ---
     $meta_query = [];
-    $strict_meta_query = []; // NEW: These filters will NEVER drop during fallback broadening
+    $strict_meta_query = []; // These filters will NEVER drop during fallback broadening
 
     if (!empty($country)) {
         $country_arr = is_array($country) ? $country : [$country];
@@ -136,24 +132,28 @@ function my_custom_loop_filter_handler()
         ];
     }
 
-    // Followers Logic
-    if (!empty($followers)) {
-        if (strpos($followers[0], '-') !== false) {
-            $range = explode('-', $followers[0]);
-            $meta_query[] = [
-                'key'     => 'followers',
-                'value'   => $range, // array(min, max)
-                'compare' => 'BETWEEN',
-                'type'    => 'NUMERIC',
-            ];
-        } else {
-            $meta_query[] = [
-                'key'     => 'followers',
-                'value'   => $followers[0],
-                'compare' => '>',
-                'type'    => 'NUMERIC',
-            ];
-        }
+    // --- Followers Logic: Strict Min/Max Handling ---
+    if ($min_followers !== '' && $max_followers !== '') {
+        $meta_query[] = [
+            'key'     => 'followers',
+            'value'   => [(int)$min_followers, (int)$max_followers],
+            'compare' => 'BETWEEN',
+            'type'    => 'NUMERIC',
+        ];
+    } elseif ($min_followers !== '') {
+        $meta_query[] = [
+            'key'     => 'followers',
+            'value'   => (int)$min_followers,
+            'compare' => '>=',
+            'type'    => 'NUMERIC',
+        ];
+    } elseif ($max_followers !== '') {
+        $meta_query[] = [
+            'key'     => 'followers',
+            'value'   => (int)$max_followers,
+            'compare' => '<=',
+            'type'    => 'NUMERIC',
+        ];
     }
 
     // Strict Filter: Include only verified influencers
@@ -181,15 +181,13 @@ function my_custom_loop_filter_handler()
         $args['meta_query'] = $combined_meta_query;
     }
 
-
-
     // 4. EXECUTE QUERY
     $query = new WP_Query($args);
 
     // --- BROADENING / FALLBACK LOGIC ---
     $min_results = 6;
-    // We only trigger broadening if they actually have droppable filters applied
-    $has_droppable_filters = !empty($country) || !empty($followers) || !empty($lang);
+    // Trigger broadening if any restrictive meta filters are applied
+    $has_droppable_filters = !empty($country) || !empty($lang) || $min_followers !== '' || $max_followers !== '';
 
     if ($query->found_posts < $min_results && $has_droppable_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
         $broadened_args = [
@@ -217,11 +215,7 @@ function my_custom_loop_filter_handler()
         } elseif (count($content_tax) === 1) {
             $broadened_tax[] = $content_tax[0];
         }
-        /*
-        if (!empty($platform)) {
-            $broadened_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
-        }
-        */
+
         if (count($broadened_tax) > 1) {
             $broadened_tax['relation'] = 'AND';
         }
@@ -238,8 +232,8 @@ function my_custom_loop_filter_handler()
         $query = new WP_Query($broadened_args);
     }
 
-    // Fallback: if 0 results with full filters, retry with just niche + platform (drop country, followers)
-    if (!$query->have_posts() && (!empty($niche) || !empty($platform) || !empty($country) || !empty($followers))) {
+    // Fallback: if 0 results with full filters, retry with just taxonomy filters
+    if (!$query->have_posts() && (!empty($niche) || !empty($platform) || !empty($country) || $min_followers !== '' || $max_followers !== '')) {
         $fallback_args = [
             'post_type'      => 'influencer',
             'posts_per_page' => 12,
@@ -251,11 +245,7 @@ function my_custom_loop_filter_handler()
         if (!empty($niche)) {
             $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
         }
-        /*
-        if (!empty($platform)) {
-            $fallback_tax[] = ['taxonomy' => 'platform', 'field' => 'slug', 'terms' => $platform];
-        }
-        */
+
         if (count($fallback_tax) > 1) {
             $fallback_tax['relation'] = 'AND';
         }
@@ -289,18 +279,20 @@ function my_custom_loop_filter_handler()
             $query = new WP_Query($last_resort_args);
         }
     }
-// --- DEBUG: Log args to wp-content/debug.log ---
+    
+    // --- DEBUG: Log args to wp-content/debug.log ---
     error_log('--- INFLUENCER AJAX ARGS ---');
-    error_log(print_r($last_resort_args, true));
+    error_log(print_r($last_resort_args ?? [], true));
+    
     if ($query->have_posts()) {
         $search_criteria = [
-            'niche'       => $niche,
-            //'platform'    => $platform,
-            'country'     => $country,
-            'followers'   => $followers,
-            'filter'      => $filter,
-            'topic'       => $topic,
-            'content_tag' => $content_tag,
+            'niche'         => $niche,
+            'country'       => $country,
+            'min_followers' => $min_followers, // Updated criteria pass
+            'max_followers' => $max_followers, // Updated criteria pass
+            'filter'        => $filter,
+            'topic'         => $topic,
+            'content_tag'   => $content_tag,
         ];
         set_query_var('search_criteria', $search_criteria);
 
