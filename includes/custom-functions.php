@@ -59,11 +59,11 @@ function my_custom_variable_setup()
     }*/
     $followers_options = array(
         '1000-10000' => '1K',
-        '10000' => '- 10K',
-        '50000' => '- 50K',
-        '250000' => '- 250K',
-        '1000000' => '- 1M',
-        '10000000' => '- 10M',
+        '10000' => '10K',
+        '50000' => '50K',
+        '250000' => '250K',
+        '1000000' => '1M',
+        '10000000' => '10M',
     );
     $country_options = get_unique_influencer_countries();
 
