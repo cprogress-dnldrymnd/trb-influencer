@@ -58,15 +58,6 @@ function my_custom_variable_setup()
         $platform_options[$term->slug] = $term->name;
     }*/
     $followers_options = array(
-        '1000-10000' => '1K - 10K',
-        '10000-50000' => '10K - 50K',
-        '50000-250000' => '50K - 250K',
-        '250000-1000000' => '250K - 1M',
-        '1000000-10000000' => '1M-10M',
-        '10000000+' => '10M+',
-    );
-
-    $followers_options = array(
         '1000-10000' => '1K',
         '10000' => '- 10K',
         '50000' => '- 50K',
@@ -520,6 +511,7 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
     if (isset($_GET[$name])) {
         $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
     }
+    $is_niche_async = ($name === 'niche' && $has_search && $type === 'checkbox');
 
     ob_start();
 ?>
@@ -540,24 +532,44 @@ function select_filter($name, $label, $placeholder, $options = [], $type = 'chec
                 </span>
             </div>
 
-            <div class="dropdown-menu checkbox-lists">
+            <div class="dropdown-menu checkbox-lists" data-filter-name="<?= esc_attr($name) ?>">
 
                 <?php /* --- NEW SEARCH FIELD --- */ ?>
                 <?php if ($has_search): ?>
                     <div class="dropdown-search-container" style="padding: 10px;">
-                        <input type="text" class="dropdown-search-input" placeholder="Search options..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <input
+                            type="text"
+                            class="dropdown-search-input"
+                            placeholder="<?= esc_attr($is_niche_async ? 'Search niches...' : 'Search options...') ?>"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+                            <?= $is_niche_async ? 'data-ajax-search="niche" data-min-chars="3" data-limit="20"' : '' ?>>
                     </div>
                 <?php endif; ?>
                 <?php /* ------------------------ */ ?>
 
                 <div class="options-list">
-                    <?php foreach ($options as $key => $option) {
-                        $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
-                    ?>
-                        <label class="dropdown-item checkbox-list-item">
-                            <input class="pseudo-checkbox-input" type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <span class="pseudo-checkbox"></span> <?= $option ?>
-                        </label>
-                    <?php } ?>
+                    <?php if ($is_niche_async): ?>
+                        <?php
+                        // Do not pre-render full niche list.
+                        // Keep only selected values so existing filters remain visible/editable.
+                        foreach ($selected_values as $selected_key) {
+                            $selected_key = (string) $selected_key;
+                            if ($selected_key === '') continue;
+                            $selected_label = isset($options[$selected_key]) ? $options[$selected_key] : ucfirst(str_replace('-', ' ', $selected_key));
+                        ?>
+                            <label class="dropdown-item checkbox-list-item">
+                                <input class="pseudo-checkbox-input" type="<?= esc_attr($type) ?>" value="<?= esc_attr($selected_key) ?>" data-label="<?= esc_attr($selected_label) ?>" name="<?= esc_attr($name) ?>[]" checked="checked"> <span class="pseudo-checkbox"></span> <?= esc_html($selected_label) ?>
+                            </label>
+                        <?php } ?>
+                    <?php else: ?>
+                        <?php foreach ($options as $key => $option) {
+                            $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+                        ?>
+                            <label class="dropdown-item checkbox-list-item">
+                                <input class="pseudo-checkbox-input" type="<?= $type ?>" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <span class="pseudo-checkbox"></span> <?= $option ?>
+                            </label>
+                        <?php } ?>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
