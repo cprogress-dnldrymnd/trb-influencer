@@ -265,11 +265,16 @@
         document.querySelectorAll('.select-filter').forEach(widget => {
             const dropdownBtn = widget.querySelector('.dropdown-button');
             const dropdownMenu = widget.querySelector('.dropdown-menu');
-            const checkboxes = widget.querySelectorAll('.dropdown-item input');
             const tagsContainer = widget.querySelector('.tags-container');
             const resetBtn = widget.querySelector('.reset-btn');
             const searchInput = widget.querySelector('.dropdown-search-input');
-            const listItems = widget.querySelectorAll('.dropdown-item');
+            const optionsList = widget.querySelector('.options-list');
+            const ajaxSearchType = searchInput ? searchInput.getAttribute('data-ajax-search') : '';
+            const isNicheAjaxSearch = ajaxSearchType === 'niche';
+            const minChars = searchInput ? parseInt(searchInput.getAttribute('data-min-chars') || '3', 10) : 3;
+            const maxResults = searchInput ? parseInt(searchInput.getAttribute('data-limit') || '20', 10) : 20;
+            let searchTimer = null;
+            let requestSeq = 0;
 
             dropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -283,37 +288,126 @@
 
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    const filter = e.target.value.toLowerCase();
-                    listItems.forEach(item => {
-                        const text = item.textContent || item.innerText;
-                        if (text.toLowerCase().indexOf(filter) > -1) {
-                            item.style.display = ""; 
-                        } else {
-                            item.style.display = "none"; 
+                    const raw = (e.target.value || '');
+                    const filter = raw.toLowerCase();
+
+                    if (!isNicheAjaxSearch) {
+                        const listItems = widget.querySelectorAll('.dropdown-item');
+                        listItems.forEach(item => {
+                            const text = item.textContent || item.innerText;
+                            if (text.toLowerCase().indexOf(filter) > -1) {
+                                item.style.display = "";
+                            } else {
+                                item.style.display = "none";
+                            }
+                        });
+                        return;
+                    }
+
+                    if (searchTimer) clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => {
+                        const term = raw.trim();
+                        if (term.length < minChars) {
+                            optionsList.innerHTML = '';
+                            return;
                         }
-                    });
+
+                        const mySeq = ++requestSeq;
+                        const selectedInputs = Array.from(widget.querySelectorAll('.dropdown-item input:checked'));
+                        const selected = selectedInputs.map(i => i.value);
+                        const selectedMap = {};
+                        selectedInputs.forEach(i => {
+                            selectedMap[i.value] = i.getAttribute('data-label') || i.value;
+                        });
+
+                        $.ajax({
+                            url: ajax_vars.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'dd_search_niche_options',
+                                q: term,
+                                selected: selected,
+                                limit: maxResults
+                            },
+                            success: function (response) {
+                                if (mySeq !== requestSeq) return;
+                                if (!response || !response.success || !response.data || !Array.isArray(response.data.items)) {
+                                    optionsList.innerHTML = '';
+                                    return;
+                                }
+
+                                const items = response.data.items.slice(0, maxResults);
+                                const mergedItems = [];
+                                const seen = {};
+
+                                // Keep previously selected options visible so multi-select persists across searches.
+                                Object.keys(selectedMap).forEach(value => {
+                                    if (seen[value]) return;
+                                    seen[value] = true;
+                                    mergedItems.push({
+                                        value: value,
+                                        label: selectedMap[value],
+                                        selected: true
+                                    });
+                                });
+
+                                items.forEach(item => {
+                                    if (!item || !item.value) return;
+                                    if (seen[item.value]) return;
+                                    seen[item.value] = true;
+                                    mergedItems.push(item);
+                                });
+
+                                if (!mergedItems.length) {
+                                    optionsList.innerHTML = '';
+                                    return;
+                                }
+
+                                optionsList.innerHTML = mergedItems.map(item => {
+                                    const checked = item.selected ? 'checked="checked"' : '';
+                                    return '<label class="dropdown-item checkbox-list-item">' +
+                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="niche[]" ' + checked + '> ' +
+                                        '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
+                                    '</label>';
+                                }).join('');
+                                updateTags();
+                            },
+                            error: function () {
+                                if (mySeq !== requestSeq) return;
+                                optionsList.innerHTML = '';
+                            }
+                        });
+                    }, 220);
                 });
                 searchInput.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
             }
 
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
+            widget.addEventListener('change', (e) => {
+                const target = e.target;
+                if (target && target.matches('.dropdown-item input')) {
                     updateTags();
-                });
+                }
             });
 
             resetBtn.addEventListener('click', () => {
+                const checkboxes = widget.querySelectorAll('.dropdown-item input');
                 checkboxes.forEach(box => box.checked = false);
                 if (searchInput) {
                     searchInput.value = '';
-                    listItems.forEach(item => item.style.display = "");
+                    if (isNicheAjaxSearch) {
+                        optionsList.innerHTML = '';
+                    } else {
+                        const listItems = widget.querySelectorAll('.dropdown-item');
+                        listItems.forEach(item => item.style.display = "");
+                    }
                 }
                 updateTags();
             });
 
             function updateTags() {
+                const checkboxes = widget.querySelectorAll('.dropdown-item input');
                 tagsContainer.innerHTML = '';
                 let hasSelection = false;
                 checkboxes.forEach(checkbox => {
@@ -377,6 +471,15 @@
                     btn.classList.remove('open');
                 }
             });
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
     }
 })(jQuery);
