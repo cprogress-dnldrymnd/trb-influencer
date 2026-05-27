@@ -2,6 +2,9 @@
     jQuery(document).ready(function () {
         // --- FIX: Sync URL Parameters to Checkboxes before anything else ---
         sync_url_params_to_dom();
+        
+        // --- NEW: Sync the disabled states of follower min/max fields ---
+        sync_follower_min_max_states();
 
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
@@ -45,7 +48,74 @@
     }
 
     /**
-     * NEW: Reorders the niche tags on creator cards so active filters appear first.
+     * NEW: Disables invalid Minimum and Maximum follower options.
+     * Prevents selecting a Max that is lower than the Min, and vice versa.
+     */
+    function sync_follower_min_max_states() {
+        const minRadios = document.querySelectorAll('input[name="min_followers[]"], input[name="min_followers"]');
+        const maxRadios = document.querySelectorAll('input[name="max_followers[]"], input[name="max_followers"]');
+
+        if (!minRadios.length || !maxRadios.length) return;
+
+        // Safely parse numeric values (handles string ranges like "1000-10000")
+        const getNumericValue = (val, isMax) => {
+            if (!val) return null;
+            const parts = val.split('-');
+            if (isMax && parts.length > 1) {
+                return parseInt(parts[1], 10);
+            }
+            return parseInt(parts[0], 10);
+        };
+
+        let currentMin = null;
+        let currentMax = null;
+
+        minRadios.forEach(radio => { if (radio.checked) currentMin = getNumericValue(radio.value, false); });
+        maxRadios.forEach(radio => { if (radio.checked) currentMax = getNumericValue(radio.value, true); });
+
+        // Update Max dropdown options
+        maxRadios.forEach(radio => {
+            const val = getNumericValue(radio.value, true);
+            const label = radio.closest('.dropdown-item');
+            
+            if (currentMin !== null && val <= currentMin) {
+                radio.disabled = true;
+                if (label) {
+                    label.style.opacity = '0.4';
+                    label.style.pointerEvents = 'none';
+                }
+            } else {
+                radio.disabled = false;
+                if (label) {
+                    label.style.opacity = '1';
+                    label.style.pointerEvents = 'auto';
+                }
+            }
+        });
+
+        // Update Min dropdown options
+        minRadios.forEach(radio => {
+            const val = getNumericValue(radio.value, false);
+            const label = radio.closest('.dropdown-item');
+            
+            if (currentMax !== null && val >= currentMax) {
+                radio.disabled = true;
+                if (label) {
+                    label.style.opacity = '0.4';
+                    label.style.pointerEvents = 'none';
+                }
+            } else {
+                radio.disabled = false;
+                if (label) {
+                    label.style.opacity = '1';
+                    label.style.pointerEvents = 'auto';
+                }
+            }
+        });
+    }
+
+    /**
+     * Reorders the niche tags on creator cards so active filters appear first.
      * It dynamically handles unhiding matched tags and hiding the overflowing ones.
      */
     function prioritize_active_tags() {
@@ -388,6 +458,11 @@
                 const target = e.target;
                 if (target && target.matches('.dropdown-item input')) {
                     updateTags();
+                    
+                    // --- NEW: Re-run state locking if a follower field was changed
+                    if (target.name.includes('followers')) {
+                        sync_follower_min_max_states();
+                    }
                 }
             });
 
@@ -404,6 +479,9 @@
                     }
                 }
                 updateTags();
+                
+                // --- NEW: Free up the disabled locks when resetting
+                sync_follower_min_max_states();
             });
 
             function updateTags() {
@@ -437,8 +515,11 @@
                 closeBtn.addEventListener('click', () => {
                     linkedCheckbox.checked = false;
                     updateTags();
-                    // Also trigger search auto-update on tag removal if needed
-                    // fetch_influencers(false); 
+                    
+                    // --- NEW: Re-evaluate locks if a tag is removed
+                    if (linkedCheckbox.name.includes('followers')) {
+                        sync_follower_min_max_states();
+                    }
                 });
 
                 tag.appendChild(text);
