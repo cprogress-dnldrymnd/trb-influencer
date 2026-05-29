@@ -1670,30 +1670,29 @@ class Saves_Manager
                         success: function(res) {
                             if (res.success) {
                                 
-                                // --- NEW: Intercept and reload if on a Single Influencer Page ---
-                                if (res.data.is_newly_unlocked && ajax_vars.is_single_influencer) {
+                                // --- FOOLPROOF RELOAD LOGIC ---
+                                // Checks both our localized variable and the default WordPress body class
+                                let isSinglePage = (typeof ajax_vars !== 'undefined' && ajax_vars.is_single_influencer) || $('body').hasClass('single-influencer');
+
+                                if (res.data.is_newly_unlocked && isSinglePage) {
                                     $btn.text('Reloading...');
-                                    display_mycred_notice('<div class="my-cred-notice-text"><h4>Creator Unlocked & Saved</h4><p>1 credit deducted. Reloading page to reveal content...</p></div>');
+                                    $('#inf-modal-overlay').hide();
                                     
-                                    // Give the user 1.5 seconds to read the success message, then reload
-                                    setTimeout(function() {
-                                        window.location.reload();
-                                    }, 1500);
-                                    
-                                    return; // Halt further JS execution
+                                    // Instantly reload the page to render the unlocked [mycred_sell_this] content
+                                    window.location.reload();
+                                    return; // Halt further execution
                                 }
 
                                 $('#inf-modal-overlay').hide();
                                 
-                                // Show custom notice
+                                // Show custom notice for standard saves or non-single page unlocks
                                 if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
                                 
-                                // Update myCred balance text dynamically based on exact widget markup
+                                // Update myCred balance text dynamically
                                 if (res.data.is_newly_unlocked) {
                                     if ($('.myCred-Header-Balance .elementor-shortcode div').length) {
                                         $('.myCred-Header-Balance .elementor-shortcode div').text(res.data.new_balance);
                                     }
-                                    // Fallback for default class
                                     if ($('.mycred-balance').length) {
                                         $('.mycred-balance').text(res.data.new_balance);
                                     }
@@ -1702,7 +1701,6 @@ class Saves_Manager
                                 let $text = state.triggerBtn.find('.elementor-button-text');
                                 let $icon = state.triggerBtn.find('.elementor-button-icon');
 
-                                // Convert the button out of its locked state if it was locked
                                 $icon.html('<svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>');
                                 state.triggerBtn.removeAttr('data-locked');
 
