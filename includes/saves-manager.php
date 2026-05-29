@@ -73,7 +73,7 @@ class Saves_Manager
             'public'              => false, // Disables frontend visibility/querying
             'show_ui'             => true,  // Keeps it visible in the WP Admin menu
             'show_in_menu'        => true,
-            'menu_icon'           => 'dashicons-bookmark',
+            'menu_icon'           => 'dashicons-groups',
             'supports'            => ['title', 'author'],
             'capabilities'        => [
                 'create_posts' => 'do_not_allow', // Prevents manual creation via WP Admin
