@@ -21,6 +21,14 @@ class Saves_Manager
      */
     public function __construct()
     {
+
+        add_action('init', [$this, 'register_native_post_types']);
+        add_filter('post_row_actions', [$this, 'disable_cpt_row_actions'], 10, 2);
+        add_filter('manage_saved-influencer_posts_columns', [$this, 'add_saved_influencer_admin_columns']);
+        add_action('manage_saved-influencer_posts_custom_column', [$this, 'populate_saved_influencer_admin_columns'], 10, 2);
+        add_filter('manage_saved-search_posts_columns', [$this, 'add_saved_search_admin_columns']);
+        add_action('manage_saved-search_posts_custom_column', [$this, 'populate_saved_search_admin_columns'], 10, 2);
+
         // AJAX hooks for logged-in users
         add_action('wp_ajax_save_user_search', [$this, 'handle_save_search_ajax']);
         add_action('wp_ajax_get_influencer_modal_data', [$this, 'handle_get_modal_data_ajax']);
@@ -44,9 +52,195 @@ class Saves_Manager
         // Frontend hooks for injecting variables, styles, and scripts
         add_action('wp_enqueue_scripts', [$this, 'enqueue_ajax_variables']);
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
+    }
 
-        add_filter('manage_saved-influencer_posts_columns', [$this, 'add_saved_influencer_admin_columns']);
-        add_action('manage_saved-influencer_posts_custom_column', [$this, 'populate_saved_influencer_admin_columns'], 10, 2);
+    /**
+     * Registers the 'saved-influencer' and 'saved-search' custom post types natively.
+     * Configures them as non-public, background data structures. The 'create_posts' 
+     * capability is mapped to 'do_not_allow' to remove the "Add New" admin buttons.
+     *
+     * @return void
+     */
+    public function register_native_post_types()
+    {
+        // 1. Saved Influencer CPT
+        $influencer_args = [
+            'labels'              => [
+                'name'          => 'Saved Influencers',
+                'singular_name' => 'Saved Influencer',
+                'menu_name'     => 'Saved Influencers',
+            ],
+            'public'              => false, // Disables frontend visibility/querying
+            'show_ui'             => true,  // Keeps it visible in the WP Admin menu
+            'show_in_menu'        => true,
+            'menu_icon'           => 'dashicons-bookmark',
+            'supports'            => ['title', 'author'],
+            'capabilities'        => [
+                'create_posts' => 'do_not_allow', // Prevents manual creation via WP Admin
+            ],
+            'map_meta_cap'        => true,
+        ];
+        register_post_type('saved-influencer', $influencer_args);
+
+        // 2. Saved Search CPT
+        $search_args = [
+            'labels'              => [
+                'name'          => 'Saved Searches',
+                'singular_name' => 'Saved Search',
+                'menu_name'     => 'Saved Searches',
+            ],
+            'public'              => false,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_icon'           => 'dashicons-search',
+            'supports'            => ['title', 'author'],
+            'capabilities'        => [
+                'create_posts' => 'do_not_allow',
+            ],
+            'map_meta_cap'        => true,
+        ];
+        register_post_type('saved-search', $search_args);
+    }
+
+    /**
+     * Intercepts and removes the "Edit", "Quick Edit", and "View" links 
+     * from the WordPress admin list tables for our specific CPTs.
+     *
+     * @param array   $actions An array of row action links.
+     * @param WP_Post $post    The post object.
+     * @return array Modified array of row action links.
+     */
+    public function disable_cpt_row_actions($actions, $post)
+    {
+        if ($post->post_type === 'saved-influencer' || $post->post_type === 'saved-search') {
+            unset($actions['edit']);                 // Removes 'Edit'
+            unset($actions['inline hide-if-no-js']); // Removes 'Quick Edit'
+            unset($actions['view']);                 // Removes 'View'
+
+            // Only 'trash' or 'delete' will remain.
+        }
+        return $actions;
+    }
+
+    /**
+     * Registers custom columns for the 'saved-influencer' post type admin table.
+     * Inserts 'Influencer ID' and 'Saved Groups' directly after the Title column.
+     *
+     * @param array $columns Existing column array.
+     * @return array Modified column array.
+     */
+    public function add_saved_influencer_admin_columns($columns)
+    {
+        $new_columns = [];
+        foreach ($columns as $key => $title) {
+            $new_columns[$key] = $title;
+
+            // Insert our custom columns immediately after the 'title' column
+            if ($key === 'title') {
+                $new_columns['influencer_id'] = 'Influencer ID';
+                $new_columns['saved_groups']  = 'Saved Groups';
+            }
+        }
+        return $new_columns;
+    }
+
+    /**
+     * Populates the custom columns for the 'saved-influencer' admin table.
+     * Cross-references the author's custom_influencer_lists to display readable group names.
+     *
+     * @param string $column  The name of the column being rendered.
+     * @param int    $post_id The ID of the current post.
+     * @return void
+     */
+    public function populate_saved_influencer_admin_columns($column, $post_id)
+    {
+        if ($column === 'influencer_id') {
+            $influencer_id = get_post_meta($post_id, 'influencer_id', true);
+
+            if ($influencer_id) {
+                // Generate a clickable link to edit the actual influencer profile for quick access
+                $edit_link = get_edit_post_link($influencer_id);
+                if ($edit_link) {
+                    echo sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($edit_link), esc_html($influencer_id));
+                } else {
+                    echo esc_html($influencer_id);
+                }
+            } else {
+                echo '—';
+            }
+        }
+
+        if ($column === 'saved_groups') {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+
+            if (empty($saved_in) || !is_array($saved_in)) {
+                echo '<em>Uncategorized</em>';
+                return;
+            }
+
+            // Retrieve the post author's normalized groups to map IDs to names
+            $author_id = get_post_field('post_author', $post_id);
+            $user_lists = $this->get_normalized_groups($author_id);
+
+            $group_names = [];
+            foreach ($saved_in as $group_id) {
+                if (isset($user_lists[$group_id])) {
+                    $group_names[] = $user_lists[$group_id]['name'];
+                } else {
+                    // Fallback if the group was deleted but the ID remains in the save meta
+                    $group_names[] = '<em>Unknown Group</em>';
+                }
+            }
+
+            // Output the matched names as a comma-separated list
+            echo wp_kses_post(implode(', ', $group_names));
+        }
+    }
+    /**
+     * Registers custom columns for the 'saved-search' post type admin table.
+     * Reorders the columns to display the Title, Author, and Date cleanly.
+     *
+     * @param array $columns Existing column array.
+     * @return array Modified column array.
+     */
+    public function add_saved_search_admin_columns($columns)
+    {
+        $new_columns = [];
+        foreach ($columns as $key => $title) {
+            $new_columns[$key] = $title;
+
+            // Inject the 'Saved By' column after the title
+            if ($key === 'title') {
+                $new_columns['search_author'] = 'Saved By (User)';
+            }
+        }
+        return $new_columns;
+    }
+
+    /**
+     * Populates the custom columns for the 'saved-search' admin table.
+     *
+     * @param string $column  The name of the column being rendered.
+     * @param int    $post_id The ID of the current post.
+     * @return void
+     */
+    public function populate_saved_search_admin_columns($column, $post_id)
+    {
+        if ($column === 'search_author') {
+            $author_id = get_post_field('post_author', $post_id);
+            if ($author_id) {
+                $user = get_userdata($author_id);
+                if ($user) {
+                    // Provide a link to the user's profile for administrative convenience
+                    $user_link = get_edit_user_link($author_id);
+                    echo sprintf('<a href="%s">%s</a>', esc_url($user_link), esc_html($user->display_name));
+                } else {
+                    echo '<em>Deleted User</em>';
+                }
+            } else {
+                echo '—';
+            }
+        }
     }
 
     /**
@@ -2227,81 +2421,6 @@ class Saves_Manager
         }
 
         return false;
-    }
-
-    /**
-     * Registers custom columns for the 'saved-influencer' post type admin table.
-     * Inserts 'Influencer ID' and 'Saved Groups' directly after the Title column.
-     *
-     * @param array $columns Existing column array.
-     * @return array Modified column array.
-     */
-    public function add_saved_influencer_admin_columns($columns)
-    {
-        $new_columns = [];
-        foreach ($columns as $key => $title) {
-            $new_columns[$key] = $title;
-
-            // Insert our custom columns immediately after the 'title' column
-            if ($key === 'title') {
-                $new_columns['influencer_id'] = 'Influencer ID';
-                $new_columns['saved_groups']  = 'Saved Groups';
-            }
-        }
-        return $new_columns;
-    }
-
-    /**
-     * Populates the custom columns for the 'saved-influencer' admin table.
-     * Cross-references the author's custom_influencer_lists to display readable group names.
-     *
-     * @param string $column  The name of the column being rendered.
-     * @param int    $post_id The ID of the current post.
-     * @return void
-     */
-    public function populate_saved_influencer_admin_columns($column, $post_id)
-    {
-        if ($column === 'influencer_id') {
-            $influencer_id = get_post_meta($post_id, 'influencer_id', true);
-
-            if ($influencer_id) {
-                // Generate a clickable link to edit the actual influencer profile for quick access
-                $edit_link = get_edit_post_link($influencer_id);
-                if ($edit_link) {
-                    echo sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($edit_link), esc_html($influencer_id));
-                } else {
-                    echo esc_html($influencer_id);
-                }
-            } else {
-                echo '—';
-            }
-        }
-
-        if ($column === 'saved_groups') {
-            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
-
-            if (empty($saved_in) || !is_array($saved_in)) {
-                echo '<em>Uncategorized</em>';
-                return;
-            }
-
-            // Retrieve the post author's normalized groups to map IDs to names
-            $author_id = get_post_field('post_author', $post_id);
-            $user_lists = $this->get_normalized_groups($author_id);
-
-            $group_names = [];
-            foreach ($saved_in as $group_id) {
-                if (isset($user_lists[$group_id])) {
-                    $group_names[] = $user_lists[$group_id]['name'];
-                } else {
-                    // Fallback if the group was deleted but the ID remains in the save meta
-                    $group_names[] = '<em>Unknown Group</em>';
-                }
-            }
-
-            // Output the matched names as a comma-separated list
-            echo wp_kses_post(implode(', ', $group_names));
-        }
     }
 }
 
