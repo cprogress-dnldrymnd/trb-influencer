@@ -1252,7 +1252,7 @@ class Saves_Manager
                 width: 100%;
             }
 
-            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger button,
+            .add-to-groups.add-to-groups.add-to-groups button,
             .inf-remove-from-group-trigger.inf-remove-from-group-trigger.inf-remove-from-group-trigger button {
                 font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
                 font-size: var(--e-global-typography-2a20fd0-font-size);
@@ -1264,12 +1264,12 @@ class Saves_Manager
                 text-transform: uppercase;
             }
 
-            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger:not(.delete-save) button {
+            .add-to-groups.add-to-groups.add-to-groups:not(.delete-save) button {
                 background-color: transparent;
                 color: var(--e-global-color-accent);
             }
 
-            .save-influencer-trigger.save-influencer-trigger.save-influencer-trigger.delete-save button {
+            .add-to-groups.add-to-groups.add-to-groups.delete-save button {
                 background-color: var(--e-global-color-accent);
                 color: #fff;
             }
