@@ -43,6 +43,8 @@ class Saves_Manager
         add_filter('manage_viewed-influencer_posts_columns', [$this, 'add_viewed_influencer_admin_columns']);
         add_action('manage_viewed-influencer_posts_custom_column', [$this, 'populate_viewed_influencer_admin_columns'], 10, 2);
 
+        // NEW: Integrate viewing tracker
+        add_action('template_redirect', [$this, 'track_influencer_post_view']);
 
         // AJAX hooks for logged-in users
         add_action('wp_ajax_save_user_search', [$this, 'handle_save_search_ajax']);
@@ -69,6 +71,46 @@ class Saves_Manager
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
     }
 
+    /**
+     * Integrates the "Viewed Influencer" tracking logic.
+     */
+    public function track_influencer_post_view()
+    {
+        if (!is_user_logged_in() || !is_singular('influencer')) {
+            return;
+        }
+
+        $current_user_id = get_current_user_id();
+        $influencer_id   = get_the_ID();
+        $post_title      = 'Viewed on ' . current_time('d-M-Y H:i:s');
+
+        $existing_log = get_posts([
+            'post_type'      => 'viewed-influencer',
+            'author'         => $current_user_id,
+            'meta_key'       => 'influencer_id',
+            'meta_value'     => $influencer_id,
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'post_status'    => 'any',
+        ]);
+
+        if (!empty($existing_log)) {
+            wp_update_post([
+                'ID'         => $existing_log[0],
+                'post_title' => $post_title,
+            ]);
+        } else {
+            $new_id = wp_insert_post([
+                'post_title'  => $post_title,
+                'post_type'   => 'viewed-influencer',
+                'post_status' => 'publish',
+                'post_author' => $current_user_id,
+            ]);
+            if (!is_wp_error($new_id)) {
+                update_post_meta($new_id, 'influencer_id', $influencer_id);
+            }
+        }
+    }
 
     /**
      * Registers the custom post types natively.
@@ -134,7 +176,7 @@ class Saves_Manager
     public function disable_cpt_row_actions($actions, $post)
     {
         $restricted_types = ['saved-influencer', 'saved-search', 'viewed-influencer'];
-        
+
         if (in_array($post->post_type, $restricted_types)) {
             unset($actions['edit']);
             unset($actions['inline hide-if-no-js']);
@@ -149,7 +191,7 @@ class Saves_Manager
     public function set_custom_primary_column($default, $screen)
     {
         $restricted_screens = ['edit-saved-search', 'edit-saved-influencer', 'edit-viewed-influencer'];
-        
+
         if (in_array($screen, $restricted_screens)) {
             return 'custom_title';
         }
