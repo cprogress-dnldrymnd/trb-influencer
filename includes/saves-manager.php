@@ -73,6 +73,10 @@ class Saves_Manager
 
     /**
      * Integrates the "Viewed Influencer" tracking logic.
+     * Enforces a maximum limit of 5 viewed profiles per user (FIFO).
+     * Bumps the timestamp on repeated views to keep the most relevant history.
+     *
+     * @return void
      */
     public function track_influencer_post_view()
     {
@@ -80,10 +84,13 @@ class Saves_Manager
             return;
         }
 
-        $current_user_id = get_current_user_id();
-        $influencer_id   = get_the_ID();
-        $post_title      = 'Viewed on ' . current_time('d-M-Y H:i:s');
+        $current_user_id  = get_current_user_id();
+        $influencer_id    = get_the_ID();
+        $current_time     = current_time('mysql');
+        $current_time_gmt = current_time('mysql', 1);
+        $post_title       = 'Viewed on ' . current_time('d-M-Y H:i:s');
 
+        // Check if this influencer was already viewed by the current user
         $existing_log = get_posts([
             'post_type'      => 'viewed-influencer',
             'author'         => $current_user_id,
@@ -95,19 +102,44 @@ class Saves_Manager
         ]);
 
         if (!empty($existing_log)) {
+            // Update the existing record's title and date to bump it to the newest position
             wp_update_post([
-                'ID'         => $existing_log[0],
-                'post_title' => $post_title,
+                'ID'            => $existing_log[0],
+                'post_title'    => $post_title,
+                'post_date'     => $current_time,
+                'post_date_gmt' => $current_time_gmt,
             ]);
         } else {
+            // Insert a new view record
             $new_id = wp_insert_post([
-                'post_title'  => $post_title,
-                'post_type'   => 'viewed-influencer',
-                'post_status' => 'publish',
-                'post_author' => $current_user_id,
+                'post_title'    => $post_title,
+                'post_type'     => 'viewed-influencer',
+                'post_status'   => 'publish',
+                'post_author'   => $current_user_id,
+                'post_date'     => $current_time,
+                'post_date_gmt' => $current_time_gmt,
             ]);
             if (!is_wp_error($new_id)) {
                 update_post_meta($new_id, 'influencer_id', $influencer_id);
+            }
+        }
+
+        // Enforce the 5-item limit per user
+        $all_views = get_posts([
+            'post_type'      => 'viewed-influencer',
+            'author'         => $current_user_id,
+            'posts_per_page' => -1, // Retrieve all to find the excess
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'fields'         => 'ids',
+            'post_status'    => 'any',
+        ]);
+
+        // If the user has more than 5 logs, purge the oldest ones
+        if (count($all_views) > 5) {
+            $views_to_delete = array_slice($all_views, 5);
+            foreach ($views_to_delete as $delete_id) {
+                wp_delete_post($delete_id, true); // Force delete, bypassing the trash
             }
         }
     }
