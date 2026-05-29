@@ -19,11 +19,73 @@
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
+        
+        // --- NEW: Initialize required search filter validation ---
+        validate_required_search_filters();
 
         $(window).on('resize', function () {
             dashboardLogoHeightVar();
         });
     });
+
+    /**
+     * NEW: Validates the main search form before submission.
+     * Iterates over all elements with the 'required-on-search' class to ensure 
+     * the '.tags-container' is populated with at least one '.tag'.
+     */
+    function validate_required_search_filters() {
+        $('.influencer-search-main').on('submit', function (e) {
+            let isValid = true;
+
+            // Iterate over all required filter blocks
+            $(this).find('.required-on-search').each(function () {
+                const $container = $(this);
+                
+                // Verify if tags exist in the tags-container
+                const hasTags = $container.find('.tags-container .tag').length > 0;
+                
+                // Fallback check against actual checkbox states for data integrity
+                const hasCheckedInputs = $container.find('input[type="checkbox"]:checked').length > 0;
+
+                if (!hasTags && !hasCheckedInputs) {
+                    isValid = false;
+                    
+                    // Apply visual error cue
+                    $container.css({
+                        'border': '1px solid #ff4d4d',
+                        'padding': '10px',
+                        'border-radius': '8px',
+                        'transition': 'border 0.3s ease'
+                    });
+                } else {
+                    // Clear visual error cue
+                    $container.css({
+                        'border': '',
+                        'padding': '',
+                        'border-radius': ''
+                    });
+                }
+            });
+
+            // Prevent form submission if validation fails
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please populate all required filters (e.g., Niche) before generating matches.');
+            }
+        });
+
+        // Event listener to dynamically remove the error styling once a user makes a valid selection
+        $('.required-on-search').on('change', 'input[type="checkbox"]', function () {
+            const $container = $(this).closest('.required-on-search');
+            if ($container.find('input[type="checkbox"]:checked').length > 0) {
+                 $container.css({
+                     'border': '',
+                     'padding': '',
+                     'border-radius': ''
+                 });
+            }
+        });
+    }
 
     /**
      * Reads URL parameters on page load and physically checks the corresponding
