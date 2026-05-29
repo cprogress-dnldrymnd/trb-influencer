@@ -305,6 +305,35 @@ class Saves_Manager
     }
 
     /**
+     * Columns for Viewed Influencers
+     */
+    public function add_viewed_influencer_admin_columns($columns)
+    {
+        $new_columns = [];
+        foreach ($columns as $key => $title) {
+            if ($key === 'title') {
+                $new_columns['custom_title']  = 'Title';
+                $new_columns['influencer_id'] = 'Influencer ID';
+            } else {
+                $new_columns[$key] = $title;
+            }
+        }
+        return $new_columns;
+    }
+
+    public function populate_viewed_influencer_admin_columns($column, $post_id)
+    {
+        if ($column === 'custom_title') {
+            echo '<strong>' . esc_html(get_the_title($post_id)) . '</strong>';
+        }
+
+        if ($column === 'influencer_id') {
+            $influencer_id = get_post_meta($post_id, 'influencer_id', true);
+            echo $influencer_id ? esc_html($influencer_id) : '—';
+        }
+    }
+
+    /**
      * Enqueues AJAX localized variables.
      *
      * @return void
