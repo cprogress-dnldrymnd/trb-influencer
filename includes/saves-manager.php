@@ -122,7 +122,7 @@ class Saves_Manager
         return !empty($existing) ? $existing[0] : false;
     }
 
-    /**
+   /**
      * Shortcode: Add to Groups Button
      */
     public function render_add_to_groups_shortcode($atts)
@@ -137,8 +137,8 @@ class Saves_Manager
         // --- UNLOCKED CHECK ---
         if (! $this->is_influencer_unlocked($influencer_id)) {
             ob_start();
-?>
-            <div class="elementor-button-wrapper add-to-groups unlock-and-save-trigger" data-influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
+            ?>
+            <div class="elementor-button-wrapper add-to-groups save-influencer-trigger" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
                 <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
@@ -150,7 +150,7 @@ class Saves_Manager
                     </span>
                 </button>
             </div>
-        <?php
+            <?php
             return ob_get_clean();
         }
 
@@ -164,7 +164,7 @@ class Saves_Manager
             if (is_array($saved_in) && count($saved_in) > 0) {
                 $count = count($saved_in);
                 $button_text = "SAVED({$count})";
-                $extra_class = 'delete-save';
+                $extra_class = 'delete-save'; 
             }
         }
 
@@ -182,7 +182,7 @@ class Saves_Manager
                 </span>
             </button>
         </div>
-    <?php
+        <?php
         return ob_get_clean();
     }
 
@@ -543,7 +543,7 @@ class Saves_Manager
         wp_send_json_success(['message' => 'Search saved successfully!']);
     }
 
-    /**
+   /**
      * AJAX Handler: Get Modal Data
      */
     public function handle_get_modal_data_ajax()
@@ -553,11 +553,6 @@ class Saves_Manager
 
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
         $user_id = get_current_user_id();
-
-        // --- NEW: Security Check ---
-        if (! $this->is_influencer_unlocked($influencer_id)) {
-            wp_send_json_error(['message' => 'You must unlock this creator before saving.']);
-        }
 
         $user_lists = $this->get_normalized_groups($user_id);
         $active_lists = [];
@@ -574,15 +569,18 @@ class Saves_Manager
             }
         }
 
+        // Check if the current creator is locked to tell JS whether to show the warning
+        $is_locked = !$this->is_influencer_unlocked($influencer_id);
+
         wp_send_json_success([
             'all_groups'   => array_values($user_lists),
-            'active_lists' => $active_lists
+            'active_lists' => $active_lists,
+            'is_locked'    => $is_locked
         ]);
     }
 
     /**
-     * AJAX Handler: Save Influencer to Lists
-     * Returns the active group count back to the JS payload for dynamic button updating.
+     * AJAX Handler: Save (and optionally Unlock) Influencer to Lists
      */
     public function handle_save_influencer_lists_ajax()
     {
@@ -595,17 +593,54 @@ class Saves_Manager
 
         if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
 
-        // --- NEW: Security Check ---
+        $is_newly_unlocked = false;
+        $new_balance = null;
+
+        // --- INTEGRATED UNLOCK LOGIC ---
         if (! $this->is_influencer_unlocked($influencer_id)) {
-            wp_send_json_error(['message' => 'You must unlock this creator before saving.']);
+            // Verify MyCred Balance
+            if (function_exists('mycred_get_users_balance')) {
+                $balance = mycred_get_users_balance($user_id);
+                if ($balance < 1) {
+                    wp_send_json_error([
+                        'action' => 'redirect', 
+                        'url' => '/buy-credit/', 
+                        'message' => 'Insufficient credits. Redirecting...'
+                    ]);
+                }
+            } else {
+                wp_send_json_error(['message' => 'Credit system is currently offline.']);
+            }
+
+            // Deduct Credit & Suppress Reload Notice
+            if (function_exists('mycred_subtract')) {
+                mycred_subtract('unlock_influencer', $user_id, 1, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
+                delete_user_meta($user_id, 'mycred_notice');
+            }
+            $new_balance = function_exists('mycred_get_users_balance') ? mycred_get_users_balance($user_id) : 0;
+
+            // Mark as unlocked
+            $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
+            if (!is_array($unlocked)) $unlocked = [];
+            if (!in_array($influencer_id, $unlocked)) {
+                $unlocked[] = $influencer_id;
+                update_user_meta($user_id, 'dd_unlocked_influencers', $unlocked);
+            }
+            
+            $is_newly_unlocked = true;
         }
 
+        // --- STANDARD SAVE LOGIC ---
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
 
         if (empty($selected_lists)) {
             if ($post_id) wp_delete_post($post_id, true);
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>');
-            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved', 'count' => 0]);
+            
+            $message = $is_newly_unlocked 
+                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance)) 
+                : '<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>';
+            
+            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved', 'count' => 0, 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
         } else {
             if (!$post_id) {
                 $post_args = [
@@ -621,10 +656,15 @@ class Saves_Manager
             }
 
             update_post_meta($post_id, 'saved_in_lists', $selected_lists);
-            $message = sprintf('<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>');
-            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists)]);
+            
+            $message = $is_newly_unlocked 
+                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked & Saved</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance)) 
+                : '<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>';
+            
+            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists), 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
         }
     }
+
 
     /**
      * AJAX Handler: Remove Influencer from Group
@@ -1403,10 +1443,15 @@ class Saves_Manager
 
         <div id="inf-modal-overlay" class="inf-modal-overlay">
 
-            <div id="inf-view-manage" class="inf-modal-content">
+           <div id="inf-view-manage" class="inf-modal-content">
                 <div class="inf-modal-header">
                     <h3>Manage groups</h3>
                 </div>
+                
+                <div id="inf-unlock-warning" style="display:none; padding: 12px; background: #fff3cd; color: #856404; font-size: 13px; border-radius: 6px; margin-bottom: 15px;">
+                    Unlocking this creator will deduct <strong>1 credit</strong> from your balance.
+                </div>
+                
                 <div class="inf-lists-container" id="inf-lists-wrapper"></div>
                 <button type="button" class="inf-create-btn" id="inf-btn-go-create">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1548,7 +1593,7 @@ class Saves_Manager
                     $('#inf-lists-wrapper').html(html);
                 }
 
-                // 1. Influencer Saving Flow
+               // 1. Influencer Saving Flow (Opens the Group selection modal)
                 $(document).on('click', '.save-influencer-trigger', function(e) {
                     e.preventDefault();
                     state.triggerBtn = $(this);
@@ -1572,6 +1617,16 @@ class Saves_Manager
                             if (res.success) {
                                 state.groups = res.data.all_groups;
                                 state.activeIds = res.data.active_lists;
+                                
+                                // NEW: Dynamically show/hide unlock warning
+                                if (res.data.is_locked) {
+                                    $('#inf-unlock-warning').show();
+                                    $('#inf-modal-save-influencer').text('Unlock & Save');
+                                } else {
+                                    $('#inf-unlock-warning').hide();
+                                    $('#inf-modal-save-influencer').text('Save');
+                                }
+
                                 renderGroupsList();
                                 switchModalView('inf-view-manage');
                             } else {
@@ -1583,14 +1638,16 @@ class Saves_Manager
                     });
                 });
 
-                // Save Influencer Selection & Display Updated Count dynamically
+                // Save Influencer Selection (Handles both standard saves and credit unlocks)
                 $('#inf-modal-save-influencer').on('click', function() {
                     let selected = [];
                     $('.inf-list-checkbox:checked').each(function() {
                         selected.push($(this).val());
                     });
+                    
                     let $btn = $(this);
-                    $btn.text('Saving...').prop('disabled', true);
+                    let ogBtnText = $btn.text();
+                    $btn.text('Processing...').prop('disabled', true);
 
                     $.ajax({
                         url: ajax_vars.ajax_url,
@@ -1603,8 +1660,22 @@ class Saves_Manager
                         },
                         success: function(res) {
                             if (res.success) {
+                                $('#inf-modal-overlay').hide();
+                                
+                                // Show custom notice
                                 if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
+                                
+                                // Update myCred balance text dynamically if it was an unlock event
+                                if (res.data.is_newly_unlocked && $('.mycred-balance').length) {
+                                    $('.mycred-balance').text(res.data.new_balance);
+                                }
+                                
                                 let $text = state.triggerBtn.find('.elementor-button-text');
+                                let $icon = state.triggerBtn.find('.elementor-button-icon');
+
+                                // Convert the button out of its locked state if it was locked
+                                $icon.html('<svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>');
+                                state.triggerBtn.removeAttr('data-locked');
 
                                 if (res.data.status === 'saved') {
                                     $text.text('SAVED(' + res.data.count + ')');
@@ -1613,12 +1684,21 @@ class Saves_Manager
                                     $text.text('SAVE');
                                     state.triggerBtn.removeClass('delete-save');
                                 }
-
-                                $('#inf-modal-overlay').hide();
                             } else {
-                                alert(res.data.message);
+                                // Graceful handling for insufficient credits redirect
+                                if (res.data.action === 'redirect') {
+                                    $btn.text('Redirecting...');
+                                    window.location.href = res.data.url;
+                                    return;
+                                } else {
+                                    alert(res.data.message);
+                                }
                             }
-                            $btn.text('Save').prop('disabled', false);
+                            $btn.text(ogBtnText).prop('disabled', false);
+                        },
+                        error: function() {
+                            alert('A server error occurred. Please try again.');
+                            $btn.text(ogBtnText).prop('disabled', false);
                         }
                     });
                 });
