@@ -60,6 +60,7 @@ class Saves_Manager
             'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
             'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
             'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
+            'is_single_influencer'  => is_singular('influencer') ? true : false,
         ]);
     }
 
@@ -1668,6 +1669,20 @@ class Saves_Manager
                         },
                         success: function(res) {
                             if (res.success) {
+                                
+                                // --- NEW: Intercept and reload if on a Single Influencer Page ---
+                                if (res.data.is_newly_unlocked && ajax_vars.is_single_influencer) {
+                                    $btn.text('Reloading...');
+                                    display_mycred_notice('<div class="my-cred-notice-text"><h4>Creator Unlocked & Saved</h4><p>1 credit deducted. Reloading page to reveal content...</p></div>');
+                                    
+                                    // Give the user 1.5 seconds to read the success message, then reload
+                                    setTimeout(function() {
+                                        window.location.reload();
+                                    }, 1500);
+                                    
+                                    return; // Halt further JS execution
+                                }
+
                                 $('#inf-modal-overlay').hide();
                                 
                                 // Show custom notice
@@ -1716,7 +1731,7 @@ class Saves_Manager
                         }
                     });
                 });
-                
+
                 // 2. Group Edit / Create Flow
                 $('#inf-btn-go-create').on('click', function() {
                     $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
