@@ -123,7 +123,7 @@ class Saves_Manager
 
     /**
      * Shortcode: Add to Groups Button
-     * Checks database on load to determine text: "SAVE" or "SAVED(X)".
+     * Checks database on load to determine text: "SAVE", "SAVED(X)", or "UNLOCK TO SAVE".
      *
      * @param array $atts Shortcode attributes.
      * @return string HTML output.
@@ -137,6 +137,26 @@ class Saves_Manager
         $influencer_id = get_the_ID();
         if (! $influencer_id) {
             return '';
+        }
+
+        // --- NEW: Check if the creator is unlocked ---
+        if (! $this->is_influencer_unlocked($influencer_id)) {
+            ob_start();
+?>
+            <div class="elementor-button-wrapper add-to-groups" style="cursor: not-allowed; opacity: 0.5;" title="You must unlock this creator to save them.">
+                <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon">
+                            <svg aria-hidden="true" class="e-font-icon-svg e-fas-lock" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="currentColor" d="M400 224h-24v-72C376 68.2 307.8 0 224 0S72 68.2 72 152v72H48c-26.5 0-48 21.5-48 48v192c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V272c0-26.5-21.5-48-48-48zm-104 0H152v-72c0-39.7 32.3-72 72-72s72 32.3 72 72v72z"></path>
+                            </svg>
+                        </span>
+                        <span class="elementor-button-text">UNLOCK TO SAVE</span>
+                    </span>
+                </button>
+            </div>
+        <?php
+            return ob_get_clean();
         }
 
         $user_id = get_current_user_id();
@@ -155,7 +175,7 @@ class Saves_Manager
         }
 
         ob_start();
-?>
+        ?>
         <div class="elementor-button-wrapper add-to-groups save-influencer-trigger <?php echo esc_attr($extra_class); ?>" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
             <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
                 <span class="elementor-button-content-wrapper">
@@ -540,6 +560,11 @@ class Saves_Manager
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
         $user_id = get_current_user_id();
 
+        // --- NEW: Security Check ---
+        if (! $this->is_influencer_unlocked($influencer_id)) {
+            wp_send_json_error(['message' => 'You must unlock this creator before saving.']);
+        }
+
         $user_lists = $this->get_normalized_groups($user_id);
         $active_lists = [];
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
@@ -575,6 +600,11 @@ class Saves_Manager
         $user_id = get_current_user_id();
 
         if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
+
+        // --- NEW: Security Check ---
+        if (! $this->is_influencer_unlocked($influencer_id)) {
+            wp_send_json_error(['message' => 'You must unlock this creator before saving.']);
+        }
 
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
 
@@ -1878,6 +1908,23 @@ class Saves_Manager
             });
         </script>
 <?php
+    }
+
+    /**
+     * Helper: Check if the current user has unlocked (purchased) the influencer.
+     *
+     * @param int $influencer_id The ID of the influencer.
+     * @return bool True if unlocked or if the checking function is missing (fail-safe).
+     */
+    private function is_influencer_unlocked($influencer_id)
+    {
+        if (function_exists('get_user_purchased_post_ids')) {
+            $unlocked_ids = (array) get_user_purchased_post_ids('influencer', true);
+            return in_array($influencer_id, $unlocked_ids);
+        }
+
+        // Fail-safe fallback in case the function isn't loaded
+        return true;
     }
 }
 
