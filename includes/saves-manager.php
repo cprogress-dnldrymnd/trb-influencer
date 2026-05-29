@@ -80,7 +80,7 @@ class Saves_Manager
             'public'              => false, // Disables frontend visibility/querying
             'show_ui'             => true,  // Keeps it visible in the WP Admin menu
             'show_in_menu'        => true,
-            'menu_icon'           => 'dashicons-bookmark',
+            'menu_icon'           => 'dashicons-groups',
             'supports'            => ['title', 'author'],
             'capabilities'        => [
                 'create_posts' => 'do_not_allow', // Removes the "Add New" button
@@ -187,7 +187,7 @@ class Saves_Manager
         }
     }
 
-    /**
+   /**
      * Columns for Saved Searches
      */
     public function add_saved_search_admin_columns($columns)
@@ -195,9 +195,9 @@ class Saves_Manager
         $new_columns = [];
         foreach ($columns as $key => $title) {
             // Replace native title with our unclickable custom title
-            // Note: Native Author and Date columns are preserved automatically.
             if ($key === 'title') {
-                $new_columns['custom_title'] = 'Title';
+                $new_columns['custom_title']   = 'Title';
+                $new_columns['search_filters'] = 'Filters';
             } else {
                 $new_columns[$key] = $title;
             }
@@ -209,6 +209,34 @@ class Saves_Manager
     {
         if ($column === 'custom_title') {
             echo '<strong>' . esc_html(get_the_title($post_id)) . '</strong>';
+        }
+
+        if ($column === 'search_filters') {
+            $query = get_post_meta($post_id, 'search_query', true);
+            
+            if (empty($query)) {
+                echo '<em>No specific filters applied</em>';
+                return;
+            }
+
+            // Parse the URL query string into an array
+            parse_str(ltrim($query, '?'), $params);
+            
+            $desc_parts = [];
+            foreach ($params as $k => $v) {
+                // Flatten arrays (e.g., multiple niches selected)
+                if (is_array($v)) {
+                    $v = implode(', ', $v);
+                }
+                
+                // Clean up the key name for display
+                $k_clean = ucfirst(str_replace('_', ' ', $k));
+                
+                // Build the formatted string
+                $desc_parts[] = '<strong>' . esc_html($k_clean) . ':</strong> ' . esc_html($v);
+            }
+            
+            echo !empty($desc_parts) ? wp_kses_post(implode(' | ', $desc_parts)) : '<em>No specific filters applied</em>';
         }
     }
 
