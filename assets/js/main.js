@@ -19,7 +19,7 @@
         mobile_nav();
         share_profile();
         dashboardLogoHeightVar();
-        
+
         // --- NEW: Initialize required search filter validation ---
         validate_required_search_filters();
 
@@ -37,35 +37,37 @@
         $('.influencer-search-main').on('submit', function (e) {
             let isValid = true;
 
-            // Iterate over all required filter blocks
-            $(this).find('.required-on-search').each(function () {
-                const $container = $(this);
-                
-                // Verify if tags exist in the tags-container
-                const hasTags = $container.find('.tags-container .tag').length > 0;
-                
-                // Fallback check against actual checkbox states for data integrity
-                const hasCheckedInputs = $container.find('input[type="checkbox"]:checked').length > 0;
+            if ($('.filtered-search.active').length > 1) {
+                // Iterate over all required filter blocks
+                $(this).find('.required-on-search').each(function () {
+                    const $container = $(this);
 
-                if (!hasTags && !hasCheckedInputs) {
-                    isValid = false;
-                    
-                    // Apply visual error cue
-                    $container.css({
-                        'border': '1px solid #ff4d4d',
-                        'padding': '10px',
-                        'border-radius': '8px',
-                        'transition': 'border 0.3s ease'
-                    });
-                } else {
-                    // Clear visual error cue
-                    $container.css({
-                        'border': '',
-                        'padding': '',
-                        'border-radius': ''
-                    });
-                }
-            });
+                    // Verify if tags exist in the tags-container
+                    const hasTags = $container.find('.tags-container .tag').length > 0;
+
+                    // Fallback check against actual checkbox states for data integrity
+                    const hasCheckedInputs = $container.find('input[type="checkbox"]:checked').length > 0;
+
+                    if (!hasTags && !hasCheckedInputs) {
+                        isValid = false;
+
+                        // Apply visual error cue
+                        $container.css({
+                            'border': '1px solid #ff4d4d',
+                            'padding': '10px',
+                            'border-radius': '8px',
+                            'transition': 'border 0.3s ease'
+                        });
+                    } else {
+                        // Clear visual error cue
+                        $container.css({
+                            'border': '',
+                            'padding': '',
+                            'border-radius': ''
+                        });
+                    }
+                });
+            }
 
             // Prevent form submission if validation fails
             if (!isValid) {
@@ -78,11 +80,11 @@
         $('.required-on-search').on('change', 'input[type="checkbox"]', function () {
             const $container = $(this).closest('.required-on-search');
             if ($container.find('input[type="checkbox"]:checked').length > 0) {
-                 $container.css({
-                     'border': '',
-                     'padding': '',
-                     'border-radius': ''
-                 });
+                $container.css({
+                    'border': '',
+                    'padding': '',
+                    'border-radius': ''
+                });
             }
         });
     }
@@ -485,7 +487,7 @@
                             },
                             success: function (response) {
                                 if (mySeq !== requestSeq) return;
-                                
+
                                 // Handle edge case: empty data payload
                                 if (!response || !response.success || !response.data || !Array.isArray(response.data.items)) {
                                     optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
@@ -537,7 +539,7 @@
                         });
                     }, 220); // 220ms debounce execution
                 });
-                
+
                 searchInput.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
