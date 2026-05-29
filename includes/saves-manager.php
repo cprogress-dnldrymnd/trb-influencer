@@ -24,7 +24,7 @@ class Saves_Manager
 
         // NEW: Register Native Post Types
         add_action('init', [$this, 'register_native_post_types']);
-        
+
         // NEW: Disable Edit/View/Quick Edit Row Actions
         add_filter('post_row_actions', [$this, 'disable_cpt_row_actions'], 10, 2);
 
@@ -38,6 +38,11 @@ class Saves_Manager
         // NEW: Admin columns for Saved Searches
         add_filter('manage_saved-search_posts_columns', [$this, 'add_saved_search_admin_columns']);
         add_action('manage_saved-search_posts_custom_column', [$this, 'populate_saved_search_admin_columns'], 10, 2);
+
+        // NEW: Admin columns for Viewed Influencers
+        add_filter('manage_viewed-influencer_posts_columns', [$this, 'add_viewed_influencer_admin_columns']);
+        add_action('manage_viewed-influencer_posts_custom_column', [$this, 'populate_viewed_influencer_admin_columns'], 10, 2);
+
 
         // AJAX hooks for logged-in users
         add_action('wp_ajax_save_user_search', [$this, 'handle_save_search_ajax']);
@@ -64,31 +69,31 @@ class Saves_Manager
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
     }
 
-    
-/**
-     * Registers the 'saved-influencer' and 'saved-search' custom post types natively.
+
+    /**
+     * Registers the custom post types natively.
      * Configures them as non-public, background data structures. 
      */
     public function register_native_post_types()
     {
+        // 1. Saved Influencer CPT
         $influencer_args = [
             'labels'              => [
                 'name'          => 'Saved Influencers',
                 'singular_name' => 'Saved Influencer',
                 'menu_name'     => 'Saved Influencers',
             ],
-            'public'              => false, // Disables frontend visibility/querying
-            'show_ui'             => true,  // Keeps it visible in the WP Admin menu
+            'public'              => false,
+            'show_ui'             => true,
             'show_in_menu'        => true,
             'menu_icon'           => 'dashicons-groups',
             'supports'            => ['title', 'author'],
-            'capabilities'        => [
-                'create_posts' => 'do_not_allow', // Removes the "Add New" button
-            ],
+            'capabilities'        => ['create_posts' => 'do_not_allow'],
             'map_meta_cap'        => true,
         ];
         register_post_type('saved-influencer', $influencer_args);
 
+        // 2. Saved Search CPT
         $search_args = [
             'labels'              => [
                 'name'          => 'Saved Searches',
@@ -100,35 +105,52 @@ class Saves_Manager
             'show_in_menu'        => true,
             'menu_icon'           => 'dashicons-search',
             'supports'            => ['title', 'author'],
-            'capabilities'        => [
-                'create_posts' => 'do_not_allow',
-            ],
+            'capabilities'        => ['create_posts' => 'do_not_allow'],
             'map_meta_cap'        => true,
         ];
         register_post_type('saved-search', $search_args);
+
+        // 3. NEW: Viewed Influencer CPT
+        $viewed_args = [
+            'labels'              => [
+                'name'          => 'Viewed Influencers',
+                'singular_name' => 'Viewed Influencer',
+                'menu_name'     => 'Viewed Influencers',
+            ],
+            'public'              => false,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_icon'           => 'dashicons-visibility',
+            'supports'            => ['title', 'author'],
+            'capabilities'        => ['create_posts' => 'do_not_allow'],
+            'map_meta_cap'        => true,
+        ];
+        register_post_type('viewed-influencer', $viewed_args);
     }
 
     /**
-     * Intercepts and removes the "Edit", "Quick Edit", and "View" links 
-     * from the WordPress admin list tables for our specific CPTs.
+     * Intercepts and removes the "Edit", "Quick Edit", and "View" links.
      */
     public function disable_cpt_row_actions($actions, $post)
     {
-        if ($post->post_type === 'saved-influencer' || $post->post_type === 'saved-search') {
-            unset($actions['edit']);                 // Removes 'Edit'
-            unset($actions['inline hide-if-no-js']); // Removes 'Quick Edit'
-            unset($actions['view']);                 // Removes 'View'
+        $restricted_types = ['saved-influencer', 'saved-search', 'viewed-influencer'];
+        
+        if (in_array($post->post_type, $restricted_types)) {
+            unset($actions['edit']);
+            unset($actions['inline hide-if-no-js']);
+            unset($actions['view']);
         }
         return $actions;
     }
 
     /**
      * Instructs WordPress to treat our 'custom_title' column as the primary column.
-     * This ensures the "Trash" hover actions attach to it properly.
      */
     public function set_custom_primary_column($default, $screen)
     {
-        if ($screen === 'edit-saved-search' || $screen === 'edit-saved-influencer') {
+        $restricted_screens = ['edit-saved-search', 'edit-saved-influencer', 'edit-viewed-influencer'];
+        
+        if (in_array($screen, $restricted_screens)) {
             return 'custom_title';
         }
         return $default;
@@ -166,7 +188,7 @@ class Saves_Manager
 
         if ($column === 'saved_groups') {
             $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
-            
+
             if (empty($saved_in) || !is_array($saved_in)) {
                 echo '<em>Uncategorized</em>';
                 return;
@@ -174,7 +196,7 @@ class Saves_Manager
 
             $author_id = get_post_field('post_author', $post_id);
             $user_lists = $this->get_normalized_groups($author_id);
-            
+
             $group_names = [];
             foreach ($saved_in as $group_id) {
                 if (isset($user_lists[$group_id])) {
@@ -187,7 +209,7 @@ class Saves_Manager
         }
     }
 
-   /**
+    /**
      * Columns for Saved Searches
      */
     public function add_saved_search_admin_columns($columns)
@@ -213,7 +235,7 @@ class Saves_Manager
 
         if ($column === 'search_filters') {
             $query = get_post_meta($post_id, 'search_query', true);
-            
+
             if (empty($query)) {
                 echo '<em>No specific filters applied</em>';
                 return;
@@ -221,21 +243,21 @@ class Saves_Manager
 
             // Parse the URL query string into an array
             parse_str(ltrim($query, '?'), $params);
-            
+
             $desc_parts = [];
             foreach ($params as $k => $v) {
                 // Flatten arrays (e.g., multiple niches selected)
                 if (is_array($v)) {
                     $v = implode(', ', $v);
                 }
-                
+
                 // Clean up the key name for display
                 $k_clean = ucfirst(str_replace('_', ' ', $k));
-                
+
                 // Build the formatted string
                 $desc_parts[] = '<strong>' . esc_html($k_clean) . ':</strong> ' . esc_html($v);
             }
-            
+
             echo !empty($desc_parts) ? wp_kses_post(implode(' | ', $desc_parts)) : '<em>No specific filters applied</em>';
         }
     }
