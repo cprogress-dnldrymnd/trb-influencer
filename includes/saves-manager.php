@@ -1,0 +1,2427 @@
+<?php
+
+/**
+ * Plugin Name: Saves Manager
+ * Author: Digitally Disruptive - Donald Raymundo
+ * Author URI: https://digitallydisruptive.co.uk/
+ * Description: Pro-level manager for handling saved searches and advanced influencer list grouping.
+ *
+ * Class Saves_Manager
+ * Handles server-side AJAX operations, custom shortcodes, user meta list tracking, 
+ * and client-side modal scripts for saving searches and influencers.
+ */
+class Saves_Manager
+{
+
+    /**
+     * Constructor: Initialize hooks, actions, and shortcodes.
+     * Binds all necessary AJAX actions, shortcodes, and script enqueues.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+
+        add_action('init', [$this, 'register_native_post_types']);
+        add_filter('post_row_actions', [$this, 'disable_cpt_row_actions'], 10, 2);
+        add_filter('manage_saved-influencer_posts_columns', [$this, 'add_saved_influencer_admin_columns']);
+        add_action('manage_saved-influencer_posts_custom_column', [$this, 'populate_saved_influencer_admin_columns'], 10, 2);
+        add_filter('manage_saved-search_posts_columns', [$this, 'add_saved_search_admin_columns']);
+        add_action('manage_saved-search_posts_custom_column', [$this, 'populate_saved_search_admin_columns'], 10, 2);
+
+        // AJAX hooks for logged-in users
+        add_action('wp_ajax_save_user_search', [$this, 'handle_save_search_ajax']);
+        add_action('wp_ajax_get_influencer_modal_data', [$this, 'handle_get_modal_data_ajax']);
+        add_action('wp_ajax_save_influencer_to_lists', [$this, 'handle_save_influencer_lists_ajax']);
+        add_action('wp_ajax_get_group_influencers', [$this, 'handle_get_group_influencers_ajax']);
+        add_action('wp_ajax_upsert_influencer_group', [$this, 'handle_upsert_group_ajax']);
+        add_action('wp_ajax_delete_influencer_group', [$this, 'handle_delete_group_ajax']);
+        add_action('wp_ajax_remove_influencer_from_group', [$this, 'handle_remove_influencer_from_group_ajax']);
+        add_action('wp_ajax_unlock_and_save_influencer', [$this, 'handle_unlock_and_save_ajax']);
+
+        // Saved Searches Pagination & Deletion
+        add_action('wp_ajax_load_more_saved_searches', [$this, 'handle_load_more_searches_ajax']);
+        add_action('wp_ajax_delete_saved_search', [$this, 'handle_delete_saved_search_ajax']);
+
+        // Shortcodes
+        add_shortcode('my_saved_groups', [$this, 'render_saved_groups_shortcode']);
+        add_shortcode('add_to_groups_btn', [$this, 'render_add_to_groups_shortcode']);
+        add_shortcode('remove_from_group_btn', [$this, 'render_remove_from_group_shortcode']);
+        add_shortcode('my_saved_searches', [$this, 'render_saved_searches_shortcode']);
+
+        // Frontend hooks for injecting variables, styles, and scripts
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_ajax_variables']);
+        add_action('wp_footer', [$this, 'render_inline_assets'], 100);
+    }
+
+    /**
+     * Registers the 'saved-influencer' and 'saved-search' custom post types natively.
+     * Configures them as non-public, background data structures. The 'create_posts' 
+     * capability is mapped to 'do_not_allow' to remove the "Add New" admin buttons.
+     *
+     * @return void
+     */
+    public function register_native_post_types()
+    {
+        // 1. Saved Influencer CPT
+        $influencer_args = [
+            'labels'              => [
+                'name'          => 'Saved Influencers',
+                'singular_name' => 'Saved Influencer',
+                'menu_name'     => 'Saved Influencers',
+            ],
+            'public'              => false, // Disables frontend visibility/querying
+            'show_ui'             => true,  // Keeps it visible in the WP Admin menu
+            'show_in_menu'        => true,
+            'menu_icon'           => 'dashicons-bookmark',
+            'supports'            => ['title', 'author'],
+            'capabilities'        => [
+                'create_posts' => 'do_not_allow', // Prevents manual creation via WP Admin
+            ],
+            'map_meta_cap'        => true,
+        ];
+        register_post_type('saved-influencer', $influencer_args);
+
+        // 2. Saved Search CPT
+        $search_args = [
+            'labels'              => [
+                'name'          => 'Saved Searches',
+                'singular_name' => 'Saved Search',
+                'menu_name'     => 'Saved Searches',
+            ],
+            'public'              => false,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_icon'           => 'dashicons-search',
+            'supports'            => ['title', 'author'],
+            'capabilities'        => [
+                'create_posts' => 'do_not_allow',
+            ],
+            'map_meta_cap'        => true,
+        ];
+        register_post_type('saved-search', $search_args);
+    }
+
+    /**
+     * Intercepts and removes the "Edit", "Quick Edit", and "View" links 
+     * from the WordPress admin list tables for our specific CPTs.
+     *
+     * @param array   $actions An array of row action links.
+     * @param WP_Post $post    The post object.
+     * @return array Modified array of row action links.
+     */
+    public function disable_cpt_row_actions($actions, $post)
+    {
+        if ($post->post_type === 'saved-influencer' || $post->post_type === 'saved-search') {
+            unset($actions['edit']);                 // Removes 'Edit'
+            unset($actions['inline hide-if-no-js']); // Removes 'Quick Edit'
+            unset($actions['view']);                 // Removes 'View'
+
+            // Only 'trash' or 'delete' will remain.
+        }
+        return $actions;
+    }
+
+    /**
+     * Registers custom columns for the 'saved-influencer' post type admin table.
+     * Inserts 'Influencer ID' and 'Saved Groups' directly after the Title column.
+     *
+     * @param array $columns Existing column array.
+     * @return array Modified column array.
+     */
+    public function add_saved_influencer_admin_columns($columns)
+    {
+        $new_columns = [];
+        foreach ($columns as $key => $title) {
+            $new_columns[$key] = $title;
+
+            // Insert our custom columns immediately after the 'title' column
+            if ($key === 'title') {
+                $new_columns['influencer_id'] = 'Influencer ID';
+                $new_columns['saved_groups']  = 'Saved Groups';
+            }
+        }
+        return $new_columns;
+    }
+
+    /**
+     * Populates the custom columns for the 'saved-influencer' admin table.
+     * Cross-references the author's custom_influencer_lists to display readable group names.
+     *
+     * @param string $column  The name of the column being rendered.
+     * @param int    $post_id The ID of the current post.
+     * @return void
+     */
+    public function populate_saved_influencer_admin_columns($column, $post_id)
+    {
+        if ($column === 'influencer_id') {
+            $influencer_id = get_post_meta($post_id, 'influencer_id', true);
+
+            if ($influencer_id) {
+                // Generate a clickable link to edit the actual influencer profile for quick access
+                $edit_link = get_edit_post_link($influencer_id);
+                if ($edit_link) {
+                    echo sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($edit_link), esc_html($influencer_id));
+                } else {
+                    echo esc_html($influencer_id);
+                }
+            } else {
+                echo '—';
+            }
+        }
+
+        if ($column === 'saved_groups') {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+
+            if (empty($saved_in) || !is_array($saved_in)) {
+                echo '<em>Uncategorized</em>';
+                return;
+            }
+
+            // Retrieve the post author's normalized groups to map IDs to names
+            $author_id = get_post_field('post_author', $post_id);
+            $user_lists = $this->get_normalized_groups($author_id);
+
+            $group_names = [];
+            foreach ($saved_in as $group_id) {
+                if (isset($user_lists[$group_id])) {
+                    $group_names[] = $user_lists[$group_id]['name'];
+                } else {
+                    // Fallback if the group was deleted but the ID remains in the save meta
+                    $group_names[] = '<em>Unknown Group</em>';
+                }
+            }
+
+            // Output the matched names as a comma-separated list
+            echo wp_kses_post(implode(', ', $group_names));
+        }
+    }
+    /**
+     * Registers custom columns for the 'saved-search' post type admin table.
+     * Reorders the columns to display the Title, Author, and Date cleanly.
+     *
+     * @param array $columns Existing column array.
+     * @return array Modified column array.
+     */
+    public function add_saved_search_admin_columns($columns)
+    {
+        $new_columns = [];
+        foreach ($columns as $key => $title) {
+            $new_columns[$key] = $title;
+
+            // Inject the 'Saved By' column after the title
+            if ($key === 'title') {
+                $new_columns['search_author'] = 'Saved By (User)';
+            }
+        }
+        return $new_columns;
+    }
+
+    /**
+     * Populates the custom columns for the 'saved-search' admin table.
+     *
+     * @param string $column  The name of the column being rendered.
+     * @param int    $post_id The ID of the current post.
+     * @return void
+     */
+    public function populate_saved_search_admin_columns($column, $post_id)
+    {
+        if ($column === 'search_author') {
+            $author_id = get_post_field('post_author', $post_id);
+            if ($author_id) {
+                $user = get_userdata($author_id);
+                if ($user) {
+                    // Provide a link to the user's profile for administrative convenience
+                    $user_link = get_edit_user_link($author_id);
+                    echo sprintf('<a href="%s">%s</a>', esc_url($user_link), esc_html($user->display_name));
+                } else {
+                    echo '<em>Deleted User</em>';
+                }
+            } else {
+                echo '—';
+            }
+        }
+    }
+
+    /**
+     * Enqueues AJAX localized variables.
+     *
+     * @return void
+     */
+    public function enqueue_ajax_variables()
+    {
+        wp_register_script('theme-saves-handler', false);
+        wp_enqueue_script('theme-saves-handler');
+        wp_localize_script('theme-saves-handler', 'ajax_vars', [
+            'ajax_url'              => admin_url('admin-ajax.php'),
+            'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
+            'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
+            'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
+            'is_single_influencer'  => is_singular('influencer') ? true : false,
+        ]);
+    }
+
+    /**
+     * Data Normalization Helper: Get User Groups
+     *
+     * @param int $user_id The user ID.
+     * @return array Array of group objects.
+     */
+    private function get_normalized_groups($user_id)
+    {
+        $groups = get_user_meta($user_id, 'custom_influencer_lists', true);
+        $groups = is_array($groups) ? $groups : [];
+        $normalized = [];
+        $changed = false;
+
+        foreach ($groups as $key => $val) {
+            if (is_string($val)) {
+                $id = 'grp_' . md5($val);
+                $normalized[$id] = [
+                    'id'   => $id,
+                    'name' => $val,
+                    'desc' => '',
+                    'date' => wp_date('Y-m-d H:iA')
+                ];
+                $changed = true;
+            } else {
+                if (!isset($val['date'])) {
+                    $val['date'] = wp_date('Y-m-d H:iA');
+                    $changed = true;
+                }
+                $normalized[$key] = $val;
+            }
+        }
+
+        if ($changed) {
+            update_user_meta($user_id, 'custom_influencer_lists', $normalized);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Helper: Get Saved Influencer Post ID
+     *
+     * @param int $influencer_id The ID of the influencer.
+     * @param int $user_id The User ID.
+     * @return int|bool The Post ID if found, false otherwise.
+     */
+    private function get_existing_influencer_save_id($influencer_id, $user_id)
+    {
+        $existing = get_posts([
+            'post_type'      => 'saved-influencer',
+            'author'         => $user_id,
+            'meta_key'       => 'influencer_id',
+            'meta_value'     => $influencer_id,
+            'posts_per_page' => 1,
+            'fields'         => 'ids'
+        ]);
+        return !empty($existing) ? $existing[0] : false;
+    }
+
+    /**
+     * Shortcode: Add to Groups Button
+     */
+    public function render_add_to_groups_shortcode($atts)
+    {
+        if (! is_user_logged_in()) return '';
+
+        $influencer_id = get_the_ID();
+        if (! $influencer_id) return '';
+
+        $user_id = get_current_user_id();
+
+        // --- UNLOCKED CHECK ---
+        if (! $this->is_influencer_unlocked($influencer_id)) {
+            ob_start();
+?>
+            <div class="elementor-button-wrapper add-to-groups save-influencer-trigger" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
+                <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon">
+                            <svg aria-hidden="true" class="e-font-icon-svg e-fas-unlock" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="currentColor" d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path>
+                            </svg>
+                        </span>
+                        <span class="elementor-button-text">UNLOCK & SAVE</span>
+                    </span>
+                </button>
+            </div>
+        <?php
+            return ob_get_clean();
+        }
+
+        // --- STANDARD SAVE BUTTON ---
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+        $button_text = 'SAVE';
+        $extra_class = '';
+
+        if ($post_id) {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($saved_in) && count($saved_in) > 0) {
+                $count = count($saved_in);
+                $button_text = "SAVED({$count})";
+                $extra_class = 'delete-save';
+            }
+        }
+
+        ob_start();
+        ?>
+        <div class="elementor-button-wrapper add-to-groups save-influencer-trigger <?php echo esc_attr($extra_class); ?>" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
+            <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon">
+                        <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
+                        </svg>
+                    </span>
+                    <span class="elementor-button-text"><?php echo esc_html($button_text); ?></span>
+                </span>
+            </button>
+        </div>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Shortcode: Remove from Group Button
+     * Used exclusively inside the group popup loop to remove an influencer from that list.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_remove_from_group_shortcode($atts)
+    {
+        if (! is_user_logged_in()) {
+            return '';
+        }
+
+        $influencer_id = get_the_ID();
+        if (! $influencer_id) {
+            return '';
+        }
+
+        ob_start();
+    ?>
+        <div class="elementor-button-wrapper remove-from-group inf-remove-from-group-trigger" data-influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
+            <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon">
+                        <svg aria-hidden="true" class="e-font-icon-svg e-fas-times" viewBox="0 0 352 512" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="currentColor" d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path>
+                        </svg>
+                    </span>
+                    <span class="elementor-button-text">REMOVE</span>
+                </span>
+            </button>
+        </div>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Shortcode: Render user's custom saved groups.
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_saved_groups_shortcode($atts)
+    {
+        if (! is_user_logged_in()) {
+            return '<div class="inf-alert">Please log in to view your saved groups.</div>';
+        }
+
+        $user_id = get_current_user_id();
+        $user_lists = $this->get_normalized_groups($user_id);
+
+        if (empty($user_lists)) {
+            return '<div class="inf-alert">You have not created any custom groups yet.</div>';
+        }
+
+        global $post;
+        $original_post = $post;
+
+        ob_start();
+    ?>
+        <div class="inf-groups-grid" id="inf-groups-shortcode-grid">
+            <?php foreach ($user_lists as $list) : ?>
+                <div class="inf-group-card" id="card-<?php echo esc_attr($list['id']); ?>">
+
+                    <div class="inf-card-header">
+                        <div class="inf-group-header-left">
+                            <h4 class="inf-group-title" data-field="name"><?php echo esc_html($list['name']); ?></h4>
+                            <?php if (!empty($list['desc'])) : ?>
+                                <div class="inf-group-desc" data-field="desc"><?php echo esc_html($list['desc']); ?></div>
+                            <?php else : ?>
+                                <div class="inf-group-desc" data-field="desc" style="display:none;"></div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="inf-card-actions">
+                            <button class="inf-btn-icon inf-trigger-edit-group" data-id="<?php echo esc_attr($list['id']); ?>" data-name="<?php echo esc_attr($list['name']); ?>" data-desc="<?php echo esc_attr($list['desc']); ?>" title="Edit Group">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 20h9"></path>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                </svg>
+                            </button>
+                            <div class="inf-dropdown-wrapper">
+                                <button class="inf-btn-icon inf-trigger-dropdown" title="Options">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="1"></circle>
+                                        <circle cx="19" cy="12" r="1"></circle>
+                                        <circle cx="5" cy="12" r="1"></circle>
+                                    </svg>
+                                </button>
+                                <div class="inf-dropdown-menu">
+                                    <button class="inf-dropdown-item inf-trigger-delete-group" data-id="<?php echo esc_attr($list['id']); ?>">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                        Delete group
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="inf-card-body view-group-influencers-trigger" data-group-id="<?php echo esc_attr($list['id']); ?>" data-group-name="<?php echo esc_attr($list['name']); ?>">
+                        <div class="inf-group-date"><?php echo esc_html($list['date'] ?? wp_date('Y-m-d H:iA')); ?></div>
+
+                        <div class="inf-group-avatars">
+                            <?php
+                            $saved_posts = get_posts([
+                                'post_type'      => 'saved-influencer',
+                                'author'         => $user_id,
+                                'posts_per_page' => 5,
+                                'meta_query'     => [
+                                    ['key' => 'saved_in_lists', 'value' => '"' . $list['id'] . '"', 'compare' => 'LIKE']
+                                ]
+                            ]);
+
+                            if (! empty($saved_posts)) {
+                                foreach ($saved_posts as $saved_post) {
+                                    $influencer_id = get_post_meta($saved_post->ID, 'influencer_id', true);
+                                    if ($influencer_id) {
+                                        $post = get_post($influencer_id);
+                                        setup_postdata($post);
+
+                                        echo '<div class="inf-avatar-wrapper">';
+                                        echo do_shortcode('[influencer_avatar]');
+                                        echo '</div>';
+                                    }
+                                }
+                            }
+                            ?>
+                        </div>
+                    </div>
+
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php
+
+        $post = $original_post;
+        if ($post) setup_postdata($post);
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Helper: Generate a single Saved Search Card HTML block
+     * Used by both the shortcode and the load more AJAX
+     * * @param WP_Post $post
+     * @return string
+     */
+    private function generate_search_card_html($post)
+    {
+        $query = get_post_meta($post->ID, 'search_query', true);
+        $date = get_the_date('M j, Y \a\t g:i a', $post->ID);
+
+        // Parse query string to generate a human-readable list of active filters
+        parse_str(ltrim($query, '?'), $params);
+        $desc_parts = [];
+        foreach ($params as $k => $v) {
+            if (is_array($v)) {
+                $v = implode(', ', $v);
+            }
+            $k_clean = ucfirst(str_replace('_', ' ', $k));
+            $desc_parts[] = '<strong>' . esc_html($k_clean) . ':</strong> ' . esc_html($v);
+        }
+        $desc_text = !empty($desc_parts) ? implode(' | ', $desc_parts) : 'No specific filters applied';
+
+        // Define the base URL using the requested Page ID 1949
+        $search_url = get_permalink(1949) . $query;
+
+        ob_start();
+    ?>
+        <div class="inf-group-card" id="search-card-<?php echo esc_attr($post->ID); ?>">
+            <div class="inf-card-header">
+                <div class="inf-group-header-left">
+                    <h4 class="inf-group-title"><?php echo esc_html($post->post_title); ?></h4>
+                    <div class="inf-group-desc" style="display:-webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?php echo wp_kses_post($desc_text); ?></div>
+                </div>
+                <div class="inf-card-actions">
+                    <div class="inf-dropdown-wrapper">
+                        <button class="inf-btn-icon inf-trigger-dropdown" title="Options">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                        </button>
+                        <div class="inf-dropdown-menu">
+                            <button class="inf-dropdown-item inf-trigger-delete-search" data-id="<?php echo esc_attr($post->ID); ?>">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Delete search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="inf-card-body" onclick="window.location.href='<?php echo esc_url($search_url); ?>'" style="justify-content: flex-start; padding-top:15px;">
+                <div class="inf-group-date" style="margin-bottom: 0;">Saved on: <?php echo esc_html($date); ?></div>
+                <div class="inf-group-avatars" style="color:var(--e-global-color-secondary); font-size:13px; font-weight:500; margin-top:auto;">
+                    View Search Results &rarr;
+                </div>
+            </div>
+        </div>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Shortcode: Render user's Custom Saved Searches grid
+     *
+     * @param array $atts Shortcode attributes.
+     * @return string HTML output.
+     */
+    public function render_saved_searches_shortcode($atts)
+    {
+        if (!is_user_logged_in()) {
+            return '<div class="inf-alert">Please log in to view your saved searches.</div>';
+        }
+
+        $user_id = get_current_user_id();
+        $args = [
+            'post_type'      => 'saved-search',
+            'post_status'    => 'publish',
+            'author'         => $user_id,
+            'posts_per_page' => 12,
+            'paged'          => 1,
+            'orderby'        => 'date',
+            'order'          => 'DESC'
+        ];
+
+        $q = new WP_Query($args);
+
+        if (!$q->have_posts()) {
+            return '<div class="inf-alert">You have not saved any searches yet.</div>';
+        }
+
+        ob_start();
+    ?>
+        <div class="inf-groups-grid" id="inf-searches-shortcode-grid">
+            <?php
+            foreach ($q->posts as $p) {
+                echo $this->generate_search_card_html($p);
+            }
+            ?>
+        </div>
+        <?php if ($q->max_num_pages > 1) : ?>
+            <div class="inf-load-more-wrapper" style="margin-top:20px;">
+                <button type="button" class="inf-btn inf-btn-save inf-load-more-searches" data-paged="1" style="width: auto; padding: 12px 24px !important;">Load More Searches</button>
+            </div>
+        <?php endif; ?>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * AJAX Handler: Load More Saved Searches
+     */
+    public function handle_load_more_searches_ajax()
+    {
+        check_ajax_referer('save_search_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error();
+
+        $paged = isset($_POST['paged']) ? intval($_POST['paged']) : 1;
+        $user_id = get_current_user_id();
+
+        $args = [
+            'post_type'      => 'saved-search',
+            'post_status'    => 'publish',
+            'author'         => $user_id,
+            'posts_per_page' => 12,
+            'paged'          => $paged,
+            'orderby'        => 'date',
+            'order'          => 'DESC'
+        ];
+
+        $q = new WP_Query($args);
+        $html = '';
+
+        if ($q->have_posts()) {
+            foreach ($q->posts as $p) {
+                $html .= $this->generate_search_card_html($p);
+            }
+        }
+
+        $has_more = $q->max_num_pages > $paged;
+        wp_send_json_success(['html' => $html, 'has_more' => $has_more]);
+    }
+
+    /**
+     * AJAX Handler: Delete Single Saved Search
+     */
+    public function handle_delete_saved_search_ajax()
+    {
+        check_ajax_referer('save_search_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+        $post = get_post($post_id);
+
+        if ($post && $post->post_author == get_current_user_id() && $post->post_type === 'saved-search') {
+            wp_delete_post($post_id, true);
+            wp_send_json_success(['message' => 'Search deleted successfully.']);
+        }
+
+        wp_send_json_error(['message' => 'Could not delete search.']);
+    }
+
+    /**
+     * AJAX Handler: Save User Search
+     */
+    public function handle_save_search_ajax()
+    {
+        check_ajax_referer('save_search_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Please login to save searches.']);
+
+        $user_id = get_current_user_id();
+        $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
+        $search_name = isset($_POST['search_name']) ? sanitize_text_field($_POST['search_name']) : '';
+
+        // Added 'filter' to allowed keys
+        $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score', 'filter'];
+        $clean_data = [];
+
+        foreach ($allowed_keys as $key) {
+            if (isset($raw_data[$key])) {
+                if (is_array($raw_data[$key])) {
+                    $clean_data[$key] = array_map('sanitize_text_field', $raw_data[$key]);
+                } else {
+                    $clean_data[$key] = sanitize_text_field($raw_data[$key]);
+                }
+            }
+        }
+
+        $query_string = http_build_query($clean_data);
+        $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
+        $final_string = '?' . $query_string;
+
+        $post_title = !empty($search_name) ? $search_name : 'Search saved on ' . current_time('M j, Y @ g:i a');
+
+        $post_args = [
+            'post_title'  => $post_title,
+            'post_type'   => 'saved-search',
+            'post_status' => 'publish',
+            'post_author' => $user_id,
+        ];
+
+        $post_id = wp_insert_post($post_args);
+
+        if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Error creating save file.']);
+
+        update_post_meta($post_id, 'search_query', $final_string);
+        wp_send_json_success(['message' => 'Search saved successfully!']);
+    }
+
+    /**
+     * AJAX Handler: Get Modal Data
+     */
+    public function handle_get_modal_data_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'You must be logged in.']);
+
+        $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+        $user_id = get_current_user_id();
+
+        $user_lists = $this->get_normalized_groups($user_id);
+        $active_lists = [];
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+        if ($post_id) {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($saved_in)) {
+                foreach ($saved_in as $idx => $val) {
+                    if (!str_starts_with($val, 'grp_')) $saved_in[$idx] = 'grp_' . md5($val);
+                }
+                update_post_meta($post_id, 'saved_in_lists', $saved_in);
+                $active_lists = $saved_in;
+            }
+        }
+
+        // Check if the current creator is locked to tell JS whether to show the warning
+        $is_locked = !$this->is_influencer_unlocked($influencer_id);
+
+        wp_send_json_success([
+            'all_groups'   => array_values($user_lists),
+            'active_lists' => $active_lists,
+            'is_locked'    => $is_locked
+        ]);
+    }
+
+    /**
+     * AJAX Handler: Save (and optionally Unlock) Influencer to Lists
+     * Processes group assignment and handles dynamic credit deduction with linked logging.
+     */
+    public function handle_save_influencer_lists_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'You must be logged in to save.']);
+
+        // Convert the ID to a strict integer so myCred recognizes it natively
+        $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
+        $selected_lists = isset($_POST['lists']) ? array_map('sanitize_text_field', (array)$_POST['lists']) : [];
+        $user_id = get_current_user_id();
+
+        if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
+
+        $is_newly_unlocked = false;
+        $new_balance = null;
+
+        // --- INTEGRATED UNLOCK LOGIC ---
+        if (! $this->is_influencer_unlocked($influencer_id)) {
+            // Verify MyCred Balance
+            if (function_exists('mycred_get_users_balance')) {
+                $balance = mycred_get_users_balance($user_id);
+                if ($balance < 1) {
+                    wp_send_json_error([
+                        'action' => 'redirect',
+                        'url' => '/buy-credit/',
+                        'message' => 'Insufficient credits. Redirecting...'
+                    ]);
+                }
+                $new_balance = $balance - 1; // Predict the new balance instantly
+            } else {
+                wp_send_json_error(['message' => 'Credit system is currently offline.']);
+            }
+
+            // Deduct Credit & Suppress Reload Notice
+            if (function_exists('mycred_subtract')) {
+                // Construct the dynamic log entry with the creator's name and profile link
+                $influencer_title = get_the_title($influencer_id);
+                $influencer_link  = get_permalink($influencer_id);
+
+                // Note: %s placeholders map to the URL and Title respectively
+                $log_template = sprintf(
+                    'Unlocked creator profile: <a href="%s" target="_blank">%s</a>',
+                    esc_url($influencer_link),
+                    esc_html($influencer_title)
+                );
+
+                // Use 'buy_content' as the reference to perfectly sync with the [mycred_sell_this] shortcode
+                mycred_subtract('buy_content', $user_id, 1, $log_template, $influencer_id);
+
+                // Hook into 'shutdown' with a late priority to wipe the pending queue, 
+                // preventing the default green duplicate notification from firing on the next reload.
+                add_action('shutdown', function () use ($user_id) {
+                    delete_user_meta($user_id, 'mycred_notice');
+                }, 9999);
+            }
+
+            // Mark as unlocked for our custom logic tracking
+            $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
+            if (!is_array($unlocked)) $unlocked = [];
+            if (!in_array($influencer_id, $unlocked)) {
+                $unlocked[] = $influencer_id;
+                update_user_meta($user_id, 'dd_unlocked_influencers', $unlocked);
+            }
+
+            $is_newly_unlocked = true;
+        }
+
+        // --- STANDARD SAVE LOGIC ---
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+        if (empty($selected_lists)) {
+            if ($post_id) wp_delete_post($post_id, true);
+
+            $message = $is_newly_unlocked
+                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance))
+                : '<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>';
+
+            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved', 'count' => 0, 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
+        } else {
+            if (!$post_id) {
+                $post_args = [
+                    'post_title'  => 'Influencer saved on ' . current_time('M j, Y @ g:i a'),
+                    'post_type'   => 'saved-influencer',
+                    'post_status' => 'publish',
+                    'post_author' => $user_id,
+                ];
+                $post_id = wp_insert_post($post_args);
+
+                if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Could not create post.']);
+                update_post_meta($post_id, 'influencer_id', $influencer_id);
+            }
+
+            update_post_meta($post_id, 'saved_in_lists', $selected_lists);
+
+            $message = $is_newly_unlocked
+                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked & Saved</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance))
+                : '<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>';
+
+            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists), 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
+        }
+    }
+
+
+    /**
+     * AJAX Handler: Remove Influencer from Group
+     * Instantly removes the specific influencer from the targeted list via the new shortcode button.
+     */
+    public function handle_remove_influencer_from_group_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+        $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+        $user_id = get_current_user_id();
+
+        if (empty($influencer_id) || empty($group_id)) {
+            wp_send_json_error(['message' => 'Missing influencer or group data.']);
+        }
+
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+        if ($post_id) {
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($saved_in)) {
+                $saved_in = array_diff($saved_in, [$group_id]); // Strip the group out
+
+                if (empty($saved_in)) {
+                    wp_delete_post($post_id, true); // If they belong to no other groups, purge the save
+                } else {
+                    update_post_meta($post_id, 'saved_in_lists', $saved_in);
+                }
+
+                wp_send_json_success(['message' => 'Creator removed successfully.']);
+            }
+        }
+
+        wp_send_json_error(['message' => 'Creator record not found in this group.']);
+    }
+
+    /**
+     * AJAX Handler: Unlock Influencer and Auto-Save to "Unlocked Influencers"
+     */
+    public function handle_unlock_and_save_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $user_id = get_current_user_id();
+        $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
+
+        if (!$influencer_id) wp_send_json_error(['message' => 'Invalid creator profile.']);
+
+        // 1. Verify MyCred Balance
+        if (function_exists('mycred_get_users_balance')) {
+            $balance = mycred_get_users_balance($user_id);
+            if ($balance < 1) {
+                wp_send_json_error([
+                    'action' => 'redirect',
+                    'url' => '/buy-credit/',
+                    'message' => 'Insufficient credits. Redirecting...'
+                ]);
+            }
+        } else {
+            wp_send_json_error(['message' => 'Credit system is currently offline.']);
+        }
+
+        // 2. Deduct Credit & Suppress Reload Notice
+        if (function_exists('mycred_subtract')) {
+            mycred_subtract('unlock_influencer', $user_id, 1, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
+
+            // Delete the queued myCred notice to prevent it from showing on the next page reload
+            delete_user_meta($user_id, 'mycred_notice');
+        }
+
+        // Fetch new balance to pass back to the DOM
+        $new_balance = function_exists('mycred_get_users_balance') ? mycred_get_users_balance($user_id) : 0;
+
+        // 3. Mark as unlocked in user meta
+        $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
+        if (!is_array($unlocked)) $unlocked = [];
+        if (!in_array($influencer_id, $unlocked)) {
+            $unlocked[] = $influencer_id;
+            update_user_meta($user_id, 'dd_unlocked_influencers', $unlocked);
+        }
+
+        // 4. Ensure "Unlocked Influencers" group exists
+        $user_lists = $this->get_normalized_groups($user_id);
+        $target_group_id = null;
+
+        foreach ($user_lists as $id => $group) {
+            if (strtolower($group['name']) === 'unlocked influencers') {
+                $target_group_id = $id;
+                break;
+            }
+        }
+
+        if (!$target_group_id) {
+            $target_group_id = uniqid('grp_');
+            $user_lists[$target_group_id] = [
+                'id'   => $target_group_id,
+                'name' => 'Unlocked Influencers',
+                'desc' => 'Creators you have automatically unlocked using credits.',
+                'date' => wp_date('Y-m-d H:iA')
+            ];
+            update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
+        }
+
+        // 5. Save the influencer to this specific group
+        $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+        if (!$post_id) {
+            $post_id = wp_insert_post([
+                'post_title'  => 'Influencer saved on ' . current_time('M j, Y @ g:i a'),
+                'post_type'   => 'saved-influencer',
+                'post_status' => 'publish',
+                'post_author' => $user_id,
+            ]);
+            update_post_meta($post_id, 'influencer_id', $influencer_id);
+        }
+
+        $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+        if (!is_array($saved_in)) $saved_in = [];
+
+        if (!in_array($target_group_id, $saved_in)) {
+            $saved_in[] = $target_group_id;
+            update_post_meta($post_id, 'saved_in_lists', $saved_in);
+        }
+
+        // Construct custom notice to return to JS
+        $custom_notice = sprintf(
+            '<div class="my-cred-notice-text">
+                <h4>Creator Unlocked</h4>
+                <p>1 credit deducted. New balance: <strong>%s</strong>.</p>
+             </div>',
+            esc_html($new_balance)
+        );
+
+        wp_send_json_success([
+            'message' => 'Creator unlocked and saved!',
+            'count' => count($saved_in),
+            'new_balance' => $new_balance,
+            'notice_html' => $custom_notice
+        ]);
+    }
+
+    /**
+     * AJAX Handler: Upsert (Create/Update) Group
+     */
+    public function handle_upsert_group_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $user_id = get_current_user_id();
+        $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+        $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
+        $desc = isset($_POST['desc']) ? sanitize_textarea_field($_POST['desc']) : '';
+
+        if (empty($name)) wp_send_json_error(['message' => 'Group name is required.']);
+
+        $user_lists = $this->get_normalized_groups($user_id);
+
+        if (empty($group_id)) {
+            $group_id = uniqid('grp_');
+            $date = wp_date('Y-m-d H:iA');
+        } else {
+            $date = isset($user_lists[$group_id]['date']) ? $user_lists[$group_id]['date'] : wp_date('Y-m-d H:iA');
+        }
+
+        $user_lists[$group_id] = [
+            'id'   => $group_id,
+            'name' => $name,
+            'desc' => $desc,
+            'date' => $date
+        ];
+
+        update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
+        wp_send_json_success(['group' => $user_lists[$group_id]]);
+    }
+
+    /**
+     * AJAX Handler: Delete Group
+     */
+    public function handle_delete_group_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+
+        $user_id = get_current_user_id();
+        $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+
+        if (empty($group_id)) wp_send_json_error(['message' => 'Group ID missing.']);
+
+        $user_lists = $this->get_normalized_groups($user_id);
+        if (isset($user_lists[$group_id])) {
+            unset($user_lists[$group_id]);
+            update_user_meta($user_id, 'custom_influencer_lists', $user_lists);
+        }
+
+        $saved_posts = get_posts([
+            'post_type'      => 'saved-influencer',
+            'author'         => $user_id,
+            'posts_per_page' => -1,
+            'meta_query'     => [
+                ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
+            ]
+        ]);
+
+        foreach ($saved_posts as $post) {
+            $lists = get_post_meta($post->ID, 'saved_in_lists', true);
+            if (is_array($lists)) {
+                $lists = array_diff($lists, [$group_id]);
+                if (empty($lists)) {
+                    wp_delete_post($post->ID, true);
+                } else {
+                    update_post_meta($post->ID, 'saved_in_lists', $lists);
+                }
+            }
+        }
+
+        wp_send_json_success(['message' => 'Group deleted.']);
+    }
+
+    /**
+     * AJAX Handler: Get Group Influencers
+     * Now renders Elementor Loop Item 14897 per influencer to achieve the 1-per-row layout.
+     */
+    public function handle_get_group_influencers_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized.']);
+
+        $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+        $user_id = get_current_user_id();
+
+        if (empty($group_id)) wp_send_json_error(['message' => 'Invalid group requested.']);
+
+        $saved_posts = get_posts([
+            'post_type'      => 'saved-influencer',
+            'author'         => $user_id,
+            'posts_per_page' => -1,
+            'meta_query'     => [
+                ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
+            ]
+        ]);
+
+        if (empty($saved_posts)) {
+            wp_send_json_success(['html' => '<div class="inf-alert" style="margin:20px;">No creators found in this group.</div>']);
+        }
+
+        global $post;
+        $original_post = $post;
+
+        $html = '<div class="inf-group-creators-loop">';
+        foreach ($saved_posts as $saved_post) {
+            $influencer_id = get_post_meta($saved_post->ID, 'influencer_id', true);
+
+            if ($influencer_id) {
+                // Temporarily hijack the global $post so the Elementor Loop item populates correctly
+                $post = get_post($influencer_id);
+                setup_postdata($post);
+
+                $html .= '<div class="inf-loop-item-row">';
+                $html .= do_shortcode('[elementor-template id="14897"]');
+                $html .= '</div>';
+            }
+        }
+        $html .= '</div>';
+
+        // Restore global state to prevent interference with other plugins
+        $post = $original_post;
+        if ($post) setup_postdata($post);
+
+        wp_send_json_success(['html' => $html]);
+    }
+
+    /**
+     * Renders Inline JavaScript, CSS, and HTML for the Modals & Shortcode.
+     */
+    public function render_inline_assets()
+    {
+    ?>
+        <style>
+            /* =========================================================================
+               BULLETPROOF ELEMENTOR CSS RESETS
+               ========================================================================= */
+            #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-searches-shortcode-grid button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn,
+            #inf-modal-overlay button.inf-btn-back,
+            #inf-modal-overlay button.inf-create-btn,
+            #inf-groups-shortcode-grid button.inf-dropdown-item,
+            #inf-searches-shortcode-grid button.inf-dropdown-item {
+                background-image: none !important;
+                letter-spacing: normal !important;
+                text-transform: none !important;
+                box-shadow: none !important;
+                text-decoration: none !important;
+                font-family: inherit !important;
+            }
+
+            #inf-groups-shortcode-grid button.inf-btn-icon,
+            #inf-searches-shortcode-grid button.inf-btn-icon,
+            #inf-modal-overlay button.inf-btn-icon {
+                background-color: transparent !important;
+                border: none !important;
+                cursor: pointer !important;
+                color: #888 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border-radius: 4px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                width: 28px !important;
+                height: 28px !important;
+                line-height: 1 !important;
+            }
+
+            #inf-groups-shortcode-grid button.inf-btn-icon:hover,
+            #inf-searches-shortcode-grid button.inf-btn-icon:hover,
+            #inf-modal-overlay button.inf-btn-icon:hover {
+                background-color: #f0f2f5 !important;
+                color: var(--e-global-color-primary) !important;
+            }
+
+            #inf-groups-shortcode-grid button.inf-btn-icon svg,
+            #inf-searches-shortcode-grid button.inf-btn-icon svg,
+            #inf-modal-overlay button.inf-btn-icon svg {
+                width: 16px !important;
+                height: 16px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                fill: none !important;
+            }
+
+            /* Resets for Modal Input Fields */
+            #inf-modal-overlay .inf-input-group label {
+                display: block !important;
+                margin-bottom: 6px !important;
+                font-size: 13px !important;
+                color: #000 !important;
+                font-weight: 500 !important;
+                font-family: 'Work Sans', sans-serif !important;
+                line-height: 1.5 !important;
+            }
+
+            #inf-modal-overlay .inf-input,
+            #inf-modal-overlay .inf-textarea {
+                width: 100% !important;
+                padding: 10px 12px !important;
+                border: 1px solid #ddd !important;
+                border-radius: 6px !important;
+                font-size: 14px !important;
+                box-sizing: border-box !important;
+                font-family: 'Work Sans', sans-serif !important;
+                color: var(--e-global-color-primary) !important;
+                background-color: #fff !important;
+                line-height: 1.5 !important;
+                box-shadow: none !important;
+                height: auto !important;
+                letter-spacing: normal !important;
+                text-transform: none !important;
+                text-shadow: none !important;
+                margin: 0 !important;
+            }
+
+            #inf-modal-overlay .inf-textarea {
+                resize: vertical !important;
+                min-height: 80px !important;
+            }
+
+            /* Shortcode Grid Styling */
+            .inf-groups-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+
+            .inf-group-card {
+                background: #fdfdfd;
+                border-radius: 8px;
+                border: 1px solid #e2e4e7;
+                display: flex;
+                flex-direction: column;
+                transition: 0.2s;
+                position: relative;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                height: 160px;
+            }
+
+            .inf-group-card:hover {
+                border-color: #d0d3d8;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            }
+
+            /* Card Header & Actions */
+            .inf-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 20px 20px 0 20px;
+            }
+
+            .inf-group-header-left {
+                flex: 1;
+                padding-right: 12px;
+                overflow: hidden;
+            }
+
+            .inf-group-title {
+                margin: 0;
+                font-size: 15px;
+                color: var(--e-global-color-primary);
+                font-weight: 500;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .inf-group-desc {
+                margin: 6px 0 0 0;
+                font-size: 13px;
+                color: #666;
+                line-height: 1.4;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-family: 'Work Sans', sans-serif;
+            }
+
+            .inf-card-actions {
+                display: flex;
+                gap: 4px;
+                position: relative;
+                z-index: 10;
+            }
+
+            /* Dropdown Menu */
+            .inf-dropdown-wrapper {
+                position: relative;
+            }
+
+            .inf-dropdown-menu {
+                position: absolute;
+                right: 0;
+                top: 100%;
+                background: #fff;
+                border: 1px solid #eee;
+                border-radius: 6px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                width: 140px;
+                display: none;
+                z-index: 20;
+                padding: 6px;
+                margin-top: 4px;
+            }
+
+            .inf-dropdown-wrapper.active .inf-dropdown-menu {
+                display: block;
+            }
+
+            #inf-groups-shortcode-grid button.inf-dropdown-item,
+            #inf-searches-shortcode-grid button.inf-dropdown-item {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                width: 100% !important;
+                padding: 8px 10px !important;
+                margin: 0 !important;
+                border: none !important;
+                background-color: transparent !important;
+                text-align: left !important;
+                cursor: pointer !important;
+                font-size: 13px !important;
+                color: #000 !important;
+                border-radius: 4px !important;
+            }
+
+            #inf-groups-shortcode-grid button.inf-dropdown-item:hover,
+            #inf-searches-shortcode-grid button.inf-dropdown-item:hover {
+                background-color: #f8f9fa !important;
+                color: #dc3545 !important;
+            }
+
+            /* Card Body */
+            .inf-card-body {
+                padding: 0 20px 20px 20px;
+                cursor: pointer;
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+
+            .inf-group-date {
+                font-size: 12px;
+                color: #999;
+                margin-bottom: 12px;
+            }
+
+            /* Avatars */
+            .inf-group-avatars {
+                display: flex;
+                align-items: center;
+            }
+
+            .inf-avatar-wrapper {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                border: 2px solid #fff;
+                margin-left: -8px;
+                overflow: hidden;
+                background: #eee;
+            }
+
+            .inf-avatar-wrapper.inf-avatar-wrapper.inf-avatar-wrapper .influencer-avatar-fallback {
+                width: 100%;
+                height: 100%;
+                font-size: 8px;
+            }
+
+            .inf-avatar-wrapper:first-child {
+                margin-left: 0;
+            }
+
+            .inf-avatar-wrapper img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+
+            .inf-alert {
+                padding: 12px;
+                background: #fff3cd;
+                color: #856404;
+                border-radius: 6px;
+            }
+
+            /* Modal Framework */
+            .inf-modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                z-index: 99999;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                font-family: inherit;
+            }
+
+            .inf-modal-content {
+                background: #fdfdfd;
+                padding: 24px;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 420px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                position: relative;
+                display: none;
+            }
+
+            /* 1000px Wide Modal Modifier specifically for the list view */
+            .inf-modal-content.inf-modal-wide {
+                max-width: 1000px !important;
+                width: 95% !important;
+            }
+
+            .inf-modal-content.active-view {
+                display: block;
+            }
+
+            .inf-modal-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .inf-modal-header h3 {
+                margin: 0;
+                font-size: 18px;
+                color: var(--e-global-color-primary);
+                font-weight: 500;
+                font-family: Work Sans, sans-serif;
+            }
+
+            #inf-modal-overlay button.inf-btn-back {
+                background-color: transparent !important;
+                border: none !important;
+                cursor: pointer !important;
+                color: #666 !important;
+                padding: 0 10px 0 0 !important;
+                margin: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                font-size: 14px !important;
+            }
+
+            #inf-modal-overlay button.inf-btn-back:hover {
+                color: var(--e-global-color-primary) !important;
+            }
+
+            .inf-input-group label span {
+                color: #dc3545;
+            }
+
+            .inf-lists-container {
+                max-height: 250px;
+                overflow-y: auto;
+                margin-bottom: 12px;
+            }
+
+            .inf-list-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 4px;
+                border-radius: 6px;
+            }
+
+            .inf-list-item:hover {
+                background: #f5f5f5;
+            }
+
+            .inf-list-item-left {
+                display: flex;
+                align-items: center;
+                flex-grow: 1;
+                cursor: pointer;
+            }
+
+            .inf-list-item-left input {
+                margin-right: 12px;
+                cursor: pointer;
+            }
+
+            .inf-list-item-left label {
+                cursor: pointer;
+                font-size: 14px;
+                color: #000;
+                user-select: none;
+                font-family: Work Sans, sans-serif;
+            }
+
+            #inf-modal-overlay button.inf-create-btn {
+                background-color: transparent !important;
+                border: none !important;
+                color: #666 !important;
+                font-size: 14px !important;
+                cursor: pointer !important;
+                padding: 10px 4px !important;
+                margin: 0 0 16px 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                width: 100% !important;
+                justify-content: flex-start !important;
+            }
+
+            #inf-modal-overlay button.inf-create-btn:hover {
+                color: var(--e-global-color-secondary) !important;
+            }
+
+            .inf-modal-actions {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                margin-top: 24px;
+            }
+
+            button.inf-btn {
+                flex: 1 !important;
+                padding: 10px !important;
+                margin: 0 !important;
+                border-radius: 8px !important;
+                font-weight: 500 !important;
+                cursor: pointer !important;
+                text-align: center !important;
+                transition: 0.2s !important;
+                font-size: 14px !important;
+                border: none !important;
+                font-family: inherit !important;
+            }
+
+            button.inf-btn-cancel {
+                background-color: transparent !important;
+                color: var(--e-global-color-secondary) !important;
+                border: 1px solid var(--e-global-color-secondary) !important;
+            }
+
+            button.inf-btn-cancel:hover {
+                background-color: #eaeaea !important;
+            }
+
+            button.inf-btn-save {
+                background-color: var(--e-global-color-secondary) !important;
+                color: #fff !important;
+            }
+
+            /* Enhanced Group Creators Loop Grid */
+            .inf-group-creators-loop {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                max-height: 65vh;
+                overflow-y: auto;
+                padding: 10px 0;
+                width: 100%;
+                padding: 0 24px 24px;
+                box-sizing: border-box;
+            }
+
+            .inf-loop-item-row {
+                width: 100%;
+            }
+
+            .add-to-groups.add-to-groups.add-to-groups button,
+            .inf-remove-from-group-trigger.inf-remove-from-group-trigger.inf-remove-from-group-trigger button {
+                font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
+                font-size: var(--e-global-typography-2a20fd0-font-size);
+                font-weight: var(--e-global-typography-2a20fd0-font-weight);
+                line-height: var(--e-global-typography-2a20fd0-line-height);
+                letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
+                padding: 15px 15px 15px 15px;
+                width: 100%;
+                text-transform: uppercase;
+            }
+
+            .add-to-groups.add-to-groups.add-to-groups:not(.delete-save) button {
+                background-color: transparent;
+                color: var(--e-global-color-accent);
+            }
+
+            .add-to-groups.add-to-groups.add-to-groups.delete-save button {
+                background-color: var(--e-global-color-accent);
+                color: #fff;
+            }
+
+            /* Remove from Group specific overrides */
+            .inf-remove-from-group-trigger button {
+                background-color: transparent !important;
+                color: var(--e-global-color-accent) !important;
+                transition: 0.2s;
+            }
+
+            .inf-remove-from-group-trigger button:hover {
+                background-color: #ffe6e6 !important;
+                color: #dc3545 !important;
+            }
+
+            .inf-view-group-footer {
+                padding: 24px;
+                display: flex;
+                flex-direction: row;
+                gap: 1rem;
+                border-top: 1px solid var(--e-global-color-2210fb2);
+            }
+
+            #inf-export-group-pdf {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+            }
+        </style>
+
+        <div id="inf-modal-overlay" class="inf-modal-overlay">
+
+            <div id="inf-view-manage" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <h3>Manage groups</h3>
+                </div>
+
+                <div id="inf-unlock-warning" style="display:none; padding: 12px; background: #fff3cd; color: #856404; font-size: 13px; border-radius: 6px; margin-bottom: 15px;">
+                    Unlocking this creator will deduct <strong>1 credit</strong> from your balance.
+                </div>
+
+                <div class="inf-lists-container" id="inf-lists-wrapper"></div>
+                <button type="button" class="inf-create-btn" id="inf-btn-go-create">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg> Create new group
+                </button>
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-modal-save-influencer">Save</button>
+                </div>
+            </div>
+
+            <div id="inf-view-edit" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <button class="inf-btn-back" id="inf-btn-back-manage">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg> Back
+                    </button>
+                </div>
+                <input type="hidden" id="inf-edit-id" value="">
+                <div class="inf-input-group">
+                    <label>Group name<span>*</span></label>
+                    <input type="text" id="inf-edit-name" class="inf-input" placeholder="Enter group name">
+                </div>
+                <div class="inf-input-group">
+                    <label>Description</label>
+                    <textarea id="inf-edit-desc" class="inf-textarea" placeholder="Enter group description (optional)"></textarea>
+                </div>
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-modal-save-group">Save</button>
+                </div>
+            </div>
+
+            <div id="inf-view-influencers" class="inf-modal-content inf-modal-wide" style="padding:0; padding-bottom: 12px;">
+                <div class="inf-modal-header" style="padding: 24px 24px 0 24px;">
+                    <h3 id="inf-view-group-title">LOADING...</h3>
+                </div>
+                <div id="inf-view-group-body">
+                    <div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>
+                </div>
+                <div class="inf-view-group-footer">
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-export-group-pdf" style="width: 100%; margin-bottom: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-pdf" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z" />
+                        </svg> Export PDF
+                    </button>
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal" style="width: 100%;">Close</button>
+                </div>
+            </div>
+            <div id="inf-view-unlock-confirm" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <h3>Unlock Creator</h3>
+                </div>
+                <div style="padding: 10px 0 20px; font-size: 15px; color: #444; line-height: 1.5; font-family: 'Work Sans', sans-serif;">
+                    Unlocking this creator will deduct <strong>1 credit</strong> from your balance and automatically add them to your <strong>"Unlocked Influencers"</strong> saved list.
+                </div>
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-confirm-unlock-btn">Confirm & Unlock</button>
+                </div>
+            </div>
+            <div id="inf-view-save-search" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <h3>Name your search</h3>
+                </div>
+                <div class="inf-input-group">
+                    <label>Search name<span>*</span></label>
+                    <input type="text" id="inf-save-search-name" class="inf-input" placeholder="e.g. Top Tech Creators UK">
+                </div>
+                <div class="inf-modal-actions">
+                    <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
+                    <button type="button" class="inf-btn inf-btn-save" id="inf-modal-confirm-save-search">Save Search</button>
+                </div>
+            </div>
+
+        </div>
+
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+
+                function display_mycred_notice(html) {
+                    var $n = $('<div class="notice-wrap"><div class="notice-item-wrapper"><div class="notice-item succes">' + html + '</div></div></div>');
+                    $('body').append($n);
+                    $n.fadeIn(300);
+                    setTimeout(function() {
+                        $n.fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                    }, 4000);
+                }
+
+                // Global State
+                let state = {
+                    influencerId: null,
+                    triggerBtn: null,
+                    groups: [],
+                    activeIds: [],
+                    entryPoint: '',
+                    viewingGroupId: null,
+                    viewingGroupName: ''
+                };
+
+                function switchModalView(viewId) {
+                    $('.inf-modal-content').removeClass('active-view');
+                    $('#' + viewId).addClass('active-view');
+                    $('#inf-modal-overlay').css('display', 'flex');
+                }
+                $('.inf-close-modal').on('click', function() {
+                    $('#inf-modal-overlay').hide();
+                });
+                $('#inf-modal-overlay').on('click', function(e) {
+                    if (e.target === this) $(this).hide();
+                });
+
+                function renderGroupsList() {
+                    let html = '';
+                    if (state.groups.length === 0) {
+                        html = '<p style="font-size:13px; color:#666;">No groups found. Create one below.</p>';
+                    } else {
+                        state.groups.forEach(function(g) {
+                            let checked = state.activeIds.includes(g.id) ? 'checked' : '';
+                            html += `
+                                <div class="inf-list-item">
+                                    <div class="inf-list-item-left">
+                                        <input type="checkbox" id="chk_${g.id}" value="${g.id}" class="inf-list-checkbox" ${checked}>
+                                        <label for="chk_${g.id}">${g.name}</label>
+                                    </div>
+                                    <button type="button" class="inf-btn-icon inf-trigger-edit-group" data-id="${g.id}" data-name="${g.name}" data-desc="${g.desc}">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    </button>
+                                </div>
+                            `;
+                        });
+                    }
+                    $('#inf-lists-wrapper').html(html);
+                }
+
+                // 1. Influencer Saving Flow (Opens the Group selection modal)
+                $(document).on('click', '.save-influencer-trigger', function(e) {
+                    e.preventDefault();
+                    state.triggerBtn = $(this);
+                    state.influencerId = state.triggerBtn.attr('influencer-id');
+                    state.entryPoint = 'influencer';
+
+                    let $btnText = state.triggerBtn.find('.elementor-button-text');
+                    let ogText = $btnText.text();
+                    $btnText.text('Loading...');
+                    state.triggerBtn.css('pointer-events', 'none');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'get_influencer_modal_data',
+                            security: ajax_vars.save_influencer_nonce,
+                            influencer_id: state.influencerId
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                state.groups = res.data.all_groups;
+                                state.activeIds = res.data.active_lists;
+
+                                // NEW: Dynamically show/hide unlock warning
+                                if (res.data.is_locked) {
+                                    $('#inf-unlock-warning').show();
+                                    $('#inf-modal-save-influencer').text('Unlock & Save');
+                                } else {
+                                    $('#inf-unlock-warning').hide();
+                                    $('#inf-modal-save-influencer').text('Save');
+                                }
+
+                                renderGroupsList();
+                                switchModalView('inf-view-manage');
+                            } else {
+                                alert('Error: ' + res.data.message);
+                            }
+                            $btnText.text(ogText);
+                            state.triggerBtn.css('pointer-events', 'auto');
+                        }
+                    });
+                });
+
+                // Save Influencer Selection & Display Updated Count dynamically
+                $('#inf-modal-save-influencer').on('click', function() {
+                    let selected = [];
+                    $('.inf-list-checkbox:checked').each(function() {
+                        selected.push($(this).val());
+                    });
+
+                    let $btn = $(this);
+                    let ogBtnText = $btn.text();
+                    $btn.text('Processing...').prop('disabled', true);
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'save_influencer_to_lists',
+                            security: ajax_vars.save_influencer_nonce,
+                            influencer_id: state.influencerId,
+                            lists: selected
+                        },
+                        success: function(res) {
+                            if (res.success) {
+
+                                // --- FOOLPROOF RELOAD LOGIC ---
+                                // Checks both our localized variable and the default WordPress body class
+                                let isSinglePage = (typeof ajax_vars !== 'undefined' && ajax_vars.is_single_influencer) || $('body').hasClass('single-influencer');
+
+                                if (res.data.is_newly_unlocked && isSinglePage) {
+                                    $btn.text('Reloading...');
+                                    $('#inf-modal-overlay').hide();
+
+                                    // Instantly reload the page to render the unlocked [mycred_sell_this] content
+                                    window.location.reload();
+                                    return; // Halt further execution
+                                }
+
+                                $('#inf-modal-overlay').hide();
+
+                                // Show custom notice for standard saves or non-single page unlocks
+                                if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
+
+                                // Update myCred balance text dynamically
+                                if (res.data.is_newly_unlocked) {
+                                    if ($('.myCred-Header-Balance .elementor-shortcode div').length) {
+                                        $('.myCred-Header-Balance .elementor-shortcode div').text(res.data.new_balance);
+                                    }
+                                    if ($('.mycred-balance').length) {
+                                        $('.mycred-balance').text(res.data.new_balance);
+                                    }
+                                }
+
+                                let $text = state.triggerBtn.find('.elementor-button-text');
+                                let $icon = state.triggerBtn.find('.elementor-button-icon');
+
+                                $icon.html('<svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>');
+                                state.triggerBtn.removeAttr('data-locked');
+
+                                if (res.data.status === 'saved') {
+                                    $text.text('SAVED(' + res.data.count + ')');
+                                    state.triggerBtn.addClass('delete-save');
+                                } else {
+                                    $text.text('SAVE');
+                                    state.triggerBtn.removeClass('delete-save');
+                                }
+                            } else {
+                                // Graceful handling for insufficient credits redirect
+                                if (res.data.action === 'redirect') {
+                                    $btn.text('Redirecting...');
+                                    window.location.href = res.data.url;
+                                    return;
+                                } else {
+                                    alert(res.data.message);
+                                }
+                            }
+                            $btn.text(ogBtnText).prop('disabled', false);
+                        },
+                        error: function() {
+                            alert('A server error occurred. Please try again.');
+                            $btn.text(ogBtnText).prop('disabled', false);
+                        }
+                    });
+                });
+
+                // 2. Group Edit / Create Flow
+                $('#inf-btn-go-create').on('click', function() {
+                    $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
+                    $('#inf-btn-back-manage').show();
+                    switchModalView('inf-view-edit');
+                });
+
+                $(document).on('click', '.inf-trigger-edit-group', function(e) {
+                    e.stopPropagation();
+                    $('#inf-edit-id').val($(this).attr('data-id'));
+                    $('#inf-edit-name').val($(this).attr('data-name'));
+                    $('#inf-edit-desc').val($(this).attr('data-desc'));
+
+                    if (state.entryPoint === 'influencer') {
+                        $('#inf-btn-back-manage').show();
+                    } else {
+                        $('#inf-btn-back-manage').hide();
+                    }
+
+                    switchModalView('inf-view-edit');
+                });
+
+                $('#inf-btn-back-manage').on('click', function() {
+                    switchModalView('inf-view-manage');
+                });
+
+                $('#inf-modal-save-group').on('click', function() {
+                    let id = $('#inf-edit-id').val();
+                    let name = $('#inf-edit-name').val().trim();
+                    let desc = $('#inf-edit-desc').val().trim();
+                    if (!name) {
+                        alert("Group name is required.");
+                        return;
+                    }
+                    let $btn = $(this);
+                    $btn.text('Saving...').prop('disabled', true);
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'upsert_influencer_group',
+                            security: ajax_vars.save_influencer_nonce,
+                            group_id: id,
+                            name: name,
+                            desc: desc
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                let newGrp = res.data.group;
+                                if (state.entryPoint === 'influencer') {
+                                    let idx = state.groups.findIndex(g => g.id === newGrp.id);
+                                    if (idx > -1) state.groups[idx] = newGrp;
+                                    else {
+                                        state.groups.push(newGrp);
+                                        state.activeIds.push(newGrp.id);
+                                    }
+                                    renderGroupsList();
+                                    switchModalView('inf-view-manage');
+                                } else {
+                                    let $card = $('#card-' + newGrp.id);
+                                    if ($card.length) {
+                                        $card.find('.inf-group-title').text(newGrp.name);
+
+                                        // Update the Description DOM element properly
+                                        let $desc = $card.find('.inf-group-desc');
+                                        if (newGrp.desc) {
+                                            $desc.text(newGrp.desc).show();
+                                        } else {
+                                            $desc.hide();
+                                        }
+
+                                        $card.find('.inf-trigger-edit-group').attr('data-name', newGrp.name).attr('data-desc', newGrp.desc);
+                                        $card.find('.view-group-influencers-trigger').attr('data-group-name', newGrp.name);
+                                    } else {
+                                        location.reload();
+                                    }
+                                    $('#inf-modal-overlay').hide();
+                                }
+                            } else {
+                                alert(res.data.message);
+                            }
+                            $btn.text('Save').prop('disabled', false);
+                        }
+                    });
+                });
+
+                // 3. Shortcode Interactions
+                $('.inf-groups-grid').on('click', '.inf-trigger-edit-group', function() {
+                    state.entryPoint = 'shortcode';
+                });
+
+                $(document).on('click', '.inf-trigger-dropdown', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active');
+                    $(this).closest('.inf-dropdown-wrapper').toggleClass('active');
+                });
+                $(document).click(function() {
+                    $('.inf-dropdown-wrapper').removeClass('active');
+                });
+
+                $(document).on('click', '.view-group-influencers-trigger', function() {
+                    let id = $(this).attr('data-group-id');
+                    let name = $(this).attr('data-group-name');
+                    state.viewingGroupId = id;
+                    state.viewingGroupName = name;
+                    $('#inf-view-group-title').text(name);
+                    $('#inf-view-group-body').html('<div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>');
+                    switchModalView('inf-view-influencers');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'get_group_influencers',
+                            security: ajax_vars.save_influencer_nonce,
+                            group_id: id
+                        },
+                        success: function(res) {
+                            if (res.success) $('#inf-view-group-body').html(res.data.html);
+                            else $('#inf-view-group-body').html('<div class="inf-alert">' + res.data.message + '</div>');
+                        }
+                    });
+                });
+
+                $(document).on('click', '#inf-export-group-pdf', function() {
+                    if (!state.viewingGroupId) {
+                        alert('No group selected.');
+                        return;
+                    }
+
+                    const form = $('<form>', {
+                        method: 'POST',
+                        action: ajax_vars.ajax_url
+                    });
+
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'action',
+                        value: 'creatordb_export_saved_list_pdf'
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'nonce',
+                        value: ajax_vars.export_pdf_nonce || ''
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'security',
+                        value: ajax_vars.save_influencer_nonce || ''
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'group_id',
+                        value: state.viewingGroupId
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'list_name',
+                        value: state.viewingGroupName || ''
+                    }));
+
+                    $('body').append(form);
+                    form.trigger('submit');
+                    form.remove();
+                });
+
+                $(document).on('click', '.inf-trigger-delete-group', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active');
+                    if (!confirm("Are you sure you want to delete this group? This will remove the group from all saved creators.")) return;
+
+                    let id = $(this).attr('data-id');
+                    let $card = $('#card-' + id);
+                    $card.css('opacity', '0.5');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'delete_influencer_group',
+                            security: ajax_vars.save_influencer_nonce,
+                            group_id: id
+                        },
+                        success: function(res) {
+                            if (res.success) $card.fadeOut(300, function() {
+                                $(this).remove();
+                            });
+                            else {
+                                alert(res.data.message);
+                                $card.css('opacity', '1');
+                            }
+                        }
+                    });
+                });
+
+                // 4. Remove Single Influencer from Currently Opened Group List
+                $(document).on('click', '.inf-remove-from-group-trigger', function(e) {
+                    e.preventDefault();
+                    let $btnWrapper = $(this);
+                    let influencerId = $btnWrapper.attr('data-influencer-id');
+                    let groupId = state.viewingGroupId;
+
+                    if (!groupId) {
+                        alert('Error: Unable to identify the current group context.');
+                        return;
+                    }
+
+                    if (!confirm("Are you sure you want to remove this creator from the current group?")) return;
+
+                    let $btnText = $btnWrapper.find('.elementor-button-text');
+                    let ogText = $btnText.text();
+                    $btnText.text('Removing...');
+                    $btnWrapper.css('pointer-events', 'none');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'remove_influencer_from_group',
+                            security: ajax_vars.save_influencer_nonce,
+                            influencer_id: influencerId,
+                            group_id: groupId
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                // Fade out the specific row inside the modal
+                                $btnWrapper.closest('.inf-loop-item-row').fadeOut(300, function() {
+                                    $(this).remove();
+
+                                    // If this was the last creator, show empty state message
+                                    if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
+                                        $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                    }
+                                });
+                            } else {
+                                alert(res.data.message);
+                                $btnText.text(ogText);
+                                $btnWrapper.css('pointer-events', 'auto');
+                            }
+                        },
+                        error: function() {
+                            alert('A server error occurred. Please try again.');
+                            $btnText.text(ogText);
+                            $btnWrapper.css('pointer-events', 'auto');
+                        }
+                    });
+                });
+
+                // --- NEW: Unlock & Save Flow ---
+                $(document).on('click', '.unlock-and-save-trigger', function(e) {
+                    e.preventDefault();
+                    state.triggerBtn = $(this);
+                    state.influencerId = state.triggerBtn.attr('data-influencer-id');
+                    switchModalView('inf-view-unlock-confirm');
+                });
+
+                $('#inf-confirm-unlock-btn').on('click', function() {
+                    let $btn = $(this);
+                    let ogText = $btn.text();
+                    $btn.text('Processing...').prop('disabled', true);
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'unlock_and_save_influencer',
+                            security: ajax_vars.save_influencer_nonce,
+                            influencer_id: state.influencerId
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $('#inf-modal-overlay').hide();
+
+                                // 1. Display the custom credit usage notice instantly
+                                display_mycred_notice(res.data.notice_html);
+
+                                // 2. Dynamically update the myCred balance text on the screen
+                                // Targets standard myCred output. Add any custom classes your theme uses here if needed.
+                                if ($('.mycred-balance').length) {
+                                    $('.mycred-balance').text(res.data.new_balance);
+                                }
+
+                                // 3. Instantly swap the button to a normal "SAVE" button without reloading
+                                state.triggerBtn
+                                    .removeClass('unlock-and-save-trigger')
+                                    .addClass('save-influencer-trigger delete-save')
+                                    .removeAttr('data-influencer-id')
+                                    .attr('influencer-id', state.influencerId);
+
+                                // Update Icon to Bookmark
+                                state.triggerBtn.find('.elementor-button-icon').html('<svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path></svg>');
+
+                                // Update Text to SAVED(X)
+                                state.triggerBtn.find('.elementor-button-text').text('SAVED(' + res.data.count + ')');
+
+                            } else {
+                                // Graceful handling for insufficient credits redirect
+                                if (res.data.action === 'redirect') {
+                                    $btn.text('Redirecting...');
+                                    window.location.href = res.data.url;
+                                    return;
+                                } else {
+                                    alert(res.data.message);
+                                }
+                            }
+                            $btn.text(ogText).prop('disabled', false);
+                        },
+                        error: function() {
+                            alert('A server error occurred. Please try again.');
+                            $btn.text(ogText).prop('disabled', false);
+                        }
+                    });
+                });
+
+                // 5. Search Form Saving Flow
+                // Triggers the naming modal instead of immediately saving
+                $('.save-search-trigger').on('click', function(e) {
+                    e.preventDefault();
+                    $('#inf-save-search-name').val('');
+                    switchModalView('inf-view-save-search');
+                });
+
+                // Confirms the search save action from inside the modal
+                $('#inf-modal-confirm-save-search').on('click', function() {
+                    let searchName = $('#inf-save-search-name').val().trim();
+                    if (!searchName) {
+                        alert("Please enter a name for your search.");
+                        return;
+                    }
+
+                    let $btn = $(this);
+                    let ogText = $btn.text();
+                    $btn.text('Saving...').prop('disabled', true);
+
+                    let getChecked = (name) => {
+                        let v = [];
+                        $('input[name^="' + name + '"]:checked').each(function() {
+                            v.push($(this).val());
+                        });
+                        return v;
+                    };
+
+                    let searchData = {
+                        'niche': getChecked('niche'),
+                        'platform': getChecked('platform'),
+                        'followers': getChecked('followers'),
+                        'country': getChecked('country'),
+                        'lang': getChecked('lang'),
+                        'gender': getChecked('gender'),
+                        'score': $('input[name="score"]').val(),
+                        'filter': getChecked('filter') // Now safely captures the filter array
+                    };
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'save_user_search',
+                            security: ajax_vars.save_search_nonce,
+                            search_data: searchData,
+                            search_name: searchName
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $('#inf-modal-overlay').hide();
+                                display_mycred_notice('<div class="my-cred-notice-text"><h4>Search Saved</h4><p>Your custom search has been successfully saved.</p></div>');
+
+                                let $trigger = $('.save-search-trigger');
+                                let origTriggerText = $trigger.text();
+                                $trigger.text('Saved!');
+                                setTimeout(() => $trigger.text(origTriggerText), 2000);
+                            } else {
+                                alert(res.data.message);
+                            }
+                            $btn.text(ogText).prop('disabled', false);
+                        }
+                    });
+                });
+
+                // 6. Saved Searches Load More & Deletion
+                let isFetchingSearches = false;
+                $('.inf-load-more-searches').on('click', function() {
+                    if (isFetchingSearches) return;
+
+                    let $btn = $(this);
+                    let nextPage = parseInt($btn.attr('data-paged')) + 1;
+                    isFetchingSearches = true;
+
+                    let ogText = $btn.text();
+                    $btn.text('Loading...');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'load_more_saved_searches',
+                            security: ajax_vars.save_search_nonce,
+                            paged: nextPage
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $('#inf-searches-shortcode-grid').append(res.data.html);
+                                $btn.attr('data-paged', nextPage);
+
+                                // Remove button if no more pages exist
+                                if (!res.data.has_more) {
+                                    $btn.parent().fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
+                                } else {
+                                    $btn.text(ogText);
+                                }
+                            } else {
+                                alert('Error loading more searches.');
+                                $btn.text(ogText);
+                            }
+                            isFetchingSearches = false;
+                        },
+                        error: function() {
+                            alert('A server error occurred while loading searches.');
+                            isFetchingSearches = false;
+                            $btn.text(ogText);
+                        }
+                    });
+                });
+
+                $(document).on('click', '.inf-trigger-delete-search', function(e) {
+                    e.stopPropagation();
+                    $('.inf-dropdown-wrapper').removeClass('active');
+
+                    if (!confirm("Are you sure you want to permanently delete this saved search?")) return;
+
+                    let id = $(this).attr('data-id');
+                    let $card = $('#search-card-' + id);
+                    $card.css('opacity', '0.5');
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'delete_saved_search',
+                            security: ajax_vars.save_search_nonce,
+                            post_id: id
+                        },
+                        success: function(res) {
+                            if (res.success) {
+                                $card.fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                            } else {
+                                alert(res.data.message);
+                                $card.css('opacity', '1');
+                            }
+                        }
+                    });
+                });
+
+            });
+        </script>
+<?php
+    }
+
+    /**
+     * Helper: Check if the current user has unlocked (purchased) the influencer.
+     */
+    private function is_influencer_unlocked($influencer_id)
+    {
+        $user_id = get_current_user_id();
+
+        // 1. Check custom meta from our new unlock function
+        $unlocked_meta = get_user_meta($user_id, 'dd_unlocked_influencers', true);
+        if (is_array($unlocked_meta) && in_array($influencer_id, $unlocked_meta)) {
+            return true;
+        }
+
+        // 2. Check existing ecosystem function
+        if (function_exists('get_user_purchased_post_ids')) {
+            $unlocked_ids = (array) get_user_purchased_post_ids('influencer', true);
+            return in_array($influencer_id, $unlocked_ids);
+        }
+
+        return false;
+    }
+}
+
+new Saves_Manager();
