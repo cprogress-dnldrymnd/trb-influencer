@@ -616,3 +616,34 @@ function trigger_mycred_bank_transfer_on_meta( $mid, $post_id, $meta_key, $meta_
     }
 
 }
+
+/**
+ * Intercepts and formats the myCRED log entry text before it is rendered on the front-end.
+ * * This function checks if the rendered log entry contains the default "Purchase of " string 
+ * and dynamically replaces it with "Unlocked creator profile: " to match the desired UI layout.
+ * Using this filter ensures that both historical and future database entries are displayed uniformly 
+ * without requiring direct database mutation.
+ *
+ * @param string $content   The fully parsed log entry text (e.g., "Purchase of Doctor Sina | Dermatologist").
+ * @param object $log_entry The myCRED log entry data object containing context like ref, ref_id, etc.
+ * @return string           The modified string ready for front-end rendering.
+ */
+function digitally_disruptive_standardize_mycred_log_text( $content, $log_entry ) {
+    
+    // Define the target string we want to intercept.
+    $target_string = 'Purchase of ';
+    
+    // Define the replacement string to match the requested format.
+    $replacement_string = 'Unlocked creator profile: ';
+
+    // Check if the target string exists in the current log entry content.
+    if ( strpos( $content, $target_string ) !== false ) {
+        // Perform the replacement.
+        $content = str_replace( $target_string, $replacement_string, $content );
+    }
+
+    return $content;
+}
+
+// Hook into myCRED's log entry parser with a standard priority of 10, accepting 2 arguments.
+add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_log_text', 10, 2 );
