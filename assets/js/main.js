@@ -422,7 +422,7 @@
                 }
             });
 
-          if (searchInput) {
+            if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const raw = (e.target.value || '');
                     const filter = raw.toLowerCase();
