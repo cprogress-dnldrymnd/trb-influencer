@@ -422,7 +422,7 @@
                 }
             });
 
-            if (searchInput) {
+          if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const raw = (e.target.value || '');
                     const filter = raw.toLowerCase();
@@ -448,6 +448,24 @@
                             return;
                         }
 
+                        /**
+                         * INJECT LOADING STATE
+                         * Utilizes an inline SVG with <animateTransform> to render a spinning 
+                         * loader dynamically. This guarantees rendering without external CSS keyframes,
+                         * preventing flash-of-unstyled-content (FOUC) during AJAX resolution.
+                         */
+                        optionsList.innerHTML = `
+                            <div class="ajax-loading-state" style="padding: 15px; text-align: center; color: #666; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg width="18" height="18" viewBox="0 0 50 50">
+                                    <circle cx="25" cy="25" r="20" fill="none" stroke="#e0e0e0" stroke-width="4"></circle>
+                                    <circle cx="25" cy="25" r="20" fill="none" stroke="#333" stroke-width="4" stroke-dasharray="30 150" stroke-linecap="round">
+                                        <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="0.8s" values="0 25 25;360 25 25"></animateTransform>
+                                    </circle>
+                                </svg>
+                                Searching...
+                            </div>
+                        `;
+
                         const mySeq = ++requestSeq;
                         const selectedInputs = Array.from(widget.querySelectorAll('.dropdown-item input:checked'));
                         const selected = selectedInputs.map(i => i.value);
@@ -467,8 +485,10 @@
                             },
                             success: function (response) {
                                 if (mySeq !== requestSeq) return;
+                                
+                                // Handle edge case: empty data payload
                                 if (!response || !response.success || !response.data || !Array.isArray(response.data.items)) {
-                                    optionsList.innerHTML = '';
+                                    optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
                                 }
 
@@ -494,11 +514,13 @@
                                     mergedItems.push(item);
                                 });
 
+                                // Replace loading state if no final options exist
                                 if (!mergedItems.length) {
-                                    optionsList.innerHTML = '';
+                                    optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
                                 }
 
+                                // Populate valid items
                                 optionsList.innerHTML = mergedItems.map(item => {
                                     const checked = item.selected ? 'checked="checked"' : '';
                                     return '<label class="dropdown-item checkbox-list-item">' +
@@ -510,11 +532,12 @@
                             },
                             error: function () {
                                 if (mySeq !== requestSeq) return;
-                                optionsList.innerHTML = '';
+                                optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #ff4d4d; font-size: 14px;">An error occurred. Please try again.</div>';
                             }
                         });
-                    }, 220);
+                    }, 220); // 220ms debounce execution
                 });
+                
                 searchInput.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
