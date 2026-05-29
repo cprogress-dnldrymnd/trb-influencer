@@ -663,7 +663,7 @@ class Saves_Manager
         wp_send_json_error(['message' => 'Creator record not found in this group.']);
     }
 
-    /**
+   /**
      * AJAX Handler: Unlock Influencer and Auto-Save to "Unlocked Influencers"
      */
     public function handle_unlock_and_save_ajax()
@@ -680,10 +680,9 @@ class Saves_Manager
         if (function_exists('mycred_get_users_balance')) {
             $balance = mycred_get_users_balance($user_id);
             if ($balance < 1) {
-                // Return a redirect instruction to the frontend
                 wp_send_json_error([
-                    'action' => 'redirect',
-                    'url' => '/buy-credit/',
+                    'action' => 'redirect', 
+                    'url' => '/buy-credit/', 
                     'message' => 'Insufficient credits. Redirecting...'
                 ]);
             }
@@ -691,10 +690,16 @@ class Saves_Manager
             wp_send_json_error(['message' => 'Credit system is currently offline.']);
         }
 
-        // 2. Deduct Credit
+        // 2. Deduct Credit & Suppress Reload Notice
         if (function_exists('mycred_subtract')) {
             mycred_subtract('unlock_influencer', $user_id, 1, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
+            
+            // Delete the queued myCred notice to prevent it from showing on the next page reload
+            delete_user_meta($user_id, 'mycred_notice');
         }
+
+        // Fetch new balance to pass back to the DOM
+        $new_balance = function_exists('mycred_get_users_balance') ? mycred_get_users_balance($user_id) : 0;
 
         // 3. Mark as unlocked in user meta
         $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
@@ -707,7 +712,7 @@ class Saves_Manager
         // 4. Ensure "Unlocked Influencers" group exists
         $user_lists = $this->get_normalized_groups($user_id);
         $target_group_id = null;
-
+        
         foreach ($user_lists as $id => $group) {
             if (strtolower($group['name']) === 'unlocked influencers') {
                 $target_group_id = $id;
@@ -740,15 +745,26 @@ class Saves_Manager
 
         $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
         if (!is_array($saved_in)) $saved_in = [];
-
+        
         if (!in_array($target_group_id, $saved_in)) {
             $saved_in[] = $target_group_id;
             update_post_meta($post_id, 'saved_in_lists', $saved_in);
         }
 
+        // Construct custom notice to return to JS
+        $custom_notice = sprintf(
+            '<div class="my-cred-notice-text">
+                <h4>Creator Unlocked</h4>
+                <p>1 credit deducted. New balance: <strong>%s</strong>.</p>
+             </div>',
+            esc_html($new_balance)
+        );
+
         wp_send_json_success([
             'message' => 'Creator unlocked and saved!',
-            'count' => count($saved_in)
+            'count' => count($saved_in),
+            'new_balance' => $new_balance,
+            'notice_html' => $custom_notice
         ]);
     }
 
@@ -1880,9 +1896,17 @@ class Saves_Manager
                         success: function(res) {
                             if (res.success) {
                                 $('#inf-modal-overlay').hide();
-                                display_mycred_notice('<div class="my-cred-notice-text"><h4>Creator Unlocked</h4><p>Creator unlocked and added to "Unlocked Influencers" list.</p></div>');
                                 
-                                // Instantly swap the button to a normal "SAVE" button without reloading
+                                // 1. Display the custom credit usage notice instantly
+                                display_mycred_notice(res.data.notice_html);
+                                
+                                // 2. Dynamically update the myCred balance text on the screen
+                                // Targets standard myCred output. Add any custom classes your theme uses here if needed.
+                                if ($('.mycred-balance').length) {
+                                    $('.mycred-balance').text(res.data.new_balance);
+                                }
+
+                                // 3. Instantly swap the button to a normal "SAVE" button without reloading
                                 state.triggerBtn
                                     .removeClass('unlock-and-save-trigger')
                                     .addClass('save-influencer-trigger delete-save')
@@ -1900,7 +1924,7 @@ class Saves_Manager
                                 if (res.data.action === 'redirect') {
                                     $btn.text('Redirecting...');
                                     window.location.href = res.data.url;
-                                    return; // Halt further execution
+                                    return;
                                 } else {
                                     alert(res.data.message);
                                 }
