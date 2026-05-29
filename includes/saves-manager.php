@@ -579,7 +579,7 @@ class Saves_Manager
         ]);
     }
 
-    /**
+   /**
      * AJAX Handler: Save (and optionally Unlock) Influencer to Lists
      */
     public function handle_save_influencer_lists_ajax()
@@ -587,7 +587,8 @@ class Saves_Manager
         check_ajax_referer('save_influencer_nonce', 'security');
         if (!is_user_logged_in()) wp_send_json_error(['message' => 'You must be logged in to save.']);
 
-        $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
+        // Convert the ID to a strict integer so myCred recognizes it natively
+        $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
         $selected_lists = isset($_POST['lists']) ? array_map('sanitize_text_field', (array)$_POST['lists']) : [];
         $user_id = get_current_user_id();
 
@@ -608,18 +609,25 @@ class Saves_Manager
                         'message' => 'Insufficient credits. Redirecting...'
                     ]);
                 }
+                $new_balance = $balance - 1; // Predict the new balance instantly
             } else {
                 wp_send_json_error(['message' => 'Credit system is currently offline.']);
             }
 
             // Deduct Credit & Suppress Reload Notice
             if (function_exists('mycred_subtract')) {
-                mycred_subtract('unlock_influencer', $user_id, 1, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
-                delete_user_meta($user_id, 'mycred_notice');
+                // Use 'buy_content' as the reference to perfectly sync with the [mycred_sell_this] shortcode
+                mycred_subtract('buy_content', $user_id, 1, 'Purchased creator profile access', $influencer_id);
+                
+                // myCred queues notices in memory and writes them to the DB on 'shutdown'.
+                // We hook into 'shutdown' with a late priority to wipe that queue, 
+                // preventing the default green duplicate notification from firing on the next reload.
+                add_action('shutdown', function() use ($user_id) {
+                    delete_user_meta($user_id, 'mycred_notice');
+                }, 9999);
             }
-            $new_balance = function_exists('mycred_get_users_balance') ? mycred_get_users_balance($user_id) : 0;
 
-            // Mark as unlocked
+            // Mark as unlocked for our custom logic tracking
             $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
             if (!is_array($unlocked)) $unlocked = [];
             if (!in_array($influencer_id, $unlocked)) {
@@ -1638,7 +1646,7 @@ class Saves_Manager
                     });
                 });
 
-                // Save Influencer Selection (Handles both standard saves and credit unlocks)
+               // Save Influencer Selection & Display Updated Count dynamically
                 $('#inf-modal-save-influencer').on('click', function() {
                     let selected = [];
                     $('.inf-list-checkbox:checked').each(function() {
@@ -1665,9 +1673,15 @@ class Saves_Manager
                                 // Show custom notice
                                 if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
                                 
-                                // Update myCred balance text dynamically if it was an unlock event
-                                if (res.data.is_newly_unlocked && $('.mycred-balance').length) {
-                                    $('.mycred-balance').text(res.data.new_balance);
+                                // Update myCred balance text dynamically based on exact widget markup
+                                if (res.data.is_newly_unlocked) {
+                                    if ($('.myCred-Header-Balance .elementor-shortcode div').length) {
+                                        $('.myCred-Header-Balance .elementor-shortcode div').text(res.data.new_balance);
+                                    }
+                                    // Fallback for default class
+                                    if ($('.mycred-balance').length) {
+                                        $('.mycred-balance').text(res.data.new_balance);
+                                    }
                                 }
                                 
                                 let $text = state.triggerBtn.find('.elementor-button-text');
@@ -1702,7 +1716,7 @@ class Saves_Manager
                         }
                     });
                 });
-
+                
                 // 2. Group Edit / Create Flow
                 $('#inf-btn-go-create').on('click', function() {
                     $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
