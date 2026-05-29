@@ -582,6 +582,7 @@ class Saves_Manager
 
    /**
      * AJAX Handler: Save (and optionally Unlock) Influencer to Lists
+     * Processes group assignment and handles dynamic credit deduction with linked logging.
      */
     public function handle_save_influencer_lists_ajax()
     {
@@ -617,11 +618,21 @@ class Saves_Manager
 
             // Deduct Credit & Suppress Reload Notice
             if (function_exists('mycred_subtract')) {
-                // Use 'buy_content' as the reference to perfectly sync with the [mycred_sell_this] shortcode
-                mycred_subtract('buy_content', $user_id, 1, 'Purchased creator profile access', $influencer_id);
+                // Construct the dynamic log entry with the creator's name and profile link
+                $influencer_title = get_the_title($influencer_id);
+                $influencer_link  = get_permalink($influencer_id);
                 
-                // myCred queues notices in memory and writes them to the DB on 'shutdown'.
-                // We hook into 'shutdown' with a late priority to wipe that queue, 
+                // Note: %s placeholders map to the URL and Title respectively
+                $log_template = sprintf(
+                    'Unlocked creator profile: <a href="%s" target="_blank">%s</a>', 
+                    esc_url($influencer_link), 
+                    esc_html($influencer_title)
+                );
+
+                // Use 'buy_content' as the reference to perfectly sync with the [mycred_sell_this] shortcode
+                mycred_subtract('buy_content', $user_id, 1, $log_template, $influencer_id);
+                
+                // Hook into 'shutdown' with a late priority to wipe the pending queue, 
                 // preventing the default green duplicate notification from firing on the next reload.
                 add_action('shutdown', function() use ($user_id) {
                     delete_user_meta($user_id, 'mycred_notice');
