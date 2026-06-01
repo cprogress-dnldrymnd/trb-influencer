@@ -73,8 +73,10 @@ class Saves_Manager
 
    /**
      * Integrates the "Viewed Influencer" tracking logic.
-     * Optimized to reduce database load by skipping unnecessary row counts, 
-     * bypassing sticky post logic, and preventing revision bloat.
+     * Restricts existing log lookups to the current month/year to ensure 
+     * unique logging cycles per month.
+     * * @author Digitally Disruptive - Donald Raymundo
+     * @link   https://digitallydisruptive.co.uk/
      */
     public function track_influencer_post_view()
     {
@@ -88,7 +90,7 @@ class Saves_Manager
         $current_time    = current_time( 'd-M-Y H:i:s' );
         $post_title      = 'Viewed on ' . $current_time;
 
-        // 2. Query optimization: Prevent unnecessary SQL calculations and caching.
+        // 2. Query optimization: Prevent unnecessary SQL calculations and enforce monthly boundary.
         $existing_log = get_posts( [
             'post_type'              => 'viewed-influencer',
             'author'                 => $current_user_id,
@@ -101,9 +103,15 @@ class Saves_Manager
             'ignore_sticky_posts'    => true,  // Skips sticky post logic
             'update_post_meta_cache' => false, // Optimization: We only need the ID
             'update_post_term_cache' => false, // Optimization: We only need the ID
+            'date_query'             => [      // Enforces current month/year boundary
+                [
+                    'year'  => current_time( 'Y' ),
+                    'month' => current_time( 'n' ),
+                ],
+            ],
         ] );
 
-        // 3. Update existing log or create a new one.
+        // 3. Update existing log for the current month, or create a new one.
         if ( ! empty( $existing_log ) ) {
             
             // Prevent WP from creating a heavy database revision just for a timestamp update
