@@ -71,44 +71,65 @@ class Saves_Manager
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
     }
 
-    /**
+   /**
      * Integrates the "Viewed Influencer" tracking logic.
+     * Optimized to reduce database load by skipping unnecessary row counts, 
+     * bypassing sticky post logic, and preventing revision bloat.
      */
     public function track_influencer_post_view()
     {
-        if (!is_user_logged_in() || !is_singular('influencer')) {
+        // 1. Exit early if not a logged-in user viewing a singular influencer post.
+        if ( ! is_user_logged_in() || ! is_singular( 'influencer' ) ) {
             return;
         }
 
         $current_user_id = get_current_user_id();
         $influencer_id   = get_the_ID();
-        $post_title      = 'Viewed on ' . current_time('d-M-Y H:i:s');
+        $current_time    = current_time( 'd-M-Y H:i:s' );
+        $post_title      = 'Viewed on ' . $current_time;
 
-        $existing_log = get_posts([
-            'post_type'      => 'viewed-influencer',
-            'author'         => $current_user_id,
-            'meta_key'       => 'influencer_id',
-            'meta_value'     => $influencer_id,
-            'posts_per_page' => 1,
-            'fields'         => 'ids',
-            'post_status'    => 'any',
-        ]);
+        // 2. Query optimization: Prevent unnecessary SQL calculations and caching.
+        $existing_log = get_posts( [
+            'post_type'              => 'viewed-influencer',
+            'author'                 => $current_user_id,
+            'meta_key'               => 'influencer_id',
+            'meta_value'             => $influencer_id,
+            'posts_per_page'         => 1,
+            'fields'                 => 'ids',
+            'post_status'            => 'any',
+            'no_found_rows'          => true,  // Bypasses expensive SQL_CALC_FOUND_ROWS
+            'ignore_sticky_posts'    => true,  // Skips sticky post logic
+            'update_post_meta_cache' => false, // Optimization: We only need the ID
+            'update_post_term_cache' => false, // Optimization: We only need the ID
+        ] );
 
-        if (!empty($existing_log)) {
-            wp_update_post([
+        // 3. Update existing log or create a new one.
+        if ( ! empty( $existing_log ) ) {
+            
+            // Prevent WP from creating a heavy database revision just for a timestamp update
+            remove_action( 'post_updated', 'wp_save_post_revision' );
+
+            wp_update_post( [
                 'ID'         => $existing_log[0],
                 'post_title' => $post_title,
-            ]);
+            ] );
+
+            // Re-hook revisions to maintain normal site functionality elsewhere
+            add_action( 'post_updated', 'wp_save_post_revision' );
+            
         } else {
-            $new_id = wp_insert_post([
+            
+            $new_id = wp_insert_post( [
                 'post_title'  => $post_title,
                 'post_type'   => 'viewed-influencer',
                 'post_status' => 'publish',
                 'post_author' => $current_user_id,
-            ]);
-            if (!is_wp_error($new_id)) {
-                update_post_meta($new_id, 'influencer_id', $influencer_id);
+            ] );
+
+            if ( ! is_wp_error( $new_id ) ) {
+                update_post_meta( $new_id, 'influencer_id', $influencer_id );
             }
+            
         }
     }
 
