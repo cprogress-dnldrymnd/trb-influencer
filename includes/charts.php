@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
- * Version: 1.8.3
+ * Version: 1.8.4
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-follower-chart
@@ -237,6 +237,18 @@ class DD_Follower_Growth_Chart
     }
 
     /**
+     * Renders the fallback Elementor template when no analytical data is present.
+     * Utilizes WordPress's do_shortcode for robust fallback handling without direct Elementor class dependencies.
+     *
+     * @return string The rendered HTML of the designated Elementor template.
+     */
+    private function render_no_data_fallback(): string
+    {
+        // Target Elementor Template ID: 27230
+        return do_shortcode('[elementor-template id="27230"]');
+    }
+
+    /**
      * Registers and enqueues the necessary frontend scripts and dynamically injects the combined payload.
      */
     public function enqueue_scripts(): void
@@ -274,6 +286,13 @@ class DD_Follower_Growth_Chart
      */
     public function render_monthly_shortcode(): string
     {
+        global $post;
+        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+
+        if (empty($raw_data)) {
+            return $this->render_no_data_fallback();
+        }
+
         ob_start();
 ?>
         <style>
@@ -333,6 +352,9 @@ class DD_Follower_Growth_Chart
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
+
+                // DOM Existence Check: Required since PHP may replace this container with an Elementor template
+                if (!document.getElementById('ddMonthlyChart')) return;
 
                 const payloadMonthly = ddChartPayload.monthly;
 
@@ -466,6 +488,13 @@ class DD_Follower_Growth_Chart
      */
     public function render_timeline_shortcode(): string
     {
+        global $post;
+        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+
+        if (empty($raw_data)) {
+            return $this->render_no_data_fallback();
+        }
+
         ob_start();
     ?>
         <style>
@@ -509,6 +538,9 @@ class DD_Follower_Growth_Chart
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
+
+                // DOM Existence Check
+                if (!document.getElementById('ddTimelineChart')) return;
 
                 const payloadTimeline = ddChartPayload.timeline;
                 const payloadMonthly = ddChartPayload.monthly;
@@ -624,6 +656,13 @@ class DD_Follower_Growth_Chart
      */
     public function render_growth_rate_shortcode(): string
     {
+        global $post;
+        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+
+        if (empty($raw_data)) {
+            return $this->render_no_data_fallback();
+        }
+
         ob_start();
     ?>
         <style>
@@ -719,6 +758,9 @@ class DD_Follower_Growth_Chart
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof ddChartPayload === 'undefined' || typeof ApexCharts === 'undefined') return;
+
+                // DOM Existence Check
+                if (!document.getElementById('ddGrowthRateChart')) return;
 
                 const payloadGrowthRate = ddChartPayload.growth_rate;
                 const payloadMonthly = ddChartPayload.monthly;
@@ -870,6 +912,13 @@ class DD_Follower_Growth_Chart
      */
     public function render_like_range_shortcode(): string
     {
+        global $post;
+        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+
+        if (empty($raw_data)) {
+            return $this->render_no_data_fallback();
+        }
+
         ob_start();
     ?>
         <style>
@@ -1071,8 +1120,12 @@ class DD_Follower_Growth_Chart
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof ddChartPayload === 'undefined') return;
 
-                const payloadLikeRange = ddChartPayload.like_range;
                 const container = document.getElementById('ddLikeRangeWrapper');
+                
+                // DOM Existence Check
+                if (!container) return;
+
+                const payloadLikeRange = ddChartPayload.like_range;
                 const contentDiv = container.querySelector('#ddLikeRangeContent');
                 const emptyDiv = container.querySelector('#ddLikeRangeEmpty');
 
