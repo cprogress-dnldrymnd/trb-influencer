@@ -18,15 +18,17 @@ class Influencer_Search
 
         // Set up search variables on the 'wp' hook
         add_action('wp', [$this, 'setup_search_variables']);
-    }
 
 
-    // Register Search Shortcodes
+        // Register Search Shortcodes
         add_shortcode('influencer_search_filter', [$this, 'shortcode_influencer_search_filter']);
         add_shortcode('influencer_search_filter_main', [$this, 'shortcode_influencer_search_filter_main']);
         add_shortcode('influencer_search_summary', [$this, 'shortcode_influencer_search_summary']);
         add_shortcode('influencer_match_score', [$this, 'shortcode_influencer_match_score']);
         add_shortcode('saved_search_url', [$this, 'shortcode_saved_search_url']);
+    }
+
+
 
     /**
      * Variable setup for search & outreach fields
@@ -320,7 +322,7 @@ class Influencer_Search
                 <?php } ?>
             </div>
         </div>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -378,13 +380,14 @@ class Influencer_Search
     // 4. SHORTCODES
     // ========================================================================
 
-    public function shortcode_influencer_search_filter() {
+    public function shortcode_influencer_search_filter()
+    {
         ob_start();
         $raw_fields = get_query_var('influencer_search_fields');
         $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
         $influencer_search_page = get_query_var('influencer_search_page');
         $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
-        ?>
+    ?>
         <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
             <div class="influencer-search-filter-holder">
                 <div class="influencer-search-item niche-filters">
@@ -415,18 +418,19 @@ class Influencer_Search
                 </div>
             </div>
         </form>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
-    public function shortcode_influencer_search_filter_main() {
+    public function shortcode_influencer_search_filter_main()
+    {
         ob_start();
         $raw_fields = get_query_var('influencer_search_fields');
         $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
         $influencer_search_page = get_query_var('influencer_search_page');
         $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
         $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
-        ?>
+    ?>
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
             <div class="influencer-search-filter-holder">
                 <input type="hidden" value="true" name="search_active">
@@ -467,14 +471,15 @@ class Influencer_Search
                 </div>
             </div>
         </form>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
-    public function shortcode_influencer_search_summary() {
+    public function shortcode_influencer_search_summary()
+    {
         global $search_results_page_id;
         if ((int) get_queried_object_id() !== $search_results_page_id) return '';
-        
+
         $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
         $niche = isset($_GET['niche']) ? (array) $_GET['niche'] : [];
         $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
@@ -505,12 +510,14 @@ class Influencer_Search
         $expert_only = in_array('Professional experts only', $filter, true);
 
         ob_start();
-        ?>
+    ?>
         <div class="influencer-search-summary">
             <?php if (!empty($brief)): ?>
                 <div class="search-summary-brief search-summary-item">
                     <div class="summary-brief-label">Your brief:</div>
-                    <div class="summary-brief"><div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div></div>
+                    <div class="summary-brief">
+                        <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
+                    </div>
                     <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
                 </div>
             <?php endif; ?>
@@ -519,7 +526,7 @@ class Influencer_Search
             <?php endif; ?>
             <?php if ($prioritise_engagement || $verified_only || $expert_only): ?>
                 <div class="search-summary-item search-summary-notes">
-                    <?php 
+                    <?php
                     $notes = [];
                     if ($prioritise_engagement) $notes[] = '<span>Prioritising engagement over reach</span>';
                     if ($verified_only) $notes[] = '<span>Include only verified influencers</span>';
@@ -529,11 +536,12 @@ class Influencer_Search
                 </div>
             <?php endif; ?>
         </div>
-        <?php
+<?php
         return ob_get_clean();
     }
 
-    public function shortcode_influencer_match_score() {
+    public function shortcode_influencer_match_score()
+    {
         $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
         $criteria = get_query_var('search_criteria');
         $criteria = is_array($criteria) ? $criteria : [];
@@ -550,7 +558,8 @@ class Influencer_Search
         return $html;
     }
 
-    public function shortcode_saved_search_url() {
+    public function shortcode_saved_search_url()
+    {
         global $search_results_page_id;
         $search_query = get_field('search_query', get_the_ID());
         return get_the_permalink($search_results_page_id) . $search_query . '&search_active=true';
