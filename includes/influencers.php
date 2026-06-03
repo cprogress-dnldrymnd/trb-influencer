@@ -208,7 +208,7 @@ add_action('wp_ajax_dd_toggle_featured', 'dd_influencer_ajax_toggle_featured');
 function dd_influencer_admin_footer_scripts()
 {
 	$screen = get_current_screen();
-	if (! $screen || 'edit-influencer' !== $screen->id) {
+	if (! $screen || 'edit-influencers' !== $screen->id) {
 		return;
 	}
 ?>
