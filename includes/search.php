@@ -32,18 +32,22 @@ class Influencer_Search
     // 3. MATCH SCORE LOGIC
     // ========================================================================
 
-    public static function calculate_match_score($post_id, $criteria) {
+    public static function calculate_match_score($post_id, $criteria)
+    {
         if (!$post_id || get_post_type($post_id) !== 'influencer') return -1;
         if (!is_array($criteria) || (empty($criteria['niche']) && empty($criteria['platform']) && empty($criteria['country']) && empty($criteria['followers']) && empty($criteria['topic']) && empty($criteria['content_tag']))) return -1;
 
-        $earned = 0; $max_poss = 0;
+        $earned = 0;
+        $max_poss = 0;
         $content_terms = array_unique(array_filter(array_merge((array)($criteria['niche'] ?? []), (array)($criteria['topic'] ?? []), (array)($criteria['content_tag'] ?? []))));
-        
+
         if (!empty($content_terms)) {
             $max_poss += 40;
             $influencer_slugs = [];
             foreach (['niche', 'topic', 'content_tag'] as $tax) {
-                foreach (wp_get_post_terms($post_id, $tax) as $t) { $influencer_slugs[] = $t->slug; }
+                foreach (wp_get_post_terms($post_id, $tax) as $t) {
+                    $influencer_slugs[] = $t->slug;
+                }
             }
             $matched = count(array_intersect($content_terms, $influencer_slugs));
             $earned += $matched > 0 ? (int) round(($matched / count($content_terms)) * 40) : 0;
@@ -60,7 +64,10 @@ class Influencer_Search
             $max_poss += 15;
             $platforms = wp_get_post_terms($post_id, 'platform');
             foreach ($platforms as $t) {
-                if (in_array($t->slug, (array) $criteria['platform'], true)) { $earned += 15; break; }
+                if (in_array($t->slug, (array) $criteria['platform'], true)) {
+                    $earned += 15;
+                    break;
+                }
             }
         }
 
@@ -93,7 +100,8 @@ class Influencer_Search
         return max(50, min(100, (int) round(($earned / $max_poss) * 100)));
     }
 
-    public static function get_matched_criteria_labels($post_id, $criteria) {
+    public static function get_matched_criteria_labels($post_id, $criteria)
+    {
         $phrases = [];
         if (!$post_id || !is_array($criteria)) return $phrases;
 
@@ -119,7 +127,8 @@ class Influencer_Search
         if (!empty($criteria['platform'])) {
             foreach (wp_get_post_terms($post_id, 'platform') as $t) {
                 if (in_array($t->slug, (array) $criteria['platform'], true)) {
-                    $phrases[] = '<span class="checklist">Content style fits your campaign goals</span>'; break;
+                    $phrases[] = '<span class="checklist">Content style fits your campaign goals</span>';
+                    break;
                 }
             }
         }
@@ -127,8 +136,8 @@ class Influencer_Search
         if (!empty($criteria['followers']) && !empty($criteria['followers'][0])) {
             $f = (int) get_post_meta($post_id, 'followers', true);
             $range = $criteria['followers'][0];
-            $in_range = (strpos($range, '-') !== false) 
-                ? ($f >= (int)explode('-',$range)[0] && $f <= (int)str_replace('+','',explode('-',$range)[1])) 
+            $in_range = (strpos($range, '-') !== false)
+                ? ($f >= (int)explode('-', $range)[0] && $f <= (int)str_replace('+', '', explode('-', $range)[1]))
                 : ($f >= (int)$range);
             if ($in_range) $phrases[] = '<span class="checklist">Reach aligns with your campaign scope</span>';
         }
@@ -965,8 +974,8 @@ class Influencer_Search
 
             if (function_exists('influencer_calculate_match_score')) {
                 usort($posts, function ($a, $b) use ($search_criteria) {
-                    $sa = influencer_calculate_match_score($a->ID, $search_criteria);
-                    $sb = influencer_calculate_match_score($b->ID, $search_criteria);
+                    $sa = self::calculate_match_score($a->ID, $search_criteria);
+                    $sb = self::calculate_match_score($b->ID, $search_criteria);
                     return $sb <=> $sa;
                 });
             }
