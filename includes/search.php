@@ -554,37 +554,36 @@ class Influencer_Search
         $checked_attr = $is_brief_active ? 'checked="checked"' : '';
     ?>
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
-            <div class="influencer-search-filter-holder">
+            <!-- START CLEANED TOGGLE HEADER -->
+            <div id="search-header">
 
-                <!-- START CLEANED TOGGLE HEADER -->
-                <div id="search-header">
-
-                    <!-- 1. FILTERED SEARCH -->
-                    <div class="filtered-search toggle-text <?= !$is_brief_active ? 'active' : '' ?>">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20">
-                            <path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path>
-                        </svg>
-                        <span style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;">FILTERED SEARCH</span>
-                    </div>
-
-                    <!-- 2. TOGGLE SWITCH -->
-                    <div class="toggle-html">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="my-toggle" <?= $checked_attr ?>>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-
-                    <!-- 3. FULL BRIEF SEARCH -->
-                    <div class="full-brief-search toggle-text <?= $is_brief_active ? 'active' : '' ?>" >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 46.322 46.948">
-                            <path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path>
-                        </svg>
-                        <span style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;">FULL BRIEF SEARCH</span>
-                    </div>
-
+                <!-- 1. FILTERED SEARCH -->
+                <div class="filtered-search toggle-text <?= !$is_brief_active ? 'active' : '' ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20">
+                        <path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path>
+                    </svg>
+                    <span style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;">FILTERED SEARCH</span>
                 </div>
-                <!-- END CLEANED TOGGLE HEADER -->
+
+                <!-- 2. TOGGLE SWITCH -->
+                <div class="toggle-html">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="my-toggle" <?= $checked_attr ?>>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <!-- 3. FULL BRIEF SEARCH -->
+                <div class="full-brief-search toggle-text <?= $is_brief_active ? 'active' : '' ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 46.322 46.948">
+                        <path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path>
+                    </svg>
+                    <span style="font-weight: 600; font-size: 15px; letter-spacing: 0.5px;">FULL BRIEF SEARCH</span>
+                </div>
+
+            </div>
+            <!-- END CLEANED TOGGLE HEADER -->
+            <div class="influencer-search-filter-holder">
 
                 <input type="hidden" value="true" name="search_active">
 
