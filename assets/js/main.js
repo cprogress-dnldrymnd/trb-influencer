@@ -32,7 +32,7 @@
     });
 
 
-    /**
+   /**
      * Initializes the toggle switch, controls visibility of the search modes,
      * resets fields when hidden, and manages the 'Reset All' button execution.
      */
@@ -44,15 +44,7 @@
             var isChecked = toggleInput.is(':checked');
 
             if (isChecked) {
-                // Activate Filtered Search
-                $('.filtered-search').addClass('active');
-                $('.full-brief-search').removeClass('active');
-                $('#search-brief').attr('required', false);
-                $('#search-brief').val(''); // Clear brief so hidden value isn't processed
-                
-                resetAllBtn.css('display', 'inline-block');
-            } else {
-                // Activate Full Brief Search
+                // TOGGLE CHECKED: Activate Full Brief Search
                 $('.filtered-search').removeClass('active');
                 $('.full-brief-search').addClass('active');
                 $('#search-brief').attr('required', true);
@@ -66,6 +58,14 @@
                 $('.influencer-search-main').find('.custom-group-error').remove();
                 
                 resetAllBtn.css('display', 'none');
+            } else {
+                // TOGGLE UNCHECKED (DEFAULT): Activate Filtered Search
+                $('.filtered-search').addClass('active');
+                $('.full-brief-search').removeClass('active');
+                $('#search-brief').attr('required', false);
+                $('#search-brief').val(''); // Clear brief so hidden value isn't processed
+                
+                resetAllBtn.css('display', 'inline-block');
             }
         }
 
@@ -195,7 +195,7 @@
             parentChip.remove();
         });
     }
-    
+
     /**
      * NEW: Validates the main search form before submission.
      * Iterates over all elements with the 'required-on-search' class to ensure 
