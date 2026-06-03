@@ -74,7 +74,7 @@ body:not(#error-page).show-body {
 .meta-country-wrapper.meta-country-wrapper {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 .meta-country-wrapper.meta-country-wrapper img {
   width: 20px;
