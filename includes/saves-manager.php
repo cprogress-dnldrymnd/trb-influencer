@@ -71,7 +71,7 @@ class Saves_Manager
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
     }
 
-   /**
+    /**
      * Integrates the "Viewed Influencer" tracking logic.
      * Restricts existing log lookups to the current month/year to ensure 
      * unique logging cycles per month.
@@ -81,17 +81,17 @@ class Saves_Manager
     public function track_influencer_post_view()
     {
         // 1. Exit early if not a logged-in user viewing a singular influencer post.
-        if ( ! is_user_logged_in() || ! is_singular( 'influencer' ) ) {
+        if (! is_user_logged_in() || ! is_singular('influencer')) {
             return;
         }
 
         $current_user_id = get_current_user_id();
         $influencer_id   = get_the_ID();
-        $current_time    = current_time( 'd-M-Y H:i:s' );
+        $current_time    = current_time('d-M-Y H:i:s');
         $post_title      = 'Viewed on ' . $current_time;
 
         // 2. Query optimization: Prevent unnecessary SQL calculations and enforce monthly boundary.
-        $existing_log = get_posts( [
+        $existing_log = get_posts([
             'post_type'              => 'viewed-influencer',
             'author'                 => $current_user_id,
             'meta_key'               => 'influencer_id',
@@ -105,39 +105,37 @@ class Saves_Manager
             'update_post_term_cache' => false, // Optimization: We only need the ID
             'date_query'             => [      // Enforces current month/year boundary
                 [
-                    'year'  => current_time( 'Y' ),
-                    'month' => current_time( 'n' ),
+                    'year'  => current_time('Y'),
+                    'month' => current_time('n'),
                 ],
             ],
-        ] );
+        ]);
 
         // 3. Update existing log for the current month, or create a new one.
-        if ( ! empty( $existing_log ) ) {
-            
-            // Prevent WP from creating a heavy database revision just for a timestamp update
-            remove_action( 'post_updated', 'wp_save_post_revision' );
+        if (! empty($existing_log)) {
 
-            wp_update_post( [
+            // Prevent WP from creating a heavy database revision just for a timestamp update
+            remove_action('post_updated', 'wp_save_post_revision');
+
+            wp_update_post([
                 'ID'         => $existing_log[0],
                 'post_title' => $post_title,
-            ] );
+            ]);
 
             // Re-hook revisions to maintain normal site functionality elsewhere
-            add_action( 'post_updated', 'wp_save_post_revision' );
-            
+            add_action('post_updated', 'wp_save_post_revision');
         } else {
-            
-            $new_id = wp_insert_post( [
+
+            $new_id = wp_insert_post([
                 'post_title'  => $post_title,
                 'post_type'   => 'viewed-influencer',
                 'post_status' => 'publish',
                 'post_author' => $current_user_id,
-            ] );
+            ]);
 
-            if ( ! is_wp_error( $new_id ) ) {
-                update_post_meta( $new_id, 'influencer_id', $influencer_id );
+            if (! is_wp_error($new_id)) {
+                update_post_meta($new_id, 'influencer_id', $influencer_id);
             }
-            
         }
     }
 
@@ -455,15 +453,15 @@ class Saves_Manager
         if (! $this->is_influencer_unlocked($influencer_id)) {
             ob_start();
 ?>
-            <div class="elementor-button-wrapper add-to-groups save-influencer-trigger" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;">
-                <button type="button" class="elementor-button elementor-button-link elementor-size-sm" style="pointer-events: none;">
+            <div class="elementor-button-wrapper add-to-groups" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" title="You need to unlock this influencer first before saving.">
+                <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
-                            <svg aria-hidden="true" class="e-font-icon-svg e-fas-unlock" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
-                                <path fill="currentColor" d="M400 256H152V152.9c0-39.6 31.7-72.5 71.3-72.9 40-.4 72.7 32.1 72.7 72v16c0 13.3 10.7 24 24 24h32c13.3 0 24-10.7 24-24v-16C376 68 307.5-.3 223.5 0 139.5.3 72 69.5 72 153.5V256H48c-26.5 0-48 21.5-48 48v160c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V304c0-26.5-21.5-48-48-48z"></path>
+                            <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
                             </svg>
                         </span>
-                        <span class="elementor-button-text">UNLOCK & SAVE</span>
+                        <span class="elementor-button-text">SAVE</span>
                     </span>
                 </button>
             </div>
