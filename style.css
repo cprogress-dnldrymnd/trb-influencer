@@ -1912,3 +1912,11 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 .influencer-grid-icons * {
   line-height: 1 !important;
 }
+
+#search-header {
+  padding: clamp(15px, 1.302vw, 25px)
+}
+
+#search-header .toggle-text {
+
+}
