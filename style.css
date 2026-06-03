@@ -1923,12 +1923,14 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   border-bottom: 1px solid var(--e-global-color-670824e);
 }
 
-
 #search-header .toggle-text {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  font-size: var(--e-global-typography-5a13f56-font-size);
+  letter-spacing: var(--e-global-typography-5a13f56-letter-spacing);
+  font-weight: 600;
 }
 
 .influencer-search-main .influencer-search-filter-holder {
