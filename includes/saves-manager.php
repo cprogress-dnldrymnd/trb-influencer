@@ -884,13 +884,11 @@ class Saves_Manager
             }
         }
 
-        // Check if the current creator is locked to tell JS whether to show the warning
-        $is_locked = !$this->is_influencer_unlocked($influencer_id);
+
 
         wp_send_json_success([
             'all_groups'   => array_values($user_lists),
             'active_lists' => $active_lists,
-            'is_locked'    => $is_locked
         ]);
     }
 
@@ -910,72 +908,26 @@ class Saves_Manager
 
         if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
 
-        $is_newly_unlocked = false;
-        $new_balance = null;
-
-        // --- INTEGRATED UNLOCK LOGIC ---
-        if (! $this->is_influencer_unlocked($influencer_id)) {
-            // Verify MyCred Balance
-            if (function_exists('mycred_get_users_balance')) {
-                $balance = mycred_get_users_balance($user_id);
-                if ($balance < 1) {
-                    wp_send_json_error([
-                        'action' => 'redirect',
-                        'url' => '/buy-credit/',
-                        'message' => 'Insufficient credits. Redirecting...'
-                    ]);
-                }
-                $new_balance = $balance - 1; // Predict the new balance instantly
-            } else {
-                wp_send_json_error(['message' => 'Credit system is currently offline.']);
-            }
-
-            // Deduct Credit & Suppress Reload Notice
-            if (function_exists('mycred_subtract')) {
-                // Construct the dynamic log entry with the creator's name and profile link
-                $influencer_title = get_the_title($influencer_id);
-                $influencer_link  = get_permalink($influencer_id);
-
-                // Note: %s placeholders map to the URL and Title respectively
-                $log_template = sprintf(
-                    'Unlocked creator profile: <a href="%s" target="_blank">%s</a>',
-                    esc_url($influencer_link),
-                    esc_html($influencer_title)
-                );
-
-                // Use 'buy_content' as the reference to perfectly sync with the [mycred_sell_this] shortcode
-                mycred_subtract('buy_content', $user_id, 1, $log_template, $influencer_id);
-
-                // Hook into 'shutdown' with a late priority to wipe the pending queue, 
-                // preventing the default green duplicate notification from firing on the next reload.
-                add_action('shutdown', function () use ($user_id) {
-                    delete_user_meta($user_id, 'mycred_notice');
-                }, 9999);
-            }
-
-            // Mark as unlocked for our custom logic tracking
-            $unlocked = get_user_meta($user_id, 'dd_unlocked_influencers', true);
-            if (!is_array($unlocked)) $unlocked = [];
-            if (!in_array($influencer_id, $unlocked)) {
-                $unlocked[] = $influencer_id;
-                update_user_meta($user_id, 'dd_unlocked_influencers', $unlocked);
-            }
-
-            $is_newly_unlocked = true;
-        }
 
         // --- STANDARD SAVE LOGIC ---
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
 
-        if (empty($selected_lists)) {
+    if (empty($selected_lists)) {
             if ($post_id) wp_delete_post($post_id, true);
 
-            $message = $is_newly_unlocked
-                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance))
-                : '<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>';
+            // Removed the $is_newly_unlocked check. Now it only returns the standard "unsaved" message.
+            $message = '<div class="my-cred-notice-text"><h4>Creator unsaved</h4><p>This creator has been removed from your Saved Lists</p></div>';
 
-            wp_send_json_success(['message' => 'Unsaved successfully!', 'notice_html' => $message, 'status' => 'unsaved', 'count' => 0, 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
+            // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
+            wp_send_json_success([
+                'message'     => 'Unsaved successfully!', 
+                'notice_html' => $message, 
+                'status'      => 'unsaved', 
+                'count'       => 0
+            ]);
+            
         } else {
+            
             if (!$post_id) {
                 $post_args = [
                     'post_title'  => 'Influencer saved on ' . current_time('M j, Y @ g:i a'),
@@ -991,11 +943,16 @@ class Saves_Manager
 
             update_post_meta($post_id, 'saved_in_lists', $selected_lists);
 
-            $message = $is_newly_unlocked
-                ? sprintf('<div class="my-cred-notice-text"><h4>Creator Unlocked & Saved</h4><p>1 credit deducted. New balance: <strong>%s</strong>.</p></div>', esc_html($new_balance))
-                : '<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>';
+            // Removed the $is_newly_unlocked check. Now it only returns the standard "saved" message.
+            $message = '<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>';
 
-            wp_send_json_success(['message' => 'Saved successfully!', 'notice_html' => $message, 'status' => 'saved', 'count' => count($selected_lists), 'is_newly_unlocked' => $is_newly_unlocked, 'new_balance' => $new_balance]);
+            // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
+            wp_send_json_success([
+                'message'     => 'Saved successfully!', 
+                'notice_html' => $message, 
+                'status'      => 'saved', 
+                'count'       => count($selected_lists)
+            ]);
         }
     }
 
@@ -1782,10 +1739,6 @@ class Saves_Manager
                     <h3>Manage groups</h3>
                 </div>
 
-                <div id="inf-unlock-warning" style="display:none; padding: 12px; background: #fff3cd; color: #856404; font-size: 13px; border-radius: 6px; margin-bottom: 15px;">
-                    Unlocking this creator will deduct <strong>1 credit</strong> from your balance.
-                </div>
-
                 <div class="inf-lists-container" id="inf-lists-wrapper"></div>
                 <button type="button" class="inf-create-btn" id="inf-btn-go-create">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1951,16 +1904,6 @@ class Saves_Manager
                             if (res.success) {
                                 state.groups = res.data.all_groups;
                                 state.activeIds = res.data.active_lists;
-
-                                // NEW: Dynamically show/hide unlock warning
-                                if (res.data.is_locked) {
-                                    $('#inf-unlock-warning').show();
-                                    $('#inf-modal-save-influencer').text('Unlock & Save');
-                                } else {
-                                    $('#inf-unlock-warning').hide();
-                                    $('#inf-modal-save-influencer').text('Save');
-                                }
-
                                 renderGroupsList();
                                 switchModalView('inf-view-manage');
                             } else {
@@ -1995,33 +1938,10 @@ class Saves_Manager
                         success: function(res) {
                             if (res.success) {
 
-                                // --- FOOLPROOF RELOAD LOGIC ---
-                                // Checks both our localized variable and the default WordPress body class
-                                let isSinglePage = (typeof ajax_vars !== 'undefined' && ajax_vars.is_single_influencer) || $('body').hasClass('single-influencer');
-
-                                if (res.data.is_newly_unlocked && isSinglePage) {
-                                    $btn.text('Reloading...');
-                                    $('#inf-modal-overlay').hide();
-
-                                    // Instantly reload the page to render the unlocked [mycred_sell_this] content
-                                    window.location.reload();
-                                    return; // Halt further execution
-                                }
-
                                 $('#inf-modal-overlay').hide();
 
                                 // Show custom notice for standard saves or non-single page unlocks
                                 if (res.data.notice_html) display_mycred_notice(res.data.notice_html);
-
-                                // Update myCred balance text dynamically
-                                if (res.data.is_newly_unlocked) {
-                                    if ($('.myCred-Header-Balance .elementor-shortcode div').length) {
-                                        $('.myCred-Header-Balance .elementor-shortcode div').text(res.data.new_balance);
-                                    }
-                                    if ($('.mycred-balance').length) {
-                                        $('.mycred-balance').text(res.data.new_balance);
-                                    }
-                                }
 
                                 let $text = state.triggerBtn.find('.elementor-button-text');
                                 let $icon = state.triggerBtn.find('.elementor-button-icon');
