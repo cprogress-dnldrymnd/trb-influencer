@@ -683,7 +683,6 @@ class Influencer_Search
                 <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
             <?php endif; ?>
                 <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
-
             <?php if ($prioritise_engagement || $verified_only || $expert_only): ?>
                 <div class="search-summary-item search-summary-notes">
                     <?php

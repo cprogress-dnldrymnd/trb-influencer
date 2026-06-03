@@ -46,6 +46,7 @@ body:not(#error-page).show-body {
   padding: 8px;
   font-family: Inter;
   line-height: 1;
+  text-align: center;
 }
 .influencer-niche-container .niche-toggle {
   font-size: 11px;
@@ -1744,7 +1745,8 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   justify-content: center;
 }
 .featured-niches .influencer-niche-container .niche-term {
-  font-size: 15px;
+  font-size: clamp(11px, 0.65vw, 15px);
+  padding: clamp(5px, 0.5vw, 8px);
   border-radius: 5px;
 }
 .featured-niches .influencer-niche-container .niche-term:nth-child(3) {
