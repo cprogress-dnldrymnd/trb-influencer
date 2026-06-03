@@ -29,7 +29,6 @@ class Influencer_Search
     }
 
 
-
     /**
      * Variable setup for search & outreach fields
      */
