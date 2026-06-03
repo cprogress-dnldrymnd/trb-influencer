@@ -32,7 +32,7 @@
     });
 
 
-   /**
+  /**
      * Initializes the toggle switch, controls visibility of the search modes,
      * resets fields when hidden, and manages the 'Reset All' button execution.
      */
@@ -40,7 +40,7 @@
         const toggleInput = $('#my-toggle');
         const resetAllBtn = $('.reset-filters-btn');
 
-        function updateSearchVisibility() {
+        function updateSearchVisibility(isInit = false) {
             var isChecked = toggleInput.is(':checked');
 
             if (isChecked) {
@@ -49,10 +49,13 @@
                 $('.full-brief-search').addClass('active');
                 $('#search-brief').attr('required', true);
 
-                // Reset Inactive Container (Filtered Search)
-                $('.filtered-search').find('input[type="checkbox"], input[type="radio"]')
-                    .prop('checked', false)
-                    .trigger('change');
+                // ONLY clear the filtered checkboxes if the user manually flipped the toggle
+                // Do not clear them on initial page load
+                if (!isInit) {
+                    $('.filtered-search').find('input[type="checkbox"], input[type="radio"]')
+                        .prop('checked', false)
+                        .trigger('change');
+                }
                 
                 // Clear Visual Validation Errors
                 $('.influencer-search-main').find('.custom-group-error').remove();
@@ -63,14 +66,23 @@
                 $('.filtered-search').addClass('active');
                 $('.full-brief-search').removeClass('active');
                 $('#search-brief').attr('required', false);
-                $('#search-brief').val(''); // Clear brief so hidden value isn't processed
+                
+                // ONLY clear the brief textarea if the user manually flipped the toggle
+                if (!isInit) {
+                    $('#search-brief').val(''); 
+                }
                 
                 resetAllBtn.css('display', 'inline-block');
             }
         }
 
-        toggleInput.on('change', updateSearchVisibility);
-        updateSearchVisibility(); // Trigger on load
+        // Trigger on load as an initialization (true)
+        updateSearchVisibility(true); 
+
+        // Trigger on change as a user action (false)
+        toggleInput.on('change', function() {
+            updateSearchVisibility(false);
+        });
 
         // Handle the Reset All execution
         resetAllBtn.on('click', function(e) {
@@ -257,15 +269,19 @@
         });
     }
 
-    /**
+   /**
      * Reads URL parameters on page load and physically checks the corresponding
      * form inputs so the DOM matches the requested search before AJAX fires.
      */
     function sync_url_params_to_dom() {
         const urlParams = new URLSearchParams(window.location.search);
 
-        if (urlParams.has('search-brief')) {
+        // Force the toggle switch to match the URL parameters
+        if (urlParams.has('search-brief') && urlParams.get('search-brief').trim() !== '') {
             $('#search-brief').val(urlParams.get('search-brief'));
+            $('#my-toggle').prop('checked', true); // Force Full Brief Mode
+        } else if (urlParams.has('search_active')) {
+            $('#my-toggle').prop('checked', false); // Force Filtered Mode
         }
 
         urlParams.forEach((value, key) => {
