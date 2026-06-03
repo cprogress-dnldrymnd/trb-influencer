@@ -67,34 +67,67 @@ function dd_influencer_attributes_meta_box_html($post)
 }
 /**
  * Saves the custom meta box data when the influencer post is saved.
- * * Validates nonces and permissions, updates the post meta, and triggers
- * the synchronization function to update the global option.
- *
- * @param int $post_id The ID of the post being saved.
- * @return void
+ * Optimized for Gutenberg's meta-box-loader AJAX requests.
  */
-function dd_influencer_save_meta_box_data($post_id)
+function dd_influencer_save_meta_box_data($post_id, $post, $update)
 {
-	if (! isset($_POST['dd_influencer_attributes_nonce']) || ! wp_verify_nonce($_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save')) {
+	// 1. Strict post type check
+	if ('influencer' !== $post->post_type) {
 		return;
 	}
+
+	// 2. Ignore autosaves and revisions to prevent ghost saves
 	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
 		return;
 	}
-	if (! current_user_can('edit_post', $post_id)) {
+	if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
 		return;
 	}
 
+	// 3. Verify Nonce (Gutenberg classic meta box fallback)
+	if (! isset($_POST['dd_influencer_attributes_nonce']) || ! wp_verify_nonce($_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save')) {
+		return;
+	}
+
+	// 4. Check capabilities against the specific post type object
+	$post_type_object = get_post_type_object('influencer');
+	if (! current_user_can($post_type_object->cap->edit_post, $post_id)) {
+		return;
+	}
+
+	// 5. Save the data
 	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
 	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
 
-	// Save as '1' or '0' to align with existing database structure
 	$expert_status = isset($_POST['is_expert']) ? '1' : '0';
 	update_post_meta($post_id, 'is_expert', $expert_status);
 
-	dd_sync_global_featured_influencers();
+	// 6. Sync global option efficiently (prevents fatal timeout errors on save)
+	dd_update_single_global_featured_influencer($post_id, $featured_status);
 }
-add_action('save_post_influencer', 'dd_influencer_save_meta_box_data');
+// Hook into standard save_post with priority 10 and 3 accepted arguments
+add_action('save_post', 'dd_influencer_save_meta_box_data', 10, 3);
+
+
+/**
+ * Lightweight sync: Updates a single influencer in the global option directly.
+ * Completely eliminates the need to run a massive WP_Query on every post save.
+ */
+function dd_update_single_global_featured_influencer($post_id, $status)
+{
+	$raw_global_featured = get_option('global_featured_influencers', array());
+	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
+
+	if ('yes' === $status) {
+		if (! in_array($post_id, $global_featured, true)) {
+			$global_featured[] = $post_id;
+		}
+	} else {
+		$global_featured = array_diff($global_featured, array($post_id));
+	}
+
+	update_option('global_featured_influencers', array_values($global_featured));
+}
 
 /**
  * Synchronizes the global featured influencers option with post meta.
