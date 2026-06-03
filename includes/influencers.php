@@ -34,7 +34,11 @@ add_action('add_meta_boxes', 'dd_influencer_register_meta_boxes');
 
 /**
  * Renders the HTML for the Influencer Attributes meta box.
- * * Includes hidden fallback inputs to bypass Gutenberg serialization bugs.
+ * * Outputs nonces for security and the checkbox fields for `_is_featured_influencer`
+ * and `is_expert`.
+ *
+ * @param WP_Post $post The current post object.
+ * @return void
  */
 function dd_influencer_attributes_meta_box_html($post)
 {
@@ -43,19 +47,18 @@ function dd_influencer_attributes_meta_box_html($post)
 	$is_featured = get_post_meta($post->ID, '_is_featured_influencer', true);
 	$is_expert   = get_post_meta($post->ID, 'is_expert', true);
 
+	// Ensure backward compatibility with existing DB entries using string '1'
 	$expert_checked = ('1' === $is_expert || 'yes' === $is_expert) ? '1' : '0';
 
 ?>
 	<p>
 		<label for="dd_is_featured_influencer">
-			<input type="hidden" name="dd_is_featured_influencer" value="no" />
 			<input type="checkbox" name="dd_is_featured_influencer" id="dd_is_featured_influencer" value="yes" <?php checked($is_featured, 'yes'); ?> />
 			<?php esc_html_e('Featured Influencer', 'textdomain'); ?>
 		</label>
 	</p>
 	<p>
 		<label for="dd_is_expert">
-			<input type="hidden" name="is_expert" value="0" />
 			<input type="checkbox" name="is_expert" id="dd_is_expert" value="1" <?php checked($expert_checked, '1'); ?> />
 			<?php esc_html_e('Professional experts only', 'textdomain'); ?>
 		</label>
@@ -72,37 +75,24 @@ function dd_influencer_attributes_meta_box_html($post)
  */
 function dd_influencer_save_meta_box_data($post_id)
 {
-	// 1. Bail on autosaves
-	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-		return;
-	}
-
-	// 2. Bail if our specific nonce isn't present (ignores primary block saves)
 	if (! isset($_POST['dd_influencer_attributes_nonce']) || ! wp_verify_nonce($_POST['dd_influencer_attributes_nonce'], 'dd_influencer_attributes_save')) {
 		return;
 	}
-
-	// 3. Save Featured Status (reads the precise value from the HTML inputs)
-	$featured_status = (isset($_POST['dd_is_featured_influencer']) && 'yes' === $_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
-	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
-
-	// 4. Save Expert Status
-	$expert_status = (isset($_POST['is_expert']) && '1' === $_POST['is_expert']) ? '1' : '0';
-	update_post_meta($post_id, 'is_expert', $expert_status);
-
-	// 5. Lightweight Global Sync (Prevents 500 Server Error Timeouts)
-	$raw_global_featured = get_option('global_featured_influencers', array());
-	$global_featured     = is_array($raw_global_featured) ? array_map('intval', $raw_global_featured) : array();
-
-	if ('yes' === $featured_status) {
-		if (! in_array($post_id, $global_featured, true)) {
-			$global_featured[] = $post_id;
-		}
-	} else {
-		$global_featured = array_diff($global_featured, array($post_id));
+	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+		return;
+	}
+	if (! current_user_can('edit_post', $post_id)) {
+		return;
 	}
 
-	update_option('global_featured_influencers', array_values($global_featured));
+	$featured_status = isset($_POST['dd_is_featured_influencer']) ? 'yes' : 'no';
+	update_post_meta($post_id, '_is_featured_influencer', $featured_status);
+
+	// Save as '1' or '0' to align with existing database structure
+	$expert_status = isset($_POST['is_expert']) ? '1' : '0';
+	update_post_meta($post_id, 'is_expert', $expert_status);
+
+	dd_sync_global_featured_influencers();
 }
 add_action('save_post_influencer', 'dd_influencer_save_meta_box_data');
 
