@@ -162,8 +162,6 @@ class Influencer_Search
         $influencer_search_page_id = 1949;
         if ((is_page($influencer_search_page_id) || (int) get_queried_object_id() === $influencer_search_page_id)
             && !empty($_GET['search-brief'])
-            && function_exists('parse_search_brief')
-            && function_exists('merge_brief_with_explicit_filters')
         ) {
             $explicit = [
                 'niche'     => isset($_GET['niche']) ? (array) $_GET['niche'] : [],
@@ -171,8 +169,8 @@ class Influencer_Search
                 'followers' => isset($_GET['followers']) ? (array) $_GET['followers'] : [],
                 'filter'    => isset($_GET['filter']) ? (array) $_GET['filter'] : [],
             ];
-            $parsed = parse_search_brief(sanitize_textarea_field($_GET['search-brief']));
-            $merged = merge_brief_with_explicit_filters($parsed, $explicit);
+            $parsed = self::parse_search_brief(sanitize_textarea_field($_GET['search-brief']));
+            $merged = self::merge_brief_with_explicit_filters($parsed, $explicit);
             $_GET['niche']     = $merged['niche'];
             $_GET['country']   = $merged['country'];
             $_GET['followers'] = $merged['followers'];
@@ -451,10 +449,6 @@ class Influencer_Search
 
     /**
      * AJAX: Return niche options for typeahead filter dropdown.
-     * Behaviour:
-     * - No results before 3 chars
-     * - Partial, case-insensitive matching
-     * - Max 20 results
      */
     public function dd_search_niche_options_handler()
     {
@@ -688,9 +682,10 @@ class Influencer_Search
         return get_the_permalink($search_results_page_id) . $search_query . '&search_active=true';
     }
 
-    /**
-     * AJAX handler for filtering the custom loop of influencers.
-     */
+    // ========================================================================
+    // 5. AJAX LOOP FILTER
+    // ========================================================================
+
     public function my_custom_loop_filter_handler()
     {
         // 1. GATHER INPUTS (explicit form values)
@@ -717,9 +712,9 @@ class Influencer_Search
 
         // 2. PARSE BRIEF (if provided) and merge with explicit
         $brief_text = isset($_POST['search_brief']) ? sanitize_textarea_field($_POST['search_brief']) : '';
-        if (!empty($brief_text) && function_exists('parse_search_brief') && function_exists('merge_brief_with_explicit_filters')) {
-            $parsed   = parse_search_brief($brief_text);
-            $explicit = merge_brief_with_explicit_filters($parsed, $explicit);
+        if (!empty($brief_text)) {
+            $parsed   = self::parse_search_brief($brief_text);
+            $explicit = self::merge_brief_with_explicit_filters($parsed, $explicit);
         }
 
         $niche         = $explicit['niche'];
@@ -972,13 +967,11 @@ class Influencer_Search
 
             $posts = $query->posts;
 
-            if (function_exists('influencer_calculate_match_score')) {
-                usort($posts, function ($a, $b) use ($search_criteria) {
-                    $sa = self::calculate_match_score($a->ID, $search_criteria);
-                    $sb = self::calculate_match_score($b->ID, $search_criteria);
-                    return $sb <=> $sa;
-                });
-            }
+            usort($posts, function ($a, $b) use ($search_criteria) {
+                $sa = self::calculate_match_score($a->ID, $search_criteria);
+                $sb = self::calculate_match_score($b->ID, $search_criteria);
+                return $sb <=> $sa;
+            });
 
             ob_start();
 
@@ -1017,6 +1010,498 @@ class Influencer_Search
         }
 
         wp_die();
+    }
+
+
+    // ========================================================================
+    // 6. BRIEF PARSER LOGIC
+    // ========================================================================
+
+    public static function get_brief_keyword_mappings()
+    {
+        return [
+            // Niche: Brief keyword => niche slug(s). Wellbeing & wellness are synonyms (both map to both).
+            'niche' => [
+                // Wellbeing / wellness (synonyms — both map to both slugs)
+                'wellbeing'           => ['wellbeing', 'wellness'],
+                'wellness'            => ['wellbeing', 'wellness'],
+                'self-care'           => ['wellbeing', 'wellness'],
+                'self care'           => ['wellbeing', 'wellness'],
+                'holistic health'     => ['wellbeing', 'wellness'],
+                'mindfulness'         => ['wellbeing', 'wellness'],
+                'mental health'       => ['wellbeing', 'wellness'],
+                'emotional wellbeing' => ['wellbeing', 'wellness'],
+                'stress relief'       => ['wellbeing', 'wellness'],
+                'relaxation'          => ['wellbeing', 'wellness'],
+                'healthy living'      => ['wellbeing', 'wellness'],
+                'lifestyle wellness'  => ['wellbeing', 'wellness'],
+                'self-improvement'    => ['wellbeing', 'wellness'],
+                'beauty wellness'     => ['wellbeing', 'wellness'],
+                'wellness routines'   => ['wellbeing', 'wellness'],
+                'women\'s wellbeing'  => ['wellbeing', 'wellness'],
+                'men\'s wellbeing'    => ['wellbeing', 'wellness'],
+                // Fertility
+                'fertility'           => 'fertility-doctor',
+                'ivf'                 => 'fertility-doctor',
+                'ttc'                 => 'fertility-doctor',
+                'trying to conceive'  => 'fertility-doctor',
+                'infertility'         => 'fertility-doctor',
+                // Pregnancy
+                'pregnancy'           => 'pregnancy',
+                'pregnant'            => 'pregnancy',
+                'expecting'           => 'pregnancy',
+                'mum-to-be'           => 'pregnancy',
+                'mom-to-be'           => 'pregnancy',
+                'dad-to-be'           => 'pregnancy',
+                'postpartum'          => 'pregnancy',
+                'maternity'           => 'pregnancy',
+                // Parenting
+                'parenting'           => ['parenting', 'motherhood'],
+                'motherhood'          => ['parenting', 'motherhood'],
+                'fatherhood'          => 'parenting',
+                'mum life'            => ['parenting', 'motherhood'],
+                'mom life'            => ['parenting', 'motherhood'],
+                'family life'         => 'parenting',
+                'newborn'             => 'parenting',
+                'babies'              => 'parenting',
+                'toddlers'            => 'parenting',
+                'children'            => 'parenting',
+                // General
+                'skincare'            => 'skincare',
+                'beauty'              => 'beauty',
+                'fitness'             => 'fitness',
+                'nutrition'           => 'nutrition',
+                'diet'                => 'nutrition',
+                'healthy eating'      => 'nutrition',
+                'exercise'            => 'fitness',
+                'movement'            => 'fitness',
+                'yoga'                => 'fitness',
+                'pilates'             => 'fitness',
+                'running'             => 'fitness',
+                'fashion'             => 'fashion',
+                'travel'              => 'travel',
+                'vegan'               => 'vegan',
+                'food'                => 'food',
+                'lifestyle'           => 'lifestyle',
+                'health'              => 'health',
+                'haircare'            => 'haircare',
+            ],
+
+            // Geography: Brief keyword => country alpha3 (UPPERCASE). From Geography dictionary.
+            'country' => [
+                'worldwide'        => 'GLOBAL',
+                'global'           => 'GLOBAL',
+                'international'    => 'GLOBAL',
+                'uk'               => 'GBR',
+                'u.k.'             => 'GBR',
+                'united kingdom'   => 'GBR',
+                'england'          => 'GBR',
+                'scotland'         => 'GBR',
+                'wales'            => 'GBR',
+                'northern ireland' => 'GBR',
+                'britain'          => 'GBR',
+                'london'           => 'GBR',
+                'manchester'       => 'GBR',
+                'birmingham'       => 'GBR',
+                'usa'              => 'USA',
+                'united states'    => 'USA',
+                'america'          => 'USA',
+                'us'               => 'USA',
+                'los angeles'      => 'USA',
+                'new york'         => 'USA',
+                'chicago'          => 'USA',
+                'miami'            => 'USA',
+                'europe'           => 'EUROPE',
+                'eu'               => 'EUROPE',
+                'germany'          => 'DEU',
+                'france'           => 'FRA',
+                'spain'            => 'ESP',
+                'italy'            => 'ITA',
+                'netherlands'      => 'NLD',
+                'australia'        => 'AUS',
+                'aus'              => 'AUS',
+                'sydney'           => 'AUS',
+                'melbourne'        => 'AUS',
+                'canada'           => 'CAN',
+                'ca'               => 'CAN',
+                'toronto'          => 'CAN',
+                'vancouver'        => 'CAN',
+            ],
+
+            // Platform
+            'platform' => [
+                'instagram' => 'instagram',
+                'ig'        => 'instagram',
+                'insta'     => 'instagram',
+                'youtube'   => 'youtube',
+                'yt'        => 'youtube',
+                'tiktok'    => 'tiktok',
+                'tik tok'   => 'tiktok',
+                'facebook'  => 'facebook',
+            ],
+
+            // Budget => follower range
+            'budget_to_followers' => [
+                ['max' => 500, 'range' => '1000-10000'],
+                ['max' => 2000, 'range' => '10000-50000'],
+                ['max' => 5000, 'range' => '50000-250000'],
+                ['max' => 15000, 'range' => '250000-1000000'],
+                ['max' => 999999, 'range' => '1000000-10000000'],
+            ],
+
+            // Filter options
+            'filter' => [
+                'verified'     => 'Include only verified influencers',
+                'verification' => 'Include only verified influencers',
+                'engagement'   => 'Prioritise engagement over reach',
+                'engage'       => 'Prioritise engagement over reach',
+            ],
+
+            // Audience (for future gender/age filters) — from Audience dictionary
+            'gender' => [
+                'female'   => 'Female',
+                'women'    => 'Female',
+                'woman'    => 'Female',
+                'mums'     => 'Female',
+                'moms'     => 'Female',
+                'ladies'   => 'Female',
+                'girls'    => 'Female',
+                'male'     => 'Male',
+                'men'      => 'Male',
+                'man'      => 'Male',
+                'dads'     => 'Male',
+                'fathers'  => 'Male',
+                'guys'     => 'Male',
+                'boys'     => 'Male',
+                'nonbinary' => 'Non-Binary',
+                'non-binary' => 'Non-Binary',
+                'nb'       => 'Non-Binary',
+                'lgbtq'    => 'lgbtq_plus',
+                'lgbt'     => 'lgbtq_plus',
+                'queer'    => 'lgbtq_plus',
+            ],
+            'age' => [
+                'gen z'           => '18-24',
+                '18-24'           => '18-24',
+                'young audience'  => '18-24',
+                'students'        => '18-24',
+                'teens'           => '18-24',
+                'millennial'      => '25-34',
+                'millennials'     => '25-34',
+                '25-34'           => '25-34',
+                'young adults'    => '25-34',
+                'gen x'           => '35-44',
+                '35-44'           => '35-44',
+                'middle aged'     => '35-44',
+                '45+'             => '45-54',
+                '50+'             => '45-54',
+                'older audience'  => '45-54',
+                'midlife'         => '45-54',
+            ],
+        ];
+    }
+
+    public static function _brief_normalize_slugs($val)
+    {
+        if (is_array($val)) {
+            return $val;
+        }
+        return $val ? [$val] : [];
+    }
+
+    public static function match_brief_to_taxonomy_terms($text, $taxonomy)
+    {
+        if (empty($text) || !is_string($text)) {
+            return [];
+        }
+
+        $terms = get_terms([
+            'taxonomy'   => $taxonomy,
+            'hide_empty' => false,
+            'fields'     => 'all',
+        ]);
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $text_lower = strtolower(trim($text));
+        $found = [];
+
+        foreach ($terms as $term) {
+            $slug_lower = strtolower($term->slug);
+            $name_lower = strtolower($term->name);
+            // Slug "country-music" -> match "country music" or "country-music"
+            $slug_as_words = str_replace('-', ' ', $slug_lower);
+            // Match whole words: slug, name, or slug-with-spaces
+            $patterns = [
+                '/\b' . preg_quote($slug_lower, '/') . '\b/',
+                '/\b' . preg_quote($name_lower, '/') . '\b/',
+                '/\b' . preg_quote($slug_as_words, '/') . '\b/',
+            ];
+            foreach ($patterns as $pat) {
+                if (preg_match($pat, $text_lower)) {
+                    $found[$term->slug] = true;
+                    break;
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    public static function resolve_brief_niches($keywords)
+    {
+        if (empty($keywords)) {
+            return [];
+        }
+
+        $terms = get_terms([
+            'taxonomy'   => 'niche',
+            'hide_empty' => false,
+            'fields'     => 'id=>slug',
+        ]);
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $slugs = array_values($terms);
+        $found = [];
+
+        foreach ($keywords as $kw) {
+            $kw_lower = strtolower(trim($kw));
+            foreach ($slugs as $slug) {
+                if ($slug === $kw_lower) {
+                    $found[$slug] = true;
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    public static function resolve_brief_platforms($keywords)
+    {
+        if (empty($keywords)) {
+            return [];
+        }
+
+        $terms = get_terms([
+            'taxonomy'   => 'platform',
+            'hide_empty' => false,
+            'fields'     => 'id=>slug',
+        ]);
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $slugs = array_values($terms);
+        $found = [];
+
+        foreach ($keywords as $kw) {
+            $kw_lower = strtolower(trim($kw));
+            foreach ($slugs as $slug) {
+                if ($slug === $kw_lower) {
+                    $found[$slug] = true;
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    public static function resolve_brief_topics($keywords)
+    {
+        if (empty($keywords)) {
+            return [];
+        }
+
+        $terms = get_terms([
+            'taxonomy'   => 'topic',
+            'hide_empty' => false,
+            'fields'     => 'id=>slug',
+        ]);
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $slugs = array_values($terms);
+        $found = [];
+
+        foreach ($keywords as $kw) {
+            $kw_lower = strtolower(trim($kw));
+            foreach ($slugs as $slug) {
+                if ($slug === $kw_lower) {
+                    $found[$slug] = true;
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    public static function resolve_brief_content_tags($keywords)
+    {
+        if (empty($keywords)) {
+            return [];
+        }
+
+        $terms = get_terms([
+            'taxonomy'   => 'content_tag',
+            'hide_empty' => false,
+            'fields'     => 'id=>slug',
+        ]);
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return [];
+        }
+
+        $slugs = array_values($terms);
+        $found = [];
+
+        foreach ($keywords as $kw) {
+            $kw_lower = strtolower(trim($kw));
+            foreach ($slugs as $slug) {
+                if ($slug === $kw_lower) {
+                    $found[$slug] = true;
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    public static function parse_search_brief($text)
+    {
+        $result = [
+            'niche'        => [],
+            'country'      => [],
+            'platform'     => [],
+            'followers'    => [],
+            'filter'       => [],
+            'topic'        => [],
+            'content_tag'  => [],
+        ];
+
+        if (empty($text) || !is_string($text)) {
+            return $result;
+        }
+
+        $text_lower = strtolower(trim($text));
+        $mappings   = self::get_brief_keyword_mappings();
+
+        // Budget
+        if (preg_match('/[£$]\s*([\d,]+)(?:\s*(?:per|per creator|each))?/i', $text, $m)) {
+            $amount = (int) preg_replace('/[^\d]/', '', $m[1]);
+            foreach ($mappings['budget_to_followers'] as $tier) {
+                if ($amount <= $tier['max']) {
+                    $result['followers'] = [$tier['range']];
+                    break;
+                }
+            }
+            if (empty($result['followers']) && $amount > 15000) {
+                $result['followers'] = ['1000000-10000000'];
+            }
+        }
+
+        // Niches: 1) keyword dictionary (priority / platform-built-for), 2) taxonomy terms
+        $niche_keywords = [];
+        foreach ($mappings['niche'] as $phrase => $slug_or_slugs) {
+            if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
+                $niche_keywords = array_merge($niche_keywords, self::_brief_normalize_slugs($slug_or_slugs));
+            }
+        }
+        $niche_from_dict = self::resolve_brief_niches(array_unique($niche_keywords));
+        $niche_from_tax  = self::match_brief_to_taxonomy_terms($text, 'niche');
+        $result['niche'] = array_values(array_unique(array_merge($niche_from_dict, $niche_from_tax)));
+
+        // Countries
+        $country_found = [];
+        $europe_codes = ['DEU', 'FRA', 'ESP', 'ITA', 'NLD']; // From Geography dict: europe = germany, france, spain, italy, netherlands
+        foreach ($mappings['country'] as $phrase => $code) {
+            if ($code === 'GLOBAL') {
+                continue; // Skip — no single alpha3
+            }
+            if (in_array($code, ['EU', 'EUROPE'], true)) {
+                if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
+                    foreach ($europe_codes as $c) {
+                        $country_found[$c] = true;
+                    }
+                }
+                continue;
+            }
+            if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
+                $country_found[$code] = true;
+            }
+        }
+        $result['country'] = array_keys($country_found);
+
+        // Platforms: 1) keyword dictionary (ig, yt, etc.), 2) taxonomy terms
+        $platform_keywords = [];
+        foreach ($mappings['platform'] as $phrase => $slug) {
+            if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
+                $platform_keywords[] = $slug;
+            }
+        }
+        $platform_from_dict = self::resolve_brief_platforms(array_unique($platform_keywords));
+        $platform_from_tax  = self::match_brief_to_taxonomy_terms($text, 'platform');
+        $result['platform'] = array_values(array_unique(array_merge($platform_from_dict, $platform_from_tax)));
+
+        // Filters
+        foreach ($mappings['filter'] as $phrase => $filter_key) {
+            if (preg_match('/\b' . preg_quote($phrase, '/') . '\b/i', $text_lower)) {
+                $result['filter'][] = $filter_key;
+            }
+        }
+        $result['filter'] = array_unique($result['filter']);
+
+        // Topics: 1) dictionary niche keywords (platform-built-for), 2) taxonomy terms
+        $topic_keywords = array_unique($niche_keywords);
+        $topic_from_dict = self::resolve_brief_topics($topic_keywords);
+        $topic_from_tax  = self::match_brief_to_taxonomy_terms($text, 'topic');
+        $result['topic'] = array_values(array_unique(array_merge($topic_from_dict, $topic_from_tax)));
+
+        // Content Tags: 1) dictionary niche keywords, 2) taxonomy terms
+        $content_tag_keywords = array_unique($niche_keywords);
+        $ct_from_dict = self::resolve_brief_content_tags($content_tag_keywords);
+        $ct_from_tax  = self::match_brief_to_taxonomy_terms($text, 'content_tag');
+        $result['content_tag'] = array_values(array_unique(array_merge($ct_from_dict, $ct_from_tax)));
+
+        return $result;
+    }
+
+    public static function merge_brief_with_explicit_filters($parsed, $explicit)
+    {
+        $keys = ['niche', 'country', 'platform', 'followers', 'filter', 'topic', 'content_tag'];
+
+        foreach ($keys as $key) {
+            if (!isset($parsed[$key])) {
+                $parsed[$key] = [];
+            }
+        }
+
+        $merged = [];
+
+        foreach ($keys as $key) {
+            $explicit_val = isset($explicit[$key]) ? $explicit[$key] : [];
+            if (!is_array($explicit_val)) {
+                $explicit_val = $explicit_val ? [$explicit_val] : [];
+            }
+            $parsed_val = isset($parsed[$key]) ? $parsed[$key] : [];
+
+            if (!empty($explicit_val)) {
+                $merged[$key] = $explicit_val;
+            } elseif (!empty($parsed_val)) {
+                $merged[$key] = $parsed_val;
+            } else {
+                $merged[$key] = [];
+            }
+        }
+
+        return $merged;
     }
 }
 

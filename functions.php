@@ -53,7 +53,6 @@ require $dir . '/includes/dompdf.php';
 require $dir . '/includes/sign-up.php';
 require $dir . '/includes/hooks.php';
 require $dir . '/includes/custom-functions.php';
-require $dir . '/includes/brief-parser.php';
 require $dir . '/includes/saves-manager.php';
 require $dir . '/includes/mycred.php';
 require $dir . '/includes/mycred-frontend-log.php';
