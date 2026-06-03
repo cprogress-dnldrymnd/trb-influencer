@@ -626,6 +626,7 @@ input:checked + .slider:before {
   flex-wrap: wrap;
   gap: 10px;
 }
+
 .influencer-search-main .influencer-search-item-row > div {
   flex-grow: 1;
 }
@@ -1922,9 +1923,14 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   border-bottom: 1px solid var(--e-global-color-670824e);
 }
 
+
 #search-header .toggle-text {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+}
+
+.influencer-search-main .influencer-search-filter-holder {
+  padding: clamp(15px, 1.302vw, 25px);
 }

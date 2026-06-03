@@ -556,7 +556,6 @@ class Influencer_Search
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
             <!-- START CLEANED TOGGLE HEADER -->
             <div id="search-header">
-
                 <!-- 1. FILTERED SEARCH -->
                 <div class="filtered-search toggle-text <?= !$is_brief_active ? 'active' : '' ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20">
