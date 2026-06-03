@@ -334,6 +334,30 @@
         var filter_min_followers = min_f_arr.length > 0 ? min_f_arr[0] : '';
         var filter_max_followers = max_f_arr.length > 0 ? max_f_arr[0] : '';
 
+        // --- NEW: Update the URL query parameters so the search is reloadable/shareable ---
+        if (!is_load_more) {
+            var urlParams = new URLSearchParams();
+            
+            // Append brief
+            if (search_brief) urlParams.set('search-brief', search_brief);
+            
+            // Append array-based filters
+            filter_niche.forEach(function(val) { urlParams.append('niche[]', val); });
+            filter_country.forEach(function(val) { urlParams.append('country[]', val); });
+            filter_lang.forEach(function(val) { urlParams.append('lang[]', val); });
+            filter_filter.forEach(function(val) { urlParams.append('filter[]', val); });
+            min_f_arr.forEach(function(val) { urlParams.append('min_followers[]', val); });
+            max_f_arr.forEach(function(val) { urlParams.append('max_followers[]', val); });
+            
+            // Set the search active flag
+            urlParams.set('search_active', 'true');
+            
+            // Push the new URL to the browser without reloading
+            var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + urlParams.toString();
+            window.history.pushState({path: newUrl}, '', newUrl);
+        }
+        // ----------------------------------------------------------------------------------
+
         container.css('opacity', '0.5');
         button.text('Loading...');
 
@@ -363,7 +387,7 @@
                         container.html(response.data.html);
                     }
 
-                    // --- NEW: Trigger the tag sorting function after HTML loads ---
+                    // Trigger the tag sorting function after HTML loads
                     prioritize_active_tags();
 
                     jQuery('.total-found-influencer').text(response.data.found_posts);

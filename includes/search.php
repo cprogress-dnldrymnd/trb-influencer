@@ -631,6 +631,7 @@ class Influencer_Search
         <div class="influencer-search-summary">
             <?php if (!empty($brief)): ?>
                 <div class="search-summary-brief search-summary-item">
+                    <input type="hidden" name="search-brief" id="search-brief" value="<?= wpautop(esc_html(wp_trim_words($brief, 25))) ?>">
                     <div class="summary-brief-label">Your brief:</div>
                     <div class="summary-brief">
                         <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
