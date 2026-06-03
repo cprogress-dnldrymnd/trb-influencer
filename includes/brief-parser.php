@@ -10,7 +10,6 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
 /**
  * Get keyword mappings for brief parsing.
  * Merged from: Niche_category, Geography, Audience dictionaries + wellbeing/wellness synonym.

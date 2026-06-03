@@ -4,7 +4,6 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * 2. Shortcode: Output IDs as comma-separated string
  * Usage: [recent_influencer_ids limit="5"] 
  * Output Example: "102, 45, 305"
  */
