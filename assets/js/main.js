@@ -6,6 +6,9 @@
         // --- NEW: Sync the disabled states of follower min/max fields ---
         sync_follower_min_max_states();
 
+        initSearchToggle();
+        initActiveFilterChips();
+
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
         } else {
@@ -28,6 +31,171 @@
         });
     });
 
+
+    /**
+     * Initializes the toggle switch, controls visibility of the search modes,
+     * resets fields when hidden, and manages the 'Reset All' button execution.
+     */
+    function initSearchToggle() {
+        const toggleInput = $('#my-toggle');
+        const resetAllBtn = $('.reset-filters-btn');
+
+        function updateSearchVisibility() {
+            var isChecked = toggleInput.is(':checked');
+
+            if (isChecked) {
+                // Activate Filtered Search
+                $('.filtered-search').addClass('active');
+                $('.full-brief-search').removeClass('active');
+                $('#search-brief').attr('required', false);
+                $('#search-brief').val(''); // Clear brief so hidden value isn't processed
+                
+                resetAllBtn.css('display', 'inline-block');
+            } else {
+                // Activate Full Brief Search
+                $('.filtered-search').removeClass('active');
+                $('.full-brief-search').addClass('active');
+                $('#search-brief').attr('required', true);
+
+                // Reset Inactive Container (Filtered Search)
+                $('.filtered-search').find('input[type="checkbox"], input[type="radio"]')
+                    .prop('checked', false)
+                    .trigger('change');
+                
+                // Clear Visual Validation Errors
+                $('.influencer-search-main').find('.custom-group-error').remove();
+                
+                resetAllBtn.css('display', 'none');
+            }
+        }
+
+        toggleInput.on('change', updateSearchVisibility);
+        updateSearchVisibility(); // Trigger on load
+
+        // Handle the Reset All execution
+        resetAllBtn.on('click', function(e) {
+            e.preventDefault();
+            const individualResets = document.querySelectorAll('.filter-widget .reset-btn');
+            individualResets.forEach(btn => {
+                if (btn) btn.click();
+            });
+            // Additional chip reset catch-all
+            $('.active-filter-chip').remove();
+        });
+    }
+
+    /**
+     * Validates the main search form pseudo-checkbox groups before submission.
+     */
+    function validate_required_search_filters() {
+        const form = document.querySelector('.influencer-search-main');
+        if (!form) return;
+
+        form.addEventListener('submit', (e) => {
+            const filteredSearch = form.querySelector('.filtered-search');
+
+            if (filteredSearch && filteredSearch.classList.contains('active')) {
+                const optionLists = filteredSearch.querySelectorAll('.required-on-search .options-list');
+                let isFormValid = true;
+
+                // Clear lingering errors
+                form.querySelectorAll('.custom-group-error').forEach(err => err.remove());
+
+                optionLists.forEach(listElement => {
+                    const inputs = Array.from(listElement.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
+                    if (inputs.length === 0) return;
+
+                    const hasSelection = inputs.some(input => input.checked);
+
+                    if (!hasSelection) {
+                        isFormValid = false;
+                        const dropdownHeader = listElement.closest('.filter-widget').querySelector('.dropdown-button');
+                        if (dropdownHeader) {
+                            const errorSpan = document.createElement('span');
+                            errorSpan.className = 'custom-group-error';
+                            errorSpan.style.color = '#dc3545';
+                            errorSpan.style.fontSize = '12px';
+                            errorSpan.style.display = 'block';
+                            errorSpan.style.marginTop = '4px';
+                            errorSpan.style.fontWeight = 'normal';
+                            errorSpan.style.textTransform = 'initial';
+                            errorSpan.innerText = '* At least 1 selection required';
+                            dropdownHeader.appendChild(errorSpan);
+                        }
+                    }
+                });
+
+                if (!isFormValid) e.preventDefault();
+            }
+        });
+
+        // Real-time error clearing UX
+        form.addEventListener('change', (e) => {
+            if (e.target.matches('.options-list input')) {
+                const widget = e.target.closest('.filter-widget');
+                if (widget) {
+                    const errorMsg = widget.querySelector('.custom-group-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        });
+    }
+
+    /**
+     * Appends selected "chips" to the UI container based on checkbox changes.
+     */
+    function initActiveFilterChips() {
+        const formSelector = '.influencer-search-main'; 
+        const resultContainer = '.selected-option'; 
+        const resetButton = '.reset-filters-btn'; 
+
+        $(formSelector).on('change', 'input[type="checkbox"]', function () {
+            if (this.id === 'my-toggle') return; // Ignore the toggle switch itself
+            updateChips(this);
+        });
+
+        function updateChips(checkbox) {
+            const $checkbox = $(checkbox);
+            const val = $checkbox.val();
+            if (!val) return; 
+
+            // Extract the readable label from the DOM
+            const label = $checkbox.attr('data-label') || $checkbox.next('label').text() || val;
+            const chipId = 'chip-' + val.replace(/\s+/g, '-').toLowerCase();
+
+            if ($checkbox.is(':checked')) {
+                if ($(`${resultContainer} #${chipId}`).length === 0) {
+                    const chipHtml = `
+                        <div class="active-filter-chip" id="${chipId}" data-target-value="${val}">
+                            ${label}
+                            <span class="remove-chip">✕</span>
+                        </div>`;
+                    
+                    if ($(resultContainer).find(resetButton).length > 0) {
+                        $(chipHtml).insertBefore($(resultContainer).find(resetButton));
+                    } else {
+                        $(resultContainer).append(chipHtml);
+                    }
+                    $(resultContainer).show();
+                }
+            } else {
+                $(`#${chipId}`).remove();
+            }
+        }
+
+        // Handle Chip removal via "X" click
+        $(document).on('click', '.remove-chip', function () {
+            const parentChip = $(this).closest('.active-filter-chip');
+            const targetVal = parentChip.data('target-value');
+
+            const $targetCheckbox = $(`${formSelector} input[value="${targetVal}"]`);
+            if ($targetCheckbox.length) {
+                $targetCheckbox.prop('checked', false).trigger('change'); 
+            }
+            parentChip.remove();
+        });
+    }
+    
     /**
      * NEW: Validates the main search form before submission.
      * Iterates over all elements with the 'required-on-search' class to ensure 
@@ -337,24 +505,24 @@
         // --- NEW: Update the URL query parameters so the search is reloadable/shareable ---
         if (!is_load_more) {
             var urlParams = new URLSearchParams();
-            
+
             // Append brief
             if (search_brief) urlParams.set('search-brief', search_brief);
-            
+
             // Append array-based filters
-            filter_niche.forEach(function(val) { urlParams.append('niche[]', val); });
-            filter_country.forEach(function(val) { urlParams.append('country[]', val); });
-            filter_lang.forEach(function(val) { urlParams.append('lang[]', val); });
-            filter_filter.forEach(function(val) { urlParams.append('filter[]', val); });
-            min_f_arr.forEach(function(val) { urlParams.append('min_followers[]', val); });
-            max_f_arr.forEach(function(val) { urlParams.append('max_followers[]', val); });
-            
+            filter_niche.forEach(function (val) { urlParams.append('niche[]', val); });
+            filter_country.forEach(function (val) { urlParams.append('country[]', val); });
+            filter_lang.forEach(function (val) { urlParams.append('lang[]', val); });
+            filter_filter.forEach(function (val) { urlParams.append('filter[]', val); });
+            min_f_arr.forEach(function (val) { urlParams.append('min_followers[]', val); });
+            max_f_arr.forEach(function (val) { urlParams.append('max_followers[]', val); });
+
             // Set the search active flag
             urlParams.set('search_active', 'true');
-            
+
             // Push the new URL to the browser without reloading
             var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?' + urlParams.toString();
-            window.history.pushState({path: newUrl}, '', newUrl);
+            window.history.pushState({ path: newUrl }, '', newUrl);
         }
         // ----------------------------------------------------------------------------------
 

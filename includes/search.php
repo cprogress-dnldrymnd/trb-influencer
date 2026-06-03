@@ -539,7 +539,7 @@ class Influencer_Search
         return ob_get_clean();
     }
 
-    public function shortcode_influencer_search_filter_main()
+   public function shortcode_influencer_search_filter_main()
     {
         ob_start();
         $raw_fields = get_query_var('influencer_search_fields');
@@ -547,9 +547,56 @@ class Influencer_Search
         $influencer_search_page = get_query_var('influencer_search_page');
         $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
         $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+        
+        // Check if filtered search was active to persist toggle state on reload
+        $is_filtered = empty($brief) && (!empty($_GET['niche']) || !empty($_GET['country']) || !empty($_GET['lang']) || !empty($_GET['min_followers']) || !empty($_GET['max_followers']));
+        $checked_attr = $is_filtered ? 'checked="checked"' : '';
     ?>
         <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
             <div class="influencer-search-filter-holder">
+                
+                <div class="elementor-element elementor-element-1e18337 e-con-full e-flex e-con e-child" data-id="1e18337" data-element_type="container" data-e-type="container" id="search-header">
+                    <div class="elementor-element elementor-element-b2a4f9e e-con-full e-flex e-con e-child" data-id="b2a4f9e" data-element_type="container" data-e-type="container">
+                        <div class="elementor-element elementor-element-6daee02 elementor-view-default elementor-widget elementor-widget-icon" data-id="6daee02" data-element_type="widget" data-e-type="widget" data-widget_type="icon.default">
+                            <div class="elementor-widget-container">
+                                <div class="elementor-icon-wrapper">
+                                    <div class="elementor-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="46.322" height="46.948" viewBox="0 0 46.322 46.948"><path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="elementor-element elementor-element-c036bcb full-brief-search toggle-text elementor-widget elementor-widget-heading active" data-id="c036bcb" data-element_type="widget" data-e-type="widget" data-widget_type="heading.default">
+                            <div class="elementor-widget-container">
+                                <p class="elementor-heading-title elementor-size-default">FULL BRIEF SEARCH</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="elementor-element elementor-element-6730263 toggle-html elementor-widget elementor-widget-html" data-id="6730263" data-element_type="widget" data-e-type="widget" data-widget_type="html.default">
+                        <div class="elementor-widget-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="my-toggle" <?= $checked_attr ?>>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="elementor-element elementor-element-4c7791d e-con-full e-flex e-con e-child" data-id="4c7791d" data-element_type="container" data-e-type="container">
+                        <div class="elementor-element elementor-element-d502a85 filtered-search toggle-text elementor-widget elementor-widget-heading" data-id="d502a85" data-element_type="widget" data-e-type="widget" data-widget_type="heading.default">
+                            <div class="elementor-widget-container">
+                                <p class="elementor-heading-title elementor-size-default">FILTERED SEARCH</p>
+                            </div>
+                        </div>
+                        <div class="elementor-element elementor-element-b51f5ad elementor-view-default elementor-widget elementor-widget-icon" data-id="b51f5ad" data-element_type="widget" data-e-type="widget" data-widget_type="icon.default">
+                            <div class="elementor-widget-container">
+                                <div class="elementor-icon-wrapper">
+                                    <div class="elementor-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20"><path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <input type="hidden" value="true" name="search_active">
                 <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
                     <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief..." required><?= esc_html($brief) ?></textarea>
