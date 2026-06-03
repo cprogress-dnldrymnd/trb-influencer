@@ -632,6 +632,72 @@ class Influencer_Search
         return ob_get_clean();
     }
 
+      public function shortcode_influencer_search_summary()
+    {
+        global $search_results_page_id;
+        if ((int) get_queried_object_id() !== $search_results_page_id) return '';
+
+        $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+        $niche = isset($_GET['niche']) ? (array) $_GET['niche'] : [];
+        $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
+        $followers = isset($_GET['followers']) ? (array) $_GET['followers'] : [];
+        $filter = isset($_GET['filter']) ? (array) $_GET['filter'] : [];
+
+        if (empty($brief) && empty($niche) && empty($country) && empty($followers)) return '';
+        $fields = is_array(get_query_var('influencer_search_fields')) ? get_query_var('influencer_search_fields') : [];
+
+        $parts = [];
+        if (!empty($niche)) {
+            $niche_names = [];
+            foreach ($niche as $slug) $niche_names[] = $fields['niche'][$slug] ?? ucfirst($slug);
+            $parts[] = implode(', ', $niche_names);
+        }
+        if (!empty($country)) {
+            $country_names = [];
+            foreach ($country as $code) $country_names[] = $fields['country'][$code] ?? strtoupper($code);
+            $parts[] = implode(', ', $country_names);
+        }
+        if (!empty($followers) && !empty($followers[0])) {
+            $f_opts = $fields['followers'] ?? [];
+            $parts[] = $f_opts[$followers[0]] ?? $followers[0];
+        }
+
+        $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
+        $verified_only = in_array('Include only verified influencers', $filter, true);
+        $expert_only = in_array('Professional experts only', $filter, true);
+
+        ob_start();
+    ?>
+        <div class="influencer-search-summary">
+            <?php if (!empty($brief)): ?>
+                <div class="search-summary-brief search-summary-item">
+                    <input type="hidden" name="search-brief" id="search-brief" value="<?= wpautop(esc_html(wp_trim_words($brief, 25))) ?>">
+                    <div class="summary-brief-label">Your brief:</div>
+                    <div class="summary-brief">
+                        <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
+                    </div>
+                    <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($parts) && empty($brief)): ?>
+                <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
+            <?php endif; ?>
+            <?php if ($prioritise_engagement || $verified_only || $expert_only): ?>
+                <div class="search-summary-item search-summary-notes">
+                    <?php
+                    $notes = [];
+                    if ($prioritise_engagement) $notes[] = '<span>Prioritising engagement over reach</span>';
+                    if ($verified_only) $notes[] = '<span>Include only verified influencers</span>';
+                    if ($expert_only) $notes[] = '<span>Professional experts only</span>';
+                    echo implode(' • ', $notes);
+                    ?>
+                </div>
+            <?php endif; ?>
+        </div>
+<?php
+        return ob_get_clean();
+    }
+
     public function shortcode_influencer_match_score()
     {
         $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
