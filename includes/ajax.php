@@ -230,7 +230,6 @@ function my_custom_loop_filter_handler()
             'compare' => '=',
         ];
     }
-
     // Strict Filter: Professional experts only (Checks for both new '1' and legacy 'yes')
     if (!empty($filter) && in_array('Professional experts only', $filter, true)) {
         $strict_meta_query[] = [
