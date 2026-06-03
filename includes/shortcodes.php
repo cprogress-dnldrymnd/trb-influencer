@@ -28,7 +28,6 @@ function get_country_flag_from_meta()
     if (strlen($code_clean) === 3) {
         $flag_code = iso_alpha3_to_alpha2($code_clean);
     }
-
     // If no valid flag code found after conversion, just return text
     if (! $flag_code) {
         return $display_text;
