@@ -1914,9 +1914,16 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 
 #search-header {
-  padding: clamp(15px, 1.302vw, 25px)
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  padding: clamp(15px, 1.302vw, 25px);
 }
 
 #search-header .toggle-text {
-
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
