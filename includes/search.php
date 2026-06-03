@@ -20,6 +20,14 @@ class Influencer_Search
         add_action('wp', [$this, 'setup_search_variables']);
     }
 
+
+    // Register Search Shortcodes
+        add_shortcode('influencer_search_filter', [$this, 'shortcode_influencer_search_filter']);
+        add_shortcode('influencer_search_filter_main', [$this, 'shortcode_influencer_search_filter_main']);
+        add_shortcode('influencer_search_summary', [$this, 'shortcode_influencer_search_summary']);
+        add_shortcode('influencer_match_score', [$this, 'shortcode_influencer_match_score']);
+        add_shortcode('saved_search_url', [$this, 'shortcode_saved_search_url']);
+
     /**
      * Variable setup for search & outreach fields
      */
@@ -364,6 +372,188 @@ class Influencer_Search
         }
 
         wp_send_json_success(['items' => $items]);
+    }
+
+    // ========================================================================
+    // 4. SHORTCODES
+    // ========================================================================
+
+    public function shortcode_influencer_search_filter() {
+        ob_start();
+        $raw_fields = get_query_var('influencer_search_fields');
+        $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+        $influencer_search_page = get_query_var('influencer_search_page');
+        $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
+        ?>
+        <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
+            <div class="influencer-search-filter-holder">
+                <div class="influencer-search-item niche-filters">
+                    <?= self::select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::select_filter('min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+                </div>
+                <div class="influencer-search-item">
+                    <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
+                        <span class="elementor-button-content-wrapper"><span class="elementor-button-text">REFINE SEARCH</span></span>
+                    </button>
+                </div>
+                <div class="influencer-search-item">
+                    <div class="save-this-search"><span class="save-this-search-button save-search-trigger">Save this search</span></div>
+                </div>
+            </div>
+        </form>
+        <?php
+        return ob_get_clean();
+    }
+
+    public function shortcode_influencer_search_filter_main() {
+        ob_start();
+        $raw_fields = get_query_var('influencer_search_fields');
+        $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+        $influencer_search_page = get_query_var('influencer_search_page');
+        $form_action = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
+        $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+        ?>
+        <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
+            <div class="influencer-search-filter-holder">
+                <input type="hidden" value="true" name="search_active">
+                <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search active">
+                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief..." required><?= esc_html($brief) ?></textarea>
+                </div>
+                <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search">
+                    <div class="influencer-search-item">
+                        <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Location</div>
+                        <?= self::select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Language</div>
+                        <?= self::select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item required-on-search">
+                        <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Niche</div>
+                        <?= self::select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                    </div>
+                    <div class="influencer-search-item">
+                        <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Follower Count</div>
+                        <div class="field-groups">
+                            <?= self::select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                            <?= self::select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="influencer-search-item checkbox-row">
+                    <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+                </div>
+                <div class="influencer-search-item" style="display: flex; justify-content: space-between">
+                    <button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm">
+                        <span class="elementor-button-content-wrapper"><span class="elementor-button-text">RESET ALL</span></span>
+                    </button>
+                    <button type="submit" class="influencer-search-button elementor-button elementor-button-link elementor-size-sm">
+                        <span class="elementor-button-content-wrapper"><span class="elementor-button-text">GENERATE MATCHES</span></span>
+                    </button>
+                </div>
+            </div>
+        </form>
+        <?php
+        return ob_get_clean();
+    }
+
+    public function shortcode_influencer_search_summary() {
+        global $search_results_page_id;
+        if ((int) get_queried_object_id() !== $search_results_page_id) return '';
+        
+        $brief = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+        $niche = isset($_GET['niche']) ? (array) $_GET['niche'] : [];
+        $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
+        $followers = isset($_GET['followers']) ? (array) $_GET['followers'] : [];
+        $filter = isset($_GET['filter']) ? (array) $_GET['filter'] : [];
+
+        if (empty($brief) && empty($niche) && empty($country) && empty($followers)) return '';
+        $fields = is_array(get_query_var('influencer_search_fields')) ? get_query_var('influencer_search_fields') : [];
+
+        $parts = [];
+        if (!empty($niche)) {
+            $niche_names = [];
+            foreach ($niche as $slug) $niche_names[] = $fields['niche'][$slug] ?? ucfirst($slug);
+            $parts[] = implode(', ', $niche_names);
+        }
+        if (!empty($country)) {
+            $country_names = [];
+            foreach ($country as $code) $country_names[] = $fields['country'][$code] ?? strtoupper($code);
+            $parts[] = implode(', ', $country_names);
+        }
+        if (!empty($followers) && !empty($followers[0])) {
+            $f_opts = $fields['followers'] ?? [];
+            $parts[] = $f_opts[$followers[0]] ?? $followers[0];
+        }
+
+        $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
+        $verified_only = in_array('Include only verified influencers', $filter, true);
+        $expert_only = in_array('Professional experts only', $filter, true);
+
+        ob_start();
+        ?>
+        <div class="influencer-search-summary">
+            <?php if (!empty($brief)): ?>
+                <div class="search-summary-brief search-summary-item">
+                    <div class="summary-brief-label">Your brief:</div>
+                    <div class="summary-brief"><div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div></div>
+                    <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($parts) && empty($brief)): ?>
+                <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
+            <?php endif; ?>
+            <?php if ($prioritise_engagement || $verified_only || $expert_only): ?>
+                <div class="search-summary-item search-summary-notes">
+                    <?php 
+                    $notes = [];
+                    if ($prioritise_engagement) $notes[] = '<span>Prioritising engagement over reach</span>';
+                    if ($verified_only) $notes[] = '<span>Include only verified influencers</span>';
+                    if ($expert_only) $notes[] = '<span>Professional experts only</span>';
+                    echo implode(' • ', $notes);
+                    ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    public function shortcode_influencer_match_score() {
+        $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
+        $criteria = get_query_var('search_criteria');
+        $criteria = is_array($criteria) ? $criteria : [];
+        $score    = self::calculate_match_score($post_id, $criteria);
+
+        if ($score < 0) return '<span class="influencer-match-score-wrap">— Match Score</span>';
+
+        $phrases = self::get_matched_criteria_labels($post_id, $criteria);
+        $tooltip = !empty($phrases) ? implode("\n", $phrases) : '';
+
+        $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">✨ ' . (int) $score . '% Match Score</span>';
+        if ($tooltip) $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
+        $html .= '</div>';
+        return $html;
+    }
+
+    public function shortcode_saved_search_url() {
+        global $search_results_page_id;
+        $search_query = get_field('search_query', get_the_ID());
+        return get_the_permalink($search_results_page_id) . $search_query . '&search_active=true';
     }
 
     /**
