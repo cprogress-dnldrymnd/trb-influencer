@@ -16,6 +16,10 @@ class Influencer_Search
         add_action('wp_ajax_dd_search_niche_options', [$this, 'dd_search_niche_options_handler']);
         add_action('wp_ajax_nopriv_dd_search_niche_options', [$this, 'dd_search_niche_options_handler']);
 
+        // Register AJAX actions for the content_tag (hashtags) options dropdown
+        add_action('wp_ajax_dd_search_content_tag_options', [$this, 'dd_search_content_tag_options_handler']);
+        add_action('wp_ajax_nopriv_dd_search_content_tag_options', [$this, 'dd_search_content_tag_options_handler']);
+
         // Set up search variables on the 'wp' hook
         add_action('wp', [$this, 'setup_search_variables']);
 
@@ -208,12 +212,8 @@ class Influencer_Search
         $country_options = self::get_unique_influencer_countries();
         $lang_options = self::get_unique_influencer_languages();
 
-        $gender_options = array(
-            'Male' => 'Male',
-            'Female' => 'Female',
-            'Non-Binary' => 'Non-Binary',
-            'Prefer not to say' => 'Prefer not to say',
-        );
+        $gender_options = self::get_unique_influencer_genders();
+
         $age_options = array(
             '13-17' => '13-17',
             '18-24' => '18-24',
@@ -237,6 +237,7 @@ class Influencer_Search
         $influencer_search_fields['gender'] = $gender_options;
         $influencer_search_fields['age'] = $age_options;
         $influencer_search_fields['filter'] = $filter_options;
+        $influencer_search_fields['content_tag'] = [];
 
         // Assumes this generic helper stays in custom-functions.php
         $project_type_options = get_unique_meta_values_by_post_type('project_type');
@@ -330,6 +331,79 @@ class Influencer_Search
     }
 
     /**
+     * Get sorted array of unique genders from 'influencer' post type meta.
+     */
+    public static function get_unique_influencer_genders()
+    {
+        global $wpdb;
+        $results = $wpdb->get_col($wpdb->prepare("
+            SELECT DISTINCT pm.meta_value 
+            FROM {$wpdb->postmeta} pm
+            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+            WHERE p.post_type = %s
+            AND pm.meta_key = %s
+            AND p.post_status = 'publish'
+            AND pm.meta_value != ''
+        ", 'influencer', 'gender'));
+
+        $gender_list = array();
+        foreach ($results as $val) {
+            $clean = trim(ucfirst(strtolower($val)));
+            if (!empty($clean)) {
+                $gender_list[$clean] = $clean;
+            }
+        }
+        asort($gender_list);
+        return $gender_list;
+    }
+
+    /**
+     * AJAX: Return hashtag (content_tag) options for typeahead filter dropdown.
+     */
+    public function dd_search_content_tag_options_handler()
+    {
+        $query = isset($_POST['q']) ? sanitize_text_field(wp_unslash($_POST['q'])) : '';
+        $query = trim($query);
+        $min_chars = 3;
+        $limit = 20;
+
+        if (strlen($query) < $min_chars) {
+            wp_send_json_success(['items' => []]);
+        }
+
+        $selected = isset($_POST['selected']) ? (array) $_POST['selected'] : [];
+        $selected = array_map('sanitize_title', $selected);
+        $selected_map = array_fill_keys($selected, true);
+
+        $terms = get_terms([
+            'taxonomy'   => 'content_tag',
+            'hide_empty' => false,
+            'name__like' => $query,
+            'number'     => $limit,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+            'fields'     => 'all',
+        ]);
+
+        if (is_wp_error($terms) || !is_array($terms)) {
+            wp_send_json_success(['items' => []]);
+        }
+
+        $items = [];
+        foreach ($terms as $term) {
+            if (!is_object($term) || empty($term->slug)) continue;
+            $slug = (string) $term->slug;
+            $items[] = [
+                'value' => $slug,
+                'label' => (string) $term->name,
+                'selected' => !empty($selected_map[$slug]),
+            ];
+        }
+
+        wp_send_json_success(['items' => $items]);
+    }
+
+    /**
      * Render Select Filter HTML
      */
     public static function select_filter($name, $label, $placeholder, $options = [], $type = 'checkbox', $has_search = false)
@@ -338,7 +412,9 @@ class Influencer_Search
         if (isset($_GET[$name])) {
             $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
         }
-        $is_niche_async = ($name === 'niche' && $has_search && $type === 'checkbox');
+
+        // Updated to support both niche and content_tag (hashtags) async searches
+        $is_async = (($name === 'niche' || $name === 'content_tag') && $has_search && $type === 'checkbox');
 
         ob_start();
 ?>
@@ -360,14 +436,14 @@ class Influencer_Search
                     <?php if ($has_search): ?>
                         <div class="dropdown-search-container" style="padding: 10px;">
                             <input type="text" class="dropdown-search-input"
-                                placeholder="<?= esc_attr($is_niche_async ? 'Search niches...' : 'Search options...') ?>"
+                                placeholder="<?= esc_attr($is_async ? 'Search ' . ($name === 'content_tag' ? 'hashtags' : $name) . '...' : 'Search options...') ?>"
                                 style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
-                                <?= $is_niche_async ? 'data-ajax-search="niche" data-min-chars="3" data-limit="20"' : '' ?>>
+                                <?= $is_async ? 'data-ajax-search="' . esc_attr($name) . '" data-min-chars="3" data-limit="20"' : '' ?>>
                         </div>
                     <?php endif; ?>
 
                     <div class="options-list">
-                        <?php if ($is_niche_async): ?>
+                        <?php if ($is_async): ?>
                             <?php foreach ($selected_values as $selected_key) {
                                 $selected_key = (string) $selected_key;
                                 if ($selected_key === '') continue;
@@ -617,6 +693,26 @@ class Influencer_Search
                     </div>
                 </div>
 
+                <div class="filtered-search <?= !$is_brief_active ? 'active' : '' ?>">
+                    <div class="advanced-search-trigger" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin: 15px 0; font-weight: 600; color: #00a6ed;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                        <span>Advanced Search</span>
+                    </div>
+                    
+                    <div class="advanced-search-filters" style="display: none;">
+                        <div class="influencer-search-item-row influencer-search-item-wrapper">
+                            <div class="influencer-search-item">
+                                <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Gender</div>
+                                <?= self::select_filter('gender', false, 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
+                            </div>
+                            <div class="influencer-search-item">
+                                <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Hashtags</div>
+                                <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 2. FULL BRIEF SEARCH CONTAINER -->
                 <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $is_brief_active ? 'active' : '' ?>">
                     <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief..." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
@@ -636,11 +732,11 @@ class Influencer_Search
                 </div>
             </div>
         </form>
-<?php
+    <?php
         return ob_get_clean();
     }
 
-      public function shortcode_influencer_search_summary()
+    public function shortcode_influencer_search_summary()
     {
         global $search_results_page_id;
         if ((int) get_queried_object_id() !== $search_results_page_id) return '';
@@ -728,10 +824,33 @@ class Influencer_Search
                     </details>
                 </div>
                 <style>
-                    .ic-brief-search-debug { margin: 1rem 0; padding: 0.75rem 1rem; background: #1e1e2e; color: #cdd6f4; border-radius: 8px; font-size: 12px; }
-                    .ic-brief-search-debug summary { cursor: pointer; font-weight: 600; color: #89b4fa; }
-                    .ic-brief-search-debug-hint { opacity: 0.85; margin: 0.5rem 0; }
-                    .ic-brief-search-debug-body { max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+                    .ic-brief-search-debug {
+                        margin: 1rem 0;
+                        padding: 0.75rem 1rem;
+                        background: #1e1e2e;
+                        color: #cdd6f4;
+                        border-radius: 8px;
+                        font-size: 12px;
+                    }
+
+                    .ic-brief-search-debug summary {
+                        cursor: pointer;
+                        font-weight: 600;
+                        color: #89b4fa;
+                    }
+
+                    .ic-brief-search-debug-hint {
+                        opacity: 0.85;
+                        margin: 0.5rem 0;
+                    }
+
+                    .ic-brief-search-debug-body {
+                        max-height: 420px;
+                        overflow: auto;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                        margin: 0;
+                    }
                 </style>
             <?php endif; ?>
         </div>
@@ -787,6 +906,7 @@ class Influencer_Search
             'niche'         => isset($_POST['niche']) ? $_POST['niche'] : [],
             'country'       => isset($_POST['country']) ? $_POST['country'] : [],
             'lang'          => isset($_POST['lang']) ? $_POST['lang'] : [],
+            'gender'        => isset($_POST['gender']) ? $_POST['gender'] : [],
 
             // Dedicated min/max follower inputs (scalar)
             'min_followers' => isset($_POST['min_followers']) ? sanitize_text_field($_POST['min_followers']) : '',
@@ -798,7 +918,7 @@ class Influencer_Search
         ];
 
         // Ensure arrays for array-expected inputs (bypassing min_followers/max_followers)
-        foreach (['niche', 'country', 'lang', 'filter', 'topic', 'content_tag'] as $k) {
+        foreach (['niche', 'country', 'lang', 'filter', 'topic', 'content_tag', 'gender'] as $k) {
             if (!isset($explicit[$k]) || !is_array($explicit[$k])) {
                 $explicit[$k] = !empty($explicit[$k]) ? [$explicit[$k]] : [];
             }
@@ -815,6 +935,7 @@ class Influencer_Search
         $niche         = $explicit['niche'];
         $country       = $explicit['country'];
         $lang          = $explicit['lang'];
+        $gender        = $explicit['gender'];
         $min_followers = $explicit['min_followers'];
         $max_followers = $explicit['max_followers'];
         $filter        = $explicit['filter'];
@@ -899,6 +1020,15 @@ class Influencer_Search
                 'key'     => 'lang',
                 'value'   => $lang_arr,
                 'compare' => count($lang_arr) > 1 ? 'IN' : '=',
+            ];
+        }
+
+        if (!empty($gender)) {
+            $gender_arr = is_array($gender) ? $gender : [$gender];
+            $meta_query[] = [
+                'key'     => 'gender',
+                'value'   => $gender_arr,
+                'compare' => count($gender_arr) > 1 ? 'IN' : '=',
             ];
         }
 

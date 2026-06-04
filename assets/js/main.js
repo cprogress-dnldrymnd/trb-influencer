@@ -7,6 +7,7 @@
         sync_follower_min_max_states();
 
         initSearchToggle();
+        initAdvancedSearchToggle();
         initActiveFilterChips();
 
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
@@ -32,10 +33,18 @@
     });
 
 
-  /**
-     * Initializes the toggle switch, controls visibility of the search modes,
-     * resets fields when hidden, and manages the 'Reset All' button execution.
-     */
+    function initAdvancedSearchToggle() {
+        $('.advanced-search-trigger').on('click', function () {
+            const filtersWrap = $(this).next('.advanced-search-filters');
+            filtersWrap.slideToggle(300);
+            $(this).toggleClass('open');
+        });
+    }
+
+    /**
+       * Initializes the toggle switch, controls visibility of the search modes,
+       * resets fields when hidden, and manages the 'Reset All' button execution.
+       */
     function initSearchToggle() {
         const toggleInput = $('#my-toggle');
         const resetAllBtn = $('.reset-filters-btn');
@@ -56,36 +65,36 @@
                         .prop('checked', false)
                         .trigger('change');
                 }
-                
+
                 // Clear Visual Validation Errors
                 $('.influencer-search-main').find('.custom-group-error').remove();
-                
+
                 resetAllBtn.css('display', 'none');
             } else {
                 // TOGGLE UNCHECKED (DEFAULT): Activate Filtered Search
                 $('.filtered-search').addClass('active');
                 $('.full-brief-search').removeClass('active');
                 $('#search-brief').attr('required', false);
-                
+
                 // ONLY clear the brief textarea if the user manually flipped the toggle
                 if (!isInit) {
-                    $('#search-brief').val(''); 
+                    $('#search-brief').val('');
                 }
-                
+
                 resetAllBtn.css('display', 'inline-block');
             }
         }
 
         // Trigger on load as an initialization (true)
-        updateSearchVisibility(true); 
+        updateSearchVisibility(true);
 
         // Trigger on change as a user action (false)
-        toggleInput.on('change', function() {
+        toggleInput.on('change', function () {
             updateSearchVisibility(false);
         });
 
         // Handle the Reset All execution
-        resetAllBtn.on('click', function(e) {
+        resetAllBtn.on('click', function (e) {
             e.preventDefault();
             const individualResets = document.querySelectorAll('.filter-widget .reset-btn');
             individualResets.forEach(btn => {
@@ -157,9 +166,9 @@
      * Appends selected "chips" to the UI container based on checkbox changes.
      */
     function initActiveFilterChips() {
-        const formSelector = '.influencer-search-main'; 
-        const resultContainer = '.selected-option'; 
-        const resetButton = '.reset-filters-btn'; 
+        const formSelector = '.influencer-search-main';
+        const resultContainer = '.selected-option';
+        const resetButton = '.reset-filters-btn';
 
         $(formSelector).on('change', 'input[type="checkbox"]', function () {
             if (this.id === 'my-toggle') return; // Ignore the toggle switch itself
@@ -169,7 +178,7 @@
         function updateChips(checkbox) {
             const $checkbox = $(checkbox);
             const val = $checkbox.val();
-            if (!val) return; 
+            if (!val) return;
 
             // Extract the readable label from the DOM
             const label = $checkbox.attr('data-label') || $checkbox.next('label').text() || val;
@@ -182,7 +191,7 @@
                             ${label}
                             <span class="remove-chip">✕</span>
                         </div>`;
-                    
+
                     if ($(resultContainer).find(resetButton).length > 0) {
                         $(chipHtml).insertBefore($(resultContainer).find(resetButton));
                     } else {
@@ -202,7 +211,7 @@
 
             const $targetCheckbox = $(`${formSelector} input[value="${targetVal}"]`);
             if ($targetCheckbox.length) {
-                $targetCheckbox.prop('checked', false).trigger('change'); 
+                $targetCheckbox.prop('checked', false).trigger('change');
             }
             parentChip.remove();
         });
@@ -269,10 +278,10 @@
         });
     }
 
-   /**
-     * Reads URL parameters on page load and physically checks the corresponding
-     * form inputs so the DOM matches the requested search before AJAX fires.
-     */
+    /**
+      * Reads URL parameters on page load and physically checks the corresponding
+      * form inputs so the DOM matches the requested search before AJAX fires.
+      */
     function sync_url_params_to_dom() {
         const urlParams = new URLSearchParams(window.location.search);
 
@@ -522,6 +531,8 @@
         var filter_niche = get_filter_values('niche[]');
         var filter_country = get_filter_values('country[]');
         var filter_lang = get_filter_values('lang[]');
+        var filter_gender = get_filter_values('gender[]');
+        var filter_content_tag = get_filter_values('content_tag[]');
         var filter_filter = get_filter_values('filter[]');
         var search_brief = ($('#search-brief').length) ? $('#search-brief').val() : '';
         var min_f_arr = get_filter_values('min_followers[]');
@@ -540,6 +551,8 @@
             filter_niche.forEach(function (val) { urlParams.append('niche[]', val); });
             filter_country.forEach(function (val) { urlParams.append('country[]', val); });
             filter_lang.forEach(function (val) { urlParams.append('lang[]', val); });
+            filter_gender.forEach(function (val) { urlParams.append('gender[]', val); });
+            filter_content_tag.forEach(function (val) { urlParams.append('content_tag[]', val); });
             filter_filter.forEach(function (val) { urlParams.append('filter[]', val); });
             min_f_arr.forEach(function (val) { urlParams.append('min_followers[]', val); });
             max_f_arr.forEach(function (val) { urlParams.append('max_followers[]', val); });
@@ -556,6 +569,7 @@
         container.css('opacity', '0.5');
         button.text('Loading...');
 
+        
         $.ajax({
             url: ajax_vars.ajax_url,
             type: 'POST',
@@ -564,6 +578,8 @@
                 niche: filter_niche,
                 country: filter_country,
                 lang: filter_lang,
+                gender: filter_gender,
+                content_tag: filter_content_tag,
                 min_followers: filter_min_followers,
                 max_followers: filter_max_followers,
                 filter: filter_filter,
@@ -636,7 +652,7 @@
             const searchInput = widget.querySelector('.dropdown-search-input');
             const optionsList = widget.querySelector('.options-list');
             const ajaxSearchType = searchInput ? searchInput.getAttribute('data-ajax-search') : '';
-            const isNicheAjaxSearch = ajaxSearchType === 'niche';
+            const isAsyncSearch = (ajaxSearchType === 'niche' || ajaxSearchType === 'content_tag');
             const minChars = searchInput ? parseInt(searchInput.getAttribute('data-min-chars') || '3', 10) : 3;
             const maxResults = searchInput ? parseInt(searchInput.getAttribute('data-limit') || '20', 10) : 20;
             let searchTimer = null;
@@ -657,7 +673,7 @@
                     const raw = (e.target.value || '');
                     const filter = raw.toLowerCase();
 
-                    if (!isNicheAjaxSearch) {
+                    if (!isAsyncSearch) {
                         const listItems = widget.querySelectorAll('.dropdown-item');
                         listItems.forEach(item => {
                             const text = item.textContent || item.innerText;
@@ -704,11 +720,14 @@
                             selectedMap[i.value] = i.getAttribute('data-label') || i.value;
                         });
 
+                       const actionName = ajaxSearchType === 'content_tag' ? 'dd_search_content_tag_options' : 'dd_search_niche_options';
+                        const inputName = ajaxSearchType === 'content_tag' ? 'content_tag[]' : 'niche[]';
+
                         $.ajax({
                             url: ajax_vars.ajax_url,
                             type: 'POST',
                             data: {
-                                action: 'dd_search_niche_options',
+                                action: actionName,
                                 q: term,
                                 selected: selected,
                                 limit: maxResults
@@ -716,7 +735,6 @@
                             success: function (response) {
                                 if (mySeq !== requestSeq) return;
 
-                                // Handle edge case: empty data payload
                                 if (!response || !response.success || !response.data || !Array.isArray(response.data.items)) {
                                     optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
@@ -726,15 +744,10 @@
                                 const mergedItems = [];
                                 const seen = {};
 
-                                // Keep previously selected options visible so multi-select persists across searches.
                                 Object.keys(selectedMap).forEach(value => {
                                     if (seen[value]) return;
                                     seen[value] = true;
-                                    mergedItems.push({
-                                        value: value,
-                                        label: selectedMap[value],
-                                        selected: true
-                                    });
+                                    mergedItems.push({ value: value, label: selectedMap[value], selected: true });
                                 });
 
                                 items.forEach(item => {
@@ -744,17 +757,16 @@
                                     mergedItems.push(item);
                                 });
 
-                                // Replace loading state if no final options exist
                                 if (!mergedItems.length) {
                                     optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
                                 }
 
-                                // Populate valid items
+                                // Output uses the dynamic inputName variable 
                                 optionsList.innerHTML = mergedItems.map(item => {
                                     const checked = item.selected ? 'checked="checked"' : '';
                                     return '<label class="dropdown-item checkbox-list-item">' +
-                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="niche[]" ' + checked + '> ' +
+                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="' + inputName + '" ' + checked + '> ' +
                                         '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
                                         '</label>';
                                 }).join('');
@@ -790,7 +802,7 @@
                 checkboxes.forEach(box => box.checked = false);
                 if (searchInput) {
                     searchInput.value = '';
-                    if (isNicheAjaxSearch) {
+                    if (isAsyncSearch) {
                         optionsList.innerHTML = '';
                     } else {
                         const listItems = widget.querySelectorAll('.dropdown-item');
