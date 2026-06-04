@@ -47,6 +47,9 @@ class DD_Outreach_Manager
         // New Shortcode for Dynamic Outreach Message Preview
         add_shortcode('outreach_message', [$this, 'render_outreach_message_shortcode']);
 
+        // New Shortcode for Conditional Outreach Button
+        add_shortcode('outreach_button', [$this, 'render_outreach_button_shortcode']);
+
         // Frontend AJAX Handlers for dynamic viewing & filtering
         add_action('wp_ajax_dd_get_outreach_details', [$this, 'ajax_get_outreach_details']);
         add_action('wp_ajax_dd_filter_outreach_list', [$this, 'ajax_filter_outreach_list']);
@@ -2728,7 +2731,7 @@ class DD_Outreach_Manager
                 </div>
             </div>
         </div>
-<?php
+    <?php
         $html = ob_get_clean();
         wp_send_json_success($html);
     }
@@ -3006,6 +3009,51 @@ class DD_Outreach_Manager
         $name = isset($country_names[$country_code]) ? $country_names[$country_code] : esc_html($country_code);
 
         return $flag . ' ' . $name;
+    }
+
+    /**
+     * Renders the conditional Outreach button via [outreach_button] shortcode.
+     * Restricts Elementor popup triggers for locked influencers.
+     */
+    public function render_outreach_button_shortcode($atts)
+    {
+        if (!is_user_logged_in()) {
+            return '';
+        }
+
+        $influencer_id = get_the_ID();
+        $user_id = get_current_user_id();
+
+        // IMPORTANT: Replace this boolean with your actual unlock-checking logic
+        // For example: $is_unlocked = check_if_user_unlocked_influencer($user_id, $influencer_id);
+        $is_unlocked = false;
+
+        ob_start();
+    ?>
+
+        <?php if ($is_unlocked) : ?>
+
+            <a href="#" class="elementor-button outreach-form-popup-trigger">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-text">CONNECT WITH & CONTACT THIS CREATOR</span>
+                </span>
+            </a>
+
+        <?php else : ?>
+
+            <a href="#" class="elementor-button"
+                title="You need to unlock this creator first before sending an outreach."
+                style="opacity: 0.6; cursor: not-allowed;"
+                onclick="event.preventDefault();">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-text">CONNECT WITH & CONTACT THIS CREATOR</span>
+                </span>
+            </a>
+
+        <?php endif; ?>
+
+<?php
+        return ob_get_clean();
     }
 }
 
