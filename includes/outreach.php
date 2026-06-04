@@ -3022,11 +3022,10 @@ class DD_Outreach_Manager
         }
 
         $influencer_id = get_the_ID();
-        $user_id = get_current_user_id();
 
         // IMPORTANT: Replace this boolean with your actual unlock-checking logic
         // For example: $is_unlocked = check_if_user_unlocked_influencer($user_id, $influencer_id);
-        $is_unlocked = false;
+        $is_unlocked = is_influencer_unlocked($influencer_id);
 
         ob_start();
     ?>

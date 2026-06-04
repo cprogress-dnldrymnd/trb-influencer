@@ -450,7 +450,7 @@ class Saves_Manager
         $user_id = get_current_user_id();
 
         // --- UNLOCKED CHECK ---
-        if (! $this->is_influencer_unlocked($influencer_id)) {
+        if (!is_influencer_unlocked($influencer_id)) {
             ob_start();
 ?>
             <div class="elementor-button-wrapper add-to-groups" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" title="You need to unlock this influencer first before saving.">
@@ -912,7 +912,7 @@ class Saves_Manager
         // --- STANDARD SAVE LOGIC ---
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
 
-    if (empty($selected_lists)) {
+        if (empty($selected_lists)) {
             if ($post_id) wp_delete_post($post_id, true);
 
             // Removed the $is_newly_unlocked check. Now it only returns the standard "unsaved" message.
@@ -920,14 +920,13 @@ class Saves_Manager
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message'     => 'Unsaved successfully!', 
-                'notice_html' => $message, 
-                'status'      => 'unsaved', 
+                'message'     => 'Unsaved successfully!',
+                'notice_html' => $message,
+                'status'      => 'unsaved',
                 'count'       => 0
             ]);
-            
         } else {
-            
+
             if (!$post_id) {
                 $post_args = [
                     'post_title'  => 'Influencer saved on ' . current_time('M j, Y @ g:i a'),
@@ -948,9 +947,9 @@ class Saves_Manager
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message'     => 'Saved successfully!', 
-                'notice_html' => $message, 
-                'status'      => 'saved', 
+                'message'     => 'Saved successfully!',
+                'notice_html' => $message,
+                'status'      => 'saved',
                 'count'       => count($selected_lists)
             ]);
         }
@@ -2436,28 +2435,6 @@ class Saves_Manager
             });
         </script>
 <?php
-    }
-
-    /**
-     * Helper: Check if the current user has unlocked (purchased) the influencer.
-     */
-    private function is_influencer_unlocked($influencer_id)
-    {
-        $user_id = get_current_user_id();
-
-        // 1. Check custom meta from our new unlock function
-        $unlocked_meta = get_user_meta($user_id, 'dd_unlocked_influencers', true);
-        if (is_array($unlocked_meta) && in_array($influencer_id, $unlocked_meta)) {
-            return true;
-        }
-
-        // 2. Check existing ecosystem function
-        if (function_exists('get_user_purchased_post_ids')) {
-            $unlocked_ids = (array) get_user_purchased_post_ids('influencer', true);
-            return in_array($influencer_id, $unlocked_ids);
-        }
-
-        return false;
     }
 }
 
