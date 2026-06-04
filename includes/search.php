@@ -615,7 +615,7 @@ class Influencer_Search
                     <?= self::select_filter('gender', 'Gender', 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
                 </div>
                 <div class="influencer-search-item">
-                    <?= self::select_filter('content_tag', 'Content Tags', 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
+                    <?= self::select_filter('content_tag', 'Hashtags', 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                 </div>
 
 
