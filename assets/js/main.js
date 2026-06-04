@@ -630,7 +630,7 @@
                     jQuery('.current-found-influencer').text('0');
 
                     if (!is_load_more) {
-                        container.html('<p style="padding: 20px 0;">No influencers found matching your criteria.</p>');
+                        container.html('<p class="no-influencers-found">No influencers found matching your criteria.</p>');
                     }
                     button.hide();
                     if (debug) {
