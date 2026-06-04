@@ -610,6 +610,17 @@ class Influencer_Search
                 <div class="influencer-search-item">
                     <?= self::select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                 </div>
+
+                <div class="influencer-search-item">
+                    <?= self::select_filter('gender', 'Gender', 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
+                </div>
+                <div class="influencer-search-item">
+                    <?= self::select_filter('content_tag', 'Content Tags', 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
+                </div>
+
+
+
+
                 <div class="influencer-search-item">
                     <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
                 </div>
