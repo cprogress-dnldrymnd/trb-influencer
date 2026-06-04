@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: CreatorDB Instagram Feed
  * Plugin URI: https://digitallydisruptive.co.uk/
@@ -42,6 +43,12 @@ class CreatorDB_Instagram_Feed
     public function register_shortcodes(): void
     {
         add_shortcode('creatordb_feed', [$this, 'render_feed_shortcode']);
+    }
+
+    private function render_no_data_fallback(): string
+    {
+        // Target Elementor Template ID: 27230
+        return do_shortcode('[elementor-template id="27230"]');
     }
 
     /**
@@ -268,7 +275,7 @@ class CreatorDB_Instagram_Feed
     private function generate_feed_html(array $instagram_data, $post_id): string
     {
         if (empty($instagram_data)) {
-            return '<p class="cdb-ig-empty">' . esc_html__('No recent content available.', 'creatordb-ig-feed') . '</p>';
+            return $this->render_no_data_fallback(); 
         }
 
         $items_per_page = 4;
