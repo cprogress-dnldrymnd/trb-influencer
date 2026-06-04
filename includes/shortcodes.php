@@ -1380,21 +1380,23 @@ add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
 
 /**
  * Shortcode to display an influencer's hashtags and their total count.
- * Retrieves the 'hashtags' meta value, strictly validates it as an array to 
- * prevent TypeErrors in count() and downstream functions, and renders the HTML.
+ * Retrieves terms from the 'content_tag' taxonomy, strictly validates them as an array 
+ * to prevent TypeErrors in count() and downstream functions, and renders the HTML.
  *
+ * @author Digitally Disruptive - Donald Raymundo <https://digitallydisruptive.co.uk/>
  * @return string The generated HTML containing the hashtag count and cloud.
  */
 function shortcode_influencer_hashtags()
 {
-    // Retrieve post meta value
-    $raw_hashtags = get_post_meta(get_the_ID(), 'hashtags', true);
+    // Retrieve terms from the 'content_tag' taxonomy for the current post
+    $terms = get_the_terms(get_the_ID(), 'content_tag');
 
-    // Strictly ensure the value is an array.
-    // If get_post_meta returns an empty string or bool, fallback to an empty array.
-    $hashtags = is_array($raw_hashtags) ? $raw_hashtags : [];
-
-
+    // Strictly validate the return value and extract term names into a flat array.
+    // If get_the_terms returns false or a WP_Error, fallback to an empty array.
+    $hashtags = [];
+    if (!empty($terms) && !is_wp_error($terms)) {
+        $hashtags = wp_list_pluck($terms, 'name');
+    }
 
     // Build the HTML output
     $html = '<div class="influencer-hashtags">';
