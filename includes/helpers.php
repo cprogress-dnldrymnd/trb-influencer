@@ -21,28 +21,3 @@ function is_influencer_unlocked($influencer_id)
 
     return false;
 }
-
-/**
- * Retrieves and formats raw post content.
- * 
- * This function creates a shortcode that fetches the 'post_content' property 
- * directly from the global $post object. It bypasses 'the_content' filter where 
- * paywalls and credit restrictions are typically injected, allowing the raw text 
- * to render. The wpautop function is applied to maintain basic paragraph structuring.
- * 
- * @global WP_Post $post The current post object.
- * @return string The unfiltered, formatted post content.
- */
-function dd_raw_post_content_shortcode()
-{
-    global $post;
-
-    // Verify that a valid post object exists before attempting to access its properties.
-    if (! $post) {
-        return '';
-    }
-
-    // Return the raw post content, wrapped in standard paragraph tags for readability.
-    return wpautop($post->post_content);
-}
-add_shortcode('raw_post_content', 'dd_raw_post_content_shortcode');

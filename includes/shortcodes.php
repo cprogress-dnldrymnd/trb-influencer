@@ -1379,34 +1379,49 @@ function dd_influencer_avatar_shortcode($atts)
 add_shortcode('influencer_avatar', 'dd_influencer_avatar_shortcode');
 
 /**
- * Shortcode to display an influencer's hashtags and their total count.
- * Retrieves terms from the 'content_tag' taxonomy, strictly validates them as an array 
- * to prevent TypeErrors in count() and downstream functions, and renders the HTML.
+ * Shortcode to display an influencer's content tags (hashtags).
+ * Uses content_tag taxonomy; when CreatorDB is active, prioritizes Niche Management admin keywords.
+ *
+ * Usage: [influencer_hashtags] [influencer_hashtags limit="10" post_id="123"]
  *
  * @author Digitally Disruptive - Donald Raymundo <https://digitallydisruptive.co.uk/>
- * @return string The generated HTML containing the hashtag count and cloud.
+ * @param array $atts Shortcode attributes.
+ * @return string HTML for the hashtag cloud.
  */
-function shortcode_influencer_hashtags()
+function shortcode_influencer_hashtags($atts = [])
 {
-    // Retrieve terms from the 'content_tag' taxonomy for the current post
-    $terms = get_the_terms(get_the_ID(), 'content_tag');
+    $atts = shortcode_atts(
+        [
+            'limit'   => 10,
+            'post_id' => get_the_ID(),
+        ],
+        $atts,
+        'influencer_hashtags'
+    );
 
-    // Strictly validate the return value and extract term names into a flat array.
-    // If get_the_terms returns false or a WP_Error, fallback to an empty array.
-    $hashtags = [];
-    if (!empty($terms) && !is_wp_error($terms)) {
-        $hashtags = wp_list_pluck($terms, 'name');
+    $post_id = (int) $atts['post_id'];
+    $limit   = max(1, min(120, (int) $atts['limit']));
+
+    if ($post_id <= 0) {
+        return '';
     }
 
-    // Build the HTML output
+    if (function_exists('creatordb_get_display_content_tags')) {
+        $hashtags = creatordb_get_display_content_tags($post_id, ['limit' => $limit]);
+    } else {
+        $terms = get_the_terms($post_id, 'content_tag');
+        $hashtags = [];
+        if (!empty($terms) && !is_wp_error($terms)) {
+            $hashtags = wp_list_pluck($terms, 'name');
+        }
+        $hashtags = array_slice($hashtags, 0, $limit);
+    }
+
     $html = '<div class="influencer-hashtags">';
     $html .= '<div class="influencer-hashtags-title">';
     $html .= 'HASHTAGS';
     $html .= '</div>';
-
-    // Pass the guaranteed array to the rendering function
-    $html .= render_hashtag_cloud($hashtags);
-
+    $html .= render_hashtag_cloud($hashtags, $limit, true);
     $html .= '</div>';
 
     return $html;
@@ -1836,3 +1851,27 @@ function get_pmpro_membership_level_shortcode()
 }
 
 
+/**
+ * Retrieves and formats raw post content.
+ * 
+ * This function creates a shortcode that fetches the 'post_content' property 
+ * directly from the global $post object. It bypasses 'the_content' filter where 
+ * paywalls and credit restrictions are typically injected, allowing the raw text 
+ * to render. The wpautop function is applied to maintain basic paragraph structuring.
+ * 
+ * @global WP_Post $post The current post object.
+ * @return string The unfiltered, formatted post content.
+ */
+function dd_raw_post_content_shortcode()
+{
+    global $post;
+
+    // Verify that a valid post object exists before attempting to access its properties.
+    if (! $post) {
+        return '';
+    }
+
+    // Return the raw post content, wrapped in standard paragraph tags for readability.
+    return wpautop($post->post_content);
+}
+add_shortcode('raw_post_content', 'dd_raw_post_content_shortcode');
