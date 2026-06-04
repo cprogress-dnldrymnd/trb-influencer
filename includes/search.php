@@ -176,17 +176,21 @@ class Influencer_Search
             && !empty($_GET['search-brief'])
         ) {
             $explicit = [
-                'niche'     => isset($_GET['niche']) ? (array) $_GET['niche'] : [],
-                'country'   => isset($_GET['country']) ? (array) $_GET['country'] : [],
-                'followers' => isset($_GET['followers']) ? (array) $_GET['followers'] : [],
-                'filter'    => isset($_GET['filter']) ? (array) $_GET['filter'] : [],
+                'niche'       => isset($_GET['niche']) ? (array) $_GET['niche'] : [],
+                'country'     => isset($_GET['country']) ? (array) $_GET['country'] : [],
+                'followers'   => isset($_GET['followers']) ? (array) $_GET['followers'] : [],
+                'filter'      => isset($_GET['filter']) ? (array) $_GET['filter'] : [],
+                'gender'      => isset($_GET['gender']) ? (array) $_GET['gender'] : [],
+                'content_tag' => isset($_GET['content_tag']) ? (array) $_GET['content_tag'] : [],
             ];
             $parsed = self::parse_search_brief(sanitize_textarea_field($_GET['search-brief']));
             $merged = self::merge_brief_with_explicit_filters($parsed, $explicit);
-            $_GET['niche']     = $merged['niche'];
-            $_GET['country']   = $merged['country'];
-            $_GET['followers'] = $merged['followers'];
-            $_GET['filter']    = $merged['filter'];
+            $_GET['niche']       = $merged['niche'] ?? $explicit['niche'];
+            $_GET['country']     = $merged['country'] ?? $explicit['country'];
+            $_GET['followers']   = $merged['followers'] ?? $explicit['followers'];
+            $_GET['filter']      = $merged['filter'] ?? $explicit['filter'];
+            $_GET['gender']      = $merged['gender'] ?? $explicit['gender'];
+            $_GET['content_tag'] = $merged['content_tag'] ?? $explicit['content_tag'];
         }
 
         $niche = get_terms(array(
@@ -759,8 +763,10 @@ class Influencer_Search
         $country = isset($_GET['country']) ? (array) $_GET['country'] : [];
         $followers = isset($_GET['followers']) ? (array) $_GET['followers'] : [];
         $filter = isset($_GET['filter']) ? (array) $_GET['filter'] : [];
+        $gender = isset($_GET['gender']) ? (array) $_GET['gender'] : [];
+        $content_tag = isset($_GET['content_tag']) ? (array) $_GET['content_tag'] : [];
 
-        if (empty($brief) && empty($niche) && empty($country) && empty($followers)) return '';
+        if (empty($brief) && empty($niche) && empty($country) && empty($followers) && empty($gender) && empty($content_tag)) return '';
         $fields = is_array(get_query_var('influencer_search_fields')) ? get_query_var('influencer_search_fields') : [];
 
         $parts = [];
@@ -777,6 +783,16 @@ class Influencer_Search
         if (!empty($followers) && !empty($followers[0])) {
             $f_opts = $fields['followers'] ?? [];
             $parts[] = $f_opts[$followers[0]] ?? $followers[0];
+        }
+        if (!empty($gender)) {
+            $gender_names = [];
+            foreach ($gender as $g) $gender_names[] = $fields['gender'][$g] ?? ucfirst($g);
+            $parts[] = implode(', ', $gender_names);
+        }
+        if (!empty($content_tag)) {
+            $tag_names = [];
+            foreach ($content_tag as $slug) $tag_names[] = $fields['content_tag'][$slug] ?? ucfirst(str_replace('-', ' ', $slug));
+            $parts[] = implode(', ', $tag_names);
         }
 
         $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
@@ -1712,7 +1728,7 @@ class Influencer_Search
             return creatordb_merge_brief_with_explicit_filters($parsed, $explicit);
         }
 
-        $keys = ['niche', 'country', 'platform', 'followers', 'filter', 'topic', 'content_tag'];
+        $keys = ['niche', 'country', 'platform', 'followers', 'filter', 'topic', 'content_tag', 'gender'];
 
         foreach ($keys as $key) {
             if (!isset($parsed[$key])) {

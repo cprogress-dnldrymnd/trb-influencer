@@ -33,9 +33,12 @@
     });
 
 
-    function initAdvancedSearchToggle() {
+   function initAdvancedSearchToggle() {
         $('.advanced-search-trigger').on('click', function () {
-            const filtersWrap = $(this).next('.advanced-search-filters');
+            // Traverse up to the main form wrapper to find the filters
+            const form = $(this).closest('.influencer-search-main');
+            const filtersWrap = form.find('.advanced-search-filters');
+            
             filtersWrap.slideToggle(300);
             $(this).toggleClass('open');
         });
