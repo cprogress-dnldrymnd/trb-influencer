@@ -8,6 +8,7 @@
 
         initSearchToggle();
         initActiveFilterChips();
+        initAdvancedSearchToggle();
 
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {
             fetch_influencers(false);
@@ -31,8 +32,7 @@
         });
     });
 
-
-  /**
+    /**
      * Initializes the toggle switch, controls visibility of the search modes,
      * resets fields when hidden, and manages the 'Reset All' button execution.
      */
@@ -84,6 +84,19 @@
             updateSearchVisibility(false);
         });
 
+        // --- NEW: Allow toggling by clicking the text headers ---
+        $('.toggle-text').on('click', function() {
+            // If the clicked text is already active, do nothing
+            if ($(this).hasClass('active')) return;
+
+            // Flip the toggle based on which text was clicked and trigger the change event
+            if ($(this).hasClass('full-brief-search')) {
+                toggleInput.prop('checked', true).trigger('change');
+            } else if ($(this).hasClass('filtered-search')) {
+                toggleInput.prop('checked', false).trigger('change');
+            }
+        });
+
         // Handle the Reset All execution
         resetAllBtn.on('click', function(e) {
             e.preventDefault();
@@ -93,6 +106,30 @@
             });
             // Additional chip reset catch-all
             $('.active-filter-chip').remove();
+        });
+    }
+
+    /**
+     * Initializes the Advanced Search Dropdown
+     */
+    function initAdvancedSearchToggle() {
+        $('.advanced-search-toggle').on('click', function () {
+            const $chevron = $(this).find('.advanced-chevron');
+            const $filters = $(this).parent().next('.advanced-search-filters');
+
+            $filters.slideToggle(300, function() {
+                if ($filters.is(':visible')) {
+                    $filters.css('display', 'flex'); // Ensure flex layout is retained
+                }
+            });
+
+            if ($(this).hasClass('open')) {
+                $(this).removeClass('open');
+                $chevron.css('transform', 'rotate(0deg)');
+            } else {
+                $(this).addClass('open');
+                $chevron.css('transform', 'rotate(180deg)');
+            }
         });
     }
 
@@ -173,7 +210,7 @@
 
             // Extract the readable label from the DOM
             const label = $checkbox.attr('data-label') || $checkbox.next('label').text() || val;
-            const chipId = 'chip-' + val.replace(/\s+/g, '-').toLowerCase();
+            const chipId = 'chip-' + val.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 
             if ($checkbox.is(':checked')) {
                 if ($(`${resultContainer} #${chipId}`).length === 0) {
@@ -209,67 +246,6 @@
     }
 
     /**
-     * NEW: Validates the main search form before submission.
-     * Iterates over all elements with the 'required-on-search' class to ensure 
-     * the '.tags-container' is populated with at least one '.tag'.
-     */
-    function validate_required_search_filters() {
-        $('.influencer-search-main').on('submit', function (e) {
-            let isValid = true;
-
-            if ($('.filtered-search.active').length > 1) {
-                // Iterate over all required filter blocks
-                $(this).find('.required-on-search').each(function () {
-                    const $container = $(this);
-
-                    // Verify if tags exist in the tags-container
-                    const hasTags = $container.find('.tags-container .tag').length > 0;
-
-                    // Fallback check against actual checkbox states for data integrity
-                    const hasCheckedInputs = $container.find('input[type="checkbox"]:checked').length > 0;
-
-                    if (!hasTags && !hasCheckedInputs) {
-                        isValid = false;
-
-                        // Apply visual error cue
-                        $container.css({
-                            'border': '1px solid #ff4d4d',
-                            'padding': '10px',
-                            'border-radius': '8px',
-                            'transition': 'border 0.3s ease'
-                        });
-                    } else {
-                        // Clear visual error cue
-                        $container.css({
-                            'border': '',
-                            'padding': '',
-                            'border-radius': ''
-                        });
-                    }
-                });
-            }
-
-            // Prevent form submission if validation fails
-            if (!isValid) {
-                e.preventDefault();
-                alert('Please populate all required filters (e.g., Niche) before generating matches.');
-            }
-        });
-
-        // Event listener to dynamically remove the error styling once a user makes a valid selection
-        $('.required-on-search').on('change', 'input[type="checkbox"]', function () {
-            const $container = $(this).closest('.required-on-search');
-            if ($container.find('input[type="checkbox"]:checked').length > 0) {
-                $container.css({
-                    'border': '',
-                    'padding': '',
-                    'border-radius': ''
-                });
-            }
-        });
-    }
-
-   /**
      * Reads URL parameters on page load and physically checks the corresponding
      * form inputs so the DOM matches the requested search before AJAX fires.
      */
@@ -517,6 +493,10 @@
         var max_f_arr = get_filter_values('max_followers[]');
         var filter_min_followers = min_f_arr.length > 0 ? min_f_arr[0] : '';
         var filter_max_followers = max_f_arr.length > 0 ? max_f_arr[0] : '';
+        
+        // NEW: Advanced Filters
+        var filter_gender = get_filter_values('gender[]');
+        var filter_hashtags = get_filter_values('hashtags[]');
 
         // --- NEW: Update the URL query parameters so the search is reloadable/shareable ---
         if (!is_load_more) {
@@ -532,6 +512,8 @@
             filter_filter.forEach(function (val) { urlParams.append('filter[]', val); });
             min_f_arr.forEach(function (val) { urlParams.append('min_followers[]', val); });
             max_f_arr.forEach(function (val) { urlParams.append('max_followers[]', val); });
+            filter_gender.forEach(function (val) { urlParams.append('gender[]', val); });
+            filter_hashtags.forEach(function (val) { urlParams.append('hashtags[]', val); });
 
             // Set the search active flag
             urlParams.set('search_active', 'true');
@@ -557,6 +539,8 @@
                 max_followers: filter_max_followers,
                 filter: filter_filter,
                 search_brief: search_brief,
+                gender: filter_gender, // NEW
+                hashtags: filter_hashtags, // NEW
                 paged: current_page,
                 search_active: 'true'
             },
@@ -615,8 +599,11 @@
             const resetBtn = widget.querySelector('.reset-btn');
             const searchInput = widget.querySelector('.dropdown-search-input');
             const optionsList = widget.querySelector('.options-list');
+            
+            // Generalized to support both Niche and Hashtags
             const ajaxSearchType = searchInput ? searchInput.getAttribute('data-ajax-search') : '';
-            const isNicheAjaxSearch = ajaxSearchType === 'niche';
+            const isAjaxSearch = ajaxSearchType !== '' && ajaxSearchType !== null;
+            
             const minChars = searchInput ? parseInt(searchInput.getAttribute('data-min-chars') || '3', 10) : 3;
             const maxResults = searchInput ? parseInt(searchInput.getAttribute('data-limit') || '20', 10) : 20;
             let searchTimer = null;
@@ -637,7 +624,7 @@
                     const raw = (e.target.value || '');
                     const filter = raw.toLowerCase();
 
-                    if (!isNicheAjaxSearch) {
+                    if (!isAjaxSearch) {
                         const listItems = widget.querySelectorAll('.dropdown-item');
                         listItems.forEach(item => {
                             const text = item.textContent || item.innerText;
@@ -658,12 +645,6 @@
                             return;
                         }
 
-                        /**
-                         * INJECT LOADING STATE
-                         * Utilizes an inline SVG with <animateTransform> to render a spinning 
-                         * loader dynamically. This guarantees rendering without external CSS keyframes,
-                         * preventing flash-of-unstyled-content (FOUC) during AJAX resolution.
-                         */
                         optionsList.innerHTML = `
                             <div class="ajax-loading-state" style="padding: 15px; text-align: center; color: #666; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <svg width="18" height="18" viewBox="0 0 50 50">
@@ -688,7 +669,8 @@
                             url: ajax_vars.ajax_url,
                             type: 'POST',
                             data: {
-                                action: 'dd_search_niche_options',
+                                // Dynamic Endpoint Mapping
+                                action: 'dd_search_' + ajaxSearchType + '_options',
                                 q: term,
                                 selected: selected,
                                 limit: maxResults
@@ -696,7 +678,6 @@
                             success: function (response) {
                                 if (mySeq !== requestSeq) return;
 
-                                // Handle edge case: empty data payload
                                 if (!response || !response.success || !response.data || !Array.isArray(response.data.items)) {
                                     optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
@@ -706,7 +687,6 @@
                                 const mergedItems = [];
                                 const seen = {};
 
-                                // Keep previously selected options visible so multi-select persists across searches.
                                 Object.keys(selectedMap).forEach(value => {
                                     if (seen[value]) return;
                                     seen[value] = true;
@@ -724,17 +704,15 @@
                                     mergedItems.push(item);
                                 });
 
-                                // Replace loading state if no final options exist
                                 if (!mergedItems.length) {
                                     optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; font-size: 14px;">No matches found.</div>';
                                     return;
                                 }
 
-                                // Populate valid items
                                 optionsList.innerHTML = mergedItems.map(item => {
                                     const checked = item.selected ? 'checked="checked"' : '';
                                     return '<label class="dropdown-item checkbox-list-item">' +
-                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="niche[]" ' + checked + '> ' +
+                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="' + escapeHtml(ajaxSearchType) + '[]" ' + checked + '> ' +
                                         '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
                                         '</label>';
                                 }).join('');
@@ -745,7 +723,7 @@
                                 optionsList.innerHTML = '<div style="padding: 15px; text-align: center; color: #ff4d4d; font-size: 14px;">An error occurred. Please try again.</div>';
                             }
                         });
-                    }, 220); // 220ms debounce execution
+                    }, 220);
                 });
 
                 searchInput.addEventListener('click', (e) => {
@@ -758,7 +736,6 @@
                 if (target && target.matches('.dropdown-item input')) {
                     updateTags();
 
-                    // --- NEW: Re-run state locking if a follower field was changed
                     if (target.name.includes('followers')) {
                         sync_follower_min_max_states();
                     }
@@ -770,7 +747,7 @@
                 checkboxes.forEach(box => box.checked = false);
                 if (searchInput) {
                     searchInput.value = '';
-                    if (isNicheAjaxSearch) {
+                    if (isAjaxSearch) {
                         optionsList.innerHTML = '';
                     } else {
                         const listItems = widget.querySelectorAll('.dropdown-item');
@@ -779,7 +756,6 @@
                 }
                 updateTags();
 
-                // --- NEW: Free up the disabled locks when resetting
                 sync_follower_min_max_states();
             });
 
@@ -815,7 +791,6 @@
                     linkedCheckbox.checked = false;
                     updateTags();
 
-                    // --- NEW: Re-evaluate locks if a tag is removed
                     if (linkedCheckbox.name.includes('followers')) {
                         sync_follower_min_max_states();
                     }
