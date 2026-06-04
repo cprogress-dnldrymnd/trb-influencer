@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: PMPro myCred Rewards Manager
  * Plugin URI:  https://digitallydisruptive.co.uk/
@@ -61,6 +62,9 @@ class DD_PMPro_Rewards_Manager
         add_action('wp_ajax_dd_search_pmpro_users', array($this, 'ajax_search_users'));
         add_action('wp_ajax_dd_force_cron_run', array($this, 'ajax_force_cron_run'));
         add_action('wp_ajax_dd_clear_logs', array($this, 'ajax_clear_logs'));
+
+
+        add_action('init', array($this, 'init_cron_check'));
     }
 
     /**
@@ -120,29 +124,29 @@ class DD_PMPro_Rewards_Manager
         $general_settings = get_option($this->general_option, array());
         $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
         $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
-        
+
         // System logs (User ID 0) follow global test mode, User logs are strictly evaluated.
         if ($user_id === 0) {
             $log_type = $is_test_mode ? 'test' : 'live';
         } else {
             $log_type = ($is_test_mode && $user_id === $test_user_id) ? 'test' : 'live';
         }
-        
+
         $option_key = 'dd_pmpro_logs_' . $log_type;
-        
+
         $logs = get_option($option_key, array());
         if (!is_array($logs)) $logs = array();
 
         $timestamp    = current_time('Y-m-d H:i:s');
         $user_display = $user_id === 0 ? 'SYSTEM' : 'User ID ' . $user_id;
-        
+
         $entry = sprintf(
-            '<span style="color:#569cd6;">[%s]</span> <span style="color:#4ec9b0;">%s</span>: %s', 
-            $timestamp, 
-            $user_display, 
+            '<span style="color:#569cd6;">[%s]</span> <span style="color:#4ec9b0;">%s</span>: %s',
+            $timestamp,
+            $user_display,
             esc_html($message)
         );
-        
+
         array_unshift($logs, $entry);
         $logs = array_slice($logs, 0, 100); // Maintain a rolling buffer of 100 entries max
 
@@ -176,10 +180,10 @@ class DD_PMPro_Rewards_Manager
     public function enqueue_admin_scripts($hook)
     {
         if ('settings_page_dd-pmpro-rewards' !== $hook) return;
-        
+
         wp_enqueue_script('jquery-ui-sortable');
         wp_enqueue_script('jquery-ui-autocomplete');
-        
+
         wp_localize_script('jquery-ui-autocomplete', 'dd_pmpro_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('dd_admin_actions_nonce')
@@ -209,7 +213,7 @@ class DD_PMPro_Rewards_Manager
 
         $this->insert_log(0, "Manual Process execution triggered via UI.");
         $this->process_monthly_points();
-        
+
         wp_send_json_success('Process triggered successfully. Logs updated.');
     }
 
@@ -224,7 +228,7 @@ class DD_PMPro_Rewards_Manager
 
         $type = isset($_POST['log_type']) && $_POST['log_type'] === 'test' ? 'test' : 'live';
         delete_option('dd_pmpro_logs_' . $type);
-        
+
         wp_send_json_success(ucfirst($type) . ' logs have been successfully flushed.');
     }
 
@@ -238,7 +242,7 @@ class DD_PMPro_Rewards_Manager
         if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
 
         $term = isset($_GET['term']) ? sanitize_text_field($_GET['term']) : '';
-        
+
         $users_query = new WP_User_Query(array(
             'search'         => '*' . esc_attr($term) . '*',
             'search_columns' => array('user_login', 'user_email', 'display_name'),
@@ -271,11 +275,11 @@ class DD_PMPro_Rewards_Manager
         if ($level_id <= 0) return array();
 
         $table = isset($wpdb->pmpro_memberships_users) ? $wpdb->pmpro_memberships_users : $wpdb->prefix . 'pmpro_memberships_users';
-        
+
         // Securely prepare and execute the query targeting only active memberships
         $query = $wpdb->prepare("SELECT user_id FROM {$table} WHERE membership_id = %d AND status = 'active'", $level_id);
         $users = $wpdb->get_col($query);
-        
+
         return is_array($users) ? $users : array();
     }
 
@@ -296,7 +300,7 @@ class DD_PMPro_Rewards_Manager
 
         $user_id     = intval($object_id);
         $new_balance = floatval($_meta_value);
-        
+
         // Fetch the existing balance BEFORE it gets overwritten
         $old_balance = get_user_meta($user_id, $this->point_type, true);
         $old_balance = !empty($old_balance) ? floatval($old_balance) : 0;
@@ -311,7 +315,7 @@ class DD_PMPro_Rewards_Manager
             if ($allowance_balance > 0) {
                 // Deduct spent points from allowance tracker, clamping at 0
                 $new_allowance = max(0, $allowance_balance - abs($amount));
-                
+
                 // Save updated allowance tracker
                 update_user_meta($user_id, '_dd_current_allowance_balance', $new_allowance);
                 $this->insert_log($user_id, "Points Spent: " . abs($amount) . ". Allowance Tracker updated: {$allowance_balance} -> {$new_allowance}");
@@ -413,7 +417,7 @@ class DD_PMPro_Rewards_Manager
         }
 
         $config = $this->get_rewards_config();
-        
+
         if (empty($config)) {
             $this->insert_log(0, "Process aborted: No reward levels configured.");
             return;
@@ -422,7 +426,7 @@ class DD_PMPro_Rewards_Manager
         $general_settings = get_option($this->general_option, array());
         $is_test_mode     = !empty($general_settings['test_mode']) ? true : false;
         $test_user_id     = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : 0;
-        
+
         $now              = current_time('timestamp');
         $base_seconds     = 2592000; // 30 days
 
@@ -433,7 +437,7 @@ class DD_PMPro_Rewards_Manager
             $monthly_points = intval($row['monthly_points']);
 
             if ($level_id > 0 && $monthly_points > 0) {
-                
+
                 // Fetch the actual Level Name for dynamic logging
                 $level_name = 'Membership Level ' . $level_id;
                 if (function_exists('pmpro_getLevel')) {
@@ -452,7 +456,7 @@ class DD_PMPro_Rewards_Manager
                 }
 
                 foreach ($active_users as $user_id) {
-                    
+
                     $current_user_id = intval($user_id);
                     $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
 
@@ -469,7 +473,7 @@ class DD_PMPro_Rewards_Manager
                     }
 
                     if (($now - $last_awarded) >= $required_threshold) {
-                        
+
                         $current_allowance = get_user_meta($current_user_id, '_dd_current_allowance_balance', true);
                         $current_allowance = !empty($current_allowance) ? floatval($current_allowance) : 0;
 
@@ -514,7 +518,7 @@ class DD_PMPro_Rewards_Manager
         $rewards          = $this->get_rewards_config();
         $general_settings = get_option($this->general_option, array());
         $pmpro_levels     = function_exists('pmpro_getAllLevels') ? pmpro_getAllLevels(true, true) : array();
-        
+
         $is_test_mode = !empty($general_settings['test_mode']) ? 1 : 0;
         $test_user_id = !empty($general_settings['test_user_id']) ? intval($general_settings['test_user_id']) : '';
         $current_cron = wp_get_schedule('dd_pmpro_daily_rewards_check');
@@ -567,7 +571,7 @@ class DD_PMPro_Rewards_Manager
                 </div>
 
                 <div id="tab-settings" class="dd-tab-content" style="display:none;">
-                    
+
                     <h3>Environment Configuration</h3>
                     <table class="form-table">
                         <tr>
@@ -626,7 +630,8 @@ class DD_PMPro_Rewards_Manager
                         <div class="dd-log-entry">No live logs recorded yet.</div>
                     <?php else: ?>
                         <?php foreach ($live_logs as $log): ?>
-                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class ?></div>
+                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class 
+                                                        ?></div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -642,7 +647,8 @@ class DD_PMPro_Rewards_Manager
                         <div class="dd-log-entry">No test logs recorded yet.</div>
                     <?php else: ?>
                         <?php foreach ($test_logs as $log): ?>
-                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class ?></div>
+                            <div class="dd-log-entry"><?php echo $log; // Pre-sanitized internally by the class 
+                                                        ?></div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -651,27 +657,121 @@ class DD_PMPro_Rewards_Manager
         </div>
 
         <style>
-            .dd-repeater-row { background: #fff; border: 1px solid #ccd0d4; margin-bottom: 10px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04); }
-            .dd-row-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #ccd0d4; cursor: move; display: flex; justify-content: space-between; align-items: center; }
-            .dd-row-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-            .dd-row-body { padding: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-            .dd-row-actions { display: flex; gap: 10px; }
-            .dd-remove-row { color: #b32d2e; text-decoration: none; font-size: 12px; }
-            .dd-toggle-row { cursor: pointer; }
-            .dd-actions { margin-top: 15px; }
-            .dd-tab-content { margin-top: 20px; }
-            .dd-collapsed .dd-row-body { display: none; }
-            
-            ul.ui-autocomplete { background: #fff; border: 1px solid #8c8f94; box-shadow: 0 3px 6px rgba(0,0,0,0.1); max-width: 400px; max-height: 250px; overflow-y: auto; z-index: 99999 !important; }
-            ul.ui-autocomplete .ui-menu-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f0f1; }
-            ul.ui-autocomplete .ui-menu-item:hover, ul.ui-autocomplete .ui-state-active { background: #f0f6fc; color: #2271b1; }
+            .dd-repeater-row {
+                background: #fff;
+                border: 1px solid #ccd0d4;
+                margin-bottom: 10px;
+                box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+            }
+
+            .dd-row-header {
+                padding: 10px 15px;
+                background: #f8f9fa;
+                border-bottom: 1px solid #ccd0d4;
+                cursor: move;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .dd-row-header h3 {
+                margin: 0;
+                font-size: 14px;
+                font-weight: 600;
+            }
+
+            .dd-row-body {
+                padding: 15px;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 20px;
+            }
+
+            .dd-row-actions {
+                display: flex;
+                gap: 10px;
+            }
+
+            .dd-remove-row {
+                color: #b32d2e;
+                text-decoration: none;
+                font-size: 12px;
+            }
+
+            .dd-toggle-row {
+                cursor: pointer;
+            }
+
+            .dd-actions {
+                margin-top: 15px;
+            }
+
+            .dd-tab-content {
+                margin-top: 20px;
+            }
+
+            .dd-collapsed .dd-row-body {
+                display: none;
+            }
+
+            ul.ui-autocomplete {
+                background: #fff;
+                border: 1px solid #8c8f94;
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+                max-width: 400px;
+                max-height: 250px;
+                overflow-y: auto;
+                z-index: 99999 !important;
+            }
+
+            ul.ui-autocomplete .ui-menu-item {
+                padding: 8px 12px;
+                cursor: pointer;
+                font-size: 13px;
+                border-bottom: 1px solid #f0f0f1;
+            }
+
+            ul.ui-autocomplete .ui-menu-item:hover,
+            ul.ui-autocomplete .ui-state-active {
+                background: #f0f6fc;
+                color: #2271b1;
+            }
 
             /* Log Viewer Styling */
-            .dd-log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-            .dd-log-header h3 { margin: 0; }
-            .dd-log-window { background: #1e1e1e; color: #d4d4d4; font-family: Consolas, Monaco, monospace; font-size: 13px; padding: 15px; height: 500px; overflow-y: scroll; border-radius: 4px; border: 1px solid #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-            .dd-log-entry { margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 6px; line-height: 1.5; }
-            .dd-log-entry:last-child { border-bottom: none; }
+            .dd-log-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+
+            .dd-log-header h3 {
+                margin: 0;
+            }
+
+            .dd-log-window {
+                background: #1e1e1e;
+                color: #d4d4d4;
+                font-family: Consolas, Monaco, monospace;
+                font-size: 13px;
+                padding: 15px;
+                height: 500px;
+                overflow-y: scroll;
+                border-radius: 4px;
+                border: 1px solid #000;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            }
+
+            .dd-log-entry {
+                margin-bottom: 6px;
+                border-bottom: 1px solid #333;
+                padding-bottom: 6px;
+                line-height: 1.5;
+            }
+
+            .dd-log-entry:last-child {
+                border-bottom: none;
+            }
         </style>
 
         <script>
@@ -682,12 +782,12 @@ class DD_PMPro_Rewards_Manager
                     $('.nav-tab').removeClass('nav-tab-active');
                     $(this).addClass('nav-tab-active');
                     $('.dd-tab-content').hide();
-                    
+
                     var targetId = $(this).attr('href');
                     $(targetId).show();
 
                     // Hide the main form save button when on log tabs
-                    if(targetId === '#tab-logs-live' || targetId === '#tab-logs-test') {
+                    if (targetId === '#tab-logs-live' || targetId === '#tab-logs-test') {
                         $('#submit').hide();
                     } else {
                         $('#submit').show();
@@ -695,7 +795,12 @@ class DD_PMPro_Rewards_Manager
                 });
 
                 // Repeater Functions
-                $('#dd-repeater-container').sortable({ handle: '.dd-row-header', update: function() { reindex_rows(); } });
+                $('#dd-repeater-container').sortable({
+                    handle: '.dd-row-header',
+                    update: function() {
+                        reindex_rows();
+                    }
+                });
                 $('#dd-add-row').click(function() {
                     var $newRow = $($('#dd-row-template').html());
                     $newRow.find('select, input').removeAttr('disabled').prop('disabled', false);
@@ -705,7 +810,10 @@ class DD_PMPro_Rewards_Manager
 
                 $(document).on('click', '.dd-remove-row', function(e) {
                     e.preventDefault();
-                    if (confirm('Remove this rule?')) { $(this).closest('.dd-repeater-row').remove(); reindex_rows(); }
+                    if (confirm('Remove this rule?')) {
+                        $(this).closest('.dd-repeater-row').remove();
+                        reindex_rows();
+                    }
                 });
 
                 $(document).on('click', '.dd-toggle-row', function() {
@@ -716,9 +824,11 @@ class DD_PMPro_Rewards_Manager
 
                 $(document).on('click', '.dd-duplicate-row', function(e) {
                     e.preventDefault();
-                    var $row = $(this).closest('.dd-repeater-row'), $clone = $row.clone();
+                    var $row = $(this).closest('.dd-repeater-row'),
+                        $clone = $row.clone();
                     $clone.find('select, input').removeAttr('disabled').prop('disabled', false);
-                    $row.after($clone); reindex_rows();
+                    $row.after($clone);
+                    reindex_rows();
                 });
 
                 function reindex_rows() {
@@ -726,7 +836,9 @@ class DD_PMPro_Rewards_Manager
                         $(this).find('.row-index').text(index + 1);
                         $(this).find('select, input').each(function() {
                             var name = $(this).attr('name');
-                            if (name) { $(this).attr('name', name.replace(/\[\d+\]/, '[' + index + ']')); }
+                            if (name) {
+                                $(this).attr('name', name.replace(/\[\d+\]/, '[' + index + ']'));
+                            }
                         });
                     });
                 }
@@ -735,15 +847,28 @@ class DD_PMPro_Rewards_Manager
                     // Autocomplete
                     $('#dd_user_search').autocomplete({
                         source: function(request, response) {
-                            $.ajax({ url: dd_pmpro_ajax.ajax_url, dataType: 'json', data: { action: 'dd_search_pmpro_users', security: dd_pmpro_ajax.nonce, term: request.term }, success: function(data) { response(data); } });
+                            $.ajax({
+                                url: dd_pmpro_ajax.ajax_url,
+                                dataType: 'json',
+                                data: {
+                                    action: 'dd_search_pmpro_users',
+                                    security: dd_pmpro_ajax.nonce,
+                                    term: request.term
+                                },
+                                success: function(data) {
+                                    response(data);
+                                }
+                            });
                         },
                         minLength: 3,
                         select: function(event, ui) {
                             $('#dd_user_search').val(ui.item.label);
                             $('#dd_test_user_id').val(ui.item.id);
-                            return false; 
+                            return false;
                         }
-                    }).on('input', function() { if ($(this).val() === '') $('#dd_test_user_id').val(''); });
+                    }).on('input', function() {
+                        if ($(this).val() === '') $('#dd_test_user_id').val('');
+                    });
 
                     // Manual Cron Exec
                     $('#dd-force-cron').click(function(e) {
@@ -752,7 +877,10 @@ class DD_PMPro_Rewards_Manager
                         $.ajax({
                             url: dd_pmpro_ajax.ajax_url,
                             type: 'POST',
-                            data: { action: 'dd_force_cron_run', security: dd_pmpro_ajax.nonce },
+                            data: {
+                                action: 'dd_force_cron_run',
+                                security: dd_pmpro_ajax.nonce
+                            },
                             success: function(res) {
                                 $('#dd-cron-spinner').removeClass('is-active');
                                 alert(res.data || 'Action Complete.');
@@ -769,7 +897,11 @@ class DD_PMPro_Rewards_Manager
                             $.ajax({
                                 url: dd_pmpro_ajax.ajax_url,
                                 type: 'POST',
-                                data: { action: 'dd_clear_logs', log_type: logType, security: dd_pmpro_ajax.nonce },
+                                data: {
+                                    action: 'dd_clear_logs',
+                                    log_type: logType,
+                                    security: dd_pmpro_ajax.nonce
+                                },
                                 success: function(res) {
                                     alert(res.data);
                                     location.reload();
@@ -828,6 +960,16 @@ class DD_PMPro_Rewards_Manager
             </div>
         </div>
 <?php
+    }
+
+    /**
+     * Failsafe: Ensures cron is scheduled even if settings aren't manually updated.
+     */
+    public function init_cron_check()
+    {
+        if (!wp_next_scheduled('dd_pmpro_daily_rewards_check')) {
+            $this->ensure_cron_is_scheduled();
+        }
     }
 }
 
