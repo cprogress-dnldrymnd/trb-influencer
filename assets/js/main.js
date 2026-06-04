@@ -44,13 +44,15 @@
         });
     }
 
-    /**
-       * Initializes the toggle switch, controls visibility of the search modes,
-       * resets fields when hidden, and manages the 'Reset All' button execution.
-       */
+  /**
+     * Initializes the toggle switch, controls visibility of the search modes,
+     * hides/resets advanced filters, and manages the 'Reset All' button.
+     */
     function initSearchToggle() {
         const toggleInput = $('#my-toggle');
         const resetAllBtn = $('.reset-filters-btn');
+        const advancedTrigger = $('.advanced-search-trigger');
+        const advancedFilters = $('.advanced-search-filters');
 
         function updateSearchVisibility(isInit = false) {
             var isChecked = toggleInput.is(':checked');
@@ -61,10 +63,19 @@
                 $('.full-brief-search').addClass('active');
                 $('#search-brief').attr('required', true);
 
+                // HIDE & CLOSE Advanced Search
+                advancedTrigger.hide();
+                advancedTrigger.removeClass('open');
+                advancedFilters.slideUp(300);
+
                 // ONLY clear the filtered checkboxes if the user manually flipped the toggle
-                // Do not clear them on initial page load
                 if (!isInit) {
-                    $('.filtered-search').find('input[type="checkbox"], input[type="radio"]')
+                    // 1. Programmatically click the reset buttons inside the filtered & advanced search blocks. 
+                    // This perfectly resets the visual chips, async text inputs, and UI state.
+                    $('.filtered-search, .advanced-search-filters').find('.filter-widget .reset-btn').trigger('click');
+                    
+                    // 2. Fallback to ensure all actual inputs are unchecked
+                    $('.filtered-search, .advanced-search-filters').find('input[type="checkbox"], input[type="radio"]')
                         .prop('checked', false)
                         .trigger('change');
                 }
@@ -78,6 +89,9 @@
                 $('.filtered-search').addClass('active');
                 $('.full-brief-search').removeClass('active');
                 $('#search-brief').attr('required', false);
+
+                // SHOW Advanced Search Trigger (using inline-flex to match your original layout)
+                advancedTrigger.css('display', 'inline-flex');
 
                 // ONLY clear the brief textarea if the user manually flipped the toggle
                 if (!isInit) {
