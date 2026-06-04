@@ -1938,3 +1938,7 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 .influencer-search-main .influencer-search-filter-holder {
   padding: clamp(15px, 1.302vw, 25px);
 }
+
+.advanced-search-filters .influencer-search-item {
+  display: block !important;
+}
