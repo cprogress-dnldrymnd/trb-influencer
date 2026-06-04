@@ -361,7 +361,7 @@ function set_admin_bar_height_variable()
 {
     // Only run this if the admin bar is actually showing
     if (is_admin_bar_showing()) {
-?>
+    ?>
         <script type="text/javascript">
             (function() {
                 function updateAdminBarHeight() {
@@ -802,28 +802,26 @@ function formatNormalizedTimestamp(int|string $timestamp, string $timezone = 'UT
 
 
 /**
- * Generates a randomized HTML hashtag cloud based on a provided array.
- * This function shuffles the input array, limits the output to a specified
- * maximum (default 10), and applies randomized inline CSS for colors.
- * Font size is fixed at 25px and a flex layout is utilized to prevent overlap.
+ * HTML hashtag cloud from a provided array.
+ * When $preserve_order is true, keeps caller order (e.g. dictionary-prioritized list).
  *
- * @param array $hashtags Array of hashtag strings (e.g., ['#blender', '#3d']).
- * @param int   $limit    Maximum number of hashtags to display.
- * @return string         Returns the buffered HTML output.
+ * @param array $hashtags       Array of hashtag strings (e.g., ['#blender', '#3d']).
+ * @param int   $limit          Maximum number of hashtags to display.
+ * @param bool  $preserve_order If true, do not shuffle tags (only colors are randomized).
+ * @return string               Buffered HTML output.
  */
-function render_hashtag_cloud(array $hashtags, int $limit = 10)
+function render_hashtag_cloud(array $hashtags, int $limit = 10, bool $preserve_order = false)
 {
-    // 1. Validate and prepare the data
     ob_start();
 
     if (empty($hashtags)) {
         return ob_get_clean();
     }
 
-    // Randomize the array order
-    shuffle($hashtags);
+    if (!$preserve_order) {
+        shuffle($hashtags);
+    }
 
-    // Extract only up to the requested limit
     $display_tags = array_slice($hashtags, 0, $limit);
 
     $palette = [
@@ -848,23 +846,23 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10)
 
     // 4. Iterate and render each tag with standardized properties
     foreach ($display_tags as $tag) {
-
-        // Select color sequentially from the shuffled palette. 
-        // Modulo operator ensures it loops safely if tag count > palette count.
         $color = $palette[$color_index % $palette_count];
         $color_index++;
 
-        // Construct inline styles: set fixed font size, assign color, and reset margins
         $style = sprintf(
             'font-size: 25px; color: %1$s; margin: 0; line-height: 1.2;',
             $color
         );
 
-        // Output the individual hashtag span
+        $label = trim((string) $tag);
+        if ($label !== '' && $label[0] !== '#') {
+            $label = '#' . $label;
+        }
+
         printf(
             '<span class="hashtag-item" style="%1$s">%2$s</span>',
             esc_attr($style),
-            esc_html($tag)
+            esc_html($label)
         );
     }
 
