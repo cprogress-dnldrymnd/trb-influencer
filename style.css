@@ -1957,3 +1957,9 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 .advanced-search-filters .influencer-search-item-wrapper {
   display: flex !important;
 }
+
+@media (min-width: 768px) {
+  .advanced-search-filters .influencer-search-item-wrapper .influencer-search-item {
+    max-width: 22%;
+  }
+}
