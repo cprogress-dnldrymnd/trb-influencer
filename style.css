@@ -1958,7 +1958,19 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 .advanced-search-filters .influencer-search-item-wrapper {
   display: flex !important;
 }
-
+.no-influencers-found {
+  text-align: center;
+  text-transform: uppercase;
+  padding: 30px;
+  border: 2px dashed;
+  border-radius: 10px;
+  color: var(--e-global-color-accent);
+  font-weight: 600;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 @media (min-width: 768px) {
   .advanced-search-filters .influencer-search-item-wrapper .influencer-search-item {
     max-width: 22%;
