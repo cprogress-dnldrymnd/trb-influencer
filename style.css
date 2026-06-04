@@ -1917,12 +1917,18 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 
 #search-header {
+  padding: clamp(15px, 1.302vw, 25px);
+  border-bottom: 1px solid var(--e-global-color-f35d6b9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+#search-header .toggle-holder {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 20px;
-  padding: clamp(15px, 1.302vw, 25px);
-  border-bottom: 1px solid var(--e-global-color-f35d6b9);
 }
 
 #search-header .toggle-text {
