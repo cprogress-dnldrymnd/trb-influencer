@@ -1923,6 +1923,7 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  flex-wrap: wrap;
 }
 #search-header .toggle-holder {
   display: flex;
