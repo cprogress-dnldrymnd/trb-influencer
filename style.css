@@ -1940,5 +1940,5 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 
 .advanced-search-filters .influencer-search-item-wrapper {
-  display: block !important;
+  display: flex !important;
 }
