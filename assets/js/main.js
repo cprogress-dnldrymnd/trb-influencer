@@ -622,8 +622,15 @@
                     }
 
                 } else {
+                    // FIX: Hide the loading animation on zero results
+                    $('.loading-animation').hide();
+
+                    // FIX: Reset the creator counts to 0
+                    jQuery('.total-found-influencer').text('0');
+                    jQuery('.current-found-influencer').text('0');
+
                     if (!is_load_more) {
-                        container.html('<p>No influencers found matching your criteria.</p>');
+                        container.html('<p style="padding: 20px 0;">No influencers found matching your criteria.</p>');
                     }
                     button.hide();
                     if (debug) {
@@ -633,7 +640,14 @@
                 container.css('opacity', '1');
             },
             error: function () {
-                container.html('<p>An error occurred. Please try again.</p>');
+                // FIX: Hide the loading animation on server error
+                $('.loading-animation').hide();
+
+                // FIX: Reset the creator counts to 0
+                jQuery('.total-found-influencer').text('0');
+                jQuery('.current-found-influencer').text('0');
+
+                container.html('<p style="padding: 20px 0;">An error occurred. Please try again.</p>');
                 container.css('opacity', '1');
                 button.text('Try Again');
             }
