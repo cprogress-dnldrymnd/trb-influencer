@@ -1939,6 +1939,6 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   padding: clamp(15px, 1.302vw, 25px);
 }
 
-.advanced-search-filters .influencer-search-item {
+.advanced-search-filters .influencer-search-item-wrapper {
   display: block !important;
 }
