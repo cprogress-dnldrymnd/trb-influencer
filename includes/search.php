@@ -34,6 +34,10 @@ class Influencer_Search
 
     public static function calculate_match_score($post_id, $criteria)
     {
+        if (function_exists('creatordb_calculate_match_score')) {
+            return creatordb_calculate_match_score($post_id, $criteria);
+        }
+
         if (!$post_id || get_post_type($post_id) !== 'influencer') return -1;
         if (!is_array($criteria) || (empty($criteria['niche']) && empty($criteria['platform']) && empty($criteria['country']) && empty($criteria['followers']) && empty($criteria['topic']) && empty($criteria['content_tag']))) return -1;
 
@@ -102,6 +106,10 @@ class Influencer_Search
 
     public static function get_matched_criteria_labels($post_id, $criteria)
     {
+        if (function_exists('creatordb_get_match_evidence_html')) {
+            return creatordb_get_match_evidence_html($post_id, $criteria);
+        }
+
         $phrases = [];
         if (!$post_id || !is_array($criteria)) return $phrases;
 
@@ -663,6 +671,13 @@ class Influencer_Search
         }
 
         $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
+        $engagement_boost_soft = false;
+        if (!empty($brief) && function_exists('creatordb_parse_search_brief_structured')) {
+            $structured_summary = creatordb_parse_search_brief_structured($brief);
+            if (!empty($structured_summary['soft_intents']['engagement_boost'])) {
+                $engagement_boost_soft = true;
+            }
+        }
         $verified_only = in_array('Include only verified influencers', $filter, true);
         $expert_only = in_array('Professional experts only', $filter, true);
 
@@ -671,7 +686,7 @@ class Influencer_Search
         <div class="influencer-search-summary">
             <?php if (!empty($brief)): ?>
                 <div class="search-summary-brief search-summary-item">
-                    <input type="hidden" name="search-brief" id="search-brief" value="<?= wpautop(esc_html(wp_trim_words($brief, 25))) ?>">
+                    <input type="hidden" name="search-brief" id="search-brief" value="<?= esc_attr($brief) ?>">
                     <div class="summary-brief-label">Your brief:</div>
                     <div class="summary-brief">
                         <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
@@ -682,17 +697,42 @@ class Influencer_Search
             <?php if (!empty($parts) && empty($brief)): ?>
                 <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
             <?php endif; ?>
-                <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
-            <?php if ($prioritise_engagement || $verified_only || $expert_only): ?>
+            <?php if ($prioritise_engagement || $engagement_boost_soft || $verified_only || $expert_only): ?>
                 <div class="search-summary-item search-summary-notes">
                     <?php
                     $notes = [];
-                    if ($prioritise_engagement) $notes[] = '<span>Prioritising engagement over reach</span>';
-                    if ($verified_only) $notes[] = '<span>Include only verified influencers</span>';
-                    if ($expert_only) $notes[] = '<span>Professional experts only</span>';
+                    $summary_copy = function_exists('creatordb_brief_summary_note_labels')
+                        ? creatordb_brief_summary_note_labels()
+                        : [];
+                    if ($prioritise_engagement) {
+                        $notes[] = '<span>' . esc_html($summary_copy['engagement_hard'] ?? 'Prioritising engagement over reach') . '</span>';
+                    } elseif ($engagement_boost_soft) {
+                        $notes[] = '<span>' . esc_html($summary_copy['engagement_soft'] ?? 'Engagement preference (sort boost — not a hard filter)') . '</span>';
+                    }
+                    if ($verified_only) {
+                        $notes[] = '<span>' . esc_html($summary_copy['verified'] ?? 'Include only verified influencers') . '</span>';
+                    }
+                    if ($expert_only) {
+                        $notes[] = '<span>' . esc_html($summary_copy['expert'] ?? 'Professional experts only') . '</span>';
+                    }
                     echo implode(' • ', $notes);
                     ?>
                 </div>
+            <?php endif; ?>
+            <?php if (function_exists('creatordb_brief_search_debug_enabled') && creatordb_brief_search_debug_enabled()) : ?>
+                <div id="ic-brief-search-debug" class="ic-brief-search-debug" aria-live="polite">
+                    <details open>
+                        <summary>Brief search debug (dev)</summary>
+                        <p class="ic-brief-search-debug-hint">Runs after each search. Requires <code>WP_DEBUG</code> or <code>IC_BRIEF_SEARCH_DEBUG</code> in wp-config.</p>
+                        <pre class="ic-brief-search-debug-body">Waiting for search AJAX…</pre>
+                    </details>
+                </div>
+                <style>
+                    .ic-brief-search-debug { margin: 1rem 0; padding: 0.75rem 1rem; background: #1e1e2e; color: #cdd6f4; border-radius: 8px; font-size: 12px; }
+                    .ic-brief-search-debug summary { cursor: pointer; font-weight: 600; color: #89b4fa; }
+                    .ic-brief-search-debug-hint { opacity: 0.85; margin: 0.5rem 0; }
+                    .ic-brief-search-debug-body { max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+                </style>
             <?php endif; ?>
         </div>
 <?php
@@ -706,13 +746,25 @@ class Influencer_Search
         $criteria = is_array($criteria) ? $criteria : [];
         $score    = self::calculate_match_score($post_id, $criteria);
 
-        if ($score < 0) return '<span class="influencer-match-score-wrap">— Match Score</span>';
+        if ($score < 0) {
+            if (function_exists('creatordb_brief_match_score_badge_html')) {
+                return creatordb_brief_match_score_badge_html(-1);
+            }
+            return '<span class="influencer-match-score-wrap">— Match Score</span>';
+        }
 
-        $phrases = self::get_matched_criteria_labels($post_id, $criteria);
-        $tooltip = !empty($phrases) ? implode("\n", $phrases) : '';
+        $badge_label = function_exists('creatordb_brief_match_score_badge_html')
+            ? creatordb_brief_match_score_badge_html((int) $score)
+            : ('✨ ' . (int) $score . '% Match Score');
 
-        $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">✨ ' . (int) $score . '% Match Score</span>';
-        if ($tooltip) $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
+        $tooltip = function_exists('creatordb_get_match_evidence_tooltip_html')
+            ? creatordb_get_match_evidence_tooltip_html($post_id, $criteria)
+            : implode("\n", self::get_matched_criteria_labels($post_id, $criteria));
+
+        $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">' . esc_html($badge_label) . '</span>';
+        if ($tooltip !== '') {
+            $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
+        }
         $html .= '</div>';
         return $html;
     }
@@ -754,9 +806,10 @@ class Influencer_Search
 
         // 2. PARSE BRIEF (if provided) and merge with explicit
         $brief_text = isset($_POST['search_brief']) ? sanitize_textarea_field($_POST['search_brief']) : '';
+        $parsed_brief = null;
         if (!empty($brief_text)) {
-            $parsed   = self::parse_search_brief($brief_text);
-            $explicit = self::merge_brief_with_explicit_filters($parsed, $explicit);
+            $parsed_brief = self::parse_search_brief($brief_text);
+            $explicit = self::merge_brief_with_explicit_filters($parsed_brief, $explicit);
         }
 
         $niche         = $explicit['niche'];
@@ -821,7 +874,7 @@ class Influencer_Search
 
         // --- Meta Query Setup ---
         $meta_query = [];
-        $strict_meta_query = []; // NEW: These filters will NEVER drop during fallback broadening
+        $strict_meta_query = []; // Verified, expert, and country (when set) — always applied with the main query
 
         $country_meta_clause = [];
         if (!empty($country)) {
@@ -837,7 +890,6 @@ class Influencer_Search
                 'value'   => $country_arr,
                 'compare' => 'IN',
             ];
-            // Country must be non-droppable across broadening/fallback.
             $strict_meta_query[] = $country_meta_clause;
         }
 
@@ -850,25 +902,35 @@ class Influencer_Search
             ];
         }
 
-        // --- Followers Logic: Strict Min/Max Handling ---
-        if ($min_followers !== '' && $max_followers !== '') {
+        // --- Followers Logic: Strict Min/Max Handling (ignore bogus 0/0 from empty POST) ---
+        $followers_ranges = isset($explicit['followers']) && is_array($explicit['followers'])
+            ? $explicit['followers']
+            : [];
+        $follower_bounds = function_exists('creatordb_brief_resolve_follower_meta_bounds')
+            ? creatordb_brief_resolve_follower_meta_bounds($min_followers, $max_followers, $followers_ranges)
+            : ['min' => null, 'max' => null];
+
+        $f_min = $follower_bounds['min'];
+        $f_max = $follower_bounds['max'];
+
+        if ($f_min !== null && $f_max !== null && $f_max >= $f_min) {
             $meta_query[] = [
                 'key'     => 'followers',
-                'value'   => [(int)$min_followers, (int)$max_followers],
+                'value'   => [$f_min, $f_max],
                 'compare' => 'BETWEEN',
                 'type'    => 'NUMERIC',
             ];
-        } elseif ($min_followers !== '') {
+        } elseif ($f_min !== null) {
             $meta_query[] = [
                 'key'     => 'followers',
-                'value'   => (int)$min_followers,
+                'value'   => $f_min,
                 'compare' => '>=',
                 'type'    => 'NUMERIC',
             ];
-        } elseif ($max_followers !== '') {
+        } elseif ($f_max !== null) {
             $meta_query[] = [
                 'key'     => 'followers',
-                'value'   => (int)$max_followers,
+                'value'   => $f_max,
                 'compare' => '<=',
                 'type'    => 'NUMERIC',
             ];
@@ -898,122 +960,85 @@ class Influencer_Search
             $args['meta_query'] = $combined_meta_query;
         }
 
-        // 4. EXECUTE QUERY
-        $query = new WP_Query($args);
-
-        // --- BROADENING / FALLBACK LOGIC ---
-        $min_results = 6;
-        $has_droppable_filters = !empty($lang) || $min_followers !== '' || $max_followers !== '';
-
-        if ($query->found_posts < $min_results && $has_droppable_filters && ($query->have_posts() || !empty($niche) || !empty($platform))) {
-            $broadened_args = [
-                'post_type'      => 'influencer',
-                'posts_per_page' => 12,
-                'post_status'    => 'publish',
-                'paged'          => $paged, // <--- FIX 3: Add pagination to fallback
-            ];
-
-            $content_tax = [];
-            if (!empty($niche)) {
-                $content_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
-            }
-            if (!empty($topic)) {
-                $content_tax[] = ['taxonomy' => 'topic', 'field' => 'slug', 'terms' => $topic];
-            }
-            if (!empty($content_tag)) {
-                $content_tax[] = ['taxonomy' => 'content_tag', 'field' => 'slug', 'terms' => $content_tag];
-            }
-
-            $broadened_tax = [];
-            if (count($content_tax) > 1) {
-                $content_tax['relation'] = 'OR';
-                $broadened_tax[] = $content_tax;
-            } elseif (count($content_tax) === 1) {
-                $broadened_tax[] = $content_tax[0];
-            }
-
-            if (count($broadened_tax) > 1) {
-                $broadened_tax['relation'] = 'AND';
-            }
-            if (!empty($broadened_tax)) {
-                $broadened_args['tax_query'] = $broadened_tax;
-            }
-
-            if (!empty($strict_meta_query)) {
-                $strict_meta_query['relation'] = 'AND';
-                $broadened_args['meta_query'] = $strict_meta_query;
-            }
-
-            $query = new WP_Query($broadened_args);
-        }
-
-        // Fallback: if 0 results with full filters, retry with taxonomy + strict filters.
-        if (!$query->have_posts() && (!empty($niche) || !empty($country) || $min_followers !== '' || $max_followers !== '')) {
-            $fallback_args = [
-                'post_type'      => 'influencer',
-                'posts_per_page' => 12,
-                'post_status'    => 'publish',
-                'paged'          => $paged,
-            ];
-
-            $fallback_tax = [];
-            if (!empty($niche)) {
-                $fallback_tax[] = ['taxonomy' => 'niche', 'field' => 'slug', 'terms' => $niche];
-            }
-
-            if (count($fallback_tax) > 1) {
-                $fallback_tax['relation'] = 'AND';
-            }
-            if (!empty($fallback_tax)) {
-                $fallback_args['tax_query'] = $fallback_tax;
-            }
-
-            if (!empty($strict_meta_query)) {
-                $strict_meta_query['relation'] = 'AND';
-                $fallback_args['meta_query'] = $strict_meta_query;
-            }
-
-            $query = new WP_Query($fallback_args);
-
-            if (!$query->have_posts()) {
-                $last_resort_args = [
-                    'post_type'      => 'influencer',
-                    'posts_per_page' => 12,
-                    'post_status'    => 'publish',
-                    'paged'          => $paged
-                ];
-
-                if (!empty($strict_meta_query)) {
-                    $strict_meta_query['relation'] = 'AND';
-                    $last_resort_args['meta_query'] = $strict_meta_query;
-                }
-
-                $query = new WP_Query($last_resort_args);
-            }
-        }
-
-        error_log('--- INFLUENCER AJAX ARGS ---');
-        error_log(print_r($query->query_vars, true));
-
-        if ($query->have_posts()) {
-            $search_criteria = [
+        // 4. EXECUTE QUERY (no broadening / fallback — return only posts matching the requested filters)
+        $search_criteria = function_exists('creatordb_brief_search_criteria_from_merged')
+            ? creatordb_brief_search_criteria_from_merged($explicit)
+            : [
                 'niche'         => $niche,
                 'country'       => $country,
-                'min_followers' => $min_followers,
-                'max_followers' => $max_followers,
+                'platform'      => isset($explicit['platform']) ? (array) $explicit['platform'] : [],
+                'followers'     => isset($explicit['followers']) ? (array) $explicit['followers'] : [],
                 'filter'        => $filter,
                 'topic'         => $topic,
                 'content_tag'   => $content_tag,
+                '_structured'   => isset($explicit['_structured']) ? $explicit['_structured'] : null,
             ];
+
+        $score_cap = (int) apply_filters('creatordb_brief_search_score_cap', 500);
+        $score_cap = max(12, min(1000, $score_cap));
+
+        $ids_args = $args;
+        $ids_args['posts_per_page'] = $score_cap;
+        $ids_args['paged'] = 1;
+        $ids_args['fields'] = 'ids';
+        $ids_args['orderby'] = 'date';
+        $ids_args['order'] = 'DESC';
+
+        $ids_query = new WP_Query($ids_args);
+        $all_ids = array_map('intval', (array) $ids_query->posts);
+        $found_total = (int) $ids_query->found_posts;
+
+        $scored = function_exists('creatordb_brief_sort_post_ids_by_score')
+            ? creatordb_brief_sort_post_ids_by_score($all_ids, $search_criteria)
+            : array_map(function ($id) {
+                return ['id' => $id, 'score' => 50];
+            }, $all_ids);
+
+        $per_page = (int) $args['posts_per_page'];
+        $offset = ($paged - 1) * $per_page;
+        $page_slice = array_slice($scored, $offset, $per_page);
+        $page_ids = array_column($page_slice, 'id');
+
+        $query = new stdClass();
+        $query->found_posts = $found_total;
+        $query->max_num_pages = $per_page > 0 ? (int) ceil($found_total / $per_page) : 0;
+        $query->posts = [];
+        foreach ($page_ids as $pid) {
+            $post = get_post((int) $pid);
+            if ($post) {
+                $query->posts[] = $post;
+            }
+        }
+        $query->post_count = count($query->posts);
+        $query->have_posts = $query->post_count > 0;
+
+        $debug_payload = null;
+        if (function_exists('creatordb_brief_search_debug_enabled') && creatordb_brief_search_debug_enabled()) {
+            $debug_payload = function_exists('creatordb_brief_build_search_debug')
+                ? creatordb_brief_build_search_debug([
+                    'plugin_loaded'      => function_exists('creatordb_parse_search_brief'),
+                    'brief_text'         => $brief_text,
+                    'parsed'             => $parsed_brief,
+                    'merged'             => $explicit,
+                    'query_args'         => $args,
+                    'found_posts'        => (int) $query->found_posts,
+                    'post_ids'           => [],
+                    'min_followers_raw'  => $min_followers,
+                    'max_followers_raw'  => $max_followers,
+                    'follower_bounds'    => isset($follower_bounds) ? $follower_bounds : null,
+                ])
+                : ['enabled' => true, 'wp_query_args' => $args, 'found_posts' => (int) $query->found_posts];
+            error_log('--- INFLUENCER BRIEF SEARCH DEBUG ---');
+            error_log(wp_json_encode($debug_payload, JSON_PRETTY_PRINT));
+        }
+
+        error_log('--- INFLUENCER AJAX ARGS ---');
+        error_log(print_r($ids_args, true));
+
+        if ($query->have_posts) {
             set_query_var('search_criteria', $search_criteria);
 
             $posts = $query->posts;
-
-            usort($posts, function ($a, $b) use ($search_criteria) {
-                $sa = self::calculate_match_score($a->ID, $search_criteria);
-                $sb = self::calculate_match_score($b->ID, $search_criteria);
-                return $sb <=> $sa;
-            });
 
             ob_start();
 
@@ -1040,15 +1065,34 @@ class Influencer_Search
                 $number_of_searches = get_user_meta($current_user_id, 'number_of_searches', true);
             }
 
-            wp_send_json_success(array(
+            if (is_array($debug_payload)) {
+                $debug_payload['returned_post_ids'] = array_map(function ($p) {
+                    return (int) $p->ID;
+                }, $posts);
+                $debug_payload['score_cap'] = $score_cap;
+                $debug_payload['scored_pool'] = count($all_ids);
+            }
+
+            $success_data = array(
                 'html'               => $html_output,
                 'found_posts'        => $query->found_posts,
                 'max_pages'          => $query->max_num_pages,
                 'number_of_searches' => $number_of_searches,
-            ));
+            );
+            if (is_array($debug_payload)) {
+                $success_data['debug'] = $debug_payload;
+            }
+            wp_send_json_success($success_data);
         } else {
             ob_end_clean();
-            wp_send_json_error('No posts found');
+            if (is_array($debug_payload)) {
+                wp_send_json_error(array(
+                    'message' => 'No posts found',
+                    'debug'   => $debug_payload,
+                ));
+            } else {
+                wp_send_json_error('No posts found');
+            }
         }
 
         wp_die();
@@ -1418,6 +1462,10 @@ class Influencer_Search
 
     public static function parse_search_brief($text)
     {
+        if (function_exists('creatordb_parse_search_brief')) {
+            return creatordb_parse_search_brief($text);
+        }
+
         $result = [
             'niche'        => [],
             'country'      => [],
@@ -1517,6 +1565,10 @@ class Influencer_Search
 
     public static function merge_brief_with_explicit_filters($parsed, $explicit)
     {
+        if (function_exists('creatordb_merge_brief_with_explicit_filters')) {
+            return creatordb_merge_brief_with_explicit_filters($parsed, $explicit);
+        }
+
         $keys = ['niche', 'country', 'platform', 'followers', 'filter', 'topic', 'content_tag'];
 
         foreach ($keys as $key) {
