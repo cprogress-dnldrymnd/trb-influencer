@@ -3033,7 +3033,7 @@ class DD_Outreach_Manager
 
         <?php if ($is_unlocked) : ?>
 
-            <a href="#" class="elementor-button outreach-form-popup-trigger">
+            <a href="#" class="elementor-button outreach-button outreach-form-popup-trigger">
                 <span class="elementor-button-content-wrapper">
                     <span class="elementor-button-text">CONNECT WITH & CONTACT THIS CREATOR</span>
                 </span>
@@ -3041,7 +3041,7 @@ class DD_Outreach_Manager
 
         <?php else : ?>
 
-            <a href="#" class="elementor-button"
+            <a href="#" class="elementor-button outreach-button"
                 title="You need to unlock this creator first before sending an outreach."
                 style="opacity: 0.6; cursor: not-allowed;"
                 onclick="event.preventDefault();">

@@ -1971,6 +1971,22 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   align-items: center;
   justify-content: center;
 }
+.outreach-button.outreach-button.outreach-button {
+  font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
+  font-size: var(--e-global-typography-2a20fd0-font-size);
+  font-weight: var(--e-global-typography-2a20fd0-font-weight);
+  line-height: var(--e-global-typography-2a20fd0-line-height);
+  letter-spacing: var(--e-global-typography-2a20fd0-letter-spacing);
+  word-spacing: var(--e-global-typography-2a20fd0-word-spacing);
+  fill: var(--e-global-color-primary);
+  color: var(--e-global-color-primary);
+  background-color: transparent;
+  background-image: linear-gradient(180deg, #ecf799 0%, #bbf7a6 100%);
+  border-style: solid;
+  border-width: 1px 1px 1px 1px;
+  border-color: var(--e-global-color-primary);
+  padding: 14px 24px 14px 24px;
+}
 @media (min-width: 768px) {
   .advanced-search-filters .influencer-search-item-wrapper .influencer-search-item {
     max-width: 22%;
