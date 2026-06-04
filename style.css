@@ -1940,6 +1940,15 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   letter-spacing: var(--e-global-typography-5a13f56-letter-spacing);
   font-weight: 600;
 }
+.advanced-search-trigger {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 15px 0;
+  font-weight: 600;
+  color: var(--e-global-color-primary);
+}
 
 .influencer-search-main .influencer-search-filter-holder {
   padding: clamp(15px, 1.302vw, 25px);

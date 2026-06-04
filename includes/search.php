@@ -667,7 +667,7 @@ class Influencer_Search
                 </div>
 
 
-                <div class="advanced-search-trigger" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin: 15px 0; font-weight: 600; color: #00a6ed;">
+                <div class="advanced-search-trigger">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="4" y1="21" x2="4" y2="14"></line>
                         <line x1="4" y1="10" x2="4" y2="3"></line>
