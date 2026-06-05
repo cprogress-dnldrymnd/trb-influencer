@@ -23,6 +23,10 @@ class Influencer_Search
         // Set up search variables on the 'wp' hook
         add_action('wp', [$this, 'setup_search_variables']);
 
+        // Flush filter dropdown transients when an influencer post is saved or deleted
+        add_action('save_post', [__CLASS__, 'flush_filter_transients']);
+        add_action('delete_post', [__CLASS__, 'flush_filter_transients']);
+
         // Register shortcodes
         add_shortcode('influencer_match_score',    [__CLASS__, 'shortcode_match_score']);
         add_shortcode('influencer_search_summary', [__CLASS__, 'shortcode_search_summary']);
@@ -126,9 +130,12 @@ class Influencer_Search
      */
     public static function get_unique_influencer_countries()
     {
+        $cached = get_transient('dd_influencer_countries');
+        if ($cached !== false) return $cached;
+
         global $wpdb;
         $results = $wpdb->get_col($wpdb->prepare("
-            SELECT DISTINCT pm.meta_value 
+            SELECT DISTINCT pm.meta_value
             FROM {$wpdb->postmeta} pm
             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
             WHERE p.post_type = %s
@@ -158,6 +165,7 @@ class Influencer_Search
             }
         }
         asort($country_list);
+        set_transient('dd_influencer_countries', $country_list, 12 * HOUR_IN_SECONDS);
         return $country_list;
     }
 
@@ -166,9 +174,12 @@ class Influencer_Search
      */
     public static function get_unique_influencer_languages()
     {
+        $cached = get_transient('dd_influencer_languages');
+        if ($cached !== false) return $cached;
+
         global $wpdb;
         $results = $wpdb->get_col($wpdb->prepare("
-            SELECT DISTINCT pm.meta_value 
+            SELECT DISTINCT pm.meta_value
             FROM {$wpdb->postmeta} pm
             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
             WHERE p.post_type = %s
@@ -197,6 +208,7 @@ class Influencer_Search
             $language_list[$clean_code] = $lang_name;
         }
         asort($language_list);
+        set_transient('dd_influencer_languages', $language_list, 12 * HOUR_IN_SECONDS);
         return $language_list;
     }
 
@@ -205,9 +217,12 @@ class Influencer_Search
      */
     public static function get_unique_influencer_genders()
     {
+        $cached = get_transient('dd_influencer_genders');
+        if ($cached !== false) return $cached;
+
         global $wpdb;
         $results = $wpdb->get_col($wpdb->prepare("
-            SELECT DISTINCT pm.meta_value 
+            SELECT DISTINCT pm.meta_value
             FROM {$wpdb->postmeta} pm
             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
             WHERE p.post_type = %s
@@ -224,7 +239,19 @@ class Influencer_Search
             }
         }
         asort($gender_list);
+        set_transient('dd_influencer_genders', $gender_list, 12 * HOUR_IN_SECONDS);
         return $gender_list;
+    }
+
+    /**
+     * Flush filter dropdown transients whenever an influencer post is saved.
+     */
+    public static function flush_filter_transients($post_id)
+    {
+        if (get_post_type($post_id) !== 'influencer') return;
+        delete_transient('dd_influencer_countries');
+        delete_transient('dd_influencer_languages');
+        delete_transient('dd_influencer_genders');
     }
 
     /**
@@ -454,6 +481,8 @@ class Influencer_Search
 
     public function my_custom_loop_filter_handler()
     {
+        check_ajax_referer('search_filter_nonce', 'security');
+
         // 1. GATHER INPUTS (explicit form values)
         $explicit = [
             'niche'         => isset($_POST['niche']) ? $_POST['niche'] : [],
@@ -462,8 +491,8 @@ class Influencer_Search
             'gender'        => isset($_POST['gender']) ? $_POST['gender'] : [],
 
             // Dedicated min/max follower inputs (scalar)
-            'min_followers' => isset($_POST['min_followers']) ? sanitize_text_field($_POST['min_followers']) : '',
-            'max_followers' => isset($_POST['max_followers']) ? sanitize_text_field($_POST['max_followers']) : '',
+            'min_followers' => isset($_POST['min_followers']) ? sanitize_text_field(wp_unslash($_POST['min_followers'])) : '',
+            'max_followers' => isset($_POST['max_followers']) ? sanitize_text_field(wp_unslash($_POST['max_followers'])) : '',
 
             'filter'        => isset($_POST['filter']) ? $_POST['filter'] : [],
             'topic'         => isset($_POST['topic']) ? $_POST['topic'] : [],

@@ -91,6 +91,7 @@
             type: 'POST',
             data: {
                 action:       'my_custom_loop_filter',
+                security:     ajax_vars.search_filter_nonce,
                 niche:        filter_niche,
                 country:      filter_country,
                 lang:         filter_lang,

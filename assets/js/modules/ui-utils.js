@@ -34,11 +34,13 @@
         if (shareButton) {
             shareButton.addEventListener('click', async function (e) {
                 e.preventDefault();
+                var url = window.location.href;
                 try {
-                    await navigator.clipboard.writeText(window.location.href);
+                    await navigator.clipboard.writeText(url);
                     alert('URL copied to clipboard successfully.');
                 } catch (err) {
-                    console.error('Clipboard write failed:', err);
+                    // Clipboard API unavailable (e.g. non-HTTPS context) — show the URL so user can copy manually.
+                    window.prompt('Copy the link below:', url);
                 }
             });
         }

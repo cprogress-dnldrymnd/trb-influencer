@@ -67,6 +67,7 @@
             var maxResults     = searchInput ? parseInt(searchInput.getAttribute('data-limit') || '20', 10) : 20;
             var searchTimer    = null;
             var requestSeq     = 0;
+            var currentXhr     = null;
 
             // --- Open / close ---
             dropdownBtn.addEventListener('click', function (e) {
@@ -109,6 +110,7 @@
                                 '</svg>Searching...' +
                             '</div>';
 
+                        if (currentXhr) { currentXhr.abort(); currentXhr = null; }
                         var mySeq         = ++requestSeq;
                         var selectedInputs = Array.from(widget.querySelectorAll('.dropdown-item input:checked'));
                         var selected       = selectedInputs.map(function (i) { return i.value; });
@@ -122,11 +124,12 @@
                             : 'dd_search_niche_options';
                         var inputName = ajaxSearchType === 'content_tag' ? 'content_tag[]' : 'niche[]';
 
-                        $.ajax({
+                        currentXhr = $.ajax({
                             url:  ajax_vars.ajax_url,
                             type: 'POST',
                             data: { action: actionName, q: term, selected: selected, limit: maxResults },
                             success: function (response) {
+                                currentXhr = null;
                                 if (mySeq !== requestSeq) return;
 
                                 if (!response || !response.success || !Array.isArray(response.data.items)) {
@@ -165,8 +168,9 @@
 
                                 updateTags();
                             },
-                            error: function () {
-                                if (mySeq !== requestSeq) return;
+                            error: function (jqXHR) {
+                                currentXhr = null;
+                                if (jqXHR.statusText === 'abort' || mySeq !== requestSeq) return;
                                 optionsList.innerHTML = '<div style="padding:15px;text-align:center;color:#ff4d4d;font-size:14px;">An error occurred. Please try again.</div>';
                             }
                         });

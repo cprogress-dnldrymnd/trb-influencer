@@ -56,8 +56,12 @@
             InfluencerApp.prioritize_active_tags();
         }
 
+        var resizeTimer = null;
         $(window).on('resize', function () {
-            InfluencerApp.dashboardLogoHeightVar();
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                InfluencerApp.dashboardLogoHeightVar();
+            }, 100);
         });
     });
 

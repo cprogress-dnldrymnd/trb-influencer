@@ -1153,22 +1153,25 @@ class Saves_Manager
         }
 
         $saved_posts = get_posts([
-            'post_type'      => 'saved-influencer',
-            'author'         => $user_id,
-            'posts_per_page' => -1,
-            'meta_query'     => [
+            'post_type'              => 'saved-influencer',
+            'author'                 => $user_id,
+            'posts_per_page'         => -1,
+            'fields'                 => 'ids',
+            'update_post_term_cache' => false,
+            'update_post_meta_cache' => false,
+            'meta_query'             => [
                 ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
             ]
         ]);
 
-        foreach ($saved_posts as $post) {
-            $lists = get_post_meta($post->ID, 'saved_in_lists', true);
+        foreach ($saved_posts as $post_id_item) {
+            $lists = get_post_meta($post_id_item, 'saved_in_lists', true);
             if (is_array($lists)) {
                 $lists = array_diff($lists, [$group_id]);
                 if (empty($lists)) {
-                    wp_delete_post($post->ID, true);
+                    wp_delete_post($post_id_item, true);
                 } else {
-                    update_post_meta($post->ID, 'saved_in_lists', $lists);
+                    update_post_meta($post_id_item, 'saved_in_lists', $lists);
                 }
             }
         }

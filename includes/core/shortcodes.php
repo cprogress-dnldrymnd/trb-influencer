@@ -320,7 +320,7 @@ function breadcrumbs()
         $type = 'other';
     }
 ?>
-    <nav class="breadcrumbs breadcrumbs-<?= $type ?>" aria-label="Breadcrumbs">
+    <nav class="breadcrumbs breadcrumbs-<?= esc_attr($type) ?>" aria-label="Breadcrumbs">
         <ul>
             <?php if (is_page_template('templates/page-dashboard.php')) { ?>
                 <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
@@ -333,11 +333,11 @@ function breadcrumbs()
                 <?php } ?>
 
                 <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= get_the_permalink($search_page_id) ?>">Search</a></li>
+                    <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>">Search</a></li>
                 <?php } ?>
 
                 <?php if (is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= get_the_permalink($search_results_page_id) ?>">Search Results</a></li>
+                    <li><a href="<?= esc_url(get_the_permalink($search_results_page_id)) ?>">Search Results</a></li>
                     <li><span>Creator Profile</span></li>
 
                 <?php } ?>
@@ -349,7 +349,7 @@ function breadcrumbs()
 
             <?php } else { ?>
                 <?php if (!is_page(1565)) { ?>
-                    <li><span><?= get_the_title() ?></span></li>
+                    <li><span><?= esc_html(get_the_title()) ?></span></li>
                 <?php } ?>
             <?php } ?>
 
@@ -1697,7 +1697,7 @@ function shortcode_influencer_platform_score($atts)
 add_shortcode('influencer_platform_score', 'shortcode_influencer_platform_score');
 
 
-function shortcode_intagram_id_fixed($atts)
+function shortcode_instagram_id_fixed($atts)
 {
 
     $atts = shortcode_atts(array(
@@ -1717,7 +1717,7 @@ function shortcode_intagram_id_fixed($atts)
         }
     }
 }
-add_shortcode('instagram_id', 'shortcode_intagram_id_fixed');
+add_shortcode('instagram_id', 'shortcode_instagram_id_fixed');
 
 
 /**

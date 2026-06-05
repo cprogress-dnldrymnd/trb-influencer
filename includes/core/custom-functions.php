@@ -602,6 +602,9 @@ function get_user_niche_ranking($user_id, $limit = false)
     $niche_counts = [];
 
     // 2. AGGREGATE TERMS
+    // Prime the term cache for all posts at once to avoid one query per post.
+    update_object_term_cache(array_unique($engage_influencers_ids), 'post');
+
     foreach ($engage_influencers_ids as $post_id) {
         $terms = get_the_terms($post_id, 'niche');
 

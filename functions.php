@@ -81,6 +81,7 @@ function hello_elementor_child_scripts_styles()
         'search_results_page_id' => $search_results_page_id,
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
+        'search_filter_nonce'   => wp_create_nonce('search_filter_nonce'),
     ]);
 }
 add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
