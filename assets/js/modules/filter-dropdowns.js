@@ -100,6 +100,7 @@
                         var term = raw.trim();
                         if (term.length < minChars) { optionsList.innerHTML = ''; return; }
 
+                        dropdownMenu.setAttribute('aria-busy', 'true');
                         optionsList.innerHTML =
                             '<div class="ajax-loading-state" style="padding:15px;text-align:center;color:#666;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;">' +
                                 '<svg width="18" height="18" viewBox="0 0 50 50">' +
@@ -130,6 +131,7 @@
                             data: { action: actionName, q: term, selected: selected, limit: maxResults },
                             success: function (response) {
                                 currentXhr = null;
+                                dropdownMenu.setAttribute('aria-busy', 'false');
                                 if (mySeq !== requestSeq) return;
 
                                 if (!response || !response.success || !Array.isArray(response.data.items)) {
@@ -170,6 +172,7 @@
                             },
                             error: function (jqXHR) {
                                 currentXhr = null;
+                                dropdownMenu.setAttribute('aria-busy', 'false');
                                 if (jqXHR.statusText === 'abort' || mySeq !== requestSeq) return;
                                 optionsList.innerHTML = '<div style="padding:15px;text-align:center;color:#ff4d4d;font-size:14px;">An error occurred. Please try again.</div>';
                             }

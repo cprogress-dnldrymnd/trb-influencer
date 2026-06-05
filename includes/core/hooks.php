@@ -17,9 +17,9 @@ function dd_set_global_pmpro_variable()
     global $current_membership_level, $is_no_membership, $number_of_searches, $search_results_page_id, $search_page_id, $dashboard_page_id;
 
     $number_of_searches = number_of_searches();
-    $search_results_page_id = 1949;
-    $search_page_id = 2149;
-    $dashboard_page_id = 1565;
+    $search_results_page_id = dd_get_page_id('dd_search_results_page_id', 1949);
+    $search_page_id         = dd_get_page_id('dd_search_page_id', 2149);
+    $dashboard_page_id      = dd_get_page_id('dd_dashboard_page_id', 1565);
     // Verify the function exists to prevent fatal errors if PMPro is inactive
     if (function_exists('get_pmpro_membership_level_shortcode')) {
         $current_membership_level = get_pmpro_membership_level_shortcode();
@@ -152,74 +152,13 @@ function dd_restrict_dashboard_template_access()
         // Check if the current page is using the specific template file.
         // Note: This path is relative to the active theme's root directory.
 
-        // Execute the redirect to the home URL (using ID 4144).
-        wp_redirect(get_the_permalink(4144));
+        wp_redirect(get_the_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144)));
 
         // Always exit after a redirect to stop further script execution.
         exit;
     }
 }
 add_action('template_redirect', 'dd_restrict_dashboard_template_access');
-
-
-/**
- * Redirects the influencer discovery page to the search page conditionally.
- * Hooks into 'template_redirect' to process the redirect before headers are sent.
- * Validates the existence of required globals, checks if the current query
- * matches the discovery page, and triggers a redirect. The redirect executes 
- * if a search is inactive, OR if the user is on an active free trial and 
- * has met or exceeded their query limit (>= 3).
- *
- * @global int  $search_results_page_id The ID of the page triggering the redirect.
- * @global int  $search_page_id         The ID of the target destination page.
- * @global bool $is_no_membership          Flag indicating if the user is on a free trial.
- * @global int  $number_of_searches     The total number of searches executed by the user.
- * @return void
- */
-/*
-function dd_execute_conditional_page_redirect()
-{
-    // Access the defined global variables in the current scope.
-    global $search_results_page_id, $search_page_id, $is_no_membership, $number_of_searches;
-
-    // Terminate early if the global variables are undefined or evaluate to empty.
-    if (empty($search_results_page_id) || empty($search_page_id)) {
-        return;
-    }
-
-    // Evaluate if the currently requested page matches the target ID.
-    if (is_page($search_results_page_id)) {
-
-        // Check if the 'search_active' query parameter is explicitly set to 'true'.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $is_search_active = isset($_GET['search_active']) && sanitize_text_field(wp_unslash($_GET['search_active'])) === 'true';
-
-        // Evaluate if the user has exhausted their free trial search limits.
-        // strict type checking and isset() prevent PHP warnings from uninitialized globals.
-        $trial_limit_reached = (isset($is_no_membership) && $is_no_membership === true && isset($number_of_searches) && (int) $number_of_searches >= 3);
-
-        // Allow the page to load ONLY if a search is active AND the trial limit has not been reached.
-        if ($is_search_active && !$trial_limit_reached) {
-            return; // Halt execution and allow the current page to load.
-        }
-
-        // Retrieve the fully qualified URL for the destination page.
-        $destination_url = get_permalink($search_page_id);
-
-        // Proceed only if a valid permalink was successfully returned.
-        if ($destination_url) {
-
-            // Execute the redirect. A 301 (permanent) status is used here for SEO, 
-            // but can be changed to 302 (temporary) if the routing is dynamic/temporary.
-            wp_safe_redirect($destination_url, 301);
-
-            // Always invoke exit after a redirect header to halt further script execution.
-            exit;
-        }
-    }
-}
-add_action('template_redirect', 'dd_execute_conditional_page_redirect');
-*/
 
 /**
  * Injects JavaScript into the footer to intercept and prevent context menus 
@@ -344,8 +283,7 @@ add_filter('show_admin_bar', 'dd_disable_admin_bar_for_subscribers');
  */
 function dd_custom_login_redirect($redirect_to, $requested_redirect_to, $user)
 {
-    // Define the target page ID for redirection.
-    $target_page_id = 1565;
+    $target_page_id = dd_get_page_id('dd_dashboard_page_id', 1565);
 
     // Retrieve the permalink for the target page.
     $target_url = get_permalink($target_page_id);

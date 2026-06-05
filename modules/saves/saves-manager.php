@@ -668,8 +668,7 @@ class Saves_Manager
         }
         $desc_text = !empty($desc_parts) ? implode(' | ', $desc_parts) : 'No specific filters applied';
 
-        // Define the base URL using the requested Page ID 1949
-        $search_url = get_permalink(1949) . $query;
+        $search_url = get_permalink(dd_get_page_id('dd_search_results_page_id', 1949)) . $query;
 
         ob_start();
     ?>
@@ -869,6 +868,11 @@ class Saves_Manager
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
         $user_id = get_current_user_id();
 
+        $influencer_post = get_post((int) $influencer_id);
+        if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
+            wp_send_json_error(['message' => 'Invalid influencer.']);
+        }
+
         $user_lists = $this->get_normalized_groups($user_id);
         $active_lists = [];
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
@@ -908,6 +912,10 @@ class Saves_Manager
 
         if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
 
+        $influencer_post = get_post($influencer_id);
+        if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
+            wp_send_json_error(['message' => 'Invalid influencer.']);
+        }
 
         // --- STANDARD SAVE LOGIC ---
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
@@ -1005,6 +1013,11 @@ class Saves_Manager
         $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
 
         if (!$influencer_id) wp_send_json_error(['message' => 'Invalid creator profile.']);
+
+        $influencer_post = get_post($influencer_id);
+        if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
+            wp_send_json_error(['message' => 'Invalid influencer.']);
+        }
 
         // 1. Verify MyCred Balance
         if (function_exists('mycred_get_users_balance')) {
@@ -1155,7 +1168,7 @@ class Saves_Manager
         $saved_posts = get_posts([
             'post_type'              => 'saved-influencer',
             'author'                 => $user_id,
-            'posts_per_page'         => -1,
+            'posts_per_page'         => 2000,
             'fields'                 => 'ids',
             'update_post_term_cache' => false,
             'update_post_meta_cache' => false,
@@ -1196,7 +1209,7 @@ class Saves_Manager
         $saved_posts = get_posts([
             'post_type'      => 'saved-influencer',
             'author'         => $user_id,
-            'posts_per_page' => -1,
+            'posts_per_page' => 500,
             'meta_query'     => [
                 ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
             ]

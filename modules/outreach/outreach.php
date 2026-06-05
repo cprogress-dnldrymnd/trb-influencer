@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 /**
  * Plugin Name: DD Outreach Manager
@@ -127,7 +127,7 @@ class DD_Outreach_Manager
      */
     private function get_default_outreach_message()
     {
-        return "Hi {influencer_name},\n\nI hope this message finds you well! My name is {sender_name}, and I represent {brand_name}. We’ve been following your incredible work and would love to explore a potential collaboration with you for our upcoming {project_type} campaign.\n\nHere’s a brief overview of the opportunity:\n\n{{fields}}\n\nWe believe your unique style and audience would be a great fit for this campaign, and we’re excited about the possibility of working together. Whether it’s promoting our new products, sharing your experience with our brand, or helping us amplify our message, we think you could bring something special to this collaboration.\n\nIf you're interested, we’d love to chat further and discuss the next steps, including any details, expectations, and how we can tailor the project to fit your personal style.\n\nLooking forward to hearing from you!\n\nKind regards,\n{sender_name}\n{job_title}\n{brand_name}";
+        return "Hi {influencer_name},\n\nI hope this message finds you well! My name is {sender_name}, and I represent {brand_name}. Weâ€™ve been following your incredible work and would love to explore a potential collaboration with you for our upcoming {project_type} campaign.\n\nHereâ€™s a brief overview of the opportunity:\n\n{{fields}}\n\nWe believe your unique style and audience would be a great fit for this campaign, and weâ€™re excited about the possibility of working together. Whether itâ€™s promoting our new products, sharing your experience with our brand, or helping us amplify our message, we think you could bring something special to this collaboration.\n\nIf you're interested, weâ€™d love to chat further and discuss the next steps, including any details, expectations, and how we can tailor the project to fit your personal style.\n\nLooking forward to hearing from you!\n\nKind regards,\n{sender_name}\n{job_title}\n{brand_name}";
     }
 
     /**
@@ -206,7 +206,29 @@ class DD_Outreach_Manager
 
         $custom_js = "
         jQuery(document).ready(function($) {
-            
+
+            // Lightweight non-blocking modal helpers
+            function ddAlert(msg) {
+                var overlay = $('<div>').css({position:'fixed',top:'0',left:'0',right:'0',bottom:'0',background:'rgba(0,0,0,0.5)',zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center'});
+                var box = $('<div>').css({background:'#fff',borderRadius:'8px',padding:'28px 32px',maxWidth:'420px',width:'90%',boxShadow:'0 4px 24px rgba(0,0,0,0.18)',fontFamily:'inherit'});
+                var p = $('<p>').css({margin:'0 0 20px',fontSize:'15px',lineHeight:'1.5'}).text(msg);
+                var btn = $('<button>').attr('type','button').css({background:'#1a1a1a',color:'#fff',border:'none',borderRadius:'6px',padding:'10px 24px',fontSize:'14px',cursor:'pointer'}).text('OK');
+                btn.on('click', function() { overlay.remove(); });
+                box.append(p, btn); overlay.append(box); $('body').append(overlay); btn.focus();
+            }
+
+            function ddConfirm(msg, onOk) {
+                var overlay = $('<div>').css({position:'fixed',top:'0',left:'0',right:'0',bottom:'0',background:'rgba(0,0,0,0.5)',zIndex:99999,display:'flex',alignItems:'center',justifyContent:'center'});
+                var box = $('<div>').css({background:'#fff',borderRadius:'8px',padding:'28px 32px',maxWidth:'420px',width:'90%',boxShadow:'0 4px 24px rgba(0,0,0,0.18)',fontFamily:'inherit'});
+                var p = $('<p>').css({margin:'0 0 20px',fontSize:'15px',lineHeight:'1.5'}).text(msg);
+                var row = $('<div>').css({display:'flex',gap:'12px',justifyContent:'flex-end'});
+                var cancelBtn = $('<button>').attr('type','button').css({background:'#e5e7eb',color:'#333',border:'none',borderRadius:'6px',padding:'10px 20px',fontSize:'14px',cursor:'pointer'}).text('Cancel');
+                var okBtn = $('<button>').attr('type','button').css({background:'#1a1a1a',color:'#fff',border:'none',borderRadius:'6px',padding:'10px 24px',fontSize:'14px',cursor:'pointer'}).text('Confirm');
+                cancelBtn.on('click', function() { overlay.remove(); });
+                okBtn.on('click', function() { overlay.remove(); onOk(); });
+                row.append(cancelBtn, okBtn); box.append(p, row); overlay.append(box); $('body').append(overlay); okBtn.focus();
+            }
+
             // --- 1. Tab Switcher Logic ---
             $('.nav-tab').on('click', function(e) {
                 e.preventDefault();
@@ -269,12 +291,13 @@ class DD_Outreach_Manager
             // Delete Item
             $('#dd-repeater-container').on('click', '.delete-item', function(e) {
                 e.preventDefault();
-                if (confirm('Are you sure you want to delete this template?')) {
-                    $(this).closest('.dd-repeater-item').fadeOut(300, function() {
+                var item = $(this).closest('.dd-repeater-item');
+                ddConfirm('Are you sure you want to delete this template?', function() {
+                    item.fadeOut(300, function() {
                         $(this).remove();
                         reindexRepeater();
                     });
-                }
+                });
             });
 
             // Collapse Item
@@ -313,7 +336,7 @@ class DD_Outreach_Manager
                     txtarea.focus();
                     lastFocusedElement.selectionEnd = start + tag.length;
                 } else {
-                    alert('Please click inside a field (To, Subject, or Body) to insert a merge tag.');
+                    ddAlert('Please click inside a field (To, Subject, or Body) to insert a merge tag.');
                 }
             });
 
@@ -366,364 +389,15 @@ class DD_Outreach_Manager
      */
     public function enqueue_dashboard_scripts()
     {
-        wp_enqueue_script('jquery');
+        wp_enqueue_script(
+            'dd-outreach-js',
+            get_stylesheet_directory_uri() . '/assets/js/modules/outreach.js',
+            ['jquery'],
+            null,
+            true
+        );
 
-        $script = "
-        jQuery(document).ready(function($) {
-            
-            // Core UI State Variables
-            var currentStatusFilter = 'all';
-
-            // --- 1. Master-Detail List Click Loader ---
-            function bindListItemClicks() {
-                $('.dd-outreach-item').off('click').on('click', function(e) {
-                    
-                    // Stop row execution completely if clicking on the 3-dot toggle wrapper
-                    if ($(e.target).closest('.dd-item-dots').length) {
-                        return; 
-                    }
-
-                    // Determine if triggered by physical click vs script dispatch
-                    var isHumanClick = e.originalEvent !== undefined;
-                    var postId = $(this).data('post-id');
-                    var container = $('#dd-outreach-view-container');
-                    
-                    // Responsive Check: If < 1025px, avoid auto-loading the first element immediately
-                    if ($(window).width() < 1025 && !isHumanClick) {
-                        return; 
-                    }
-
-                    $('.dd-outreach-item').removeClass('active-item');
-                    $(this).addClass('active-item');
-
-                    // Activate modal overlay lock strictly on devices < 1025px
-                    if ($(window).width() < 1025) {
-                        container.addClass('dd-modal-active');
-                        $('body').css('overflow', 'hidden'); // Lock background scroll
-                    }
-
-                    container.html('<div class=\"dd-modal-content-wrapper\"><span class=\"dd-view-placeholder\">Loading...</span></div>');
-
-                    $.ajax({
-                        url: ddOutreach.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'dd_get_outreach_details',
-                            security: ddOutreach.nonce,
-                            post_id: postId
-                        },
-                        success: function(response) {
-                            if(response.success) {
-                                container.html(response.data);
-                            } else {
-                                container.html('<div class=\"dd-modal-content-wrapper\">' + (response.data || '<span class=\"dd-view-error\">Error loading details.</span>') + '</div>');
-                            }
-                        }
-                    });
-                });
-            }
-
-            // Bind list clicks on initial load and click first item
-            bindListItemClicks();
-            var firstItem = $('.dd-outreach-item').first();
-            if (firstItem.length) {
-                firstItem.trigger('click');
-            } else {
-                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found.</span>');
-                $('#no-outreach-found').removeClass('hide-element');
-                $('#outreach-found').addClass('hide-element');
-            }
-
-            // --- Modal Destruction Handlers (< 1025px) ---
-            $(document).on('click', '#dd-close-modal', function(e) {
-                e.preventDefault();
-                $('#dd-outreach-view-container').removeClass('dd-modal-active');
-                $('body').css('overflow', '');
-            });
-
-            $(document).on('click', '#dd-outreach-view-container', function(e) {
-                if ($(window).width() < 1025 && e.target === this) {
-                    $(this).removeClass('dd-modal-active');
-                    $('body').css('overflow', '');
-                }
-            });
-
-
-            // --- 2. Filtering Logic ---
-            var filterTimer;
-            
-            function triggerFilter() {
-                var searchQuery = $('#dd-outreach-search').val();
-                
-                var selectedTypes = [];
-                $('input[name=\"project_type[]\"]:checked').each(function() {
-                    selectedTypes.push($(this).attr('data-label') || $(this).val());
-                });
-                if (selectedTypes.length === 0 && $('select[name=\"project_type\"]').length > 0 && $('select[name=\"project_type\"]').val() !== '') {
-                    selectedTypes.push($('select[name=\"project_type\"]').val());
-                }
-
-                var selectedLengths = [];
-                $('input[name=\"project_length[]\"]:checked').each(function() {
-                    selectedLengths.push($(this).attr('data-label') || $(this).val());
-                });
-                if (selectedLengths.length === 0 && $('select[name=\"project_length\"]').length > 0 && $('select[name=\"project_length\"]').val() !== '') {
-                    selectedLengths.push($('select[name=\"project_length\"]').val());
-                }
-
-                $('#dd-outreach-list-container').html('<p style=\"padding: 20px; text-align:center;\">Loading...</p>');
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_filter_outreach_list',
-                        security: ddOutreach.nonce,
-                        search: searchQuery,
-                        project_type: selectedTypes,
-                        project_length: selectedLengths,
-                        status_filter: currentStatusFilter
-                    },
-                    success: function(response) {
-                        if(response.success) {
-                            $('#dd-outreach-list-container').html(response.data);
-                            bindListItemClicks(); 
-                            
-                            var newFirstItem = $('.dd-outreach-item').first();
-                            if (newFirstItem.length) {
-                                newFirstItem.trigger('click');
-                            } else {
-                                $('#dd-outreach-view-container').html('<span class=\"dd-view-placeholder\">No outreach found matching your criteria.</span>');
-                            }
-                        }
-                    }
-                });
-            }
-
-            $('#dd-outreach-search').on('keyup', function() {
-                clearTimeout(filterTimer);
-                filterTimer = setTimeout(triggerFilter, 500);
-            });
-
-            $(document).on('change', 'input[name=\"project_type[]\"], select[name=\"project_type\"], input[name=\"project_length[]\"], select[name=\"project_length\"]', function() {
-                triggerFilter();
-            });
-
-            // Status Navigation Handlers (All, Favourites, Archived)
-            $(document).on('click', '.dd-status-pill, .dd-archive-link', function(e) {
-                e.preventDefault();
-                $('.dd-status-pill, .dd-archive-link').removeClass('active');
-                $(this).addClass('active');
-                
-                // If clicking a pill, ensure Archived link loses bold
-                if($(this).hasClass('dd-status-pill')) {
-                    $('.dd-archive-link').css('font-weight', '500');
-                } else {
-                    $(this).css('font-weight', 'bold');
-                }
-
-                currentStatusFilter = $(this).data('status');
-                triggerFilter();
-            });
-
-            $(document).on('click', '.reset-btn, .tag-close', function(e) {
-                e.preventDefault();
-                triggerFilter();
-            });
-
-            // --- 3. 3-Dot Action Menu Interactions ---
-            $(document).on('click', '.dd-action-toggle', function(e) {
-                e.preventDefault();
-                $('.dd-action-menu').not($(this).next('.dd-action-menu')).hide();
-                $(this).next('.dd-action-menu').toggle();
-            });
-
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.dd-item-dots').length) {
-                    $('.dd-action-menu').hide();
-                }
-            });
-
-            $(document).on('click', '.dd-action-btn', function(e) {
-                e.preventDefault();
-                var btn = $(this);
-                var postId = btn.data('id');
-                var action = btn.data('action');
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_toggle_outreach_status',
-                        security: ddOutreach.nonce,
-                        post_id: postId,
-                        toggle_action: action
-                    },
-                    success: function(res) {
-                        if(res.success) {
-                            if (res.data && res.data.archived_count !== undefined) {
-                                $('#dd-archive-count-badge').text(res.data.archived_count);
-                            }
-                            $('.dd-action-menu').hide();
-                            triggerFilter(); 
-                        }
-                    }
-                });
-            });
-
-
-            // --- 4. Note CRUD Event Delegation ---
-            var viewContainer = $('#dd-outreach-view-container');
-
-            viewContainer.on('click', '#dd-save-note', function(e) {
-                e.preventDefault();
-                var btn = $(this);
-                var postId = btn.data('post-id');
-                var noteId = $('#dd-note-input-id').val();
-                var title = $('#dd-note-input-title').val();
-                var content = $('#dd-note-input-content').val();
-
-                if (!content.trim()) {
-                    alert('Please enter note content before saving.');
-                    return;
-                }
-
-                btn.text('SAVING...').prop('disabled', true);
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_save_outreach_note',
-                        security: ddOutreach.nonce,
-                        post_id: postId,
-                        note_id: noteId,
-                        note_title: title,
-                        note_content: content
-                    },
-                    success: function(res) {
-                        btn.text('💾 SAVE NOTE').prop('disabled', false);
-                        if(res.success) {
-                            $('#dd-notes-list-wrapper').html(res.data);
-                            $('#dd-cancel-edit-note').trigger('click');
-                        } else {
-                            alert('An error occurred while saving the note.');
-                        }
-                    }
-                });
-            });
-
-            viewContainer.on('click', '.dd-edit-note', function(e) {
-                e.preventDefault();
-                var card = $(this).closest('.dd-steps-card');
-                var noteId = $(this).data('note-id');
-                var currentTitle = card.find('.dd-display-note-title').text();
-                var currentContent = card.find('.dd-raw-note-content').val();
-                
-                $('#dd-note-input-id').val(noteId);
-                $('#dd-note-input-title').val(currentTitle);
-                $('#dd-note-input-content').val(currentContent);
-                
-                $('#dd-note-form-heading').text('✏️ Edit Note');
-                $('#dd-cancel-edit-note').show();
-                $('#dd-note-input-content').focus();
-            });
-
-            viewContainer.on('click', '#dd-cancel-edit-note', function(e) {
-                e.preventDefault();
-                $('#dd-note-input-id').val('');
-                $('#dd-note-input-title').val('');
-                $('#dd-note-input-content').val('');
-                $('#dd-note-form-heading').text('🗒️ Create a note for this project');
-                $(this).hide();
-            });
-
-            viewContainer.on('click', '.dd-delete-note', function(e) {
-                e.preventDefault();
-                if (!confirm('Are you sure you want to permanently delete this note?')) return;
-                
-                var btn = $(this);
-                var postId = btn.data('post-id');
-                var noteId = btn.data('note-id');
-
-                btn.text('DELETING...').prop('disabled', true);
-
-                $.ajax({
-                    url: ddOutreach.ajax_url,
-                    type: 'POST',
-                    data: {
-                        action: 'dd_delete_outreach_note',
-                        security: ddOutreach.nonce,
-                        post_id: postId,
-                        note_id: noteId
-                    },
-                    success: function(res) {
-                        if(res.success) {
-                            $('#dd-notes-list-wrapper').html(res.data);
-                            if ($('#dd-note-input-id').val() === noteId) {
-                                $('#dd-cancel-edit-note').trigger('click');
-                            }
-                        }
-                    }
-                });
-            });
-
-
-            // --- 5. Dynamic Message Preview Logic (Elementor Popup Safe) ---
-            function updateMessagePreview() {
-                var previewDiv = $('#dd-outreach-message-preview');
-                if (!previewDiv.length) return;
-
-                var rawTemplateData = previewDiv.attr('data-template');
-                if (!rawTemplateData) return;
-
-                var rawTemplate = '';
-                try {
-                    rawTemplate = JSON.parse(rawTemplateData);
-                } catch(e) {
-                    return; 
-                }
-
-                var projectType = $('[name=\"form_fields[project_type]\"]').val() || 'N/A';
-                var projectLength = $('[name=\"form_fields[project_length]\"]').val() || 'N/A';
-                var projectDates = $('[name=\"form_fields[project_dates]\"]').val() || 'Flexible';
-                var budgetRange = $('[name=\"form_fields[budget_range]\"]').val() || $('[name=\"form_fields[budget]\"]').val() || 'To be discussed';
-
-                var tagStyle = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block !important; margin: 2px;';
-
-                var tagsHtml = '<div class=\"tags-container\">' +
-                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project type :</strong> ' + projectType + '</div>' +
-                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project length :</strong> ' + projectLength + '</div>' +
-                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Project Dates :</strong> ' + projectDates + '</div>' +
-                    '<div class=\"tag\" style=\"' + tagStyle + '\"><strong>Budget : </strong> ' + budgetRange + '</div>' +
-                    '</div>';
-
-                var compiled = rawTemplate.replace(/[\\r\\n]*\\{\\{fields\\}\\}[\\r\\n]*/g, '<br><br>' + tagsHtml + '<br><br>');
-                compiled = compiled.replace(/\\{project_type\\}/g, projectType);
-                
-                compiled = compiled.replace(/(?:\\r\\n|\\r|\\n)/g, '<br>');
-
-                previewDiv.html(compiled);
-            }
-
-            $(document).on('change input', 'form.elementor-form select, form.elementor-form input', function() {
-                updateMessagePreview();
-            });
-
-            $(document).on('elementor/popup/show', function() {
-                setTimeout(updateMessagePreview, 100);
-            });
-
-            setTimeout(updateMessagePreview, 300);
-
-        });
-        ";
-
-        wp_register_script('dd-outreach-app', '', [], '', true);
-        wp_enqueue_script('dd-outreach-app');
-        wp_add_inline_script('dd-outreach-app', $script);
-
-        wp_localize_script('dd-outreach-app', 'ddOutreach', [
+        wp_localize_script('dd-outreach-js', 'ddOutreach', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => wp_create_nonce('dd_outreach_nonce')
         ]);
@@ -2710,7 +2384,7 @@ class DD_Outreach_Manager
 
             <div class="dd-notes-grid">
                 <div class="dd-note-card">
-                    <h4 class="dd-note-title" id="dd-note-form-heading">🗒️ Create a note for this project</h4>
+                    <h4 class="dd-note-title" id="dd-note-form-heading">ðŸ—’ï¸ Create a note for this project</h4>
                     <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
                     <input type="hidden" id="dd-note-input-id" value="">
                     <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
@@ -2756,7 +2430,7 @@ class DD_Outreach_Manager
 
         $country_names = [
             'AF' => 'Afghanistan',
-            'AX' => 'Åland Islands',
+            'AX' => 'Ã…land Islands',
             'AL' => 'Albania',
             'DZ' => 'Algeria',
             'AS' => 'American Samoa',
@@ -2809,10 +2483,10 @@ class DD_Outreach_Manager
             'CD' => 'Congo, Democratic Republic of the',
             'CK' => 'Cook Islands',
             'CR' => 'Costa Rica',
-            'CI' => 'Côte d\'Ivoire',
+            'CI' => 'CÃ´te d\'Ivoire',
             'HR' => 'Croatia',
             'CU' => 'Cuba',
-            'CW' => 'Curaçao',
+            'CW' => 'CuraÃ§ao',
             'CY' => 'Cyprus',
             'CZ' => 'Czechia',
             'DK' => 'Denmark',
@@ -2936,11 +2610,11 @@ class DD_Outreach_Manager
             'PT' => 'Portugal',
             'PR' => 'Puerto Rico',
             'QA' => 'Qatar',
-            'RE' => 'Réunion',
+            'RE' => 'RÃ©union',
             'RO' => 'Romania',
             'RU' => 'Russian Federation',
             'RW' => 'Rwanda',
-            'BL' => 'Saint Barthélemy',
+            'BL' => 'Saint BarthÃ©lemy',
             'SH' => 'Saint Helena, Ascension and Tristan da Cunha',
             'KN' => 'Saint Kitts and Nevis',
             'LC' => 'Saint Lucia',

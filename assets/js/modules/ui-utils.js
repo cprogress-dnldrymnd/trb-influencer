@@ -3,10 +3,6 @@
 
     window.InfluencerApp = window.InfluencerApp || {};
 
-    /**
-     * Sets a CSS variable on <body> equal to the dashboard sidebar logo height.
-     * Re-runs on window resize via main.js.
-     */
     InfluencerApp.dashboardLogoHeightVar = function () {
         var $logo = $('#dashboard-sidebar-logo');
         if ($logo.length) {
@@ -14,20 +10,16 @@
         }
     };
 
-    /**
-     * Toggles the mobile nav open/closed state on the body element.
-     */
     InfluencerApp.mobile_nav = function () {
-        $('.mobile-nav-trigger').on('click', function (e) {
-            e.preventDefault();
-            $('body').toggleClass('mobile-menu-active');
-        });
+        var trigger = document.querySelector('.mobile-nav-trigger');
+        if (trigger) {
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.body.classList.toggle('mobile-menu-active');
+            });
+        }
     };
 
-    /**
-     * Copies the current page URL to the clipboard and toggles the social
-     * sharing panel.
-     */
     InfluencerApp.share_profile = function () {
         var shareButton = document.querySelector('.share-profile a');
 
@@ -45,10 +37,14 @@
             });
         }
 
-        $('.share-profile-trigger').on('click', function (e) {
-            e.preventDefault();
-            $('#social-sharing').toggleClass('hide-element');
-        });
+        var shareTrigger = document.querySelector('.share-profile-trigger');
+        if (shareTrigger) {
+            shareTrigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                var panel = document.getElementById('social-sharing');
+                if (panel) panel.classList.toggle('hide-element');
+            });
+        }
     };
 
 })(jQuery);

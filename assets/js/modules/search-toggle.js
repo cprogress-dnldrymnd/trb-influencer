@@ -84,9 +84,7 @@
 
         resetAllBtn.on('click', function (e) {
             e.preventDefault();
-            document.querySelectorAll('.filter-widget .reset-btn').forEach(function (btn) {
-                if (btn) btn.click();
-            });
+            $('.filter-widget .reset-btn').each(function () { this.click(); });
             $('.active-filter-chip').remove();
             syncResetBtn();
         });

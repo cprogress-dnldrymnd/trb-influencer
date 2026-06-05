@@ -83,7 +83,7 @@
             push_url_state(null, search_brief);
         }
 
-        container.css('opacity', '0.5');
+        container.css('opacity', '0.5').attr('aria-busy', 'true');
         button.text('Loading...');
 
         $.ajax({
@@ -143,14 +143,14 @@
                     if (debug) InfluencerApp.render_brief_search_debug(debug);
                 }
 
-                container.css('opacity', '1');
+                container.css('opacity', '1').attr('aria-busy', 'false');
             },
             error: function () {
                 $('.loading-animation').hide();
                 $('.total-found-influencer').text('0');
                 $('.current-found-influencer').text('0');
                 container.html('<p style="padding:20px 0;">An error occurred. Please try again.</p>');
-                container.css('opacity', '1');
+                container.css('opacity', '1').attr('aria-busy', 'false');
                 button.text('Try Again');
             }
         });

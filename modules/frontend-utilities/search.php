@@ -41,7 +41,7 @@ class Influencer_Search
     public function setup_search_variables()
     {
         // Parse brief and merge into $_GET when on search results page with search-brief
-        $influencer_search_page_id = 1949;
+        $influencer_search_page_id = dd_get_page_id('dd_search_results_page_id', 1949);
         if ((is_page($influencer_search_page_id) || (int) get_queried_object_id() === $influencer_search_page_id)
             && !empty($_GET['search-brief'])
         ) {
@@ -1423,7 +1423,7 @@ class Influencer_Search
                     <div class="summary-brief">
                         <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
                     </div>
-                    <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
+                    <a class="edit-summary-brieft" href="<?= esc_url(get_the_permalink(dd_get_page_id('dd_search_page_id', 2149))) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
                 </div>
             <?php endif; ?>
             <?php if (! empty($parts) && empty($brief)) : ?>
@@ -1499,7 +1499,7 @@ class Influencer_Search
         ob_start();
     ?>
         <div class="influencer-grid-box">
-            <div id="my-loop-grid-container" class="influencer-loop-grid"></div>
+            <div id="my-loop-grid-container" class="influencer-loop-grid" aria-live="polite" aria-atomic="false" aria-busy="false"></div>
             <div class="loading-animation" style="display: none;">
                 <span class="loading-icon">
                     <img src="https://influencer.theprogressteam.com/wp-content/uploads/2026/01/Spin@1x-1.0s-200px-200px.svg" alt="Loading...">
