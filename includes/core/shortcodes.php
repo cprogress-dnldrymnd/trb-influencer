@@ -192,7 +192,6 @@ function shortcode_influence_isverified()
 add_shortcode('influencer_isverified', 'shortcode_influence_isverified');
 
 
-
 /**
  * Shortcode to count and merge recent posts and reels meta data.
  * Retrieves meta values and strictly validates them as arrays to prevent TypeErrors during array_merge.
@@ -219,8 +218,6 @@ function shortcode_influencer_recentposts_reels()
     return $count;
 }
 add_shortcode('influencer_recentposts_reels', 'shortcode_influencer_recentposts_reels');
-
-
 
 
 
