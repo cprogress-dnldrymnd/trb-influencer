@@ -24,21 +24,23 @@ function dd_render_post_search_select($name, $current_id, $type, $description)
     }
     ?>
     <div class="dd-ajax-select" data-type="<?php echo esc_attr($type); ?>">
-        <div class="dd-ajax-input-wrap">
-            <span class="dd-search-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </span>
-            <input
-                type="text"
-                class="dd-ajax-search"
-                value="<?php echo esc_attr($current_title); ?>"
-                placeholder="Search…"
-                autocomplete="off"
-            >
-            <button type="button" class="dd-ajax-clear" <?php echo $current_id > 0 ? '' : 'hidden'; ?> title="Clear">&times;</button>
+        <div class="dd-ajax-field">
+            <div class="dd-ajax-input-wrap">
+                <span class="dd-search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input
+                    type="text"
+                    class="dd-ajax-search"
+                    value="<?php echo esc_attr($current_title); ?>"
+                    placeholder="Search…"
+                    autocomplete="off"
+                >
+                <button type="button" class="dd-ajax-clear" <?php echo $current_id > 0 ? '' : 'hidden'; ?> title="Clear">&times;</button>
+            </div>
+            <input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($current_id ?: 0); ?>">
+            <ul class="dd-ajax-results" hidden></ul>
         </div>
-        <input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($current_id ?: 0); ?>">
-        <ul class="dd-ajax-results" hidden></ul>
         <?php if ($description): ?>
             <p class="description"><?php echo esc_html($description); ?></p>
         <?php endif; ?>
@@ -239,7 +241,8 @@ add_action('admin_footer', function () {
         .dd-tab-desc { color: #50575e; margin: 0 0 18px; }
 
         /* ── Autocomplete input ── */
-        .dd-ajax-select { max-width: 340px; position: relative; }
+        .dd-ajax-select { max-width: 340px; }
+        .dd-ajax-field  { position: relative; }
 
         .dd-ajax-input-wrap {
             display: flex;
@@ -248,11 +251,10 @@ add_action('admin_footer', function () {
             border-radius: 4px;
             background: #fff;
             padding-right: 8px;
-            transition: border-color .15s, box-shadow .15s, border-radius .1s;
+            transition: border-color .15s, border-radius .1s;
         }
         .dd-ajax-input-wrap:focus-within {
-            border-color: #2271b1;
-            box-shadow: 0 0 0 1px #2271b1;
+            border-color: #50575e;
         }
         /* When dropdown is open — flatten bottom corners to connect with list */
         .dd-ajax-select.dd-open .dd-ajax-input-wrap {
@@ -288,13 +290,13 @@ add_action('admin_footer', function () {
             top: 100%; /* flush — no gap */
             left: 0; right: 0;
             background: #fff;
-            border: 1px solid #2271b1;
-            border-top: 1px solid #e0e0e0; /* subtle separator from input */
+            border: 1px solid #8c8f94;
+            border-top: 1px solid #e0e0e0;
             border-radius: 0 0 4px 4px;
             max-height: 220px; overflow-y: auto;
             z-index: 9999;
             margin: 0; padding: 4px 0; list-style: none;
-            box-shadow: 0 6px 14px rgba(0,0,0,.10);
+            box-shadow: 0 4px 10px rgba(0,0,0,.08);
         }
         .dd-ajax-results li {
             padding: 8px 12px;
@@ -302,7 +304,7 @@ add_action('admin_footer', function () {
             cursor: pointer;
             color: #1d2327;
         }
-        .dd-ajax-results li:hover { background: #f0f6fc; color: #2271b1; }
+        .dd-ajax-results li:hover { background: #f6f7f7; color: #1d2327; }
         .dd-ajax-results li.dd-no-results,
         .dd-ajax-results li.dd-loading {
             color: #a7aaad; cursor: default; font-style: italic;
