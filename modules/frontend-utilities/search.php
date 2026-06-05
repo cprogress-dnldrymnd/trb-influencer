@@ -1538,7 +1538,7 @@ class Influencer_Search
             <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
                 <div class="influencer-search-filter-holder">
                     <div class="influencer-search-item niche-filters">
-                        <?= self::select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                        <?= self::select_filter('niche', 'Niche Filter', 'Select your niche filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
                         <?= self::select_filter('min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
