@@ -2351,7 +2351,7 @@ body {
 }
 
 .single-influencer .custom-tab .custom-tab-item.active svg,
-.single-influencer .custom-tab .custom-tab-item:hover sv,
+.single-influencer .custom-tab .custom-tab-item:hover svg,
 .single-influencer .custom-tab .custom-tab-item:focus svg {
   fill: #fff !important;
 }
