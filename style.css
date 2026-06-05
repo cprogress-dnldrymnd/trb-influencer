@@ -2338,7 +2338,7 @@ body {
 .page-template-page-dashboard .toggle-switch input:checked + .slider {
   background-color: var(--e-global-color-primary);
 }
-.single-influencer .custom-tab .custom-tab-item.active {
+.single-influencer .custom-tab .custom-tab-item.active, .single-influencer .custom-tab .custom-tab-item:hover, .single-influencer .custom-tab .custom-tab-item:focus {
   background-color: var(--e-global-color-primary) !important;
 }
 .dd-time-btn.active,
