@@ -760,7 +760,7 @@ input:checked + .slider:before {
   justify-content: center;
 }
 
-.cad-trigger .cad-avatar-wrapper:hover > * {
+.cad-trigger:hover .cad-avatar-wrapper > * {
   transform: scale(1.1);
 }
 .cad-trigger .cad-avatar-wrapper .cad-avatar {
