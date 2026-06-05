@@ -13,54 +13,78 @@ function dd_get_template_id($key, $fallback = 0)
     return (int) get_option($key, $fallback);
 }
 
-function dd_admin_all_pages()
+/**
+ * Renders an AJAX-powered search field.
+ * The hidden input carries the real post ID; the text input is display-only.
+ *
+ * @param string $name        Option/input name.
+ * @param int    $current_id  Currently saved post ID.
+ * @param string $type        'page' or 'elementor_template'.
+ * @param string $description Help text below the field.
+ */
+function dd_render_post_search_select($name, $current_id, $type, $description)
 {
-    static $cache = null;
-    if ($cache === null) {
-        $pages = get_pages(['sort_column' => 'post_title', 'sort_order' => 'ASC']);
-        $cache = [];
-        foreach ($pages as $p) {
-            $cache[$p->ID] = $p->post_title;
+    $current_title = '';
+    if ($current_id > 0) {
+        $post = get_post($current_id);
+        if ($post) {
+            $current_title = $post->post_title;
+            if ($type === 'elementor_template') {
+                $current_title .= ' (#' . $current_id . ')';
+            }
         }
     }
-    return $cache;
+    ?>
+    <div class="dd-ajax-select" data-type="<?php echo esc_attr($type); ?>">
+        <div class="dd-ajax-input-wrap">
+            <input
+                type="text"
+                class="dd-ajax-search regular-text"
+                value="<?php echo esc_attr($current_title); ?>"
+                placeholder="Search..."
+                autocomplete="off"
+            >
+            <button type="button" class="dd-ajax-clear" <?php echo $current_id > 0 ? '' : 'hidden'; ?> title="Clear">&times;</button>
+        </div>
+        <input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($current_id ?: 0); ?>">
+        <ul class="dd-ajax-results" hidden></ul>
+        <?php if ($description): ?>
+            <p class="description"><?php echo esc_html($description); ?></p>
+        <?php endif; ?>
+    </div>
+    <?php
 }
 
-function dd_admin_all_templates()
-{
-    static $cache = null;
-    if ($cache === null) {
-        $posts = get_posts([
-            'post_type'      => 'elementor_library',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish',
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-        ]);
-        $cache = [];
-        foreach ($posts as $t) {
-            $cache[$t->ID] = $t->post_title . ' (#' . $t->ID . ')';
+// ---------------------------------------------------------------------------
+// AJAX search handler (admin-only)
+// ---------------------------------------------------------------------------
+add_action('wp_ajax_dd_admin_post_search', function () {
+    check_ajax_referer('dd_admin_search', 'nonce');
+
+    $type = sanitize_text_field($_GET['type'] ?? 'page');
+    $q    = sanitize_text_field($_GET['q']    ?? '');
+
+    $post_type = $type === 'elementor_template' ? 'elementor_library' : 'page';
+
+    $posts = get_posts([
+        's'              => $q,
+        'post_type'      => $post_type,
+        'posts_per_page' => 15,
+        'post_status'    => 'publish',
+        'orderby'        => $q ? 'relevance' : 'title',
+        'order'          => 'ASC',
+    ]);
+
+    $results = array_map(function ($p) use ($type) {
+        $text = $p->post_title;
+        if ($type === 'elementor_template') {
+            $text .= ' (#' . $p->ID . ')';
         }
-    }
-    return $cache;
-}
+        return ['id' => $p->ID, 'text' => $text];
+    }, $posts);
 
-function dd_render_post_search_select($name, $current_id, $options, $description)
-{
-    $uid = esc_attr($name);
-    echo '<div class="dd-search-select-wrap">';
-    echo '<input type="text" class="dd-filter-input regular-text" placeholder="Type to filter..." autocomplete="off" data-for="' . $uid . '">';
-    echo '<select name="' . $uid . '" id="' . $uid . '" class="dd-filterable-select" size="7">';
-    echo '<option value="0">— None —</option>';
-    foreach ($options as $id => $label) {
-        echo '<option value="' . esc_attr($id) . '"' . selected($current_id, $id, false) . '>' . esc_html($label) . '</option>';
-    }
-    echo '</select>';
-    if ($description) {
-        echo '<p class="description">' . esc_html($description) . '</p>';
-    }
-    echo '</div>';
-}
+    wp_send_json_success($results);
+});
 
 // ---------------------------------------------------------------------------
 // Register the settings group and individual options
@@ -123,7 +147,7 @@ add_action('admin_init', function () {
             $key,
             $label,
             function () use ($key, $default, $description) {
-                dd_render_post_search_select($key, dd_get_page_id($key, $default), dd_admin_all_pages(), $description);
+                dd_render_post_search_select($key, dd_get_page_id($key, $default), 'page', $description);
             },
             'dd-theme-settings',
             'dd_page_ids_section'
@@ -158,7 +182,7 @@ add_action('admin_init', function () {
             $key,
             $label,
             function () use ($key, $default, $desc) {
-                dd_render_post_search_select($key, dd_get_template_id($key, $default), dd_admin_all_templates(), $desc);
+                dd_render_post_search_select($key, dd_get_template_id($key, $default), 'elementor_template', $desc);
             },
             'dd-theme-settings',
             'dd_template_ids_section'
@@ -196,28 +220,96 @@ add_action('admin_menu', function () {
 });
 
 // ---------------------------------------------------------------------------
-// Enqueue filter UI only on the settings page
+// Styles + AJAX autocomplete JS (settings page only)
 // ---------------------------------------------------------------------------
 add_action('admin_footer', function () {
     $screen = get_current_screen();
     if (! $screen || $screen->id !== 'settings_page_dd-theme-settings') {
         return;
     }
+    $nonce = wp_create_nonce('dd_admin_search');
     ?>
     <style>
-        .dd-search-select-wrap { max-width: 340px; margin-bottom: 4px; }
-        .dd-filter-input { width: 100%; margin-bottom: 4px; box-sizing: border-box; }
-        .dd-filterable-select { width: 100%; font-size: 13px; }
+        .dd-ajax-select { max-width: 320px; position: relative; margin-bottom: 4px; }
+        .dd-ajax-input-wrap { display: flex; align-items: center; gap: 6px; }
+        .dd-ajax-search { flex: 1; }
+        .dd-ajax-clear {
+            background: none; border: none; cursor: pointer;
+            font-size: 18px; line-height: 1; color: #999; padding: 0 4px;
+        }
+        .dd-ajax-clear:hover { color: #d63638; }
+        .dd-ajax-results {
+            position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+            background: #fff; border: 1px solid #8c8f94;
+            border-radius: 3px; max-height: 220px; overflow-y: auto;
+            z-index: 9999; margin: 0; padding: 0; list-style: none;
+            box-shadow: 0 3px 8px rgba(0,0,0,.12);
+        }
+        .dd-ajax-results li {
+            padding: 7px 10px; font-size: 13px; cursor: pointer;
+        }
+        .dd-ajax-results li:hover,
+        .dd-ajax-results li.dd-active { background: #2271b1; color: #fff; }
+        .dd-ajax-results li.dd-no-results { color: #666; cursor: default; font-style: italic; }
+        .dd-ajax-loading { color: #666; font-style: italic; font-size: 13px; padding: 6px 10px; }
     </style>
     <script>
         jQuery(function ($) {
-            $(document).on('input', '.dd-filter-input', function () {
-                var q = $(this).val().toLowerCase();
-                var $sel = $('#' + $(this).data('for'));
-                $sel.find('option').each(function () {
-                    var match = !q || $(this).val() === '0' || $(this).text().toLowerCase().indexOf(q) !== -1;
-                    $(this).prop('hidden', !match);
-                });
+            var nonce = '<?php echo esc_js($nonce); ?>';
+            var timers = {};
+
+            function doSearch($wrap, q) {
+                var type = $wrap.data('type');
+                var $results = $wrap.find('.dd-ajax-results');
+                $results.html('<li class="dd-ajax-loading">Searching…</li>').prop('hidden', false);
+
+                $.get(ajaxurl, { action: 'dd_admin_post_search', nonce: nonce, type: type, q: q })
+                    .done(function (resp) {
+                        $results.empty();
+                        if (!resp.success || !resp.data.length) {
+                            $results.append('<li class="dd-no-results">No results found</li>');
+                        } else {
+                            resp.data.forEach(function (item) {
+                                $results.append(
+                                    $('<li>').attr('data-id', item.id).text(item.text)
+                                );
+                            });
+                        }
+                    });
+            }
+
+            // Trigger search on focus and keystroke
+            $(document).on('focus input', '.dd-ajax-search', function () {
+                var $wrap = $(this).closest('.dd-ajax-select');
+                var id    = $wrap.data('type');
+                var q     = $(this).val();
+                clearTimeout(timers[id]);
+                timers[id] = setTimeout(function () { doSearch($wrap, q); }, 250);
+            });
+
+            // Pick a result
+            $(document).on('mousedown', '.dd-ajax-results li[data-id]', function () {
+                var $wrap = $(this).closest('.dd-ajax-select');
+                $wrap.find('.dd-ajax-search').val($(this).text());
+                $wrap.find('input[type="hidden"]').val($(this).data('id'));
+                $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
+                $wrap.find('.dd-ajax-clear').prop('hidden', false);
+            });
+
+            // Close on blur (mousedown on results fires before blur, so the pick runs first)
+            $(document).on('blur', '.dd-ajax-search', function () {
+                var $wrap = $(this).closest('.dd-ajax-select');
+                setTimeout(function () {
+                    $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
+                }, 200);
+            });
+
+            // Clear selection
+            $(document).on('click', '.dd-ajax-clear', function () {
+                var $wrap = $(this).closest('.dd-ajax-select');
+                $wrap.find('.dd-ajax-search').val('').trigger('focus');
+                $wrap.find('input[type="hidden"]').val('0');
+                $(this).prop('hidden', true);
             });
         });
     </script>
