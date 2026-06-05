@@ -3,11 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Pricing_Table extends \Elementor\Widget_Base {
+class Widget_My_Saved_Searches extends \Elementor\Widget_Base {
 
-    public function get_name()       { return 'sc_dd_pricing_table'; }
-    public function get_title()      { return esc_html__( 'Pricing Table', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-price-table'; }
+    public function get_name()       { return 'sc_my_saved_searches'; }
+    public function get_title()      { return esc_html__( 'My Saved Searches', 'trb-influencer' ); }
+    public function get_icon()       { return 'eicon-search'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {
@@ -17,12 +17,12 @@ class DD_Widget_SC_Pricing_Table extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [dd_pricing_table]. Displays the dynamic membership pricing table.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [my_saved_searches]. Displays the current user\'s saved searches list.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[dd_pricing_table]' );
+        echo do_shortcode( '[my_saved_searches]' );
     }
 }

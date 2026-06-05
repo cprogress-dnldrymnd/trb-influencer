@@ -3,11 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Outreach_Message extends \Elementor\Widget_Base {
+class Widget_Follower_Like_Range_Chart extends \Elementor\Widget_Base {
 
-    public function get_name()       { return 'sc_outreach_message'; }
-    public function get_title()      { return esc_html__( 'Outreach Message', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-mail'; }
+    public function get_name()       { return 'sc_follower_like_range_chart'; }
+    public function get_title()      { return esc_html__( 'Follower Like Range Chart', 'trb-influencer' ); }
+    public function get_icon()       { return 'eicon-bar-chart'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {
@@ -17,12 +17,12 @@ class DD_Widget_SC_Outreach_Message extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [outreach_message]. Displays the outreach message body on an influencer profile page.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [follower_like_range_chart]. Displays a chart comparing follower count to average likes range.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[outreach_message]' );
+        echo do_shortcode( '[follower_like_range_chart]' );
     }
 }

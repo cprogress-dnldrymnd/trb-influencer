@@ -3,11 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Add_To_Groups extends \Elementor\Widget_Base {
+class Widget_Outreach_Button extends \Elementor\Widget_Base {
 
-    public function get_name()       { return 'sc_add_to_groups_btn'; }
-    public function get_title()      { return esc_html__( 'Add to Groups Button', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-folder-o'; }
+    public function get_name()       { return 'sc_outreach_button'; }
+    public function get_title()      { return esc_html__( 'Outreach Button', 'trb-influencer' ); }
+    public function get_icon()       { return 'eicon-button'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {
@@ -17,12 +17,12 @@ class DD_Widget_SC_Add_To_Groups extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [add_to_groups_btn]. Displays the button to add the current influencer to the user\'s saved groups.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [outreach_button]. Displays the conditional outreach CTA button on an influencer profile page.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[add_to_groups_btn]' );
+        echo do_shortcode( '[outreach_button]' );
     }
 }

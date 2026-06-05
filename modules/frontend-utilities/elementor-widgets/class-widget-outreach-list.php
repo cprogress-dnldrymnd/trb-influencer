@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Outreach_List extends \Elementor\Widget_Base {
+class Widget_Outreach_List extends \Elementor\Widget_Base {
 
     public function get_name()       { return 'sc_dd_outreach_list'; }
     public function get_title()      { return esc_html__( 'Outreach List', 'trb-influencer' ); }

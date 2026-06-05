@@ -3,10 +3,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Follower_Growth_Chart extends \Elementor\Widget_Base {
+class Widget_Follower_Growth_Rate_Chart extends \Elementor\Widget_Base {
 
-    public function get_name()       { return 'sc_follower_growth_chart'; }
-    public function get_title()      { return esc_html__( 'Follower Growth Chart', 'trb-influencer' ); }
+    public function get_name()       { return 'sc_follower_growth_rate_chart'; }
+    public function get_title()      { return esc_html__( 'Follower Growth Rate Chart', 'trb-influencer' ); }
     public function get_icon()       { return 'eicon-bar-chart'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
@@ -17,12 +17,12 @@ class DD_Widget_SC_Follower_Growth_Chart extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [follower_growth_chart]. Displays a bar chart of follower growth over time for the current influencer.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [follower_growth_rate_chart]. Displays a chart of month-over-month follower growth rate for the current influencer.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[follower_growth_chart]' );
+        echo do_shortcode( '[follower_growth_rate_chart]' );
     }
 }

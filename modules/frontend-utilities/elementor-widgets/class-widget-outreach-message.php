@@ -3,11 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class DD_Widget_SC_Creatordb_Feed extends \Elementor\Widget_Base {
+class Widget_Outreach_Message extends \Elementor\Widget_Base {
 
-    public function get_name()       { return 'sc_creatordb_feed'; }
-    public function get_title()      { return esc_html__( 'CreatorDB Feed', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-instagram-gallery'; }
+    public function get_name()       { return 'sc_outreach_message'; }
+    public function get_title()      { return esc_html__( 'Outreach Message', 'trb-influencer' ); }
+    public function get_icon()       { return 'eicon-mail'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {
@@ -17,12 +17,12 @@ class DD_Widget_SC_Creatordb_Feed extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [creatordb_feed]. Displays the influencer\'s recent posts/reels feed from the CreatorDB data source.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [outreach_message]. Displays the outreach message body on an influencer profile page.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[creatordb_feed]' );
+        echo do_shortcode( '[outreach_message]' );
     }
 }
