@@ -9,55 +9,57 @@
      * submission when no selection has been made.
      */
     InfluencerApp.validate_required_search_filters = function () {
-        const form = document.querySelector('.influencer-search-main');
-        if (!form) return;
+         $('.influencer-search-main').on('submit', function (e) {
+            let isValid = true;
 
-        form.addEventListener('submit', (e) => {
-            const filteredSearch = form.querySelector('.filtered-search');
+            if ($('.filtered-search.active').length > 1) {
+                // Iterate over all required filter blocks
+                $(this).find('.required-on-search').each(function () {
+                    const $container = $(this);
 
-            if (filteredSearch && filteredSearch.classList.contains('active')) {
-                const optionLists = filteredSearch.querySelectorAll('.required-on-search .options-list');
-                let isFormValid = true;
+                    // Verify if tags exist in the tags-container
+                    const hasTags = $container.find('.tags-container .tag').length > 0;
 
-                // Clear lingering errors
-                form.querySelectorAll('.custom-group-error').forEach(err => err.remove());
+                    // Fallback check against actual checkbox states for data integrity
+                    const hasCheckedInputs = $container.find('input[type="checkbox"]:checked').length > 0;
 
-                optionLists.forEach(listElement => {
-                    const inputs = Array.from(listElement.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
-                    if (inputs.length === 0) return;
+                    if (!hasTags && !hasCheckedInputs) {
+                        isValid = false;
 
-                    const hasSelection = inputs.some(input => input.checked);
-
-                    if (!hasSelection) {
-                        isFormValid = false;
-                        const dropdownHeader = listElement.closest('.filter-widget').querySelector('.dropdown-button');
-                        if (dropdownHeader) {
-                            const errorSpan = document.createElement('span');
-                            errorSpan.className = 'custom-group-error';
-                            errorSpan.style.color = '#dc3545';
-                            errorSpan.style.fontSize = '12px';
-                            errorSpan.style.display = 'block';
-                            errorSpan.style.marginTop = '4px';
-                            errorSpan.style.fontWeight = 'normal';
-                            errorSpan.style.textTransform = 'initial';
-                            errorSpan.innerText = '* At least 1 selection required';
-                            dropdownHeader.appendChild(errorSpan);
-                        }
+                        // Apply visual error cue
+                        $container.css({
+                            'border': '1px solid #ff4d4d',
+                            'padding': '10px',
+                            'border-radius': '8px',
+                            'transition': 'border 0.3s ease'
+                        });
+                    } else {
+                        // Clear visual error cue
+                        $container.css({
+                            'border': '',
+                            'padding': '',
+                            'border-radius': ''
+                        });
                     }
                 });
+            }
 
-                if (!isFormValid) e.preventDefault();
+            // Prevent form submission if validation fails
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please populate all required filters (e.g., Niche) before generating matches.');
             }
         });
 
-        // Real-time error clearing UX
-        form.addEventListener('change', (e) => {
-            if (e.target.matches('.options-list input')) {
-                const widget = e.target.closest('.filter-widget');
-                if (widget) {
-                    const errorMsg = widget.querySelector('.custom-group-error');
-                    if (errorMsg) errorMsg.remove();
-                }
+        // Event listener to dynamically remove the error styling once a user makes a valid selection
+        $('.required-on-search').on('change', 'input[type="checkbox"]', function () {
+            const $container = $(this).closest('.required-on-search');
+            if ($container.find('input[type="checkbox"]:checked').length > 0) {
+                $container.css({
+                    'border': '',
+                    'padding': '',
+                    'border-radius': ''
+                });
             }
         });
     };
