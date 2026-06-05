@@ -100,12 +100,11 @@ require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/custom-functions.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';
-require $dir . '/includes/core/shortcodes-widgets.php';
-
 // 2. Third-Party Integrations (Base handshakes and bridges)
 require $dir . '/includes/integrations/acf.php';
 require $dir . '/includes/integrations/dompdf.php';
 require $dir . '/includes/integrations/elementor.php';
+require $dir . '/modules/frontend-utilities/elementor-widgets/register.php';
 require $dir . '/includes/integrations/mycred.php';
 require $dir . '/includes/integrations/pmpro.php';
 

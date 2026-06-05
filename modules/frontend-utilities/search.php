@@ -24,8 +24,6 @@ class Influencer_Search
         add_action('wp', [$this, 'setup_search_variables']);
 
 
-        // Register Elementor Widgets directly from this class
-        add_action('elementor/widgets/register', [$this, 'register_elementor_widgets']);
     }
 
 
@@ -1279,48 +1277,6 @@ class Influencer_Search
         return $merged;
     }
 
-    // ========================================================================
-    // 5. ELEMENTOR WIDGET
-    // ========================================================================
-
-    public function register_elementor_widgets($widgets_manager)
-    {
-        // Failsafe: Check if Elementor is active before proceeding.
-        // If Elementor is not loaded, gracefully exit this function to prevent fatal errors.
-        if (! did_action('elementor/loaded')) {
-            return;
-        }
-
-        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-form-widget.php');
-        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-results-widget.php');
-        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-summary-widget.php');
-        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-match-score-widget.php');
-        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-module-shortcode-widgets.php');
-
-        // Register core widgets
-        $widgets_manager->register(new \Influencer_Search_Form_Widget());
-        $widgets_manager->register(new \Influencer_Search_Results_Widget());
-        $widgets_manager->register(new \Influencer_Search_Summary_Widget());
-        $widgets_manager->register(new \Influencer_Match_Score_Widget());
-
-        // Register module shortcode wrapper widgets
-        $widgets_manager->register(new \DD_Widget_SC_Custom_Mycred_Log());
-        $widgets_manager->register(new \DD_Widget_SC_Follower_Growth_Chart());
-        $widgets_manager->register(new \DD_Widget_SC_Follower_Timeline_Chart());
-        $widgets_manager->register(new \DD_Widget_SC_Follower_Growth_Rate_Chart());
-        $widgets_manager->register(new \DD_Widget_SC_Follower_Like_Range_Chart());
-        $widgets_manager->register(new \DD_Widget_SC_Creatordb_Feed());
-        $widgets_manager->register(new \DD_Widget_SC_Outreach_List());
-        $widgets_manager->register(new \DD_Widget_SC_Outreach_View());
-        $widgets_manager->register(new \DD_Widget_SC_Outreach_Credit_Cost());
-        $widgets_manager->register(new \DD_Widget_SC_Outreach_Message());
-        $widgets_manager->register(new \DD_Widget_SC_Outreach_Button());
-        $widgets_manager->register(new \DD_Widget_SC_My_Saved_Groups());
-        $widgets_manager->register(new \DD_Widget_SC_Add_To_Groups());
-        $widgets_manager->register(new \DD_Widget_SC_Remove_From_Group());
-        $widgets_manager->register(new \DD_Widget_SC_My_Saved_Searches());
-        $widgets_manager->register(new \DD_Widget_SC_Pricing_Table());
-    }
 }
 
 // Initialize the class
