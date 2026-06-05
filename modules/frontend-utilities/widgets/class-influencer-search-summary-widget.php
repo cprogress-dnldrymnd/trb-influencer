@@ -101,7 +101,6 @@ class Influencer_Search_Summary_Widget extends \Elementor\Widget_Base
         $verified_only = in_array('Include only verified influencers', $filter, true);
         $expert_only = in_array('Professional experts only', $filter, true);
 
-        ob_start();
 ?>
         <div class="influencer-search-summary">
             <?php if (!empty($brief)): ?>
@@ -179,6 +178,5 @@ class Influencer_Search_Summary_Widget extends \Elementor\Widget_Base
             <?php endif; ?>
         </div>
 <?php
-        return ob_get_clean();
     }
 }

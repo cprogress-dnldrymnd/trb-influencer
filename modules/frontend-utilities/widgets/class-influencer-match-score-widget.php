@@ -74,6 +74,6 @@ class Influencer_Match_Score_Widget extends \Elementor\Widget_Base
             $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
         }
         $html .= '</div>';
-        return $html;
+        echo $html;
     }
 }
