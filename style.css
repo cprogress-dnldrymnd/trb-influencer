@@ -2346,8 +2346,14 @@ body {
 }
 .single-influencer .custom-tab .custom-tab-item.active *,
 .single-influencer .custom-tab .custom-tab-item:hover *,
-.single-influencer .custom-tab .custom-tab-item:focus * {
+.single-influencer .custom-tab .custom-tab-item:focus  {
   color: #fff !important;
+}
+
+.single-influencer .custom-tab .custom-tab-item.active svg,
+.single-influencer .custom-tab .custom-tab-item:hover sv,
+.single-influencer .custom-tab .custom-tab-item:focus svg {
+  fill: #fff !important;
 }
 .dd-time-btn.active,
 .dd-time-btn:hover {
