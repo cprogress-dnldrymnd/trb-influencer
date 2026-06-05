@@ -69,7 +69,7 @@ require $dir . '/modules/frontend-utilities/charts.php';
 require $dir . '/modules/frontend-utilities/feeds.php';
 require $dir . '/modules/frontend-utilities/search.php';
 require $dir . '/modules/frontend-utilities/sign-up.php';
-require $dir . '/modules/influencer-outreach/outreach.php';
+require $dir . '/modules/outreach/outreach.php';
 require $dir . '/modules/membership-extensions/pmpro-dynamic-pricing.php';
 require $dir . '/modules/membership-extensions/pmpro-mycred-rewards-manager.php';
 require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
