@@ -1095,10 +1095,6 @@ class DD_Follower_Growth_Chart
                         <div class="dd-stat-value val-min">0</div>
                         <div class="dd-stat-label">Minimum</div>
                     </div>
-                    <div class="dd-stat-block" style="text-align:center; justify-content:center;">
-                        <div class="dd-stat-value val-avg">0</div>
-                        <div class="dd-stat-label">Average</div>
-                    </div>
                     <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
                         <div class="dd-stat-value val-max">0</div>
                         <div class="dd-stat-label">Maximum</div>
@@ -1180,14 +1176,12 @@ class DD_Follower_Growth_Chart
 
                     container.querySelector('.val-min').innerText = formatToK(min);
                     container.querySelector('.val-max').innerText = formatToK(max);
-                    container.querySelector('.val-avg').innerText = formattedAvg;
 
-                    // Calculate marker position securely
                     const markerPercent = ((avg - min) / (max - min)) * 100;
 
                     const markerEl = container.querySelector('.range-marker');
                     markerEl.style.left = `${markerPercent}%`;
-                    markerEl.setAttribute('data-value', formattedAvg);
+                    markerEl.setAttribute('data-value', 'Average: ' + formattedAvg);
                 };
 
                 const tabs = container.querySelectorAll('.dd-time-btn');
