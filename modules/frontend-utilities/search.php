@@ -424,7 +424,7 @@ class Influencer_Search
                 <?php } ?>
             </div>
         </div>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -1314,142 +1314,144 @@ class Influencer_Search
     // 5. SHORTCODES
     // ========================================================================
 
-    public static function shortcode_match_score( $atts = [] ) {
-        $post_id  = get_query_var( 'current_influencer_id' ) ?: get_the_ID();
-        $criteria = get_query_var( 'search_criteria' );
-        $criteria = is_array( $criteria ) ? $criteria : [];
+    public static function shortcode_match_score($atts = [])
+    {
+        $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
+        $criteria = get_query_var('search_criteria');
+        $criteria = is_array($criteria) ? $criteria : [];
 
-        $score = calculate_match_score( $post_id, $criteria );
+        $score = calculate_match_score($post_id, $criteria);
 
-        if ( $score < 0 ) {
-            if ( function_exists( 'creatordb_brief_match_score_badge_html' ) ) {
-                return creatordb_brief_match_score_badge_html( -1 );
+        if ($score < 0) {
+            if (function_exists('creatordb_brief_match_score_badge_html')) {
+                return creatordb_brief_match_score_badge_html(-1);
             }
             return '<span class="influencer-match-score-wrap">— Match Score</span>';
         }
 
-        $badge_label = function_exists( 'creatordb_brief_match_score_badge_html' )
-            ? creatordb_brief_match_score_badge_html( (int) $score )
-            : ( '✨ ' . (int) $score . '% Match Score' );
+        $badge_label = function_exists('creatordb_brief_match_score_badge_html')
+            ? creatordb_brief_match_score_badge_html((int) $score)
+            : ('✨ ' . (int) $score . '% Match Score');
 
-        $tooltip = function_exists( 'creatordb_get_match_evidence_tooltip_html' )
-            ? creatordb_get_match_evidence_tooltip_html( $post_id, $criteria )
-            : implode( "\n", get_matched_criteria_labels( $post_id, $criteria ) );
+        $tooltip = function_exists('creatordb_get_match_evidence_tooltip_html')
+            ? creatordb_get_match_evidence_tooltip_html($post_id, $criteria)
+            : implode("\n", get_matched_criteria_labels($post_id, $criteria));
 
         $html  = '<div class="influencer-match-score-wrap tooltip-wrapper">';
-        $html .= '<span class="influencer-match-score-trigger tooltip-trigger">' . esc_html( $badge_label ) . '</span>';
-        if ( ! empty( trim( $tooltip ) ) ) {
-            $html .= '<div class="influencer-match-score-tooltip tooltip-content">' . wp_kses_post( $tooltip ) . '</div>';
+        $html .= '<span class="influencer-match-score-trigger tooltip-trigger">' . esc_html($badge_label) . '</span>';
+        if (! empty(trim($tooltip))) {
+            $html .= '<div class="influencer-match-score-tooltip tooltip-content">' . wp_kses_post($tooltip) . '</div>';
         }
         $html .= '</div>';
 
         return $html;
     }
 
-    public static function shortcode_search_summary( $atts = [] ) {
+    public static function shortcode_search_summary($atts = [])
+    {
         global $search_results_page_id;
-        if ( (int) get_queried_object_id() !== $search_results_page_id ) {
+        if ((int) get_queried_object_id() !== $search_results_page_id) {
             return '';
         }
 
-        $brief       = isset( $_GET['search-brief'] ) ? trim( sanitize_textarea_field( wp_unslash( $_GET['search-brief'] ) ) ) : '';
-        $niche       = isset( $_GET['niche'] )        ? (array) $_GET['niche']       : [];
-        $country     = isset( $_GET['country'] )      ? (array) $_GET['country']     : [];
-        $followers   = isset( $_GET['followers'] )    ? (array) $_GET['followers']   : [];
-        $filter      = isset( $_GET['filter'] )       ? (array) $_GET['filter']      : [];
-        $gender      = isset( $_GET['gender'] )       ? (array) $_GET['gender']      : [];
-        $content_tag = isset( $_GET['content_tag'] )  ? (array) $_GET['content_tag'] : [];
+        $brief       = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
+        $niche       = isset($_GET['niche'])        ? (array) $_GET['niche']       : [];
+        $country     = isset($_GET['country'])      ? (array) $_GET['country']     : [];
+        $followers   = isset($_GET['followers'])    ? (array) $_GET['followers']   : [];
+        $filter      = isset($_GET['filter'])       ? (array) $_GET['filter']      : [];
+        $gender      = isset($_GET['gender'])       ? (array) $_GET['gender']      : [];
+        $content_tag = isset($_GET['content_tag'])  ? (array) $_GET['content_tag'] : [];
 
-        if ( empty( $brief ) && empty( $niche ) && empty( $country ) && empty( $followers ) && empty( $gender ) && empty( $content_tag ) ) {
+        if (empty($brief) && empty($niche) && empty($country) && empty($followers) && empty($gender) && empty($content_tag)) {
             return '';
         }
 
-        $fields = is_array( get_query_var( 'influencer_search_fields' ) ) ? get_query_var( 'influencer_search_fields' ) : [];
+        $fields = is_array(get_query_var('influencer_search_fields')) ? get_query_var('influencer_search_fields') : [];
         $parts  = [];
 
-        if ( ! empty( $niche ) ) {
+        if (! empty($niche)) {
             $niche_names = [];
-            foreach ( $niche as $slug ) {
-                $niche_names[] = $fields['niche'][ $slug ] ?? ucfirst( $slug );
+            foreach ($niche as $slug) {
+                $niche_names[] = $fields['niche'][$slug] ?? ucfirst($slug);
             }
-            $parts[] = implode( ', ', $niche_names );
+            $parts[] = implode(', ', $niche_names);
         }
-        if ( ! empty( $country ) ) {
+        if (! empty($country)) {
             $country_names = [];
-            foreach ( $country as $code ) {
-                $country_names[] = $fields['country'][ $code ] ?? strtoupper( $code );
+            foreach ($country as $code) {
+                $country_names[] = $fields['country'][$code] ?? strtoupper($code);
             }
-            $parts[] = implode( ', ', $country_names );
+            $parts[] = implode(', ', $country_names);
         }
-        if ( ! empty( $followers ) && ! empty( $followers[0] ) ) {
+        if (! empty($followers) && ! empty($followers[0])) {
             $f_opts  = $fields['followers'] ?? [];
-            $parts[] = $f_opts[ $followers[0] ] ?? $followers[0];
+            $parts[] = $f_opts[$followers[0]] ?? $followers[0];
         }
-        if ( ! empty( $gender ) ) {
+        if (! empty($gender)) {
             $gender_names = [];
-            foreach ( $gender as $g ) {
-                $gender_names[] = $fields['gender'][ $g ] ?? ucfirst( $g );
+            foreach ($gender as $g) {
+                $gender_names[] = $fields['gender'][$g] ?? ucfirst($g);
             }
-            $parts[] = implode( ', ', $gender_names );
+            $parts[] = implode(', ', $gender_names);
         }
-        if ( ! empty( $content_tag ) ) {
+        if (! empty($content_tag)) {
             $tag_names = [];
-            foreach ( $content_tag as $slug ) {
-                $tag_names[] = $fields['content_tag'][ $slug ] ?? ucfirst( str_replace( '-', ' ', $slug ) );
+            foreach ($content_tag as $slug) {
+                $tag_names[] = $fields['content_tag'][$slug] ?? ucfirst(str_replace('-', ' ', $slug));
             }
-            $parts[] = implode( ', ', $tag_names );
+            $parts[] = implode(', ', $tag_names);
         }
 
-        $prioritise_engagement = in_array( 'Prioritise engagement over reach', $filter, true );
+        $prioritise_engagement = in_array('Prioritise engagement over reach', $filter, true);
         $engagement_boost_soft = false;
-        if ( ! empty( $brief ) && function_exists( 'creatordb_parse_search_brief_structured' ) ) {
-            $structured_summary = creatordb_parse_search_brief_structured( $brief );
-            if ( ! empty( $structured_summary['soft_intents']['engagement_boost'] ) ) {
+        if (! empty($brief) && function_exists('creatordb_parse_search_brief_structured')) {
+            $structured_summary = creatordb_parse_search_brief_structured($brief);
+            if (! empty($structured_summary['soft_intents']['engagement_boost'])) {
                 $engagement_boost_soft = true;
             }
         }
-        $verified_only = in_array( 'Include only verified influencers', $filter, true );
-        $expert_only   = in_array( 'Professional experts only', $filter, true );
+        $verified_only = in_array('Include only verified influencers', $filter, true);
+        $expert_only   = in_array('Professional experts only', $filter, true);
 
         ob_start();
-        ?>
+    ?>
         <div class="influencer-search-summary">
-            <?php if ( ! empty( $brief ) ) : ?>
+            <?php if (! empty($brief)) : ?>
                 <div class="search-summary-brief search-summary-item">
-                    <input type="hidden" name="search-brief" id="search-brief" value="<?= esc_attr( $brief ) ?>">
+                    <input type="hidden" name="search-brief" id="search-brief" value="<?= esc_attr($brief) ?>">
                     <div class="summary-brief-label">Your brief:</div>
                     <div class="summary-brief">
-                        <div class="summary-brief-inner"><?= wpautop( esc_html( wp_trim_words( $brief, 25 ) ) ) ?></div>
+                        <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
                     </div>
-                    <a class="edit-summary-brieft" href="<?= get_the_permalink( 2149 ) ?>?search-brief=<?= urlencode( $brief ) ?>">EDIT BRIEF</a>
+                    <a class="edit-summary-brieft" href="<?= get_the_permalink(2149) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
                 </div>
             <?php endif; ?>
-            <?php if ( ! empty( $parts ) && empty( $brief ) ) : ?>
-                <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html( implode( ' • ', $parts ) ) ?></div>
+            <?php if (! empty($parts) && empty($brief)) : ?>
+                <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
             <?php endif; ?>
-            <?php if ( $prioritise_engagement || $engagement_boost_soft || $verified_only || $expert_only ) : ?>
+            <?php if ($prioritise_engagement || $engagement_boost_soft || $verified_only || $expert_only) : ?>
                 <div class="search-summary-item search-summary-notes">
                     <?php
                     $notes        = [];
-                    $summary_copy = function_exists( 'creatordb_brief_summary_note_labels' )
+                    $summary_copy = function_exists('creatordb_brief_summary_note_labels')
                         ? creatordb_brief_summary_note_labels()
                         : [];
-                    if ( $prioritise_engagement ) {
-                        $notes[] = '<span>' . esc_html( $summary_copy['engagement_hard'] ?? 'Prioritising engagement over reach' ) . '</span>';
-                    } elseif ( $engagement_boost_soft ) {
-                        $notes[] = '<span>' . esc_html( $summary_copy['engagement_soft'] ?? 'Engagement preference (sort boost — not a hard filter)' ) . '</span>';
+                    if ($prioritise_engagement) {
+                        $notes[] = '<span>' . esc_html($summary_copy['engagement_hard'] ?? 'Prioritising engagement over reach') . '</span>';
+                    } elseif ($engagement_boost_soft) {
+                        $notes[] = '<span>' . esc_html($summary_copy['engagement_soft'] ?? 'Engagement preference (sort boost — not a hard filter)') . '</span>';
                     }
-                    if ( $verified_only ) {
-                        $notes[] = '<span>' . esc_html( $summary_copy['verified'] ?? 'Include only verified influencers' ) . '</span>';
+                    if ($verified_only) {
+                        $notes[] = '<span>' . esc_html($summary_copy['verified'] ?? 'Include only verified influencers') . '</span>';
                     }
-                    if ( $expert_only ) {
-                        $notes[] = '<span>' . esc_html( $summary_copy['expert'] ?? 'Professional experts only' ) . '</span>';
+                    if ($expert_only) {
+                        $notes[] = '<span>' . esc_html($summary_copy['expert'] ?? 'Professional experts only') . '</span>';
                     }
-                    echo implode( ' • ', $notes );
+                    echo implode(' • ', $notes);
                     ?>
                 </div>
             <?php endif; ?>
-            <?php if ( function_exists( 'creatordb_brief_search_debug_enabled' ) && creatordb_brief_search_debug_enabled() ) : ?>
+            <?php if (function_exists('creatordb_brief_search_debug_enabled') && creatordb_brief_search_debug_enabled()) : ?>
                 <div id="ic-brief-search-debug" class="ic-brief-search-debug" aria-live="polite">
                     <details open>
                         <summary>Brief search debug (dev)</summary>
@@ -1458,20 +1460,44 @@ class Influencer_Search
                     </details>
                 </div>
                 <style>
-                    .ic-brief-search-debug { margin: 1rem 0; padding: .75rem 1rem; background: #1e1e2e; color: #cdd6f4; border-radius: 8px; font-size: 12px; }
-                    .ic-brief-search-debug summary { cursor: pointer; font-weight: 600; color: #89b4fa; }
-                    .ic-brief-search-debug-hint { opacity: .85; margin: .5rem 0; }
-                    .ic-brief-search-debug-body { max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+                    .ic-brief-search-debug {
+                        margin: 1rem 0;
+                        padding: .75rem 1rem;
+                        background: #1e1e2e;
+                        color: #cdd6f4;
+                        border-radius: 8px;
+                        font-size: 12px;
+                    }
+
+                    .ic-brief-search-debug summary {
+                        cursor: pointer;
+                        font-weight: 600;
+                        color: #89b4fa;
+                    }
+
+                    .ic-brief-search-debug-hint {
+                        opacity: .85;
+                        margin: .5rem 0;
+                    }
+
+                    .ic-brief-search-debug-body {
+                        max-height: 420px;
+                        overflow: auto;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                        margin: 0;
+                    }
                 </style>
             <?php endif; ?>
         </div>
-        <?php
+    <?php
         return ob_get_clean();
     }
 
-    public static function shortcode_search_results( $atts = [] ) {
+    public static function shortcode_search_results($atts = [])
+    {
         ob_start();
-        ?>
+    ?>
         <div class="influencer-grid-box">
             <div id="my-loop-grid-container" class="influencer-loop-grid"></div>
             <div class="loading-animation" style="display: none;">
@@ -1489,54 +1515,64 @@ class Influencer_Search
         return ob_get_clean();
     }
 
-    public static function shortcode_search_form( $atts = [] ) {
-        $atts = shortcode_atts( [
+    public static function shortcode_search_form($atts = [])
+    {
+        $atts = shortcode_atts([
             'layout'   => 'main',
             'btn_text' => 'FIND MATCHES',
-        ], $atts );
+        ], $atts);
 
         $layout   = $atts['layout'];
         $btn_text = $atts['btn_text'];
 
-        $raw_fields               = get_query_var( 'influencer_search_fields' );
-        $influencer_search_fields = is_array( $raw_fields ) ? $raw_fields : [];
-        $influencer_search_page   = get_query_var( 'influencer_search_page' );
-        $form_action              = $influencer_search_page ? get_the_permalink( $influencer_search_page ) : '';
-        $brief                    = isset( $_GET['search-brief'] ) ? trim( sanitize_textarea_field( wp_unslash( $_GET['search-brief'] ) ) ) : '';
+        $raw_fields               = get_query_var('influencer_search_fields');
+        $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
+        $influencer_search_page   = get_query_var('influencer_search_page');
+        $form_action              = $influencer_search_page ? get_the_permalink($influencer_search_page) : '';
+        $brief                    = isset($_GET['search-brief']) ? trim(sanitize_textarea_field(wp_unslash($_GET['search-brief']))) : '';
 
         ob_start();
 
-        if ( $layout === 'sidebar' ) {
-            ?>
-            <form class="influencer-search" action="<?= esc_url( $form_action ) ?>" method="GET">
+        if ($layout === 'sidebar') {
+        ?>
+            <form class="influencer-search" action="<?= esc_url($form_action) ?>" method="GET">
                 <div class="influencer-search-filter-holder">
                     <div class="influencer-search-item niche-filters">
-                        <?= self::select_filter( 'niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true ) ?>
+                        <?= self::select_filter('niche', 'Tag Filter', 'Select your tag filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio' ) ?>
+                        <?= self::select_filter('min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio' ) ?>
+                        <?= self::select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true ) ?>
+                        <?= self::select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '', 'checkbox', true ) ?>
+                        <?= self::select_filter('lang', 'Language', 'Select a new language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'gender', 'Gender', 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true ) ?>
+                        <?= self::select_filter('gender', 'Gender', 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::select_filter( 'content_tag', 'Hashtags', 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true ) ?>
+                        <?= self::select_filter('content_tag', 'Hashtags', 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-item">
-                        <?= self::checkbox_filter( 'filter', false, $influencer_search_fields['filter'] ?? '' ) ?>
+                        <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
                     </div>
                     <div class="influencer-search-item">
                         <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
-                            <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html( $btn_text ) ?></span></span>
+                            <span class="elementor-button-icon elementor-align-icon-left">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="37.295" height="33.001" viewBox="0 0 37.295 33.001">
+                                    <g id="search" transform="translate(-10.238 -12.501)">
+                                        <path id="Path_327" data-name="Path 327" d="M65.046,13.082a.62.62,0,0,1,1.238,0,4.667,4.667,0,0,0,4.047,4.047.62.62,0,0,1,0,1.238,4.667,4.667,0,0,0-4.047,4.047.62.62,0,0,1-1.238,0A4.667,4.667,0,0,0,61,18.367a.62.62,0,0,1,0-1.238A4.667,4.667,0,0,0,65.046,13.082Z" transform="translate(-27.197)" />
+                                        <path id="Path_328" data-name="Path 328" d="M79.915,35.84a.476.476,0,0,1,.454-.422.482.482,0,0,1,.458.422,2.978,2.978,0,0,0,2.512,2.41.455.455,0,0,1,0,.907,2.972,2.972,0,0,0-2.515,2.517.456.456,0,0,1-.909,0,2.976,2.976,0,0,0-2.41-2.514.458.458,0,0,1,0-.912,2.864,2.864,0,0,0,2.408-2.408Z" transform="translate(-36.23 -12.421)" />
+                                        <path id="Path_329" data-name="Path 329" d="M25.587,49.116A10.492,10.492,0,1,0,16.512,43.9a1.017,1.017,0,0,1-.136,1.233l-5.58,5.58a1.908,1.908,0,1,0,2.7,2.7l5.58-5.578a1.016,1.016,0,0,1,1.233-.136,10.443,10.443,0,0,0,5.278,1.421Zm0-3.816a6.68,6.68,0,1,0-6.679-6.679A6.678,6.678,0,0,0,25.587,45.3Z" transform="translate(0 -8.468)" fill-rule="evenodd" />
+                                    </g>
+                                </svg>
+                            </span>
+                            <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html($btn_text) ?></span></span>
                         </button>
                     </div>
                     <div class="save-this-search">
@@ -1544,16 +1580,18 @@ class Influencer_Search
                     </div>
                 </div>
             </form>
-            <?php
+        <?php
         } else {
-            $is_brief_active = ! empty( $brief );
+            $is_brief_active = ! empty($brief);
             $checked_attr    = $is_brief_active ? 'checked="checked"' : '';
-            ?>
-            <form class="influencer-search influencer-search-main" action="<?= esc_url( $form_action ) ?>" method="GET">
+        ?>
+            <form class="influencer-search influencer-search-main" action="<?= esc_url($form_action) ?>" method="GET">
                 <div id="search-header">
                     <div class="toggle-holder">
                         <div class="filtered-search toggle-text <?= ! $is_brief_active ? 'active' : '' ?>">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20"><path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20">
+                                <path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path>
+                            </svg>
                             <span>FILTERED SEARCH</span>
                         </div>
                         <div class="toggle-html">
@@ -1563,12 +1601,24 @@ class Influencer_Search
                             </label>
                         </div>
                         <div class="full-brief-search toggle-text <?= $is_brief_active ? 'active' : '' ?>">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 46.322 46.948"><path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 46.322 46.948">
+                                <path id="sparkers" d="M15.96,24.3a.809.809,0,0,0,.851-.751c.9-6.685,1.127-6.685,8.038-8.012a.847.847,0,0,0,.776-.851.864.864,0,0,0-.776-.851c-6.911-.951-7.161-1.177-8.038-7.987a.84.84,0,0,0-1.678.025c-.826,6.71-1.177,6.685-8.037,7.962a.884.884,0,0,0-.776.851c0,.5.326.776.876.851,6.811,1.1,7.111,1.277,7.937,7.962A.811.811,0,0,0,15.96,24.3ZM32.937,52.02a1.289,1.289,0,0,0,1.252-1.152c1.778-13.721,3.706-15.8,17.277-17.3a1.256,1.256,0,0,0,1.177-1.252,1.274,1.274,0,0,0-1.177-1.252c-13.571-1.5-15.5-3.581-17.277-17.3a1.266,1.266,0,0,0-1.252-1.127,1.225,1.225,0,0,0-1.227,1.127c-1.778,13.721-3.731,15.8-17.277,17.3a1.277,1.277,0,0,0-1.2,1.252,1.26,1.26,0,0,0,1.2,1.252c13.521,1.778,15.4,3.606,17.277,17.3A1.248,1.248,0,0,0,32.937,52.02Z" transform="translate(-6.32 -5.073)" fill="#ffe17b"></path>
+                            </svg>
                             <span>FULL BRIEF SEARCH</span>
                         </div>
                     </div>
                     <div class="advanced-search-trigger">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
                         <span>Advanced Search</span>
                     </div>
                 </div>
@@ -1579,21 +1629,21 @@ class Influencer_Search
                     <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search <?= ! $is_brief_active ? 'active' : '' ?>">
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Location</div>
-                            <?= self::select_filter( 'country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true ) ?>
+                            <?= self::select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Language</div>
-                            <?= self::select_filter( 'lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true ) ?>
+                            <?= self::select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item required-on-search">
                             <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Niche</div>
-                            <?= self::select_filter( 'niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true ) ?>
+                            <?= self::select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Follower Count</div>
                             <div class="field-groups">
-                                <?= self::select_filter( 'min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio' ) ?>
-                                <?= self::select_filter( 'max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio' ) ?>
+                                <?= self::select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                                <?= self::select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                             </div>
                         </div>
                     </div>
@@ -1603,43 +1653,55 @@ class Influencer_Search
                             <div class="influencer-search-item-row influencer-search-item-wrapper">
                                 <div class="influencer-search-item">
                                     <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Gender</div>
-                                    <?= self::select_filter( 'gender', false, 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true ) ?>
+                                    <?= self::select_filter('gender', false, 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
                                 </div>
                                 <div class="influencer-search-item">
                                     <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Hashtags</div>
-                                    <?= self::select_filter( 'content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true ) ?>
+                                    <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $is_brief_active ? 'active' : '' ?>">
-                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="Tell us what you're looking for..." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html( $brief ) ?></textarea>
+                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="Tell us what you're looking for..." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
                     </div>
 
                     <div class="influencer-search-item checkbox-row">
-                        <?= self::checkbox_filter( 'filter', false, $influencer_search_fields['filter'] ?? '' ) ?>
+                        <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
                     </div>
 
                     <div class="influencer-search-item" style="display: flex; justify-content: space-between">
                         <button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm">
                             <span class="elementor-button-content-wrapper">
-                                <span class="elementor-button-icon elementor-align-icon-left"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span>
+                                <span class="elementor-button-icon elementor-align-icon-left"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                        <path d="M3 3v5h5" />
+                                    </svg></span>
                                 <span class="elementor-button-text">RESET ALL</span>
                             </span>
                         </button>
                         <button type="submit" class="influencer-search-button elementor-button elementor-button-link elementor-size-sm">
-                            <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html( $btn_text ) ?></span></span>
+                            <span class="elementor-button-content-wrapper">
+                                <span class="elementor-button-icon elementor-align-icon-left">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="37.295" height="33.001" viewBox="0 0 37.295 33.001">
+                                        <g id="search" transform="translate(-10.238 -12.501)">
+                                            <path id="Path_327" data-name="Path 327" d="M65.046,13.082a.62.62,0,0,1,1.238,0,4.667,4.667,0,0,0,4.047,4.047.62.62,0,0,1,0,1.238,4.667,4.667,0,0,0-4.047,4.047.62.62,0,0,1-1.238,0A4.667,4.667,0,0,0,61,18.367a.62.62,0,0,1,0-1.238A4.667,4.667,0,0,0,65.046,13.082Z" transform="translate(-27.197)" />
+                                            <path id="Path_328" data-name="Path 328" d="M79.915,35.84a.476.476,0,0,1,.454-.422.482.482,0,0,1,.458.422,2.978,2.978,0,0,0,2.512,2.41.455.455,0,0,1,0,.907,2.972,2.972,0,0,0-2.515,2.517.456.456,0,0,1-.909,0,2.976,2.976,0,0,0-2.41-2.514.458.458,0,0,1,0-.912,2.864,2.864,0,0,0,2.408-2.408Z" transform="translate(-36.23 -12.421)" />
+                                            <path id="Path_329" data-name="Path 329" d="M25.587,49.116A10.492,10.492,0,1,0,16.512,43.9a1.017,1.017,0,0,1-.136,1.233l-5.58,5.58a1.908,1.908,0,1,0,2.7,2.7l5.58-5.578a1.016,1.016,0,0,1,1.233-.136,10.443,10.443,0,0,0,5.278,1.421Zm0-3.816a6.68,6.68,0,1,0-6.679-6.679A6.678,6.678,0,0,0,25.587,45.3Z" transform="translate(0 -8.468)" fill-rule="evenodd" />
+                                        </g>
+                                    </svg>
+                                </span>
+                                <span class="elementor-button-text"><?= esc_html($btn_text) ?></span></span>
                         </button>
                     </div>
                 </div>
             </form>
-            <?php
+<?php
         }
 
         return ob_get_clean();
     }
-
 }
 
 // Initialize the class
