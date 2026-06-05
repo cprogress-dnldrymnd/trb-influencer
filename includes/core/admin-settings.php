@@ -204,28 +204,29 @@ add_action('admin_footer', function () {
 
         .dd-tab-nav {
             display: flex;
-            gap: 2px;
-            border-bottom: 2px solid #2271b1;
+            gap: 0;
             margin: 0;
         }
         .dd-tab-btn {
-            background: #f6f7f7;
+            background: #f0f0f1;
             border: 1px solid #c3c4c7;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            padding: 9px 20px;
+            border-bottom-color: #c3c4c7;
+            border-radius: 3px 3px 0 0;
+            margin-right: 4px;
+            padding: 8px 20px;
             font-size: 13px;
             font-weight: 400;
             color: #50575e;
             cursor: pointer;
             position: relative;
-            bottom: -2px;
+            top: 1px;
+            z-index: 1;
             transition: background .1s, color .1s;
         }
         .dd-tab-btn:hover:not(.dd-tab-active) { background: #fff; color: #1d2327; }
         .dd-tab-btn.dd-tab-active {
             background: #fff;
-            border-color: #2271b1 #2271b1 #fff;
+            border-bottom-color: #fff;
             color: #1d2327;
             font-weight: 600;
         }
@@ -234,9 +235,10 @@ add_action('admin_footer', function () {
         .dd-tab-body {
             background: #fff;
             border: 1px solid #c3c4c7;
-            border-top: 2px solid #2271b1;
-            border-radius: 0 4px 4px 4px;
+            border-radius: 0 3px 3px 3px;
             padding: 24px 28px 12px;
+            position: relative;
+            z-index: 0;
         }
         .dd-tab-desc { color: #50575e; margin: 0 0 18px; }
 
