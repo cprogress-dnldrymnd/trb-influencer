@@ -743,7 +743,7 @@ class Influencer_Search
 
                 <!-- 2. FULL BRIEF SEARCH CONTAINER -->
                 <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $is_brief_active ? 'active' : '' ?>">
-                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Type or paste your campaign brief..." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
+                    <textarea rows="6" name="search-brief" id="search-brief" placeholder="Tell us what you're looking for. For example: UK Instagram creators talking about endometriosis with good engagement." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
                 </div>
 
                 <!-- Checkboxes & Buttons -->
