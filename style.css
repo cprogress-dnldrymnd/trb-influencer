@@ -857,6 +857,11 @@ input:checked + .slider:before {
   color: #000 !important;
 }
 
+
+.link-black a :hover{
+  color: var( --e-global-color-primary ) !important;
+}
+
 .elementor-icon-wrapper.elementor-icon-wrapper.elementor-icon-wrapper {
   display: flex;
 }
@@ -1984,6 +1989,8 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   align-items: center;
   justify-content: center;
 }
+
+
 .outreach-button.outreach-button.outreach-button {
   font-family: var(--e-global-typography-2a20fd0-font-family), Sans-serif;
   font-size: var(--e-global-typography-2a20fd0-font-size);
