@@ -62,8 +62,8 @@ function action_wp_head()
     if (is_single() && get_post_type() == 'post' || is_home()) {
         echo ".header.header.header.header.header  { background-color: var(--e-global-color-secondary) }";
     } else {
-        $header_text_colour = get_field('header_text_colour') ;
-        $header_accent_colour = get_field('header_accent_colour') ;
+        $header_text_colour = get_field('header_text_colour');
+        $header_accent_colour = get_field('header_accent_colour');
         if ($header_text_colour || $header_accent_colour) {
             if ($header_accent_colour) {
                 echo ".header.header.header.header.header .header--accent-color .elementor-heading-title { color: var($header_accent_colour) }";
@@ -91,6 +91,7 @@ function action_wp_head()
     $recently_viewed = get_viewed_influencer();
     $current_user_id = get_current_user_id();
     $ranked_niches = get_user_niche_ranking($current_user_id, 3);
+    $recentposts = shortcode_influencer_recentposts_reels();
     $recently_viewed_stats = true;
     $ranked_niches_stats = true;
 
@@ -105,24 +106,15 @@ function action_wp_head()
     }
     if ($ranked_niches_stats == false && $recently_viewed_stats == false) {
         echo '#dashboard-activity { display: none !important; }';
-    } else {
+    } 
+
+    if($recentposts == 0) {
+        echo '#key-statistics-recent-posts { display: none !important; }';
     }
-
-
-
 
     echo '</style>';
 ?>
-    <!--
-    <div class="notice-wrap">
-        <div class="notice-item-wrapper">
-            <div class="notice-item succes" >
-                <div class="notice-item-close">×</div>
-                <p>Points gained by joining Essential Membership</p>
-                <div class="mycred-points">20 points</div>
-            </div>
-        </div>
-    </div>-->
+
 <?php
 }
 
