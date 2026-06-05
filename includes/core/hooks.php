@@ -86,39 +86,30 @@ function action_wp_head()
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
     }
-    $is_elementor_edit = (
-        class_exists('\Elementor\Plugin') &&
-        ! empty(\Elementor\Plugin::$instance) &&
-        ! empty(\Elementor\Plugin::$instance->editor) &&
-        \Elementor\Plugin::$instance->editor->is_edit_mode()
-    );
-
-    if (! $is_elementor_edit) {
 
 
-        $recently_viewed = get_viewed_influencer();
-        $current_user_id = get_current_user_id();
-        $ranked_niches = get_user_niche_ranking($current_user_id, 3);
-        $recentposts = shortcode_influencer_recentposts_reels();
-        $recently_viewed_stats = true;
-        $ranked_niches_stats = true;
+    $recently_viewed = get_viewed_influencer();
+    $current_user_id = get_current_user_id();
+    $ranked_niches = get_user_niche_ranking($current_user_id, 3);
+    $recentposts = shortcode_influencer_recentposts_reels();
+    $recently_viewed_stats = true;
+    $ranked_niches_stats = true;
 
-        if (!$recently_viewed || count($recently_viewed) === 0) {
-            echo '#dashboard-activity-recently-viewed-influencer { display: none !important; }';
-            $recently_viewed_stats = false;
-        }
+    if (!$recently_viewed || count($recently_viewed) === 0) {
+        echo '#dashboard-activity-recently-viewed-influencer { display: none !important; }';
+        $recently_viewed_stats = false;
+    }
 
-        if (count($ranked_niches) === 0) {
-            echo '#dashboard-activity-most-engage-niches { display: none !important; }';
-            $ranked_niches_stats = false;
-        }
-        if ($ranked_niches_stats == false && $recently_viewed_stats == false) {
-            echo '#dashboard-activity { display: none !important; }';
-        }
+    if (count($ranked_niches) === 0) {
+        echo '#dashboard-activity-most-engage-niches { display: none !important; }';
+        $ranked_niches_stats = false;
+    }
+    if ($ranked_niches_stats == false && $recently_viewed_stats == false) {
+        echo '#dashboard-activity { display: none !important; }';
+    } 
 
-        if ($recentposts == 0) {
-            echo '#key-statistics-recent-posts { display: none !important; }';
-        }
+    if($recentposts == 0) {
+        echo '#key-statistics-recent-posts { display: none !important; }';
     }
 
     echo '</style>';
