@@ -1584,7 +1584,7 @@ body:not(.page-id-4144) span#pmpro_submit_span #pmpro_btn-submit {
   margin: 0 !important;
 }
 body:not(.page-id-4144) span#pmpro_submit_span:before {
-  content: "Choose Plan";
+  content: "Confirm Payment";
   position: absolute;
   left: 0;
   top: 0;
