@@ -1563,16 +1563,18 @@ class Influencer_Search
                     </div>
                     <div class="influencer-search-item">
                         <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
-                            <span class="elementor-button-icon elementor-align-icon-left">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="37.295" height="33.001" viewBox="0 0 37.295 33.001">
-                                    <g id="search" transform="translate(-10.238 -12.501)">
-                                        <path id="Path_327" data-name="Path 327" d="M65.046,13.082a.62.62,0,0,1,1.238,0,4.667,4.667,0,0,0,4.047,4.047.62.62,0,0,1,0,1.238,4.667,4.667,0,0,0-4.047,4.047.62.62,0,0,1-1.238,0A4.667,4.667,0,0,0,61,18.367a.62.62,0,0,1,0-1.238A4.667,4.667,0,0,0,65.046,13.082Z" transform="translate(-27.197)" />
-                                        <path id="Path_328" data-name="Path 328" d="M79.915,35.84a.476.476,0,0,1,.454-.422.482.482,0,0,1,.458.422,2.978,2.978,0,0,0,2.512,2.41.455.455,0,0,1,0,.907,2.972,2.972,0,0,0-2.515,2.517.456.456,0,0,1-.909,0,2.976,2.976,0,0,0-2.41-2.514.458.458,0,0,1,0-.912,2.864,2.864,0,0,0,2.408-2.408Z" transform="translate(-36.23 -12.421)" />
-                                        <path id="Path_329" data-name="Path 329" d="M25.587,49.116A10.492,10.492,0,1,0,16.512,43.9a1.017,1.017,0,0,1-.136,1.233l-5.58,5.58a1.908,1.908,0,1,0,2.7,2.7l5.58-5.578a1.016,1.016,0,0,1,1.233-.136,10.443,10.443,0,0,0,5.278,1.421Zm0-3.816a6.68,6.68,0,1,0-6.679-6.679A6.678,6.678,0,0,0,25.587,45.3Z" transform="translate(0 -8.468)" fill-rule="evenodd" />
-                                    </g>
-                                </svg>
+                            <span class="elementor-button-content-wrapper">
+                                <span class="elementor-button-icon elementor-align-icon-left">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="37.295" height="33.001" viewBox="0 0 37.295 33.001">
+                                        <g id="search" transform="translate(-10.238 -12.501)">
+                                            <path id="Path_327" data-name="Path 327" d="M65.046,13.082a.62.62,0,0,1,1.238,0,4.667,4.667,0,0,0,4.047,4.047.62.62,0,0,1,0,1.238,4.667,4.667,0,0,0-4.047,4.047.62.62,0,0,1-1.238,0A4.667,4.667,0,0,0,61,18.367a.62.62,0,0,1,0-1.238A4.667,4.667,0,0,0,65.046,13.082Z" transform="translate(-27.197)" />
+                                            <path id="Path_328" data-name="Path 328" d="M79.915,35.84a.476.476,0,0,1,.454-.422.482.482,0,0,1,.458.422,2.978,2.978,0,0,0,2.512,2.41.455.455,0,0,1,0,.907,2.972,2.972,0,0,0-2.515,2.517.456.456,0,0,1-.909,0,2.976,2.976,0,0,0-2.41-2.514.458.458,0,0,1,0-.912,2.864,2.864,0,0,0,2.408-2.408Z" transform="translate(-36.23 -12.421)" />
+                                            <path id="Path_329" data-name="Path 329" d="M25.587,49.116A10.492,10.492,0,1,0,16.512,43.9a1.017,1.017,0,0,1-.136,1.233l-5.58,5.58a1.908,1.908,0,1,0,2.7,2.7l5.58-5.578a1.016,1.016,0,0,1,1.233-.136,10.443,10.443,0,0,0,5.278,1.421Zm0-3.816a6.68,6.68,0,1,0-6.679-6.679A6.678,6.678,0,0,0,25.587,45.3Z" transform="translate(0 -8.468)" fill-rule="evenodd" />
+                                        </g>
+                                    </svg>
+                                </span>
+                                <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html($btn_text) ?></span></span>
                             </span>
-                            <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html($btn_text) ?></span></span>
                         </button>
                     </div>
                     <div class="save-this-search">

@@ -294,7 +294,15 @@ body:not(#error-page).show-body {
   color: #fff;
   border-color: var(--e-global-color-accent) !important;
 }
-
+.influencer-search-button svg {
+  width: 20px;
+  height: 20px;
+  color: currentColor;
+  fill: currentColor;
+}
+.influencer-search-button .elementor-button-content-wrapper {
+  align-items: center;
+}
 .save-this-search {
   text-align: center;
 }
