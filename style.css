@@ -282,14 +282,17 @@ body:not(#error-page).show-body {
   letter-spacing: 0.7px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 .influencer-search-button.influencer-search-button.influencer-search-button:hover,
 .influencer-search-button.influencer-search-button.influencer-search-button:active,
 .influencer-search-button.influencer-search-button.influencer-search-button:focus {
-  background-color: var(--e-global-color-accent);
+  background-color: var(--e-global-color-accent) !important;
   color: #fff;
-  border-color: var(--e-global-color-accent);
+  border-color: var(--e-global-color-accent) !important;
 }
 
 .save-this-search {
@@ -1947,9 +1950,12 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 15px 0;
   font-weight: 600;
   color: var(--e-global-color-primary);
+  transition: color 0.2s ease;
+}
+.advanced-search-trigger.open {
+  color: var(--e-global-color-accent);
 }
 
 .influencer-search-main .influencer-search-filter-holder {
@@ -2351,7 +2357,10 @@ body {
   border-color: var(--e-global-color-primary);
   color: var(--e-global-color-primary);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 .influencer-search-main .reset-filters-btn:hover,
 .influencer-search-main .reset-filters-btn:focus {

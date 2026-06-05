@@ -16,6 +16,18 @@
         var advancedTrigger = $('.advanced-search-trigger');
         var advancedFilters = $('.advanced-search-filters');
 
+        function hasActiveFilters() {
+            return $('.influencer-search-main input[type="checkbox"]:not(#my-toggle):checked').length > 0;
+        }
+
+        function syncResetBtn() {
+            if (toggleInput.is(':checked')) {
+                resetAllBtn.css('display', 'none');
+            } else {
+                resetAllBtn.css('display', hasActiveFilters() ? 'inline-block' : 'none');
+            }
+        }
+
         function updateSearchVisibility(isInit) {
             var isChecked = toggleInput.is(':checked');
 
@@ -54,7 +66,7 @@
                     $('#search-brief').val('');
                 }
 
-                resetAllBtn.css('display', 'inline-block');
+                syncResetBtn();
             }
         }
 
@@ -64,12 +76,19 @@
             updateSearchVisibility(false);
         });
 
+        // Show/hide reset button as filters are toggled
+        $('.influencer-search-main').on('change', 'input[type="checkbox"]', function () {
+            if (this.id === 'my-toggle') return;
+            syncResetBtn();
+        });
+
         resetAllBtn.on('click', function (e) {
             e.preventDefault();
             document.querySelectorAll('.filter-widget .reset-btn').forEach(function (btn) {
                 if (btn) btn.click();
             });
             $('.active-filter-chip').remove();
+            syncResetBtn();
         });
     };
 
