@@ -30,6 +30,10 @@ class Influencer_Search
         add_shortcode('influencer_search_summary', [$this, 'shortcode_influencer_search_summary']);
         add_shortcode('influencer_match_score', [$this, 'shortcode_influencer_match_score']);
         add_shortcode('saved_search_url', [$this, 'shortcode_saved_search_url']);
+
+
+        // Register Elementor Widgets directly from this class
+        add_action('elementor/widgets/register', [$this, 'register_elementor_widgets']);
     }
 
     // ========================================================================
@@ -1766,6 +1770,19 @@ class Influencer_Search
         }
 
         return $merged;
+    }
+
+    /**
+     * Register Elementor Widgets
+     */
+    public function register_elementor_widgets($widgets_manager)
+    {
+        // Use get_stylesheet_directory() since these files are inside your child theme
+        require_once(get_stylesheet_directory() . '/includes/widgets/class-influencer-search-form-widget.php');
+        require_once(get_stylesheet_directory() . '/includes/widgets/class-influencer-search-results-widget.php');
+
+        $widgets_manager->register(new \Influencer_Search_Form_Widget());
+        $widgets_manager->register(new \Influencer_Search_Results_Widget());
     }
 }
 

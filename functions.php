@@ -49,26 +49,32 @@ $dir = get_stylesheet_directory();
 
 // Direct, unrolled require statements. 
 // This is the fastest execution path in PHP for procedural files.
-require $dir . '/includes/dompdf.php';
-require $dir . '/includes/helpers.php';
-require $dir . '/includes/sign-up.php';
-require $dir . '/includes/hooks.php';
-require $dir . '/includes/custom-functions.php';
-require $dir . '/includes/saves-manager.php';
-require $dir . '/includes/mycred.php';
-require $dir . '/includes/mycred-frontend-log.php';
-require $dir . '/includes/pmpro.php';
-require $dir . '/includes/pmpro-trial-protection.php';
-require $dir . '/includes/pmpro-dynamic-pricing.php';
-require $dir . '/includes/pmpro-mycred-rewards-manager.php';
-require $dir . '/includes/email-template-manager.php';
-require $dir . '/includes/acf.php';
-require $dir . '/includes/elementor.php';
-require $dir . '/includes/outreach.php';
-require $dir . '/includes/charts.php';
-require $dir . '/includes/feeds.php';
-require $dir . '/includes/search.php';
-require $dir . '/includes/shortcodes.php';
+
+// 1. Core Includes (Load foundational dependencies first)
+require $dir . '/includes/core/helpers.php';
+require $dir . '/includes/core/custom-functions.php';
+require $dir . '/includes/core/hooks.php';
+require $dir . '/includes/core/shortcodes.php';
+
+// 2. Third-Party Integrations (Base handshakes and bridges)
+require $dir . '/includes/integrations/acf.php';
+require $dir . '/includes/integrations/dompdf.php';
+require $dir . '/includes/integrations/elementor.php';
+require $dir . '/includes/integrations/mycred.php';
+require $dir . '/includes/integrations/pmpro.php';
+
+// 3. Domain Modules (Self-contained features)
+require $dir . '/modules/email-manager/email-template-manager.php';
+require $dir . '/modules/frontend-utilities/charts.php';
+require $dir . '/modules/frontend-utilities/feeds.php';
+require $dir . '/modules/frontend-utilities/search.php';
+require $dir . '/modules/frontend-utilities/sign-up.php';
+require $dir . '/modules/influencer-outreach/outreach.php';
+require $dir . '/modules/membership-extensions/pmpro-dynamic-pricing.php';
+require $dir . '/modules/membership-extensions/pmpro-mycred-rewards-manager.php';
+require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
+require $dir . '/modules/mycred-components/mycred-frontend-log.php';
+require $dir . '/modules/saves/saves-manager.php';
 
 
 function influencers_meta()
