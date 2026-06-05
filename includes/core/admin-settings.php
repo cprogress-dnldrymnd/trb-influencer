@@ -13,10 +13,6 @@ function dd_get_template_id($key, $fallback = 0)
     return (int) get_option($key, $fallback);
 }
 
-/**
- * Renders an AJAX-powered search field.
- * The hidden input carries the real post ID; the text input is display-only.
- */
 function dd_render_post_search_select($name, $current_id, $type, $description)
 {
     $current_title = '';
@@ -30,7 +26,7 @@ function dd_render_post_search_select($name, $current_id, $type, $description)
     <div class="dd-ajax-select" data-type="<?php echo esc_attr($type); ?>">
         <div class="dd-ajax-input-wrap">
             <span class="dd-search-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
             <input
                 type="text"
@@ -70,9 +66,7 @@ add_action('wp_ajax_dd_admin_post_search', function () {
         'order'          => 'ASC',
     ]);
 
-    $results = array_map(fn($p) => ['id' => $p->ID, 'text' => $p->post_title], $posts);
-
-    wp_send_json_success($results);
+    wp_send_json_success(array_map(fn($p) => ['id' => $p->ID, 'text' => $p->post_title], $posts));
 });
 
 // ---------------------------------------------------------------------------
@@ -111,8 +105,8 @@ add_action('admin_init', function () {
         ]);
     }
 
-    // Page Assignments section
-    add_settings_section('dd_page_ids_section', '', '__return_false', 'dd-theme-settings');
+    add_settings_section('dd_page_ids_section',     '', '__return_false', 'dd-theme-settings');
+    add_settings_section('dd_template_ids_section', '', '__return_false', 'dd-theme-settings-templates');
 
     $page_fields = [
         'dd_search_results_page_id' => ['Search Results Page',   1949, 'Where influencer search results are displayed.'],
@@ -125,9 +119,6 @@ add_action('admin_init', function () {
             dd_render_post_search_select($key, dd_get_page_id($key, $default), 'page', $description);
         }, 'dd-theme-settings', 'dd_page_ids_section');
     }
-
-    // Elementor Templates section
-    add_settings_section('dd_template_ids_section', '', '__return_false', 'dd-theme-settings-templates');
 
     $template_fields = [
         'dd_tpl_header_nav'           => ['Header Navigation',             1571,  'Sidebar/header nav rendered on the dashboard and influencer profile pages.'],
@@ -147,7 +138,7 @@ add_action('admin_init', function () {
 });
 
 // ---------------------------------------------------------------------------
-// Admin menu page
+// Admin menu page — both panels rendered; JS handles tab switching
 // ---------------------------------------------------------------------------
 add_action('admin_menu', function () {
     add_options_page(
@@ -159,39 +150,32 @@ add_action('admin_menu', function () {
             if (! current_user_can('manage_options')) {
                 return;
             }
-
-            $tab      = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'pages';
-            $base_url = admin_url('options-general.php?page=dd-theme-settings');
             ?>
             <div class="wrap dd-settings-wrap">
                 <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 
-                <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom:0;">
-                    <a href="<?php echo esc_url($base_url . '&tab=pages'); ?>"
-                       class="nav-tab <?php echo $tab === 'pages' ? 'nav-tab-active' : ''; ?>">
-                        Page Assignments
-                    </a>
-                    <a href="<?php echo esc_url($base_url . '&tab=templates'); ?>"
-                       class="nav-tab <?php echo $tab === 'templates' ? 'nav-tab-active' : ''; ?>">
-                        Elementor Templates
-                    </a>
-                </nav>
+                <div class="dd-tab-nav">
+                    <button type="button" class="dd-tab-btn dd-tab-active" data-panel="pages">Page Assignments</button>
+                    <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
+                </div>
 
-                <div class="dd-tab-panel">
+                <div class="dd-tab-body">
                     <form method="post" action="options.php">
                         <?php settings_fields('dd_theme_page_ids'); ?>
 
-                        <?php if ($tab === 'pages'): ?>
-                            <p class="dd-tab-desc">Select which WordPress pages serve each platform role. Changes take effect immediately after saving.</p>
+                        <div class="dd-panel" id="dd-panel-pages">
+                            <p class="dd-tab-desc">Select which WordPress pages serve each platform role.</p>
                             <table class="form-table" role="presentation">
                                 <?php do_settings_fields('dd-theme-settings', 'dd_page_ids_section'); ?>
                             </table>
-                        <?php else: ?>
+                        </div>
+
+                        <div class="dd-panel" id="dd-panel-templates" hidden>
                             <p class="dd-tab-desc">Elementor templates used by the theme. Find these under <strong>Elementor → My Templates</strong>.</p>
                             <table class="form-table" role="presentation">
                                 <?php do_settings_fields('dd-theme-settings-templates', 'dd_template_ids_section'); ?>
                             </table>
-                        <?php endif; ?>
+                        </div>
 
                         <?php submit_button('Save Settings'); ?>
                     </form>
@@ -203,7 +187,7 @@ add_action('admin_menu', function () {
 });
 
 // ---------------------------------------------------------------------------
-// Styles + AJAX autocomplete JS (settings page only)
+// Styles + JS (settings page only)
 // ---------------------------------------------------------------------------
 add_action('admin_footer', function () {
     $screen = get_current_screen();
@@ -213,123 +197,204 @@ add_action('admin_footer', function () {
     $nonce = wp_create_nonce('dd_admin_search');
     ?>
     <style>
-        /* Tab panel */
-        .dd-settings-wrap .nav-tab-wrapper { border-bottom: 1px solid #c3c4c7; }
-        .dd-tab-panel {
+        /* ── Tab nav ── */
+        .dd-settings-wrap h1 { margin-bottom: 12px; }
+
+        .dd-tab-nav {
+            display: flex;
+            gap: 2px;
+            border-bottom: 2px solid #2271b1;
+            margin: 0;
+        }
+        .dd-tab-btn {
+            background: #f6f7f7;
+            border: 1px solid #c3c4c7;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            padding: 9px 20px;
+            font-size: 13px;
+            font-weight: 400;
+            color: #50575e;
+            cursor: pointer;
+            position: relative;
+            bottom: -2px;
+            transition: background .1s, color .1s;
+        }
+        .dd-tab-btn:hover:not(.dd-tab-active) { background: #fff; color: #1d2327; }
+        .dd-tab-btn.dd-tab-active {
+            background: #fff;
+            border-color: #2271b1 #2271b1 #fff;
+            color: #1d2327;
+            font-weight: 600;
+        }
+
+        /* ── Tab body ── */
+        .dd-tab-body {
             background: #fff;
             border: 1px solid #c3c4c7;
-            border-top: none;
-            border-radius: 0 0 3px 3px;
-            padding: 24px 28px 8px;
+            border-top: 2px solid #2271b1;
+            border-radius: 0 4px 4px 4px;
+            padding: 24px 28px 12px;
         }
-        .dd-tab-desc { color: #50575e; margin: 0 0 20px; }
+        .dd-tab-desc { color: #50575e; margin: 0 0 18px; }
 
-        /* Autocomplete field */
+        /* ── Autocomplete input ── */
         .dd-ajax-select { max-width: 340px; position: relative; }
+
         .dd-ajax-input-wrap {
             display: flex;
             align-items: center;
             border: 1px solid #8c8f94;
             border-radius: 4px;
             background: #fff;
-            padding: 0 10px 0 0;
-            transition: border-color .15s, box-shadow .15s;
+            padding-right: 8px;
+            transition: border-color .15s, box-shadow .15s, border-radius .1s;
         }
         .dd-ajax-input-wrap:focus-within {
             border-color: #2271b1;
             box-shadow: 0 0 0 1px #2271b1;
         }
+        /* When dropdown is open — flatten bottom corners to connect with list */
+        .dd-ajax-select.dd-open .dd-ajax-input-wrap {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: #e0e0e0;
+        }
+
         .dd-search-icon {
             display: flex; align-items: center;
-            padding: 0 8px; color: #8c8f94; flex-shrink: 0;
+            padding: 0 8px; color: #a7aaad; flex-shrink: 0;
             pointer-events: none;
         }
         .dd-ajax-search {
-            flex: 1; border: none !important; box-shadow: none !important;
-            padding: 7px 4px !important; background: transparent !important;
-            font-size: 13px !important; min-width: 0;
-            outline: none;
+            flex: 1 1 0; min-width: 0;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 7px 4px !important;
+            background: transparent !important;
+            font-size: 13px !important;
         }
         .dd-ajax-clear {
             background: none; border: none; cursor: pointer;
-            font-size: 16px; line-height: 1; color: #a7aaad;
-            padding: 0; flex-shrink: 0; display: flex; align-items: center;
+            font-size: 17px; line-height: 1; color: #a7aaad;
+            padding: 0; flex-shrink: 0;
         }
         .dd-ajax-clear:hover { color: #d63638; }
 
-        /* Dropdown */
+        /* ── Dropdown ── */
         .dd-ajax-results {
-            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            position: absolute;
+            top: 100%; /* flush — no gap */
+            left: 0; right: 0;
             background: #fff;
-            border: 1px solid #c3c4c7;
-            border-radius: 4px;
-            max-height: 240px; overflow-y: auto;
-            z-index: 9999; margin: 0; padding: 4px 0; list-style: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,.10);
+            border: 1px solid #2271b1;
+            border-top: 1px solid #e0e0e0; /* subtle separator from input */
+            border-radius: 0 0 4px 4px;
+            max-height: 220px; overflow-y: auto;
+            z-index: 9999;
+            margin: 0; padding: 4px 0; list-style: none;
+            box-shadow: 0 6px 14px rgba(0,0,0,.10);
         }
         .dd-ajax-results li {
-            padding: 8px 12px; font-size: 13px; cursor: pointer;
-            border-radius: 2px; margin: 0 4px; color: #1d2327;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #1d2327;
         }
         .dd-ajax-results li:hover { background: #f0f6fc; color: #2271b1; }
-        .dd-ajax-results li.dd-active { background: #2271b1; color: #fff; }
         .dd-ajax-results li.dd-no-results,
         .dd-ajax-results li.dd-loading {
-            color: #8c8f94; cursor: default; font-style: italic;
+            color: #a7aaad; cursor: default; font-style: italic;
         }
-        .dd-ajax-results li.dd-loading { display: flex; align-items: center; gap: 6px; }
+        .dd-ajax-results li.dd-loading { display: flex; align-items: center; gap: 7px; }
         .dd-spinner {
-            display: inline-block; width: 12px; height: 12px;
-            border: 2px solid #c3c4c7; border-top-color: #2271b1;
+            width: 11px; height: 11px; flex-shrink: 0;
+            border: 2px solid #ddd; border-top-color: #2271b1;
             border-radius: 50%;
-            animation: dd-spin .6s linear infinite;
+            animation: dd-spin .55s linear infinite;
         }
         @keyframes dd-spin { to { transform: rotate(360deg); } }
     </style>
     <script>
         jQuery(function ($) {
-            var nonce = '<?php echo esc_js($nonce); ?>';
+            var nonce  = '<?php echo esc_js($nonce); ?>';
             var timers = {};
 
-            function doSearch($wrap, q) {
-                var type = $wrap.data('type');
-                var $results = $wrap.find('.dd-ajax-results');
-                $results.html('<li class="dd-loading"><span class="dd-spinner"></span> Searching…</li>').prop('hidden', false);
+            /* ── Tab switching ── */
+            var LS_KEY = 'dd_settings_tab';
 
-                $.get(ajaxurl, { action: 'dd_admin_post_search', nonce: nonce, type: type, q: q })
-                    .done(function (resp) {
-                        $results.empty();
-                        if (!resp.success || !resp.data.length) {
-                            $results.append('<li class="dd-no-results">No results found</li>');
-                        } else {
-                            resp.data.forEach(function (item) {
-                                $results.append($('<li>').attr('data-id', item.id).text(item.text));
-                            });
-                        }
-                    });
+            function activateTab(panel) {
+                $('.dd-tab-btn').removeClass('dd-tab-active')
+                    .filter('[data-panel="' + panel + '"]').addClass('dd-tab-active');
+                $('.dd-panel').prop('hidden', true);
+                $('#dd-panel-' + panel).prop('hidden', false);
+                try { localStorage.setItem(LS_KEY, panel); } catch(e) {}
+            }
+
+            // Restore last active tab
+            try {
+                var saved = localStorage.getItem(LS_KEY);
+                if (saved) activateTab(saved);
+            } catch(e) {}
+
+            $(document).on('click', '.dd-tab-btn', function () {
+                activateTab($(this).data('panel'));
+            });
+
+            /* ── Autocomplete ── */
+            function openResults($wrap) {
+                $wrap.addClass('dd-open');
+                $wrap.find('.dd-ajax-results').prop('hidden', false);
+            }
+            function closeResults($wrap) {
+                $wrap.removeClass('dd-open');
+                $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
+            }
+
+            function doSearch($wrap, q) {
+                var $results = $wrap.find('.dd-ajax-results');
+                $results.html('<li class="dd-loading"><span class="dd-spinner"></span>Searching…');
+                openResults($wrap);
+
+                $.get(ajaxurl, {
+                    action: 'dd_admin_post_search',
+                    nonce:  nonce,
+                    type:   $wrap.data('type'),
+                    q:      q,
+                }).done(function (resp) {
+                    $results.empty();
+                    if (!resp.success || !resp.data.length) {
+                        $results.append('<li class="dd-no-results">No results found</li>');
+                    } else {
+                        resp.data.forEach(function (item) {
+                            $results.append($('<li>').attr('data-id', item.id).text(item.text));
+                        });
+                    }
+                });
             }
 
             $(document).on('focus input', '.dd-ajax-search', function () {
                 var $wrap = $(this).closest('.dd-ajax-select');
-                var key = $wrap.find('input[type="hidden"]').attr('name');
+                var key   = $wrap.find('input[type="hidden"]').attr('name');
                 clearTimeout(timers[key]);
                 var q = $(this).val();
-                timers[key] = setTimeout(function () { doSearch($wrap, q); }, 250);
+                timers[key] = setTimeout(function () { doSearch($wrap, q); }, 220);
             });
 
-            $(document).on('mousedown', '.dd-ajax-results li[data-id]', function () {
+            // mousedown fires before blur — selection registers before dropdown closes
+            $(document).on('mousedown', '.dd-ajax-results li[data-id]', function (e) {
+                e.preventDefault();
                 var $wrap = $(this).closest('.dd-ajax-select');
                 $wrap.find('.dd-ajax-search').val($(this).text());
                 $wrap.find('input[type="hidden"]').val($(this).data('id'));
-                $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
                 $wrap.find('.dd-ajax-clear').prop('hidden', false);
+                closeResults($wrap);
             });
 
             $(document).on('blur', '.dd-ajax-search', function () {
                 var $wrap = $(this).closest('.dd-ajax-select');
-                setTimeout(function () {
-                    $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
-                }, 200);
+                setTimeout(function () { closeResults($wrap); }, 150);
             });
 
             $(document).on('click', '.dd-ajax-clear', function () {
