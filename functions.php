@@ -100,6 +100,7 @@ require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/custom-functions.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';
+require $dir . '/includes/core/shortcodes-widgets.php';
 
 // 2. Third-Party Integrations (Base handshakes and bridges)
 require $dir . '/includes/integrations/acf.php';

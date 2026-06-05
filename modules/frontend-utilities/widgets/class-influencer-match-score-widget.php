@@ -49,38 +49,6 @@ class Influencer_Match_Score_Widget extends \Elementor\Widget_Base
 
     protected function render()
     {
-        $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
-        $criteria = get_query_var('search_criteria');
-        $criteria = is_array($criteria) ? $criteria : [];
-
-        // Point to the new global helper function!
-        $score    = calculate_match_score($post_id, $criteria);
-
-        if ($score < 0) {
-            if (function_exists('creatordb_brief_match_score_badge_html')) {
-                echo creatordb_brief_match_score_badge_html(-1);
-                return;
-            }
-            echo '<span class="influencer-match-score-wrap">— Match Score</span>';
-            return;
-        }
-
-        $badge_label = function_exists('creatordb_brief_match_score_badge_html')
-            ? creatordb_brief_match_score_badge_html((int) $score)
-            : ('✨ ' . (int) $score . '% Match Score');
-
-        // Point to the new global helper function!
-        $tooltip = function_exists('creatordb_get_match_evidence_tooltip_html')
-            ? creatordb_get_match_evidence_tooltip_html($post_id, $criteria)
-            : implode("\n", get_matched_criteria_labels($post_id, $criteria));
-
-        $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">' . esc_html($badge_label) . '</span>';
-        if (!empty(trim($tooltip))) {
-            $html .= '<div class="influencer-match-score-tooltip tooltip-content">' . wp_kses_post($tooltip) . '</div>';
-        }
-        $html .= '</div>';
-
-        // Elementor requires echoing the result, not returning it!
-        echo $html;
+        echo dd_shortcode_influencer_match_score();
     }
 }
