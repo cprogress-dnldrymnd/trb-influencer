@@ -787,7 +787,7 @@ class Saves_Manager
         $q = new WP_Query($args);
 
         if (!$q->have_posts()) {
-            return '<div class="inf-alert">You have not saved any searches yet.</div>';
+            return do_shortcode('[elementor-template id="27501"]');
         }
 
         ob_start();
