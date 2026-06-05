@@ -34,9 +34,6 @@ class Influencer_Search
 
     public static function calculate_match_score($post_id, $criteria)
     {
-        if (function_exists('creatordb_calculate_match_score')) {
-            return creatordb_calculate_match_score($post_id, $criteria);
-        }
 
         if (!$post_id || get_post_type($post_id) !== 'influencer') return -1;
         if (!is_array($criteria) || (empty($criteria['niche']) && empty($criteria['platform']) && empty($criteria['country']) && empty($criteria['followers']) && empty($criteria['topic']) && empty($criteria['content_tag']))) return -1;
