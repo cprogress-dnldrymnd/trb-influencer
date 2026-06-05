@@ -787,7 +787,7 @@ class Saves_Manager
         $q = new WP_Query($args);
 
         if (!$q->have_posts()) {
-            return do_shortcode('[elementor-template id="27501"]');
+            return do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_saves_empty', 27501) . '"]');
         }
 
         ob_start();
@@ -1345,7 +1345,7 @@ class Saves_Manager
                 setup_postdata($post);
 
                 $html .= '<div class="inf-loop-item-row">';
-                $html .= do_shortcode('[elementor-template id="14897"]');
+                $html .= do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_group_influencer_row', 14897) . '"]');
                 $html .= '</div>';
             }
         }

@@ -759,7 +759,7 @@ class Influencer_Search
                 setup_postdata($post);
                 set_query_var('current_influencer_id', $post->ID);
                 if (class_exists('\Elementor\Plugin')) {
-                    echo do_shortcode('[elementor-template id="1839"]');
+                    echo do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_search_card', 1839) . '"]');
                 }
             }
             wp_reset_postdata();

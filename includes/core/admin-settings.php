@@ -15,6 +15,11 @@ function dd_get_page_id($key, $fallback = 0)
     return (int) get_option($key, $fallback);
 }
 
+function dd_get_template_id($key, $fallback = 0)
+{
+    return (int) get_option($key, $fallback);
+}
+
 // ---------------------------------------------------------------------------
 // Register the settings group and individual options
 // ---------------------------------------------------------------------------
@@ -27,6 +32,24 @@ add_action('admin_init', function () {
     ];
 
     foreach ($options as $key => $default) {
+        register_setting('dd_theme_page_ids', $key, [
+            'type'              => 'integer',
+            'sanitize_callback' => 'absint',
+            'default'           => $default,
+        ]);
+    }
+
+    $template_options = [
+        'dd_tpl_header_nav'           => 1571,
+        'dd_tpl_dashboard_content'    => 1640,
+        'dd_tpl_dashboard_no_access'  => 14403,
+        'dd_tpl_single_influencer'    => 1868,
+        'dd_tpl_search_card'          => 1839,
+        'dd_tpl_saves_empty'          => 27501,
+        'dd_tpl_group_influencer_row' => 14897,
+        'dd_tpl_no_data_fallback'     => 27230,
+    ];
+    foreach ($template_options as $key => $default) {
         register_setting('dd_theme_page_ids', $key, [
             'type'              => 'integer',
             'sanitize_callback' => 'absint',
@@ -67,6 +90,39 @@ add_action('admin_init', function () {
             },
             'dd-theme-settings',
             'dd_page_ids_section'
+        );
+    }
+
+    add_settings_section(
+        'dd_template_ids_section',
+        'Elementor Template IDs',
+        function () {
+            echo '<p>Elementor template IDs used by the theme. Find these under <strong>Elementor → My Templates</strong>.</p>';
+        },
+        'dd-theme-settings'
+    );
+
+    $template_fields = [
+        'dd_tpl_header_nav'           => ['Header Navigation',            1571,  'Sidebar/header nav rendered on the dashboard and influencer profile pages.'],
+        'dd_tpl_dashboard_content'    => ['Dashboard Content (Members)',  1640,  'Main dashboard content for logged-in members.'],
+        'dd_tpl_dashboard_no_access'  => ['Dashboard Content (No Access)', 14403, 'Dashboard content shown to users without an active membership.'],
+        'dd_tpl_single_influencer'    => ['Single Influencer Content',    1868,  'Content area on individual influencer profile pages.'],
+        'dd_tpl_search_card'          => ['Search Result Card',           1839,  'Card template rendered for each result in the influencer search loop.'],
+        'dd_tpl_saves_empty'          => ['Saved Groups Empty State',     27501, 'Shown when a user has no saved groups yet.'],
+        'dd_tpl_group_influencer_row' => ['Group Influencer Row',         14897, 'Row template for each influencer inside the group viewer modal.'],
+        'dd_tpl_no_data_fallback'     => ['No Data Fallback',             27230, 'Shown when feeds or charts have no data to display.'],
+    ];
+    foreach ($template_fields as $key => [$label, $default, $desc]) {
+        add_settings_field(
+            $key,
+            $label,
+            function () use ($key, $default, $desc) {
+                $val = dd_get_template_id($key, $default);
+                echo '<input type="number" min="0" name="' . esc_attr($key) . '" id="' . esc_attr($key) . '" value="' . esc_attr($val) . '" class="small-text">';
+                echo '<p class="description">' . esc_html($desc) . '</p>';
+            },
+            'dd-theme-settings',
+            'dd_template_ids_section'
         );
     }
 });

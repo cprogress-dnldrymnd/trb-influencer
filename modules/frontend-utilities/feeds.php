@@ -47,8 +47,7 @@ class CreatorDB_Instagram_Feed
 
     private function render_no_data_fallback(): string
     {
-        // Target Elementor Template ID: 27230
-        return do_shortcode('[elementor-template id="27230"]');
+        return do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_no_data_fallback', 27230) . '"]');
     }
 
     /**
