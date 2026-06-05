@@ -1419,14 +1419,25 @@ class Influencer_Search
     // ========================================================================
     // 5. ELEMENTOR WIDGET
     // ========================================================================
+
     public function register_elementor_widgets($widgets_manager)
     {
-        // Use get_stylesheet_directory() since these files are inside your child theme
+        // Failsafe: Check if Elementor is active before proceeding.
+        // If Elementor is not loaded, gracefully exit this function to prevent fatal errors.
+        if (! did_action('elementor/loaded')) {
+            return;
+        }
+
         require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-form-widget.php');
         require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-results-widget.php');
+        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-search-summary-widget.php');
+        require_once(get_stylesheet_directory() . '/modules/frontend-utilities/widgets/class-influencer-match-score-widget.php');
 
+        // Register all widgets
         $widgets_manager->register(new \Influencer_Search_Form_Widget());
         $widgets_manager->register(new \Influencer_Search_Results_Widget());
+        $widgets_manager->register(new \Influencer_Search_Summary_Widget());
+        $widgets_manager->register(new \Influencer_Match_Score_Widget());
     }
 }
 
