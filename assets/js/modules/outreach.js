@@ -258,7 +258,7 @@
                     note_content: content
                 },
                 success: function (res) {
-                    btn.text('💾 SAVE NOTE').prop('disabled', false);
+                    btn.text('<svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332"> <path id="saved" fill="currentColor" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" /> </svg> SAVE NOTE').prop('disabled', false);
                     if (res.success) {
                         $('#dd-notes-list-wrapper').html(res.data);
                         $('#dd-cancel-edit-note').trigger('click');
@@ -267,7 +267,7 @@
                     }
                 },
                 error: function () {
-                    btn.text('💾 SAVE NOTE').prop('disabled', false);
+                    btn.text('<svg xmlns="http://www.w3.org/2000/svg" width="12.832" height="16.332" viewBox="0 0 12.832 16.332"> <path id="saved" fill="currentColor" d="M26.125,10.333V22a.583.583,0,0,1-.583.583h-.083a.584.584,0,0,1-.416-.174l-4.167-4.243-4.167,4.243a.583.583,0,0,1-.416.174h-.083A.583.583,0,0,1,15.625,22V10.333a1.752,1.752,0,0,1,1.75-1.75h7a1.752,1.752,0,0,1,1.75,1.75ZM25.541,6.25h-7a.583.583,0,0,0,0,1.167h7a1.752,1.752,0,0,1,1.75,1.75V18.5a.583.583,0,1,0,1.167,0V9.166A2.92,2.92,0,0,0,25.541,6.25Z" transform="translate(-15.625 -6.25)" /> </svg> SAVE NOTE').prop('disabled', false);
                     viewContainer.find('#dd-notes-list-wrapper').before('<p style="color:#c00;font-size:13px;padding:4px 0;">Failed to save note. Please try again.</p>');
                 }
             });

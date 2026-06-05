@@ -734,7 +734,7 @@ class DD_Outreach_Manager
         check_ajax_referer('dd_admin_nonce', 'security');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error( __('Unauthorized', 'hello-elementor-child') );
+            wp_send_json_error(__('Unauthorized', 'hello-elementor-child'));
         }
 
         $template = isset($_POST['template']) ? wp_unslash($_POST['template']) : '';
@@ -1951,7 +1951,7 @@ class DD_Outreach_Manager
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
-            wp_send_json_error( __('Unauthorized.', 'hello-elementor-child') );
+            wp_send_json_error(__('Unauthorized.', 'hello-elementor-child'));
         }
 
         $note_id = isset($_POST['note_id']) ? sanitize_text_field($_POST['note_id']) : '';
@@ -1993,7 +1993,7 @@ class DD_Outreach_Manager
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
-            wp_send_json_error( __('Unauthorized.', 'hello-elementor-child') );
+            wp_send_json_error(__('Unauthorized.', 'hello-elementor-child'));
         }
 
         $note_id = isset($_POST['note_id']) ? sanitize_text_field($_POST['note_id']) : '';
@@ -2022,7 +2022,7 @@ class DD_Outreach_Manager
         $action  = isset($_POST['toggle_action']) ? sanitize_text_field($_POST['toggle_action']) : '';
 
         if (!$post_id || !current_user_can('edit_post', $post_id)) {
-            wp_send_json_error( __('Unauthorized.', 'hello-elementor-child') );
+            wp_send_json_error(__('Unauthorized.', 'hello-elementor-child'));
         }
 
         if ($action === 'favorite') {
@@ -2300,7 +2300,7 @@ class DD_Outreach_Manager
         check_ajax_referer('dd_outreach_nonce', 'security');
 
         if (! is_user_logged_in()) {
-            wp_send_json_error( __('Please log in.', 'hello-elementor-child') );
+            wp_send_json_error(__('Please log in.', 'hello-elementor-child'));
         }
 
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
@@ -2333,13 +2333,13 @@ class DD_Outreach_Manager
 
         $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
         if (! $post_id || get_post_type($post_id) !== 'outreach') {
-            wp_send_json_error( __('<span class="dd-view-error">Invalid post ID.</span>', 'hello-elementor-child') );
+            wp_send_json_error(__('<span class="dd-view-error">Invalid post ID.</span>', 'hello-elementor-child'));
         }
 
         $post = get_post($post_id);
 
         if ($post->post_author != get_current_user_id() && ! current_user_can('manage_options')) {
-            wp_send_json_error( __('<span class="dd-view-error">Unauthorized.</span>', 'hello-elementor-child') );
+            wp_send_json_error(__('<span class="dd-view-error">Unauthorized.</span>', 'hello-elementor-child'));
         }
 
         $influencer_id = get_post_meta($post_id, 'influencer_id', true);
@@ -2384,7 +2384,7 @@ class DD_Outreach_Manager
 
             <div class="dd-notes-grid">
                 <div class="dd-note-card">
-                    <h4 class="dd-note-title" id="dd-note-form-heading">ðŸ—’ï¸ Create a note for this project</h4>
+                    <h4 class="dd-note-title" id="dd-note-form-heading">🗒️ Create a note for this project</h4>
                     <p class="dd-note-desc">Notes created are only visible to you and will never be shared.</p>
                     <input type="hidden" id="dd-note-input-id" value="">
                     <input type="text" id="dd-note-input-title" class="dd-note-input" placeholder="Note title">
