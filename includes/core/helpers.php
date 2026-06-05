@@ -170,10 +170,6 @@ function get_matched_criteria_labels($post_id, $criteria)
     return array_unique($phrases);
 }
 
-<?php
-if (!defined('ABSPATH')) {
-    exit;
-}
 /**
  * Usage: [recent_influencer_ids limit="5"] 
  * Output Example: "102, 45, 305"
