@@ -155,7 +155,7 @@ jQuery(document).ready(function($) {
     // 2. Group Edit / Create Flow
     $('#inf-btn-go-create').on('click', function() {
         $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
-        $('#inf-btn-back-manage').show();
+        $('#inf-btn-back-manage').css('display', 'flex');
         switchModalView('inf-view-edit');
     });
 
@@ -173,9 +173,9 @@ jQuery(document).ready(function($) {
         $('#inf-edit-desc').val($(this).attr('data-desc'));
 
         if (state.entryPoint === 'influencer') {
-            $('#inf-btn-back-manage').show();
+            $('#inf-btn-back-manage').css('display', 'flex');
         } else {
-            $('#inf-btn-back-manage').hide();
+            $('#inf-btn-back-manage').css('display', 'none');
         }
 
         switchModalView('inf-view-edit');

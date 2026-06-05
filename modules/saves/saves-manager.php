@@ -1686,10 +1686,39 @@ class Saves_Manager
                 color: #666 !important;
                 padding: 0 10px 0 0 !important;
                 margin: 0 !important;
-                display: flex !important;
+                display: none;
                 align-items: center !important;
                 gap: 4px !important;
                 font-size: 14px !important;
+            }
+
+            .inf-saved-groups-header {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 16px;
+            }
+
+            .inf-shortcode-add-group {
+                background-color: var(--e-global-color-primary) !important;
+                color: #fff !important;
+                border: none !important;
+                border-radius: 6px !important;
+                padding: 9px 18px !important;
+                font-size: 14px !important;
+                font-weight: 500 !important;
+                font-family: inherit !important;
+                cursor: pointer !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                letter-spacing: normal !important;
+                text-transform: none !important;
+                box-shadow: none !important;
+                background-image: none !important;
+            }
+
+            .inf-shortcode-add-group:hover {
+                opacity: 0.88 !important;
             }
 
             #inf-modal-overlay button.inf-btn-back:hover {
@@ -1882,7 +1911,7 @@ class Saves_Manager
 
             <div id="inf-view-edit" class="inf-modal-content">
                 <div class="inf-modal-header">
-                    <button class="inf-btn-back" id="inf-btn-back-manage">
+                    <button class="inf-btn-back" id="inf-btn-back-manage" style="display:none;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="19" y1="12" x2="5" y2="12"></line>
                             <polyline points="12 19 5 12 12 5"></polyline>
