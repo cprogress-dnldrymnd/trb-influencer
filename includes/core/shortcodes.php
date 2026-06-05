@@ -362,68 +362,6 @@ function breadcrumbs()
 add_shortcode('breadcrumbs', 'breadcrumbs');
 
 
-function shortcode_check_influencer_saved($atts)
-{
-    // 1. Extract shortcode attributes
-    $atts = shortcode_atts(array(
-        'true'  => 'UNSAVE', // Text to show if ALREADY saved
-        'false' => 'SAVE',    // Text to show if NOT saved
-    ), $atts, 'influencer_is_saved');
-
-    // 2. Get current context
-    $current_influencer_id = get_the_ID();
-
-
-    // Optional: If user is not logged in, default to the 'false' (SAVE) state
-    if (! is_user_logged_in()) {
-        return $atts['false'];
-    }
-    $influencer_is_saved = is_influencer_saved($current_influencer_id);
-
-    // 4. Return the correct label based on results
-    if ($influencer_is_saved) {
-        return $atts['true'];
-    } else {
-        return $atts['false'];
-    }
-}
-add_shortcode('influencer_is_saved', 'shortcode_check_influencer_saved');
-
-
-function is_influencer_saved($current_influencer_id)
-{
-    $current_user_id = get_current_user_id();
-
-    if (! is_user_logged_in()) {
-        return false;
-    }
-
-    $args = array(
-        'post_type'      => 'saved-influencer',
-        'post_status'    => 'publish',
-        'posts_per_page' => 1,
-        'fields'         => 'ids', // Returns an array of IDs directly
-        'author'         => $current_user_id,
-        'meta_query'     => array(
-            array(
-                'key'     => 'influencer_id',
-                'value'   => $current_influencer_id,
-                'compare' => '=',
-            ),
-        ),
-    );
-
-    $posts = get_posts($args);
-
-    // Check if the array is not empty and return the first ID found
-    if (! empty($posts)) {
-        return $posts[0];
-    }
-
-    return false;
-}
-
-
 /**
  * Helper Function: Generates the HTML for the current user's avatar.
  * Retrieves the avatar from Paid Memberships Pro or falls back to
