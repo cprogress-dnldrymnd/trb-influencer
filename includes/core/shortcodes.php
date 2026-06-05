@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -655,7 +655,13 @@ function most_engage_niches()
 
     if (empty($ranked_niches)) return;
 
-    return 'Your top niches this month: ' . $ranked_niches[0]['name'] . ' (' . $ranked_niches[0]['percentage'] . '%), ' . $ranked_niches[1]['name'] . ' (' . $ranked_niches[1]['percentage'] . '%), ' . $ranked_niches[2]['name'] . ' (' . $ranked_niches[2]['percentage'] . '%).';
+    return sprintf(
+        /* translators: 1: niche name, 2: percentage, 3: niche name, 4: percentage, 5: niche name, 6: percentage */
+        __('Your top niches this month: %1$s (%2$s%%), %3$s (%4$s%%), %5$s (%6$s%%).', 'hello-elementor-child'),
+        $ranked_niches[0]['name'], $ranked_niches[0]['percentage'],
+        $ranked_niches[1]['name'], $ranked_niches[1]['percentage'],
+        $ranked_niches[2]['name'], $ranked_niches[2]['percentage']
+    );
 }
 
 add_shortcode('most_engage_niches', 'most_engage_niches');
@@ -1338,7 +1344,7 @@ function shortcode_influencer_hashtags($atts = [])
 
     $html = '<div class="influencer-hashtags">';
     $html .= '<div class="influencer-hashtags-title">';
-    $html .= 'HASHTAGS';
+    $html .= esc_html__('HASHTAGS', 'hello-elementor-child');
     $html .= '</div>';
     $html .= render_hashtag_cloud($hashtags, $limit, true);
     $html .= '</div>';
@@ -1607,15 +1613,15 @@ function calculate_influencer_platform_score($post_id = null)
     $final_score = round($engagement_component + $growth_component + $consistency_component + $audience_component);
 
     // Label ranges per spec: 0-30, 31-50, 51-70, 71-100
-    $label = 'Growth Opportunity';
+    $label = __('Growth Opportunity', 'hello-elementor-child');
     if ($final_score >= 71) {
-        $label = 'High Growth';
+        $label = __('High Growth', 'hello-elementor-child');
     } elseif ($final_score >= 51) {
-        $label = 'Steady Growth';
+        $label = __('Steady Growth', 'hello-elementor-child');
     } elseif ($final_score >= 31) {
-        $label = 'Moderate Growth';
+        $label = __('Moderate Growth', 'hello-elementor-child');
     } elseif ($final_score >= 0) {
-        $label = 'Growth Opportunity';
+        $label = __('Growth Opportunity', 'hello-elementor-child');
     }
 
     return [
@@ -1643,7 +1649,7 @@ function shortcode_influencer_platform_score($atts)
     $atts = shortcode_atts([
         'show_breakdown' => '0',
         'show_label'     => '1',
-        'prefix'         => 'Platform score:',
+        'prefix'         => __('Platform score:', 'hello-elementor-child'),
     ], $atts ?? []);
     $post_id = get_the_ID();
     if (get_query_var('current_influencer_id')) {
@@ -1757,7 +1763,7 @@ function get_pmpro_membership_level_shortcode()
 
     // If user is not logged in, return early
     if (empty($current_user_id)) {
-        return 'Guest';
+        return __('Guest', 'hello-elementor-child');
     }
 
     $membership_level = pmpro_getMembershipLevelForUser($current_user_id);
@@ -1766,9 +1772,8 @@ function get_pmpro_membership_level_shortcode()
         return esc_html($membership_level->name);
     }
 
-    return 'No Active Membership';
+    return __('No Active Membership', 'hello-elementor-child');
 }
-
 
 /**
  * Retrieves and formats raw post content.

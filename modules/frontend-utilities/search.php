@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -799,11 +799,11 @@ class Influencer_Search
             ob_end_clean();
             if (is_array($debug_payload)) {
                 wp_send_json_error(array(
-                    'message' => 'No posts found',
+                    'message' => __('No posts found', 'hello-elementor-child'),
                     'debug'   => $debug_payload,
                 ));
             } else {
-                wp_send_json_error('No posts found');
+                wp_send_json_error( __('No posts found', 'hello-elementor-child') );
             }
         }
 

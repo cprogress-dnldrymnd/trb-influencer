@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 /**
  * Plugin Name: Saves Manager
@@ -54,6 +54,7 @@ class Saves_Manager
         add_action('wp_ajax_upsert_influencer_group', [$this, 'handle_upsert_group_ajax']);
         add_action('wp_ajax_delete_influencer_group', [$this, 'handle_delete_group_ajax']);
         add_action('wp_ajax_remove_influencer_from_group', [$this, 'handle_remove_influencer_from_group_ajax']);
+        add_action('wp_ajax_bulk_remove_from_group', [$this, 'handle_bulk_remove_from_group_ajax']);
         add_action('wp_ajax_unlock_and_save_influencer', [$this, 'handle_unlock_and_save_ajax']);
 
         // Saved Searches Pagination & Deletion
@@ -69,6 +70,39 @@ class Saves_Manager
         // Frontend hooks for injecting variables, styles, and scripts
         add_action('wp_enqueue_scripts', [$this, 'enqueue_ajax_variables']);
         add_action('wp_footer', [$this, 'render_inline_assets'], 100);
+
+        add_action('admin_init', [$this, 'maybe_migrate_group_companion_meta']);
+    }
+
+    /**
+     * One-time migration: backfills _in_group_{id} companion meta for all existing
+     * saved-influencer posts so the indexed EXISTS query replaces the old LIKE query.
+     */
+    public function maybe_migrate_group_companion_meta()
+    {
+        if (get_option('dd_group_meta_migrated')) {
+            return;
+        }
+
+        $posts = get_posts([
+            'post_type'              => 'saved-influencer',
+            'posts_per_page'         => -1,
+            'fields'                 => 'ids',
+            'update_post_term_cache' => false,
+        ]);
+
+        foreach ($posts as $post_id) {
+            $lists = get_post_meta($post_id, 'saved_in_lists', true);
+            if (is_array($lists)) {
+                foreach ($lists as $group_id) {
+                    if ($group_id) {
+                        update_post_meta($post_id, '_in_group_' . sanitize_key($group_id), 1);
+                    }
+                }
+            }
+        }
+
+        update_option('dd_group_meta_migrated', 1);
     }
 
     /**
@@ -613,7 +647,7 @@ class Saves_Manager
                                 'author'         => $user_id,
                                 'posts_per_page' => 5,
                                 'meta_query'     => [
-                                    ['key' => 'saved_in_lists', 'value' => '"' . $list['id'] . '"', 'compare' => 'LIKE']
+                                    ['key' => '_in_group_' . sanitize_key($list['id']), 'compare' => 'EXISTS']
                                 ]
                             ]);
 
@@ -797,17 +831,17 @@ class Saves_Manager
     public function handle_delete_saved_search_ajax()
     {
         check_ajax_referer('save_search_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
         $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
         $post = get_post($post_id);
 
         if ($post && $post->post_author == get_current_user_id() && $post->post_type === 'saved-search') {
             wp_delete_post($post_id, true);
-            wp_send_json_success(['message' => 'Search deleted successfully.']);
+            wp_send_json_success(['message' => __('Search deleted successfully.', 'hello-elementor-child')]);
         }
 
-        wp_send_json_error(['message' => 'Could not delete search.']);
+        wp_send_json_error(['message' => __('Could not delete search.', 'hello-elementor-child')]);
     }
 
     /**
@@ -816,7 +850,7 @@ class Saves_Manager
     public function handle_save_search_ajax()
     {
         check_ajax_referer('save_search_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Please login to save searches.']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Please login to save searches.', 'hello-elementor-child')]);
 
         $user_id = get_current_user_id();
         $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
@@ -851,10 +885,10 @@ class Saves_Manager
 
         $post_id = wp_insert_post($post_args);
 
-        if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Error creating save file.']);
+        if (is_wp_error($post_id)) wp_send_json_error(['message' => __('Error creating save file.', 'hello-elementor-child')]);
 
         update_post_meta($post_id, 'search_query', $final_string);
-        wp_send_json_success(['message' => 'Search saved successfully!']);
+        wp_send_json_success(['message' => __('Search saved successfully!', 'hello-elementor-child')]);
     }
 
     /**
@@ -863,14 +897,14 @@ class Saves_Manager
     public function handle_get_modal_data_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'You must be logged in.']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('You must be logged in.', 'hello-elementor-child')]);
 
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
         $user_id = get_current_user_id();
 
         $influencer_post = get_post((int) $influencer_id);
         if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
-            wp_send_json_error(['message' => 'Invalid influencer.']);
+            wp_send_json_error(['message' => __('Invalid influencer.', 'hello-elementor-child')]);
         }
 
         $user_lists = $this->get_normalized_groups($user_id);
@@ -903,18 +937,18 @@ class Saves_Manager
     public function handle_save_influencer_lists_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'You must be logged in to save.']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('You must be logged in to save.', 'hello-elementor-child')]);
 
         // Convert the ID to a strict integer so myCred recognizes it natively
         $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
         $selected_lists = isset($_POST['lists']) ? array_map('sanitize_text_field', (array)$_POST['lists']) : [];
         $user_id = get_current_user_id();
 
-        if (empty($influencer_id)) wp_send_json_error(['message' => 'No Influencer ID provided.']);
+        if (empty($influencer_id)) wp_send_json_error(['message' => __('No Influencer ID provided.', 'hello-elementor-child')]);
 
         $influencer_post = get_post($influencer_id);
         if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
-            wp_send_json_error(['message' => 'Invalid influencer.']);
+            wp_send_json_error(['message' => __('Invalid influencer.', 'hello-elementor-child')]);
         }
 
         // --- STANDARD SAVE LOGIC ---
@@ -928,7 +962,7 @@ class Saves_Manager
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message'     => 'Unsaved successfully!',
+                'message' => __('Unsaved successfully!', 'hello-elementor-child'),
                 'notice_html' => $message,
                 'status'      => 'unsaved',
                 'count'       => 0
@@ -944,18 +978,25 @@ class Saves_Manager
                 ];
                 $post_id = wp_insert_post($post_args);
 
-                if (is_wp_error($post_id)) wp_send_json_error(['message' => 'Could not create post.']);
+                if (is_wp_error($post_id)) wp_send_json_error(['message' => __('Could not create post.', 'hello-elementor-child')]);
                 update_post_meta($post_id, 'influencer_id', $influencer_id);
             }
 
+            $old_lists = get_post_meta($post_id, 'saved_in_lists', true) ?: [];
             update_post_meta($post_id, 'saved_in_lists', $selected_lists);
+            foreach (array_diff((array) $old_lists, $selected_lists) as $gid) {
+                delete_post_meta($post_id, '_in_group_' . sanitize_key($gid));
+            }
+            foreach (array_diff($selected_lists, (array) $old_lists) as $gid) {
+                update_post_meta($post_id, '_in_group_' . sanitize_key($gid), 1);
+            }
 
             // Removed the $is_newly_unlocked check. Now it only returns the standard "saved" message.
             $message = '<div class="my-cred-notice-text"><h4>Creator successfully saved</h4><p>This creator has been updated in your Saved Lists</p></div>';
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message'     => 'Saved successfully!',
+                'message' => __('Saved successfully!', 'hello-elementor-child'),
                 'notice_html' => $message,
                 'status'      => 'saved',
                 'count'       => count($selected_lists)
@@ -971,14 +1012,14 @@ class Saves_Manager
     public function handle_remove_influencer_from_group_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
         $influencer_id = isset($_POST['influencer_id']) ? sanitize_text_field($_POST['influencer_id']) : '';
         $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
         $user_id = get_current_user_id();
 
         if (empty($influencer_id) || empty($group_id)) {
-            wp_send_json_error(['message' => 'Missing influencer or group data.']);
+            wp_send_json_error(['message' => __('Missing influencer or group data.', 'hello-elementor-child')]);
         }
 
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
@@ -992,13 +1033,67 @@ class Saves_Manager
                     wp_delete_post($post_id, true); // If they belong to no other groups, purge the save
                 } else {
                     update_post_meta($post_id, 'saved_in_lists', $saved_in);
+                    delete_post_meta($post_id, '_in_group_' . sanitize_key($group_id));
                 }
 
-                wp_send_json_success(['message' => 'Creator removed successfully.']);
+                wp_send_json_success(['message' => __('Creator removed successfully.', 'hello-elementor-child')]);
             }
         }
 
-        wp_send_json_error(['message' => 'Creator record not found in this group.']);
+        wp_send_json_error(['message' => __('Creator record not found in this group.', 'hello-elementor-child')]);
+    }
+
+    /**
+     * AJAX Handler: Bulk Remove Multiple Influencers from a Group
+     */
+    public function handle_bulk_remove_from_group_ajax()
+    {
+        check_ajax_referer('save_influencer_nonce', 'security');
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
+
+        $group_id       = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
+        $influencer_ids = isset($_POST['influencer_ids']) && is_array($_POST['influencer_ids'])
+            ? array_map('sanitize_text_field', $_POST['influencer_ids'])
+            : [];
+        $user_id = get_current_user_id();
+
+        if (empty($group_id) || empty($influencer_ids)) {
+            wp_send_json_error(['message' => __('Missing group or influencer data.', 'hello-elementor-child')]);
+        }
+
+        $removed = [];
+        $failed  = [];
+
+        foreach ($influencer_ids as $influencer_id) {
+            $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
+
+            if (!$post_id) {
+                $failed[] = $influencer_id;
+                continue;
+            }
+
+            $saved_in = get_post_meta($post_id, 'saved_in_lists', true);
+            if (!is_array($saved_in)) {
+                $failed[] = $influencer_id;
+                continue;
+            }
+
+            $saved_in = array_diff($saved_in, [$group_id]);
+
+            if (empty($saved_in)) {
+                wp_delete_post($post_id, true);
+            } else {
+                update_post_meta($post_id, 'saved_in_lists', $saved_in);
+                delete_post_meta($post_id, '_in_group_' . sanitize_key($group_id));
+            }
+
+            $removed[] = $influencer_id;
+        }
+
+        wp_send_json_success([
+            'removed' => $removed,
+            'failed'  => $failed,
+        ]);
     }
 
     /**
@@ -1007,16 +1102,16 @@ class Saves_Manager
     public function handle_unlock_and_save_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
         $user_id = get_current_user_id();
         $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
 
-        if (!$influencer_id) wp_send_json_error(['message' => 'Invalid creator profile.']);
+        if (!$influencer_id) wp_send_json_error(['message' => __('Invalid creator profile.', 'hello-elementor-child')]);
 
         $influencer_post = get_post($influencer_id);
         if (!$influencer_post || $influencer_post->post_type !== 'influencer') {
-            wp_send_json_error(['message' => 'Invalid influencer.']);
+            wp_send_json_error(['message' => __('Invalid influencer.', 'hello-elementor-child')]);
         }
 
         // 1. Verify MyCred Balance
@@ -1026,11 +1121,11 @@ class Saves_Manager
                 wp_send_json_error([
                     'action' => 'redirect',
                     'url' => '/buy-credit/',
-                    'message' => 'Insufficient credits. Redirecting...'
+                    'message' => __('Insufficient credits. Redirecting...', 'hello-elementor-child')
                 ]);
             }
         } else {
-            wp_send_json_error(['message' => 'Credit system is currently offline.']);
+            wp_send_json_error(['message' => __('Credit system is currently offline.', 'hello-elementor-child')]);
         }
 
         // 2. Deduct Credit & Suppress Reload Notice
@@ -1104,7 +1199,7 @@ class Saves_Manager
         );
 
         wp_send_json_success([
-            'message' => 'Creator unlocked and saved!',
+            'message' => __('Creator unlocked and saved!', 'hello-elementor-child'),
             'count' => count($saved_in),
             'new_balance' => $new_balance,
             'notice_html' => $custom_notice
@@ -1117,14 +1212,14 @@ class Saves_Manager
     public function handle_upsert_group_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
         $user_id = get_current_user_id();
         $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
         $desc = isset($_POST['desc']) ? sanitize_textarea_field($_POST['desc']) : '';
 
-        if (empty($name)) wp_send_json_error(['message' => 'Group name is required.']);
+        if (empty($name)) wp_send_json_error(['message' => __('Group name is required.', 'hello-elementor-child')]);
 
         $user_lists = $this->get_normalized_groups($user_id);
 
@@ -1152,12 +1247,12 @@ class Saves_Manager
     public function handle_delete_group_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
         $user_id = get_current_user_id();
         $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
 
-        if (empty($group_id)) wp_send_json_error(['message' => 'Group ID missing.']);
+        if (empty($group_id)) wp_send_json_error(['message' => __('Group ID missing.', 'hello-elementor-child')]);
 
         $user_lists = $this->get_normalized_groups($user_id);
         if (isset($user_lists[$group_id])) {
@@ -1173,7 +1268,7 @@ class Saves_Manager
             'update_post_term_cache' => false,
             'update_post_meta_cache' => false,
             'meta_query'             => [
-                ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
+                ['key' => '_in_group_' . sanitize_key($group_id), 'compare' => 'EXISTS']
             ]
         ]);
 
@@ -1185,11 +1280,12 @@ class Saves_Manager
                     wp_delete_post($post_id_item, true);
                 } else {
                     update_post_meta($post_id_item, 'saved_in_lists', $lists);
+                    delete_post_meta($post_id_item, '_in_group_' . sanitize_key($group_id));
                 }
             }
         }
 
-        wp_send_json_success(['message' => 'Group deleted.']);
+        wp_send_json_success(['message' => __('Group deleted.', 'hello-elementor-child')]);
     }
 
     /**
@@ -1199,19 +1295,19 @@ class Saves_Manager
     public function handle_get_group_influencers_ajax()
     {
         check_ajax_referer('save_influencer_nonce', 'security');
-        if (!is_user_logged_in()) wp_send_json_error(['message' => 'Unauthorized.']);
+        if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized.', 'hello-elementor-child')]);
 
         $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
         $user_id = get_current_user_id();
 
-        if (empty($group_id)) wp_send_json_error(['message' => 'Invalid group requested.']);
+        if (empty($group_id)) wp_send_json_error(['message' => __('Invalid group requested.', 'hello-elementor-child')]);
 
         $saved_posts = get_posts([
             'post_type'      => 'saved-influencer',
             'author'         => $user_id,
             'posts_per_page' => 500,
             'meta_query'     => [
-                ['key' => 'saved_in_lists', 'value' => '"' . $group_id . '"', 'compare' => 'LIKE']
+                ['key' => '_in_group_' . sanitize_key($group_id), 'compare' => 'EXISTS']
             ]
         ]);
 
@@ -2109,8 +2205,109 @@ class Saves_Manager
                             group_id: id
                         },
                         success: function(res) {
-                            if (res.success) $('#inf-view-group-body').html(res.data.html);
-                            else $('#inf-view-group-body').html('<div class="inf-alert">' + res.data.message + '</div>');
+                            if (res.success) {
+                                $('#inf-view-group-body').html(res.data.html);
+                                injectBulkCheckboxes();
+                            } else {
+                                $('#inf-view-group-body').html('<div class="inf-alert">' + res.data.message + '</div>');
+                            }
+                        }
+                    });
+                });
+
+                // Inject checkboxes into each influencer row for bulk selection
+                function injectBulkCheckboxes() {
+                    var $body = $('#inf-view-group-body');
+
+                    // Remove any leftover bulk bar from previous view
+                    $('#inf-bulk-action-bar').remove();
+
+                    // Prepend bulk action bar (hidden until a selection is made)
+                    $body.before(
+                        '<div id="inf-bulk-action-bar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:12px;">' +
+                            '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">' +
+                                '<input type="checkbox" id="inf-bulk-select-all"> Select all' +
+                            '</label>' +
+                            '<button type="button" id="inf-bulk-remove-btn" class="inf-btn" style="margin-left:auto;">Remove selected (<span id="inf-bulk-count">0</span>)</button>' +
+                        '</div>'
+                    );
+
+                    // Inject checkbox into each row
+                    $body.find('.inf-loop-item-row').each(function() {
+                        var influencerId = $(this).find('.inf-remove-from-group-trigger').attr('data-influencer-id') ||
+                                           $(this).find('[data-influencer-id]').first().attr('data-influencer-id');
+                        if (influencerId && !$(this).find('.inf-bulk-check').length) {
+                            $(this).prepend(
+                                '<label class="inf-bulk-check-label" style="display:flex;align-items:center;padding:8px;cursor:pointer;">' +
+                                    '<input type="checkbox" class="inf-bulk-check" data-influencer-id="' + influencerId + '">' +
+                                '</label>'
+                            );
+                        }
+                    });
+
+                    // Show the bar if there are any rows
+                    if ($body.find('.inf-loop-item-row').length > 0) {
+                        $('#inf-bulk-action-bar').css('display', 'flex');
+                    }
+                }
+
+                // Update "Remove selected (N)" count on checkbox change
+                $(document).on('change', '.inf-bulk-check', function() {
+                    var count = $('.inf-bulk-check:checked').length;
+                    $('#inf-bulk-count').text(count);
+                    var allChecked = count > 0 && count === $('.inf-bulk-check').length;
+                    $('#inf-bulk-select-all').prop('checked', allChecked).prop('indeterminate', count > 0 && !allChecked);
+                });
+
+                // Select all toggle
+                $(document).on('change', '#inf-bulk-select-all', function() {
+                    var checked = $(this).is(':checked');
+                    $('.inf-bulk-check').prop('checked', checked);
+                    $('#inf-bulk-count').text(checked ? $('.inf-bulk-check').length : 0);
+                });
+
+                // Bulk remove submit
+                $(document).on('click', '#inf-bulk-remove-btn', function() {
+                    var ids = [];
+                    $('.inf-bulk-check:checked').each(function() {
+                        ids.push($(this).attr('data-influencer-id'));
+                    });
+
+                    if (ids.length === 0) return;
+
+                    var $btn = $(this);
+                    $btn.text('Removing...').prop('disabled', true);
+
+                    $.ajax({
+                        url: ajax_vars.ajax_url,
+                        type: 'POST',
+                        data: {
+                            action: 'bulk_remove_from_group',
+                            security: ajax_vars.save_influencer_nonce,
+                            group_id: state.viewingGroupId,
+                            influencer_ids: ids
+                        },
+                        success: function(res) {
+                            $btn.html('Remove selected (<span id="inf-bulk-count">0</span>)').prop('disabled', false);
+                            if (res.success) {
+                                $.each(res.data.removed, function(i, influencerId) {
+                                    var $row = $('.inf-bulk-check[data-influencer-id="' + influencerId + '"]').closest('.inf-loop-item-row');
+                                    $row.fadeOut(300, function() { $(this).remove(); });
+                                });
+                                setTimeout(function() {
+                                    if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
+                                        $('#inf-bulk-action-bar').remove();
+                                        $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                    } else {
+                                        $('#inf-bulk-select-all').prop('checked', false).prop('indeterminate', false);
+                                        $('#inf-bulk-count').text('0');
+                                    }
+                                }, 350);
+                            }
+                        },
+                        error: function() {
+                            $btn.html('Remove selected (<span id="inf-bulk-count">0</span>)').prop('disabled', false);
+                            $('#inf-view-group-body').prepend('<div class="inf-alert" style="color:#c00;margin-bottom:12px;">Bulk remove failed. Please try again.</div>');
                         }
                     });
                 });
@@ -2222,7 +2419,11 @@ class Saves_Manager
 
                                     // If this was the last creator, show empty state message
                                     if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
+                                        $('#inf-bulk-action-bar').remove();
                                         $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                    } else {
+                                        // Update bulk count after single removal
+                                        $('#inf-bulk-count').text($('.inf-bulk-check:checked').length);
                                     }
                                 });
                             } else {

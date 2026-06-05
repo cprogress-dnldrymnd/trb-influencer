@@ -117,7 +117,6 @@ function dd_pmpro_force_checkout_text_observer()
 add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99);
 
 
-
 /**
  * Intercepts and modifies localization strings for Paid Memberships Pro.
  * * This function hooks into the WordPress 'gettext' translation system. It checks 
