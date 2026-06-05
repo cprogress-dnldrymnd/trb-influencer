@@ -86,7 +86,7 @@ function action_wp_head()
         echo ".hide-on-free-trial{ display: none; }";
         echo ".outreach-form-trigger{ display: none !important}";
     }
-    if (!is_admin()) {
+    if (!\Elementor\Plugin::$instance->editor->is_edit_mode() ) {
 
 
         $recently_viewed = get_viewed_influencer();
