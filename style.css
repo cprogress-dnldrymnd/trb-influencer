@@ -858,7 +858,7 @@ input:checked + .slider:before {
 }
 
 
-.link-black a:hover{
+.link-black a:hover, .link-black:hover, .link-black:hover *{
   color: var( --e-global-color-primary ) !important;
 }
 
