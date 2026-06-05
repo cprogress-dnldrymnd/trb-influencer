@@ -28,7 +28,7 @@ function recently_view_influencers($query)
 {
 
     // 1. Get the array of IDs
-    $recently_viewed = get_recent_influencer_ids_array(5);
+    $recently_viewed = get_viewed_influencer();
 
     // 2. Check if we actually have IDs to show
     if (! empty($recently_viewed)) {

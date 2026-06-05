@@ -88,7 +88,7 @@ function action_wp_head()
     }
 
 
-    $recently_viewed = get_recent_influencer_ids_array(5);
+    $recently_viewed = get_viewed_influencer();
     $current_user_id = get_current_user_id();
     $ranked_niches = get_user_niche_ranking($current_user_id, 3);
     $recently_viewed_stats = true;

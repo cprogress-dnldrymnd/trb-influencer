@@ -170,28 +170,6 @@ function get_matched_criteria_labels($post_id, $criteria)
     return array_unique($phrases);
 }
 
-/**
- * Usage: [recent_influencer_ids limit="5"] 
- * Output Example: "102, 45, 305"
- */
-function get_recent_influencer_ids_array($limit = 5)
-{
-    if (! is_user_logged_in()) {
-        return array();
-    }
-
-    $user_id    = get_current_user_id();
-    $meta_key   = 'recently_viewed_influencers';
-    $viewed_ids = get_user_meta($user_id, $meta_key, true);
-
-    if (empty($viewed_ids) || ! is_array($viewed_ids)) {
-        return array();
-    }
-
-    // Slice to the requested limit
-    return array_slice($viewed_ids, 0, $limit);
-}
-
 
 /**
  * Converts a number to a short metric format (e.g., 1.1K, 1.5M).
