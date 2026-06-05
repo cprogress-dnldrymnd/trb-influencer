@@ -1778,8 +1778,8 @@ class Influencer_Search
     public function register_elementor_widgets($widgets_manager)
     {
         // Use get_stylesheet_directory() since these files are inside your child theme
-        require_once(get_stylesheet_directory() . '/includes/widgets/class-influencer-search-form-widget.php');
-        require_once(get_stylesheet_directory() . '/includes/widgets/class-influencer-search-results-widget.php');
+        require_once(get_stylesheet_directory() . '/includes/modules/frontend-utilities/widgets/class-influencer-search-form-widget.php');
+        require_once(get_stylesheet_directory() . '/includes/modules/frontend-utilities/widgets/class-influencer-search-results-widget.php');
 
         $widgets_manager->register(new \Influencer_Search_Form_Widget());
         $widgets_manager->register(new \Influencer_Search_Results_Widget());
