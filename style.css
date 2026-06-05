@@ -2338,8 +2338,16 @@ body {
 .page-template-page-dashboard .toggle-switch input:checked + .slider {
   background-color: var(--e-global-color-primary);
 }
-.single-influencer .custom-tab .custom-tab-item.active, .single-influencer .custom-tab .custom-tab-item:hover, .single-influencer .custom-tab .custom-tab-item:focus {
+
+.single-influencer .custom-tab .custom-tab-item.active,
+.single-influencer .custom-tab .custom-tab-item:hover,
+.single-influencer .custom-tab .custom-tab-item:focus {
   background-color: var(--e-global-color-primary) !important;
+}
+.single-influencer .custom-tab .custom-tab-item.active *,
+.single-influencer .custom-tab .custom-tab-item:hover *,
+.single-influencer .custom-tab .custom-tab-item:focus * {
+  color: #fff !important;
 }
 .dd-time-btn.active,
 .dd-time-btn:hover {
