@@ -7,7 +7,7 @@ class Influencer_Search_Results_Widget extends \Elementor\Widget_Base {
 
     public function get_name()       { return 'influencer_search_results'; }
     public function get_title()      { return esc_html__( 'Influencer Search Results Grid', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-gallery-grid'; }
+    public function get_icon()       { return 'eicon-posts-grid'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {

@@ -7,7 +7,7 @@ class Widget_Creatordb_Feed extends \Elementor\Widget_Base {
 
     public function get_name()       { return 'sc_creatordb_feed'; }
     public function get_title()      { return esc_html__( 'CreatorDB Feed', 'trb-influencer' ); }
-    public function get_icon()       { return 'eicon-instagram-gallery'; }
+    public function get_icon()       { return 'eicon-instagram'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     protected function register_controls() {
