@@ -92,6 +92,8 @@ function action_wp_head()
     $current_user_id = get_current_user_id();
     $ranked_niches = get_user_niche_ranking($current_user_id, 3);
     $recentposts = shortcode_influencer_recentposts_reels();
+    $totalposts = shortcode_influencer_posts();
+    $engagerate = shortcode_influencer_engagerate();
     $recently_viewed_stats = true;
     $ranked_niches_stats = true;
 
@@ -110,6 +112,14 @@ function action_wp_head()
 
     if($recentposts == 0) {
         echo '#key-statistics-recent-posts { display: none !important; }';
+    }
+
+    if($totalposts == 0) {
+        echo '#key-statistics-total-posts { display: none !important; }';
+    }
+
+    if($engagerate == 0.00) {
+        echo '#key-statistics-engagerate { display: none !important; }';
     }
 
     echo '</style>';
