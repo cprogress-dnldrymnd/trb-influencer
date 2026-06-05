@@ -282,6 +282,7 @@ body:not(#error-page).show-body {
   letter-spacing: 0.7px;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .influencer-search-button.influencer-search-button.influencer-search-button:hover,
 .influencer-search-button.influencer-search-button.influencer-search-button:active,
@@ -2349,11 +2350,14 @@ body {
   background-color: transparent;
   border-color: var(--e-global-color-primary);
   color: var(--e-global-color-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .influencer-search-main .reset-filters-btn:hover,
 .influencer-search-main .reset-filters-btn:focus {
   background-color: var(--e-global-color-primary);
   color: #fff;
+  border-color: var(--e-global-color-primary);
 }
 /* Hide the button by default */
 .page-template-page-dashboard .reset-filters-btn {
