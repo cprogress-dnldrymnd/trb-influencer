@@ -104,7 +104,6 @@ $dir = get_stylesheet_directory();
 
 // 1. Core Includes (Load foundational dependencies first)
 require $dir . '/includes/core/helpers.php';
-require $dir . '/includes/core/custom-functions.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';
