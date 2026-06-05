@@ -1143,7 +1143,7 @@ input:checked + .slider:before {
 /* Individual hashtag styling */
 .hashtag-item {
   display: inline-block;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: lowercase;
   /* Optional: forces consistent casing */
   letter-spacing: -0.5px;
