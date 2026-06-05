@@ -1492,7 +1492,7 @@ class Influencer_Search
     public static function shortcode_search_form( $atts = [] ) {
         $atts = shortcode_atts( [
             'layout'   => 'main',
-            'btn_text' => 'GENERATE MATCHES',
+            'btn_text' => 'FIND MATCHES',
         ], $atts );
 
         $layout   = $atts['layout'];
@@ -1538,6 +1538,9 @@ class Influencer_Search
                         <button type="submit" class="influencer-search-button influencer-search-trigger elementor-button elementor-button-link elementor-size-sm">
                             <span class="elementor-button-content-wrapper"><span class="elementor-button-text"><?= esc_html( $btn_text ) ?></span></span>
                         </button>
+                    </div>
+                    <div class="save-this-search">
+                        <span class="save-search-trigger">Save this search</span>
                     </div>
                 </div>
             </form>
