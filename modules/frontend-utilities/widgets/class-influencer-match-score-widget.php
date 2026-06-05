@@ -52,28 +52,35 @@ class Influencer_Match_Score_Widget extends \Elementor\Widget_Base
         $post_id  = get_query_var('current_influencer_id') ?: get_the_ID();
         $criteria = get_query_var('search_criteria');
         $criteria = is_array($criteria) ? $criteria : [];
-        $score    = self::calculate_match_score($post_id, $criteria);
+
+        // Point to the new global helper function!
+        $score    = calculate_match_score($post_id, $criteria);
 
         if ($score < 0) {
             if (function_exists('creatordb_brief_match_score_badge_html')) {
-                return creatordb_brief_match_score_badge_html(-1);
+                echo creatordb_brief_match_score_badge_html(-1);
+                return;
             }
-            return '<span class="influencer-match-score-wrap">— Match Score</span>';
+            echo '<span class="influencer-match-score-wrap">— Match Score</span>';
+            return;
         }
 
         $badge_label = function_exists('creatordb_brief_match_score_badge_html')
             ? creatordb_brief_match_score_badge_html((int) $score)
             : ('✨ ' . (int) $score . '% Match Score');
 
+        // Point to the new global helper function!
         $tooltip = function_exists('creatordb_get_match_evidence_tooltip_html')
             ? creatordb_get_match_evidence_tooltip_html($post_id, $criteria)
-            : implode("\n", self::get_matched_criteria_labels($post_id, $criteria));
+            : implode("\n", get_matched_criteria_labels($post_id, $criteria));
 
         $html = '<div class="influencer-match-score-wrap tooltip-wrapper"><span class="influencer-match-score-trigger tooltip-trigger">' . esc_html($badge_label) . '</span>';
-        if ($tooltip !== '') {
-            $html .= '<div class="influencer-match-score-tooltip"><span class="influencer-match-score-checklist">' . $tooltip . '</span></div>';
+        if (!empty(trim($tooltip))) {
+            $html .= '<div class="influencer-match-score-tooltip tooltip-content">' . wp_kses_post($tooltip) . '</div>';
         }
         $html .= '</div>';
+
+        // Elementor requires echoing the result, not returning it!
         echo $html;
     }
 }
