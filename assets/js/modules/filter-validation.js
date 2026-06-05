@@ -9,49 +9,53 @@
      * submission when no selection has been made.
      */
     InfluencerApp.validate_required_search_filters = function () {
-        var form = document.querySelector('.influencer-search-main');
+        const form = document.querySelector('.influencer-search-main');
         if (!form) return;
 
-        // Native submit validation
-        form.addEventListener('submit', function (e) {
-            var filteredSearch = form.querySelector('.filtered-search');
-            if (!filteredSearch || !filteredSearch.classList.contains('active')) return;
+        form.addEventListener('submit', (e) => {
+            const filteredSearch = form.querySelector('.filtered-search');
 
-            var optionLists = filteredSearch.querySelectorAll('.required-on-search .options-list');
-            var isFormValid = true;
+            if (filteredSearch && filteredSearch.classList.contains('active')) {
+                const optionLists = filteredSearch.querySelectorAll('.required-on-search .options-list');
+                let isFormValid = true;
 
-            form.querySelectorAll('.custom-group-error').forEach(function (err) {
-                err.remove();
-            });
+                // Clear lingering errors
+                form.querySelectorAll('.custom-group-error').forEach(err => err.remove());
 
-            optionLists.forEach(function (listElement) {
-                var inputs     = Array.from(listElement.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
-                if (inputs.length === 0) return;
+                optionLists.forEach(listElement => {
+                    const inputs = Array.from(listElement.querySelectorAll('input[type="checkbox"], input[type="radio"]'));
+                    if (inputs.length === 0) return;
 
-                var hasSelection = inputs.some(function (input) { return input.checked; });
+                    const hasSelection = inputs.some(input => input.checked);
 
-                if (!hasSelection) {
-                    isFormValid = false;
-                    var dropdownHeader = listElement.closest('.filter-widget').querySelector('.dropdown-button');
-                    if (dropdownHeader) {
-                        var errorSpan           = document.createElement('span');
-                        errorSpan.className     = 'custom-group-error';
-                        errorSpan.style.cssText = 'color:#dc3545;font-size:12px;display:block;margin-top:4px;font-weight:normal;text-transform:initial;';
-                        errorSpan.innerText     = '* At least 1 selection required';
-                        dropdownHeader.appendChild(errorSpan);
+                    if (!hasSelection) {
+                        isFormValid = false;
+                        const dropdownHeader = listElement.closest('.filter-widget').querySelector('.dropdown-button');
+                        if (dropdownHeader) {
+                            const errorSpan = document.createElement('span');
+                            errorSpan.className = 'custom-group-error';
+                            errorSpan.style.color = '#dc3545';
+                            errorSpan.style.fontSize = '12px';
+                            errorSpan.style.display = 'block';
+                            errorSpan.style.marginTop = '4px';
+                            errorSpan.style.fontWeight = 'normal';
+                            errorSpan.style.textTransform = 'initial';
+                            errorSpan.innerText = '* At least 1 selection required';
+                            dropdownHeader.appendChild(errorSpan);
+                        }
                     }
-                }
-            });
+                });
 
-            if (!isFormValid) e.preventDefault();
+                if (!isFormValid) e.preventDefault();
+            }
         });
 
-        // Real-time error clearing
-        form.addEventListener('change', function (e) {
+        // Real-time error clearing UX
+        form.addEventListener('change', (e) => {
             if (e.target.matches('.options-list input')) {
-                var widget = e.target.closest('.filter-widget');
+                const widget = e.target.closest('.filter-widget');
                 if (widget) {
-                    var errorMsg = widget.querySelector('.custom-group-error');
+                    const errorMsg = widget.querySelector('.custom-group-error');
                     if (errorMsg) errorMsg.remove();
                 }
             }
