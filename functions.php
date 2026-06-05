@@ -65,14 +65,18 @@ require $dir . '/includes/integrations/pmpro.php';
 
 // 3. Domain Modules (Self-contained features)
 require $dir . '/modules/email-manager/email-template-manager.php';
+
 require $dir . '/modules/frontend-utilities/charts.php';
 require $dir . '/modules/frontend-utilities/feeds.php';
 require $dir . '/modules/frontend-utilities/search.php';
-require $dir . '/modules/frontend-utilities/sign-up.php';
+
 require $dir . '/modules/outreach/outreach.php';
+
+require $dir . '/modules/membership-extensions/pmpro-sign-up.php';
 require $dir . '/modules/membership-extensions/pmpro-dynamic-pricing.php';
 require $dir . '/modules/membership-extensions/pmpro-mycred-rewards-manager.php';
 require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
+
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';
 require $dir . '/modules/saves/saves-manager.php';
 
