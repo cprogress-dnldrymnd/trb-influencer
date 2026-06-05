@@ -94,6 +94,8 @@ function action_wp_head()
     $recentposts = shortcode_influencer_recentposts_reels();
     $totalposts = shortcode_influencer_posts();
     $engagerate = shortcode_influencer_engagerate();
+    $avglikes = shortcode_influencer_avglikes();
+    $avgcomments = shortcode_influencer_avgcomments();
     $recently_viewed_stats = true;
     $ranked_niches_stats = true;
 
@@ -120,6 +122,14 @@ function action_wp_head()
 
     if($engagerate == 0.00) {
         echo '#key-statistics-engagerate { display: none !important; }';
+    }
+
+    if($avglikes == 0) {
+        echo '#key-statistics-avglikes { display: none !important; }';
+    }
+
+    if($avgcomments == 0) {
+        echo '#key-statistics-avgcomments { display: none !important; }';
     }
 
     echo '</style>';
