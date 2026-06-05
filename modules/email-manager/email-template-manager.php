@@ -156,7 +156,7 @@ class DD_Global_Email_Manager
                     txtarea.focus();
                     lastFocusedElement.selectionEnd = start + tag.length;
                 } else {
-                    alert('Please click inside the header or footer field to insert a merge tag.');
+                    window.ddAlert('Please click inside the header or footer field to insert a merge tag.');
                 }
             });
 

@@ -3,6 +3,9 @@
 
     window.InfluencerApp = window.InfluencerApp || {};
 
+    InfluencerApp.ddAlert   = window.ddAlert;
+    InfluencerApp.ddConfirm = window.ddConfirm;
+
     InfluencerApp.dashboardLogoHeightVar = function () {
         var $logo = $('#dashboard-sidebar-logo');
         if ($logo.length) {
@@ -29,7 +32,7 @@
                 var url = window.location.href;
                 try {
                     await navigator.clipboard.writeText(url);
-                    alert('URL copied to clipboard successfully.');
+                    window.ddAlert('URL copied to clipboard successfully.');
                 } catch (err) {
                     // Clipboard API unavailable (e.g. non-HTTPS context) — show the URL so user can copy manually.
                     window.prompt('Copy the link below:', url);

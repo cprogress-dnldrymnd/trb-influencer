@@ -810,10 +810,11 @@ class DD_PMPro_Rewards_Manager
 
                 $(document).on('click', '.dd-remove-row', function(e) {
                     e.preventDefault();
-                    if (confirm('Remove this rule?')) {
-                        $(this).closest('.dd-repeater-row').remove();
+                    var $row = $(this).closest('.dd-repeater-row');
+                    window.ddConfirm('Remove this rule?', function() {
+                        $row.remove();
                         reindex_rows();
-                    }
+                    });
                 });
 
                 $(document).on('click', '.dd-toggle-row', function() {
@@ -883,8 +884,8 @@ class DD_PMPro_Rewards_Manager
                             },
                             success: function(res) {
                                 $('#dd-cron-spinner').removeClass('is-active');
-                                alert(res.data || 'Action Complete.');
-                                location.reload(); // Reload to refresh logs
+                                window.ddAlert(res.data || 'Action Complete.');
+                                location.reload();
                             }
                         });
                     });
@@ -893,7 +894,7 @@ class DD_PMPro_Rewards_Manager
                     $('.dd-clear-log-btn').click(function(e) {
                         e.preventDefault();
                         var logType = $(this).data('type');
-                        if (confirm('Are you sure you want to permanently clear the ' + logType + ' logs?')) {
+                        window.ddConfirm('Are you sure you want to permanently clear the ' + logType + ' logs?', function() {
                             $.ajax({
                                 url: dd_pmpro_ajax.ajax_url,
                                 type: 'POST',
@@ -903,11 +904,11 @@ class DD_PMPro_Rewards_Manager
                                     security: dd_pmpro_ajax.nonce
                                 },
                                 success: function(res) {
-                                    alert(res.data);
+                                    window.ddAlert(res.data);
                                     location.reload();
                                 }
                             });
-                        }
+                        });
                     });
                 }
             });

@@ -38,6 +38,7 @@ function hello_elementor_child_scripts_styles()
     //    Order matters: dependencies must be registered before their consumers.
     // ------------------------------------------------------------------
     $modules = [
+        'dd-modal'             => 'modules/dd-modal.js',           // global ddAlert / ddConfirm — must be first
         'inf-tag-prioritizer'  => 'modules/tag-prioritizer.js',   // no deps on other modules
         'inf-ui-utils'         => 'modules/ui-utils.js',           // no deps on other modules
         'inf-search-toggle'    => 'modules/search-toggle.js',      // no deps on other modules
@@ -85,6 +86,11 @@ function hello_elementor_child_scripts_styles()
     ]);
 }
 add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
+
+function hello_elementor_child_admin_scripts() {
+    wp_enqueue_script('dd-modal', get_stylesheet_directory_uri() . '/assets/js/modules/dd-modal.js', [], HELLO_ELEMENTOR_CHILD_VERSION, true);
+}
+add_action('admin_enqueue_scripts', 'hello_elementor_child_admin_scripts');
 
 
 

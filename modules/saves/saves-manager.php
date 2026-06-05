@@ -2018,7 +2018,7 @@ class Saves_Manager
                                 renderGroupsList();
                                 switchModalView('inf-view-manage');
                             } else {
-                                alert('Error: ' + res.data.message);
+                                window.ddAlert('Error: ' + res.data.message);
                             }
                             $btnText.text(ogText);
                             state.triggerBtn.css('pointer-events', 'auto');
@@ -2074,13 +2074,13 @@ class Saves_Manager
                                     window.location.href = res.data.url;
                                     return;
                                 } else {
-                                    alert(res.data.message);
+                                    window.ddAlert(res.data.message);
                                 }
                             }
                             $btn.text(ogBtnText).prop('disabled', false);
                         },
                         error: function() {
-                            alert('A server error occurred. Please try again.');
+                            window.ddAlert('A server error occurred. Please try again.');
                             $btn.text(ogBtnText).prop('disabled', false);
                         }
                     });
@@ -2117,7 +2117,7 @@ class Saves_Manager
                     let name = $('#inf-edit-name').val().trim();
                     let desc = $('#inf-edit-desc').val().trim();
                     if (!name) {
-                        alert("Group name is required.");
+                        window.ddAlert("Group name is required.");
                         return;
                     }
                     let $btn = $(this);
@@ -2166,7 +2166,7 @@ class Saves_Manager
                                     $('#inf-modal-overlay').hide();
                                 }
                             } else {
-                                alert(res.data.message);
+                                window.ddAlert(res.data.message);
                             }
                             $btn.text('Save').prop('disabled', false);
                         }
@@ -2314,7 +2314,7 @@ class Saves_Manager
 
                 $(document).on('click', '#inf-export-group-pdf', function() {
                     if (!state.viewingGroupId) {
-                        alert('No group selected.');
+                        window.ddAlert('No group selected.');
                         return;
                     }
 
@@ -2357,86 +2357,81 @@ class Saves_Manager
                 $(document).on('click', '.inf-trigger-delete-group', function(e) {
                     e.stopPropagation();
                     $('.inf-dropdown-wrapper').removeClass('active');
-                    if (!confirm("Are you sure you want to delete this group? This will remove the group from all saved creators.")) return;
-
-                    let id = $(this).attr('data-id');
-                    let $card = $('#card-' + id);
-                    $card.css('opacity', '0.5');
-
-                    $.ajax({
-                        url: ajax_vars.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'delete_influencer_group',
-                            security: ajax_vars.save_influencer_nonce,
-                            group_id: id
-                        },
-                        success: function(res) {
-                            if (res.success) $card.fadeOut(300, function() {
-                                $(this).remove();
-                            });
-                            else {
-                                alert(res.data.message);
-                                $card.css('opacity', '1');
+                    var id = $(this).attr('data-id');
+                    var $card = $('#card-' + id);
+                    window.ddConfirm("Are you sure you want to delete this group? This will remove the group from all saved creators.", function() {
+                        $card.css('opacity', '0.5');
+                        $.ajax({
+                            url: ajax_vars.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'delete_influencer_group',
+                                security: ajax_vars.save_influencer_nonce,
+                                group_id: id
+                            },
+                            success: function(res) {
+                                if (res.success) $card.fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                                else {
+                                    window.ddAlert(res.data.message);
+                                    $card.css('opacity', '1');
+                                }
                             }
-                        }
+                        });
                     });
                 });
 
                 // 4. Remove Single Influencer from Currently Opened Group List
                 $(document).on('click', '.inf-remove-from-group-trigger', function(e) {
                     e.preventDefault();
-                    let $btnWrapper = $(this);
-                    let influencerId = $btnWrapper.attr('data-influencer-id');
-                    let groupId = state.viewingGroupId;
+                    var $btnWrapper = $(this);
+                    var influencerId = $btnWrapper.attr('data-influencer-id');
+                    var groupId = state.viewingGroupId;
 
                     if (!groupId) {
-                        alert('Error: Unable to identify the current group context.');
+                        window.ddAlert('Error: Unable to identify the current group context.');
                         return;
                     }
 
-                    if (!confirm("Are you sure you want to remove this creator from the current group?")) return;
+                    window.ddConfirm("Are you sure you want to remove this creator from the current group?", function() {
+                        var $btnText = $btnWrapper.find('.elementor-button-text');
+                        var ogText = $btnText.text();
+                        $btnText.text('Removing...');
+                        $btnWrapper.css('pointer-events', 'none');
 
-                    let $btnText = $btnWrapper.find('.elementor-button-text');
-                    let ogText = $btnText.text();
-                    $btnText.text('Removing...');
-                    $btnWrapper.css('pointer-events', 'none');
-
-                    $.ajax({
-                        url: ajax_vars.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'remove_influencer_from_group',
-                            security: ajax_vars.save_influencer_nonce,
-                            influencer_id: influencerId,
-                            group_id: groupId
-                        },
-                        success: function(res) {
-                            if (res.success) {
-                                // Fade out the specific row inside the modal
-                                $btnWrapper.closest('.inf-loop-item-row').fadeOut(300, function() {
-                                    $(this).remove();
-
-                                    // If this was the last creator, show empty state message
-                                    if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
-                                        $('#inf-bulk-action-bar').remove();
-                                        $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
-                                    } else {
-                                        // Update bulk count after single removal
-                                        $('#inf-bulk-count').text($('.inf-bulk-check:checked').length);
-                                    }
-                                });
-                            } else {
-                                alert(res.data.message);
+                        $.ajax({
+                            url: ajax_vars.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'remove_influencer_from_group',
+                                security: ajax_vars.save_influencer_nonce,
+                                influencer_id: influencerId,
+                                group_id: groupId
+                            },
+                            success: function(res) {
+                                if (res.success) {
+                                    $btnWrapper.closest('.inf-loop-item-row').fadeOut(300, function() {
+                                        $(this).remove();
+                                        if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
+                                            $('#inf-bulk-action-bar').remove();
+                                            $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                        } else {
+                                            $('#inf-bulk-count').text($('.inf-bulk-check:checked').length);
+                                        }
+                                    });
+                                } else {
+                                    window.ddAlert(res.data.message);
+                                    $btnText.text(ogText);
+                                    $btnWrapper.css('pointer-events', 'auto');
+                                }
+                            },
+                            error: function() {
+                                window.ddAlert('A server error occurred. Please try again.');
                                 $btnText.text(ogText);
                                 $btnWrapper.css('pointer-events', 'auto');
                             }
-                        },
-                        error: function() {
-                            alert('A server error occurred. Please try again.');
-                            $btnText.text(ogText);
-                            $btnWrapper.css('pointer-events', 'auto');
-                        }
+                        });
                     });
                 });
 
@@ -2494,13 +2489,13 @@ class Saves_Manager
                                     window.location.href = res.data.url;
                                     return;
                                 } else {
-                                    alert(res.data.message);
+                                    window.ddAlert(res.data.message);
                                 }
                             }
                             $btn.text(ogText).prop('disabled', false);
                         },
                         error: function() {
-                            alert('A server error occurred. Please try again.');
+                            window.ddAlert('A server error occurred. Please try again.');
                             $btn.text(ogText).prop('disabled', false);
                         }
                     });
@@ -2518,7 +2513,7 @@ class Saves_Manager
                 $('#inf-modal-confirm-save-search').on('click', function() {
                     let searchName = $('#inf-save-search-name').val().trim();
                     if (!searchName) {
-                        alert("Please enter a name for your search.");
+                        window.ddAlert("Please enter a name for your search.");
                         return;
                     }
 
@@ -2564,7 +2559,7 @@ class Saves_Manager
                                 $trigger.text('Saved!');
                                 setTimeout(() => $trigger.text(origTriggerText), 2000);
                             } else {
-                                alert(res.data.message);
+                                window.ddAlert(res.data.message);
                             }
                             $btn.text(ogText).prop('disabled', false);
                         }
@@ -2605,13 +2600,13 @@ class Saves_Manager
                                     $btn.text(ogText);
                                 }
                             } else {
-                                alert('Error loading more searches.');
+                                window.ddAlert('Error loading more searches.');
                                 $btn.text(ogText);
                             }
                             isFetchingSearches = false;
                         },
                         error: function() {
-                            alert('A server error occurred while loading searches.');
+                            window.ddAlert('A server error occurred while loading searches.');
                             isFetchingSearches = false;
                             $btn.text(ogText);
                         }
@@ -2621,31 +2616,30 @@ class Saves_Manager
                 $(document).on('click', '.inf-trigger-delete-search', function(e) {
                     e.stopPropagation();
                     $('.inf-dropdown-wrapper').removeClass('active');
-
-                    if (!confirm("Are you sure you want to permanently delete this saved search?")) return;
-
-                    let id = $(this).attr('data-id');
-                    let $card = $('#search-card-' + id);
-                    $card.css('opacity', '0.5');
-
-                    $.ajax({
-                        url: ajax_vars.ajax_url,
-                        type: 'POST',
-                        data: {
-                            action: 'delete_saved_search',
-                            security: ajax_vars.save_search_nonce,
-                            post_id: id
-                        },
-                        success: function(res) {
-                            if (res.success) {
-                                $card.fadeOut(300, function() {
-                                    $(this).remove();
-                                });
-                            } else {
-                                alert(res.data.message);
-                                $card.css('opacity', '1');
+                    var $trigger = $(this);
+                    window.ddConfirm("Are you sure you want to permanently delete this saved search?", function() {
+                        var id = $trigger.attr('data-id');
+                        var $card = $('#search-card-' + id);
+                        $card.css('opacity', '0.5');
+                        $.ajax({
+                            url: ajax_vars.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'delete_saved_search',
+                                security: ajax_vars.save_search_nonce,
+                                post_id: id
+                            },
+                            success: function(res) {
+                                if (res.success) {
+                                    $card.fadeOut(300, function() {
+                                        $(this).remove();
+                                    });
+                                } else {
+                                    window.ddAlert(res.data.message);
+                                    $card.css('opacity', '1');
+                                }
                             }
-                        }
+                        });
                     });
                 });
 
