@@ -24,11 +24,6 @@ class Influencer_Search
         add_action('wp', [$this, 'setup_search_variables']);
 
 
-        // Register Search Shortcodes
-        add_shortcode('influencer_search_summary', [$this, 'shortcode_influencer_search_summary']);
-        add_shortcode('influencer_match_score', [$this, 'shortcode_influencer_match_score']);
-
-
         // Register Elementor Widgets directly from this class
         add_action('elementor/widgets/register', [$this, 'register_elementor_widgets']);
     }
