@@ -678,7 +678,7 @@ input:checked + .slider:before {
 .checkbox-row .checkbox-lists {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 1.5rem;
 }
 .checkbox-row .checkbox-lists .checkbox-list-item {
   font-size: 16px;
