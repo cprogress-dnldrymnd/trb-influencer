@@ -998,7 +998,7 @@ function render_hashtag_cloud(array $hashtags, int $limit = 10, bool $preserve_o
         $color_index++;
 
         $style = sprintf(
-            'font-size: 25px; color: %1$s; margin: 0; line-height: 1.2;',
+            'color: %1$s;',
             $color
         );
 

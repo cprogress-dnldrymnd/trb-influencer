@@ -1150,6 +1150,9 @@ input:checked + .slider:before {
   /* Pulls letters slightly closer together */
   transition: transform 0.2s ease-in-out;
   cursor: default;
+  font-size: 1.25rem;
+  margin: 0;
+  line-height: 1.2;
 }
 
 /* Optional: Slight hover effect for interactivity */
