@@ -1957,6 +1957,9 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   color: var(--e-global-color-primary);
   transition: color 0.2s ease;
 }
+.advanced-search-trigger:hover {
+  text-decoration: underline;
+}
 .advanced-search-trigger.open {
   color: var(--e-global-color-accent);
 }
