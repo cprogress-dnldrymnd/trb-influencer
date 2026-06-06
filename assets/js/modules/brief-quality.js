@@ -75,7 +75,7 @@
 
         if (iconUrl) {
             html += '<span class="brief-quality-notice__icon" aria-hidden="true">';
-            html += '<img src="' + escapeHtml(iconUrl) + '" alt="" width="24" height="24" decoding="async">';
+            html += '<img src="' + escapeHtml(iconUrl) + '" alt="" width="20" height="20" decoding="async">';
             html += '</span>';
         }
 

@@ -1430,7 +1430,7 @@ class Influencer_Search
                 <div class="brief-quality-banner" role="status">
                     <div class="brief-quality-banner__inner">
                         <span class="brief-quality-banner__icon" aria-hidden="true">
-                            <img src="<?= esc_url(get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice.svg') ?>" alt="" width="24" height="24" decoding="async">
+                            <img src="<?= esc_url(get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice.svg') ?>" alt="" width="20" height="20" decoding="async">
                         </span>
                         <div class="brief-quality-banner__content">
                             <p class="brief-quality-banner__text"><?= esc_html($quality_copy['low_results_banner'] ?? '') ?></p>
@@ -1701,7 +1701,6 @@ class Influencer_Search
                     <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $is_brief_active ? 'active' : '' ?>">
                         <?php
                         $quality_copy = function_exists('creatordb_brief_quality_copy') ? creatordb_brief_quality_copy() : [];
-                        $placeholder  = $quality_copy['placeholder'] ?? 'Example: UK Instagram creators talking about endometriosis with good engagement';
                         $helper_hint  = $quality_copy['helper_hint'] ?? 'Describe the creators, audience and campaign goals you care about. Include topic, location, follower size, engagement or expertise where relevant.';
                         $examples_heading = $quality_copy['examples_heading'] ?? 'Good brief examples';
                         $example_cards = $quality_copy['example_cards'] ?? [
@@ -1710,8 +1709,7 @@ class Influencer_Search
                             ['label' => 'PCOS & hormone health', 'text' => 'PCOS and hormone balance creators who support fertility journeys. US-based. Professional experts only.'],
                         ];
                         ?>
-                        <p class="brief-quality-hint"><?= esc_html($helper_hint) ?></p>
-                        <textarea rows="3" name="search-brief" id="search-brief" placeholder="<?= esc_attr($placeholder) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
+                        <textarea rows="3" name="search-brief" id="search-brief" placeholder="<?= esc_attr($helper_hint) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
                         <div id="brief-quality-notice" class="brief-quality-notice-holder" aria-live="polite"></div>
                         <?php if (! empty($example_cards) && is_array($example_cards)) : ?>
                             <div class="brief-example-cards">
