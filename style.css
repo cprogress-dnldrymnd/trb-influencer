@@ -744,7 +744,7 @@ input:checked + .slider:before {
 
 .influencer-search-main .influencer-search-filter-holder {
   gap: 12px;
-  padding: 10px clamp(15px, 1.302vw, 25px) clamp(15px, 1.302vw, 25px);
+  padding: 15px clamp(15px, 1.302vw, 25px) clamp(15px, 1.302vw, 25px);
 }
 
 .checkbox-row .checkbox-lists {
@@ -1039,11 +1039,6 @@ input:checked + .slider:before {
 
 .influencer-grid-box {
   margin-top: 0;
-}
-
-/* Legacy Elementor row — hide once theme bar above grid is active */
-.elementor-section:has(.current-found-influencer):not(:has(.influencer-results-meta)) {
-  display: none !important;
 }
 
 @media (max-width: 640px) {
@@ -2349,7 +2344,7 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 
 #search-header {
-  padding: clamp(15px, 1.302vw, 25px);
+  padding: clamp(10px, 1.302vw, 20px) clamp(15px, 1.302vw, 25px);
   border-bottom: 1px solid var(--e-global-color-f35d6b9);
   display: flex;
   align-items: center;
