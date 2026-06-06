@@ -993,7 +993,13 @@ input:checked + .slider:before {
 }
 
 .brief-quality-notice-holder {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
+}
+
+.brief-quality-notice-holder + .brief-quality-hint,
+.full-brief-search.influencer-search-item-field .brief-quality-hint {
+  margin-top: 24px;
+  margin-bottom: 16px;
 }
 
 .brief-quality-notice {
@@ -1063,7 +1069,6 @@ input:checked + .slider:before {
 }
 
 .brief-quality-hint {
-  margin: 18px 0 16px;
   font-size: 13px;
   line-height: 1.55;
   color: #666;
@@ -1120,12 +1125,41 @@ input:checked + .slider:before {
   margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 8px;
-  border: 1px solid #f0c674;
-  background: #fffbf0;
+  border: 1px solid #e8dcc0;
+  background: #fffbf5;
+}
+
+.brief-quality-banner__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.brief-quality-banner__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  color: #c9920f;
+}
+
+.brief-quality-banner__icon svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.35px;
+}
+
+.brief-quality-banner__content {
+  flex: 1;
+  min-width: 0;
 }
 
 .brief-quality-banner__text {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-size: 14px;
   line-height: 1.5;
   color: #444;
@@ -1134,20 +1168,31 @@ input:checked + .slider:before {
 .brief-quality-banner__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
+  align-items: center;
 }
 
-.brief-quality-banner__link {
+.brief-quality-banner__btn {
+  display: inline-block;
+  padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.3;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #00a6ed;
   text-decoration: none;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #c5d0d8;
+  color: #2d4a56;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.brief-quality-banner__link:hover {
-  text-decoration: underline;
+.brief-quality-banner__btn:hover {
+  background: #f5f8fa;
+  border-color: #9eb0bb;
+  color: #2d4a56;
+  text-decoration: none;
 }
 
 .pmpro_card.pmpro_content_message {
