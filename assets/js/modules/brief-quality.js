@@ -55,10 +55,10 @@
 
         if (quality === 'too_short') {
             title = copy.too_short_title || 'Add a little more detail';
-            body = copy.too_short_body || '';
+            body = copy.too_short_body || 'Please add a little more detail so we can match creators properly. Try including location, platform, audience or engagement goals.';
         } else if (quality === 'low') {
             title = copy.low_title || 'Simple niche search';
-            body = copy.low_pre_submit || '';
+            body = copy.low_pre_submit || 'This looks like a broad brief — a simple niche search. Adding location, platform, audience size, or engagement preferences helps us rank creators more accurately.';
         }
 
         var html = '<div class="brief-quality-notice brief-quality-notice--' + quality + '">';
@@ -71,10 +71,10 @@
 
         if (options.showActions) {
             html += '<div class="brief-quality-notice__actions">';
-            html += '<button type="button" class="brief-quality-continue elementor-button elementor-size-sm">' +
+            html += '<button type="button" class="brief-quality-continue">' +
                 escapeHtml(copy.continue || 'Continue anyway') + '</button>';
             if (options.filteredUrl) {
-                html += '<button type="button" class="brief-quality-switch elementor-button elementor-button-outline elementor-size-sm">' +
+                html += '<button type="button" class="brief-quality-switch">' +
                     escapeHtml(copy.switch_filtered || 'Try Filtered Search instead') + '</button>';
             }
             html += '</div>';
@@ -216,12 +216,6 @@
             hideNotice();
             clearAck($form);
             $textarea.val('').trigger('input');
-        });
-
-        $('.brief-quality-example').on('click', function (e) {
-            e.preventDefault();
-            var example = $(this).data('example') || $(this).text();
-            $textarea.val(example).trigger('input').focus();
         });
     };
 
