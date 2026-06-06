@@ -34,16 +34,24 @@
         return $form.data(ACK_DATA_KEY) === text;
     }
 
-    function hideNotice() {
-        getNotice().empty().hide();
+    function showNotice(html) {
+        getNotice().html(html);
     }
 
-    function showNotice(html) {
-        getNotice().html(html).show();
+    function hideNotice() {
+        getNotice().empty();
     }
 
     function escapeHtml(str) {
         return $('<div>').text(str).html();
+    }
+
+    function getIconUrl(quality) {
+        var vars = window.ajax_vars || {};
+        if (quality === 'too_short') {
+            return vars.brief_quality_icon_red_url || vars.brief_quality_icon_url || '';
+        }
+        return vars.brief_quality_icon_url || '';
     }
 
     function buildNoticeHtml(assessment, options) {
@@ -55,13 +63,23 @@
 
         if (quality === 'too_short') {
             title = copy.too_short_title || 'Add a little more detail';
-            body = copy.too_short_body || 'Please add a little more detail so we can match creators properly. Try including location, audience or engagement goals.';
+            body = copy.too_short_body || 'Please add a little more detail so we can match creators properly. Try including location, audience or engagement goals — or switch to Filtered Search if you only need a simple topic search.';
         } else if (quality === 'low') {
             title = copy.low_title || 'Simple niche search';
             body = copy.low_pre_submit || 'This looks like a broad brief — a simple niche search. Adding location, audience size, or engagement preferences helps us rank creators more accurately.';
         }
 
+        var iconUrl = getIconUrl(quality);
         var html = '<div class="brief-quality-notice brief-quality-notice--' + quality + '">';
+        html += '<div class="brief-quality-notice__inner">';
+
+        if (iconUrl) {
+            html += '<span class="brief-quality-notice__icon" aria-hidden="true">';
+            html += '<img src="' + escapeHtml(iconUrl) + '" alt="" width="24" height="24" decoding="async">';
+            html += '</span>';
+        }
+
+        html += '<div class="brief-quality-notice__content">';
         if (title) {
             html += '<p class="brief-quality-notice__title">' + escapeHtml(title) + '</p>';
         }
@@ -69,18 +87,20 @@
             html += '<p class="brief-quality-notice__body">' + escapeHtml(body) + '</p>';
         }
 
-        if (options.showActions) {
+        if (options.showContinue || options.showSwitch) {
             html += '<div class="brief-quality-notice__actions">';
-            html += '<button type="button" class="brief-quality-continue">' +
-                escapeHtml(copy.continue || 'Continue anyway') + '</button>';
-            if (options.filteredUrl) {
+            if (options.showContinue) {
+                html += '<button type="button" class="brief-quality-continue">' +
+                    escapeHtml(copy.continue || 'Continue anyway') + '</button>';
+            }
+            if (options.showSwitch) {
                 html += '<button type="button" class="brief-quality-switch">' +
                     escapeHtml(copy.switch_filtered || 'Try Filtered Search instead') + '</button>';
             }
             html += '</div>';
         }
 
-        html += '</div>';
+        html += '</div></div></div>';
         return html;
     }
 
@@ -145,7 +165,7 @@
                 quality: 'too_short',
                 copy: (window.ajax_vars && window.ajax_vars.brief_quality_copy) || {}
             };
-            showNotice(buildNoticeHtml(tooShort, { showActions: false }));
+            showNotice(buildNoticeHtml(tooShort, { showSwitch: true }));
             deferred.resolve(false);
             return deferred.promise();
         }
@@ -158,7 +178,7 @@
 
         assessBrief(text).done(function (assessment) {
             if (assessment.quality === 'low') {
-                showNotice(buildNoticeHtml(assessment, { showActions: true, filteredUrl: true }));
+                showNotice(buildNoticeHtml(assessment, { showContinue: true, showSwitch: true }));
                 deferred.resolve(false);
             } else {
                 hideNotice();

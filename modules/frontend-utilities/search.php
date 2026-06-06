@@ -1430,14 +1430,7 @@ class Influencer_Search
                 <div class="brief-quality-banner" role="status">
                     <div class="brief-quality-banner__inner">
                         <span class="brief-quality-banner__icon" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2.75a6.25 6.25 0 0 0-4.25 10.85V16a1 1 0 0 0 1 1h6.5a1 1 0 0 0 1-1v-2.4A6.25 6.25 0 0 0 12 2.75z"/>
-                                <line x1="12" y1="7.25" x2="12" y2="10"/>
-                                <line x1="9.25" y1="18.25" x2="14.75" y2="18.25"/>
-                                <line x1="9.25" y1="19.75" x2="14.75" y2="19.75"/>
-                                <line x1="9.25" y1="21.25" x2="14.75" y2="21.25"/>
-                                <path d="M10.75 22.25a1.25 1.25 0 0 0 2.5 0"/>
-                            </svg>
+                            <img src="<?= esc_url(get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice.svg') ?>" alt="" width="24" height="24" decoding="async">
                         </span>
                         <div class="brief-quality-banner__content">
                             <p class="brief-quality-banner__text"><?= esc_html($quality_copy['low_results_banner'] ?? '') ?></p>
@@ -1717,9 +1710,9 @@ class Influencer_Search
                             ['label' => 'PCOS & hormone health', 'text' => 'PCOS and hormone balance creators who support fertility journeys. US-based. Professional experts only.'],
                         ];
                         ?>
-                        <textarea rows="3" name="search-brief" id="search-brief" placeholder="<?= esc_attr($placeholder) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
-                        <div id="brief-quality-notice" class="brief-quality-notice-holder" style="display:none;" aria-live="polite"></div>
                         <p class="brief-quality-hint"><?= esc_html($helper_hint) ?></p>
+                        <textarea rows="3" name="search-brief" id="search-brief" placeholder="<?= esc_attr($placeholder) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
+                        <div id="brief-quality-notice" class="brief-quality-notice-holder" aria-live="polite"></div>
                         <?php if (! empty($example_cards) && is_array($example_cards)) : ?>
                             <div class="brief-example-cards">
                                 <p class="brief-example-cards__heading"><?= esc_html($examples_heading) ?></p>
