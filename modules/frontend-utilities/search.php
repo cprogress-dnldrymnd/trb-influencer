@@ -1530,10 +1530,43 @@ class Influencer_Search
         return ob_get_clean();
     }
 
+    /**
+     * Permalink for the Saved Lists page (Elementor-managed page; slug varies by site).
+     */
+    private static function get_saved_lists_url()
+    {
+        $url = apply_filters('influencer_saved_lists_url', '');
+        if ($url !== '') {
+            return $url;
+        }
+
+        foreach (['saved-lists', 'my-saved-lists', 'saved-groups', 'my-saved-groups'] as $slug) {
+            $page = get_page_by_path($slug);
+            if ($page instanceof WP_Post) {
+                return get_permalink($page);
+            }
+        }
+
+        return home_url('/saved-lists/');
+    }
+
     public static function shortcode_search_results($atts = [])
     {
+        $saved_lists_url = self::get_saved_lists_url();
+
         ob_start();
     ?>
+        <div class="influencer-results-meta">
+            <p class="influencer-results-meta__count">
+                Displaying <span class="current-found-influencer">0</span> of <span class="total-found-influencer">0</span> matches
+            </p>
+            <a class="influencer-results-meta__saved-link" href="<?= esc_url($saved_lists_url) ?>">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"/>
+                </svg>
+                <span>View Saved Lists</span>
+            </a>
+        </div>
         <div class="influencer-grid-box">
             <div id="my-loop-grid-container" class="influencer-loop-grid" aria-live="polite" aria-atomic="false" aria-busy="false"></div>
             <div class="loading-animation" style="display: none;">
@@ -1666,19 +1699,19 @@ class Influencer_Search
 
                     <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search <?= ! $is_brief_active ? 'active' : '' ?>">
                         <div class="influencer-search-item">
-                            <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Location</div>
+                            <div class="influencer-search-item-title">Location</div>
                             <?= self::select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
-                            <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Language</div>
+                            <div class="influencer-search-item-title">Language</div>
                             <?= self::select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item required-on-search">
-                            <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Niche</div>
+                            <div class="influencer-search-item-title">Niche<span class="field-required" aria-hidden="true">*</span></div>
                             <?= self::select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
-                            <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Follower Count</div>
+                            <div class="influencer-search-item-title">Follower Count</div>
                             <div class="field-groups">
                                 <?= self::select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
                                 <?= self::select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
@@ -1690,11 +1723,11 @@ class Influencer_Search
                         <div class="advanced-search-filters" style="display: none;">
                             <div class="influencer-search-item-row influencer-search-item-wrapper">
                                 <div class="influencer-search-item">
-                                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Gender</div>
+                                    <div class="influencer-search-item-title">Gender</div>
                                     <?= self::select_filter('gender', false, 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
                                 </div>
                                 <div class="influencer-search-item">
-                                    <div class="influencer-search-item-title" style="display: flex; align-items: center; gap: 7px">Hashtags</div>
+                                    <div class="influencer-search-item-title">Hashtags Used</div>
                                     <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                                 </div>
                             </div>
@@ -1712,7 +1745,7 @@ class Influencer_Search
                         $example_cards = $quality_copy['example_cards'] ?? [
                             ['label' => 'Endometriosis campaign', 'text' => 'UK Instagram creators talking about endometriosis with good engagement'],
                             ['label' => 'Fertility education', 'text' => 'Fertility experts discussing IVF, egg freezing and TTC, prioritising educational content'],
-                            ['label' => 'PCOS & hormone health', 'text' => 'PCOS and hormone balance creators who support fertility journeys. US-based. Professional experts only.'],
+                            ['label' => 'PCOS & hormone health', 'text' => 'PCOS and hormone balance creators who support fertility journeys, US-based, professional experts only'],
                         ];
                         ?>
                         <textarea rows="3" name="search-brief" id="search-brief" placeholder="<?= esc_attr($helper_hint) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
