@@ -2183,16 +2183,33 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: var(--e-global-color-primary);
-  transition: color 0.2s ease;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #667085;
+  background: transparent;
+  border: none;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
 }
+
+.advanced-search-trigger svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
 .advanced-search-trigger:hover {
-  text-decoration: underline;
+  text-decoration: none;
+  background: #f3f4f6;
+  color: #475467;
 }
+
 .advanced-search-trigger.open {
-  color: var(--e-global-color-accent);
+  background: #f3f4f6;
+  color: #475467;
 }
 
 .influencer-search-main .influencer-search-filter-holder {

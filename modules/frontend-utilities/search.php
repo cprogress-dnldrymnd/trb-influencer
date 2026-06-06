@@ -1651,7 +1651,7 @@ class Influencer_Search
                             <line x1="9" y1="8" x2="15" y2="8"></line>
                             <line x1="17" y1="16" x2="23" y2="16"></line>
                         </svg>
-                        <span>Advanced Search</span>
+                        <span>Advanced</span>
                     </div>
                 </div>
 
