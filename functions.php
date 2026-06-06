@@ -44,6 +44,7 @@ function hello_elementor_child_scripts_styles()
         'inf-search-toggle'    => 'modules/search-toggle.js',      // no deps on other modules
         'inf-filter-chips'     => 'modules/filter-chips.js',       // no deps on other modules
         'inf-filter-validation' => 'modules/filter-validation.js',  // no deps on other modules
+        'inf-brief-quality'    => 'modules/brief-quality.js',      // pre-submit brief quality gate
         'inf-filter-dropdowns' => 'modules/filter-dropdowns.js',   // uses sync_follower_min_max_states (self-contained)
         'inf-search-fetch'     => 'modules/search-fetch.js',       // uses prioritize_active_tags → needs tag-prioritizer
     ];
@@ -80,9 +81,17 @@ function hello_elementor_child_scripts_styles()
         'ajax_url'              => admin_url('admin-ajax.php'),
         'page_id'               => $page_id,
         'search_results_page_id' => $search_results_page_id,
+        'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
         'search_filter_nonce'   => wp_create_nonce('search_filter_nonce'),
+        'brief_quality_nonce'   => wp_create_nonce('brief_quality_nonce'),
+        'brief_quality_min_chars' => function_exists('creatordb_brief_quality_min_length')
+            ? creatordb_brief_quality_min_length()
+            : 25,
+        'brief_quality_copy'    => function_exists('creatordb_brief_quality_copy')
+            ? creatordb_brief_quality_copy()
+            : [],
     ]);
 }
 add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);

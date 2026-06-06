@@ -39,6 +39,7 @@
 
         InfluencerApp.initActiveFilterChips();
         InfluencerApp.validate_required_search_filters();
+        InfluencerApp.initBriefQuality();
 
         InfluencerApp.influencer_select_filters();
         InfluencerApp.influencer_search_trigger();

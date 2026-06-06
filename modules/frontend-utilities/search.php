@@ -1413,9 +1413,29 @@ class Influencer_Search
         $verified_only = in_array('Include only verified influencers', $filter, true);
         $expert_only   = in_array('Professional experts only', $filter, true);
 
+        $brief_quality = null;
+        if (! empty($brief) && function_exists('creatordb_brief_assess_quality')) {
+            $brief_quality = creatordb_brief_assess_quality($brief);
+        }
+        $quality_copy = function_exists('creatordb_brief_quality_copy') ? creatordb_brief_quality_copy() : [];
+        $search_page_url = get_the_permalink(dd_get_page_id('dd_search_page_id', 2149));
+
         ob_start();
     ?>
         <div class="influencer-search-summary">
+            <?php if (! empty($brief) && ! empty($brief_quality) && ($brief_quality['quality'] ?? '') === 'low') : ?>
+                <div class="brief-quality-banner" role="status">
+                    <p class="brief-quality-banner__text"><?= esc_html($quality_copy['low_results_banner'] ?? '') ?></p>
+                    <div class="brief-quality-banner__actions">
+                        <a class="brief-quality-banner__link" href="<?= esc_url(add_query_arg('search-brief', rawurlencode($brief), $search_page_url)) ?>">
+                            <?= esc_html($quality_copy['refine_brief'] ?? 'Refine brief') ?>
+                        </a>
+                        <a class="brief-quality-banner__link" href="<?= esc_url($search_page_url) ?>">
+                            <?= esc_html($quality_copy['switch_filtered'] ?? 'Try Filtered Search instead') ?>
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
             <?php if (! empty($brief)) : ?>
                 <div class="search-summary-brief search-summary-item">
                     <input type="hidden" name="search-brief" id="search-brief" value="<?= esc_attr($brief) ?>">
@@ -1662,15 +1682,28 @@ class Influencer_Search
                                     <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                                 </div>
                             </div>
+                            <div class="influencer-search-item checkbox-row filtered-search-checkboxes">
+                                <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+                            </div>
                         </div>
                     </div>
 
                     <div class="influencer-search-item influencer-search-item-wrapper influencer-search-item-field full-brief-search <?= $is_brief_active ? 'active' : '' ?>">
-                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="Tell us what you're looking for..." <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
-                    </div>
-
-                    <div class="influencer-search-item checkbox-row">
-                        <?= self::checkbox_filter('filter', false, $influencer_search_fields['filter'] ?? '') ?>
+                        <?php
+                        $quality_copy = function_exists('creatordb_brief_quality_copy') ? creatordb_brief_quality_copy() : [];
+                        $helper_hint  = $quality_copy['helper_hint'] ?? 'Describe the creators, audience and campaign goals you care about. Include topic, location, platform, follower size, engagement or expertise where relevant.';
+                        $examples     = $quality_copy['example_briefs'] ?? [];
+                        ?>
+                        <textarea rows="6" name="search-brief" id="search-brief" placeholder="<?= esc_attr($helper_hint) ?>" <?= $is_brief_active ? 'required' : '' ?>><?= esc_html($brief) ?></textarea>
+                        <p class="brief-quality-hint"><?= esc_html($helper_hint) ?></p>
+                        <?php if (! empty($examples) && is_array($examples)) : ?>
+                            <div class="brief-example-chips" aria-label="Example briefs">
+                                <?php foreach ($examples as $example) : ?>
+                                    <button type="button" class="brief-quality-example" data-example="<?= esc_attr($example) ?>"><?= esc_html($example) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <div id="brief-quality-notice" class="brief-quality-notice-holder" style="display:none;" aria-live="polite"></div>
                     </div>
 
                     <div class="influencer-search-item" style="display: flex; justify-content: space-between">
