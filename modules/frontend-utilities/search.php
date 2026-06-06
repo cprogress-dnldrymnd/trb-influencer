@@ -1449,11 +1449,17 @@ class Influencer_Search
             <?php if (! empty($brief)) : ?>
                 <div class="search-summary-brief search-summary-item">
                     <input type="hidden" name="search-brief" id="search-brief" value="<?= esc_attr($brief) ?>">
-                    <div class="summary-brief-label">Your brief:</div>
-                    <div class="summary-brief">
-                        <div class="summary-brief-inner"><?= wpautop(esc_html(wp_trim_words($brief, 25))) ?></div>
+                    <div class="summary-brief-body">
+                        <div class="summary-brief-label">Your brief</div>
+                        <div class="summary-brief-text"><?= esc_html($brief) ?></div>
                     </div>
-                    <a class="edit-summary-brieft" href="<?= esc_url(get_the_permalink(dd_get_page_id('dd_search_page_id', 2149))) ?>?search-brief=<?= urlencode($brief) ?>">EDIT BRIEF</a>
+                    <a class="edit-summary-brieft" href="<?= esc_url(get_the_permalink(dd_get_page_id('dd_search_page_id', 2149))) ?>?search-brief=<?= urlencode($brief) ?>">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                        </svg>
+                        <span>Edit brief</span>
+                    </a>
                 </div>
             <?php endif; ?>
             <?php if (! empty($parts) && empty($brief)) : ?>
