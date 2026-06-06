@@ -986,6 +986,12 @@ input:checked + .slider:before {
   flex-direction: column;
 }
 
+.full-brief-search.influencer-search-item-field textarea {
+  min-height: 88px;
+  max-height: 220px;
+  resize: vertical;
+}
+
 .brief-quality-notice-holder {
   margin: 10px 0 0;
 }
@@ -1037,9 +1043,11 @@ input:checked + .slider:before {
 .brief-quality-notice__actions .brief-quality-switch {
   display: inline-block;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   border-radius: 6px;
   cursor: pointer;
   background: #fff;
@@ -1055,7 +1063,7 @@ input:checked + .slider:before {
 }
 
 .brief-quality-hint {
-  margin: 12px 0 16px;
+  margin: 18px 0 16px;
   font-size: 13px;
   line-height: 1.55;
   color: #666;
@@ -1098,7 +1106,7 @@ input:checked + .slider:before {
   margin-bottom: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: #034146;
 }
 
 .brief-example-card__text {
@@ -1130,8 +1138,10 @@ input:checked + .slider:before {
 }
 
 .brief-quality-banner__link {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #00a6ed;
   text-decoration: none;
 }

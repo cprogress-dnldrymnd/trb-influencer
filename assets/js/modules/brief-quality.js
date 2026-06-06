@@ -55,10 +55,10 @@
 
         if (quality === 'too_short') {
             title = copy.too_short_title || 'Add a little more detail';
-            body = copy.too_short_body || 'Please add a little more detail so we can match creators properly. Try including location, platform, audience or engagement goals.';
+            body = copy.too_short_body || 'Please add a little more detail so we can match creators properly. Try including location, audience or engagement goals.';
         } else if (quality === 'low') {
             title = copy.low_title || 'Simple niche search';
-            body = copy.low_pre_submit || 'This looks like a broad brief — a simple niche search. Adding location, platform, audience size, or engagement preferences helps us rank creators more accurately.';
+            body = copy.low_pre_submit || 'This looks like a broad brief — a simple niche search. Adding location, audience size, or engagement preferences helps us rank creators more accurately.';
         }
 
         var html = '<div class="brief-quality-notice brief-quality-notice--' + quality + '">';
