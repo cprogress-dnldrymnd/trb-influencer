@@ -104,7 +104,7 @@ body:not(#error-page).show-body {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
   .followers-filter.followers-filter {
-    flex-direction: column;
+    flex-direction: column !important;
   }
   .loading-animation {
     left: 0;
