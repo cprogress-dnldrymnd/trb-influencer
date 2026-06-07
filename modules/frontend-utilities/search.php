@@ -73,8 +73,17 @@ class Influencer_Search
             $niche_options[$term->slug] = $term->name;
         }
 
-        $followers_options = array(
-            '1000-10000' => '1K',
+        $min_followers_options = array(
+            '0' => '0',
+            '10000' => '10K',
+            '50000' => '50K',
+            '250000' => '250K',
+            '1000000' => '1M',
+            '10000000' => '10M',
+        );
+
+          $max_followers_options = array(
+            '1000' => '1K',
             '10000' => '10K',
             '50000' => '50K',
             '250000' => '250K',
@@ -105,7 +114,8 @@ class Influencer_Search
         );
 
         $influencer_search_fields['niche'] = $niche_options;
-        $influencer_search_fields['followers'] = $followers_options;
+        $influencer_search_fields['min_followers'] = $min_followers_options;
+        $influencer_search_fields['max_followers'] = $max_followers_options;
         $influencer_search_fields['country'] = $country_options;
         $influencer_search_fields['lang'] = $lang_options;
         $influencer_search_fields['gender'] = $gender_options;
@@ -1618,10 +1628,10 @@ class Influencer_Search
                         </div>
                         <div class="followers-filter">
                             <div class="influencer-search-item">
-                                <?= self::select_filter('min_followers', '', 'Min.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                                <?= self::select_filter('min_followers', '', 'Min.', $influencer_search_fields['min_followers'] ?? '', 'radio') ?>
                             </div>
                             <div class="influencer-search-item">
-                                <?= self::select_filter('max_followers', '', 'Max.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                                <?= self::select_filter('max_followers', '', 'Max.', $influencer_search_fields['max_followers'] ?? '', 'radio') ?>
                             </div>
                         </div>
                     </div>
@@ -1726,8 +1736,8 @@ class Influencer_Search
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title">Follower Count</div>
                             <div class="field-groups">
-                                <?= self::select_filter('min_followers', false, 'Minimum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                                <?= self::select_filter('max_followers', false, 'Maximum', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                                <?= self::select_filter('min_followers', false, 'Minimum', $influencer_search_fields['min_followers'] ?? '', 'radio') ?>
+                                <?= self::select_filter('max_followers', false, 'Maximum', $influencer_search_fields['max_followers'] ?? '', 'radio') ?>
                             </div>
                         </div>
                     </div>
