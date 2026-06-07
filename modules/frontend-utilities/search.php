@@ -1861,7 +1861,7 @@ class Influencer_Search
                         <?php endif; ?>
                     </div>
 
-                    <div class="influencer-search-item" style="display: flex; justify-content: space-between; flex-direction: row">
+                    <div class="influencer-search-item" style="display: flex; justify-content: flex-end; flex-direction: row; gap: 10px">
                         <button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm">
                             <span class="elementor-button-content-wrapper">
                                 <span class="elementor-button-icon elementor-align-icon-left"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
