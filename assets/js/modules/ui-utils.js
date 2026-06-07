@@ -14,13 +14,13 @@
     };
 
     InfluencerApp.mobile_nav = function () {
-        var trigger = document.querySelector('.mobile-nav-trigger');
-        if (trigger) {
+        var triggers = document.querySelectorAll('.mobile-nav-trigger');
+        triggers.forEach(function (trigger) {
             trigger.addEventListener('click', function (e) {
                 e.preventDefault();
                 document.body.classList.toggle('mobile-menu-active');
             });
-        }
+        });
     };
 
     InfluencerApp.share_profile = function () {
