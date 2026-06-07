@@ -92,6 +92,8 @@ function hello_elementor_child_scripts_styles()
         'brief_quality_copy'    => function_exists('creatordb_brief_quality_copy')
             ? creatordb_brief_quality_copy()
             : [],
+        'brief_quality_icon_url'     => get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice.svg',
+        'brief_quality_icon_red_url' => get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice-red.svg',
     ]);
 }
 add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
