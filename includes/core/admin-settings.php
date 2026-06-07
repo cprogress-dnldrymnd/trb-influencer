@@ -205,9 +205,12 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
         return;
     }
 
+    $site_icon  = get_site_icon_url(32);
+    $icon_html  = $site_icon ? sprintf('<img src="%s" alt="" class="dd-ab-favicon" />', esc_url($site_icon)) : '';
+
     $wp_admin_bar->add_node([
         'id'    => 'dd-theme-editor',
-        'title' => 'Theme Editor',
+        'title' => $icon_html . 'Theme Editor',
         'href'  => admin_url('options-general.php?page=dd-theme-settings'),
     ]);
 
@@ -270,6 +273,16 @@ add_action('wp_before_admin_bar_render', function () {
     }
     ?>
     <style>
+        #wpadminbar #wp-admin-bar-dd-theme-editor > .ab-item .dd-ab-favicon {
+            width: 16px;
+            height: 16px;
+            margin: 0 6px 0 2px;
+            vertical-align: middle;
+            border-radius: 2px;
+            position: relative;
+            top: -1px;
+        }
+
         #wpadminbar #wp-admin-bar-dd-theme-editor .dd-ab-badge {
             display: inline-block;
             margin-left: 8px;
