@@ -870,7 +870,8 @@ input:checked + .slider:before {
 .checkbox-row .checkbox-lists {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  row-gap: 1.5rem;
+  column-gap: 10px;
 }
 .checkbox-row .checkbox-lists .checkbox-list-item {
   font-size: 16px;
@@ -2534,14 +2535,13 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 .field-groups .filter-widget {
   flex-grow: 1;
 }
+.checkbox-row .checkbox-lists .checkbox-list-item,
+.filter-widget .dropdown-container .dropdown-button,
+.influencer-search-main .influencer-search-item-field textarea {
+  font-size: clamp(12px, 0.833vw, 16px);
+}
 /*responsive*/
 @media (min-width: 1025px) {
-  .checkbox-row .checkbox-lists .checkbox-list-item,
-  .filter-widget .dropdown-container .dropdown-button,
-  .influencer-search-main .influencer-search-item-field textarea {
-    font-size: clamp(12px, 0.833vw, 16px);
-  }
-
   .influencer-search-main .influencer-search-item-field textarea {
     padding: clamp(12px, 0.833vw, 16px);
   }
