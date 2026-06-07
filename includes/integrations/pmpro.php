@@ -212,7 +212,6 @@ function dd_pmpro_member_profile_edit_tabs()
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin-top: 8px;
         }
 
         .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn {
