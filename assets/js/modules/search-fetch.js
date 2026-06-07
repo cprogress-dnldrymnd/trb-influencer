@@ -115,6 +115,42 @@
     }
 
     /**
+     * Rebuilds the "Filters: ..." line in .influencer-search-summary to reflect
+     * the sidebar form's current selections. The summary is rendered server-side
+     * from $_GET on page load (see Influencer_Search::shortcode_search_summary),
+     * but a "Find matches" search runs over AJAX with no page reload, so without
+     * this it kept showing whatever filters were active when the page loaded.
+     * Mirrors that PHP method's grouping/joining so the two stay in sync.
+     */
+    function update_search_summary_filters() {
+        var $summary = $('.influencer-search-summary');
+        if (!$summary.length || $summary.find('.search-summary-brief').length) return;
+
+        var parts = [];
+        ['niche[]', 'country[]', 'gender[]', 'content_tag[]'].forEach(function (name) {
+            var labels = $('[name="' + name + '"]:checked').map(function () {
+                return $(this).attr('data-label') || $(this).val();
+            }).get();
+            if (labels.length) parts.push(labels.join(', '));
+        });
+
+        var $filters = $summary.find('.search-summary-filters');
+
+        if (!parts.length) {
+            $filters.remove();
+            return;
+        }
+
+        if (!$filters.length) {
+            $filters = $('<div class="search-summary-item search-summary-filters"></div>').appendTo($summary);
+        }
+
+        $filters.empty()
+            .append($('<strong>').text('Filters:'))
+            .append(document.createTextNode(' ' + parts.join(' • ')));
+    }
+
+    /**
      * Pushes current filter state to the browser URL bar (no reload).
      */
     function push_url_state(filters, search_brief) {
@@ -217,6 +253,7 @@
                         container.append(response.data.html);
                     } else {
                         container.html(response.data.html);
+                        update_search_summary_filters();
                     }
 
                     InfluencerApp.prioritize_active_tags();
