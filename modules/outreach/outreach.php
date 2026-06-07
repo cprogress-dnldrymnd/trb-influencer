@@ -2718,7 +2718,7 @@ class DD_Outreach_Manager
                                 </g>
                             </g>
                         </svg> </span>
-                    <span class="elementor-button-text">CONNECT WITH & CONTACT THIS CREATOR</span>
+                    <span class="elementor-button-text">START OUTREACH</span>
                 </span>
             </a>
 
@@ -2739,7 +2739,7 @@ class DD_Outreach_Manager
                                 </g>
                             </g>
                         </svg> </span>
-                    <span class="elementor-button-text">CONNECT WITH & CONTACT THIS CREATOR</span>
+                    <span class="elementor-button-text">SPEND 1 CREDIT TO UNLOCK THIS CREATOR</span>
                 </span>
             </a>
 
