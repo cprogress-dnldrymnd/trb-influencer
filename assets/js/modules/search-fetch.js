@@ -26,7 +26,7 @@
      * so it stays in the same spot on screen regardless of scrolling.
      */
     function show_loading_animation() {
-        $('.loading-animation').css('style', 'flex');
+        $('.loading-animation').show();
     }
 
     function hide_loading_animation() {
