@@ -3062,6 +3062,30 @@ body {
   content: "✓";
 }
 
+@media (max-width: 575px) {
+  #user_avatar_div {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "label"
+      "preview"
+      "info"
+      "actions"
+      "upload"
+      "hint";
+    max-width: 100%;
+  }
+  #user_avatar_div .pmpro_form_field-file-name {
+    margin-top: 12px;
+  }
+  #user_avatar_div .pmpro_form_field-file-actions {
+    flex-wrap: wrap;
+  }
+  #user_avatar_div .pmpro_form_field-file-actions .pmpro_btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
 @media (min-width: 768px) {
   .advanced-search-filters .influencer-search-item-wrapper .influencer-search-item {
     max-width: 22%;
