@@ -3597,13 +3597,13 @@ body {
     margin: 0;
     padding: 0;
     line-height: 1;
-    background-color: #f2f2f2;
     background-image: none;
     border: none;
     border-radius: 5px;
-    color: #034146;
     cursor: pointer;
     box-shadow: none;
+    background-color: var(--e-global-color-primary);
+    color: var(--e-global-color-2ba2932);
   }
   .refine-search-close.refine-search-close.refine-search-close svg {
     width: 16px;
