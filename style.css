@@ -2992,6 +2992,44 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+#user_avatar_div {
+  max-width: 420px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--e-global-color-f35d6b9);
+  border-radius: 10px;
+}
+#user_avatar_div .pmpro_form_label {
+  display: block;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+#user_avatar_div .pmpro_form_field-file-preview img {
+  width: 88px;
+  height: 88px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+#user_avatar_div .pmpro_form_field-file-name {
+  margin: 14px 0;
+  font-size: 14px;
+  color: var(--e-global-color-text);
+}
+#user_avatar_div .pmpro_form_field-file-actions {
+  display: flex;
+  gap: 10px;
+}
+#user_avatar_div .pmpro_form_field-file-actions .pmpro_btn {
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+}
+#user_avatar_div .pmpro_form_hint {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--e-global-color-text);
+  opacity: 0.65;
+}
 #dd_opt_out_free_trial-label input:checked + span {
   background-color: var(--e-global-color-accent);
   border-color: var(--e-global-color-accent);
