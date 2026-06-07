@@ -1438,9 +1438,12 @@ input:checked + .slider:before {
 }
 
 .pmpro_btn-print.pmpro_btn-print {
-  color: var(--e-global-color-2ba2932);
+  color: var(--e-global-color-2ba2932) !important;
+  text-decoration: none;
 }
-
+.pmpro_btn-print.pmpro_btn-print:hover {
+  text-decoration: underline;
+}
 .form-style-2 input,
 .form-style-2 textarea,
 .form-style-2 select {
@@ -3095,7 +3098,6 @@ body {
 #dd_opt_out_free_trial-label input:checked + span:before {
   content: "✓";
 }
-
 
 @media (max-width: 575px) {
   #user_avatar_div {

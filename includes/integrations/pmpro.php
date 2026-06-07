@@ -207,6 +207,57 @@ function dd_pmpro_member_profile_edit_tabs()
             width: 20px;
             height: 20px;
         }
+
+        .pmpro-member-profile-edit .pmpro_form_submit {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 14px 28px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn svg {
+            flex-shrink: 0;
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-update-profile,
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-checkout,
+        .pmpro-member-profile-edit .pmpro_form_submit #pmpro_btn-submit {
+            background-color: var(--e-global-color-primary);
+            border-color: var(--e-global-color-primary);
+            color: #fff;
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-update-profile:hover,
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-checkout:hover,
+        .pmpro-member-profile-edit .pmpro_form_submit #pmpro_btn-submit:hover {
+            background-color: var(--e-global-color-secondary);
+            border-color: var(--e-global-color-secondary);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel {
+            background-color: transparent;
+            border-color: var(--e-global-color-primary);
+            color: var(--e-global-color-primary);
+        }
+
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel:hover {
+            background-color: var(--e-global-color-primary);
+            color: #fff;
+        }
     </style>
     <script type="text/javascript">
         jQuery(document).ready(function($) {
@@ -275,6 +326,33 @@ function dd_pmpro_member_profile_edit_tabs()
                         $('#' + $tab.attr('data-target')).show();
                     });
                 }
+
+                // Some PMPro views (e.g. Billing) render the submit controls as <input type="submit"/"button">
+                // rather than <button> elements. Convert them so icons can be prepended consistently below.
+                $form.find('.pmpro_form_submit input[type="submit"], .pmpro_form_submit input[type="button"]').each(function() {
+                    var $input = $(this);
+                    var $button = $('<button></button>').text($input.val());
+
+                    $.each(['id', 'name', 'class', 'type', 'onclick', 'aria-label'], function(_, attr) {
+                        var val = $input.attr(attr);
+                        if (typeof val !== 'undefined') {
+                            $button.attr(attr, val);
+                        }
+                    });
+
+                    $input.replaceWith($button);
+                });
+
+                var submitIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                var cancelIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+                $form.find('.pmpro_form_submit .pmpro_btn').each(function() {
+                    var $btn = $(this);
+                    if ($btn.find('svg').length) {
+                        return;
+                    }
+                    $btn.prepend($btn.hasClass('pmpro_btn-cancel') ? cancelIcon : submitIcon);
+                });
             }
 
             // Prepend matching icons into the Brand logo field's Delete / Replace / Cancel buttons.
