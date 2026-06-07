@@ -924,6 +924,7 @@ input:checked + .slider:before {
   padding-top: 15px;
   padding-bottom: 15px;
   z-index: 1;
+  min-height: 48px;
 }
 
 #load-more-influencers.is-loading {
