@@ -147,6 +147,20 @@ body:not(#error-page).show-body {
   color: rgb(102, 112, 133);
   line-height: 1.3;
 }
+
+.followers-filter.followers-filter {
+  flex-wrap: nowrap;
+  flex-direction: row;
+  display: flex;
+  gap: 10px;
+}
+.followers-filter.followers-filter > div {
+  flex-grow: 1;
+}
+
+.influencer-search-followers-filter .filter-widget .header {
+  margin: 0;
+}
 .filter-widget .header .reset-btn {
   font-size: 0.9rem;
   text-decoration: underline;
@@ -3165,15 +3179,7 @@ body {
   background-color: var(--e-global-color-primary);
   color: #fff;
 }
-.followers-filter.followers-filter {
-  flex-wrap: nowrap;
-  flex-direction: row;
-  display: flex;
-  gap: 10px;
-}
-.followers-filter.followers-filter > div {
-  flex-grow: 1;
-}
+
 @media (max-width: 575px) {
   #user_avatar_div {
     grid-template-columns: 1fr;
