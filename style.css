@@ -3527,6 +3527,9 @@ body {
   }
 }
 @media (max-width: 767px) {
+  .filter-widget .checkbox-lists .checkbox-list-item {
+    padding: 0;
+  }
   .avatar-holder.avatar-holder.avatar-holder-featured {
     --size: 80px !important;
   }
