@@ -158,15 +158,12 @@ body:not(#error-page).show-body {
   flex-grow: 1;
 }
 
-.influencer-search-followers-filter .filter-widget .header {
-  margin: 0;
-  justify-content: flex-end;
-}
-.influencer-search-followers-filter .filter-widget .header .reset-btn{
-  margin-bottom: 5px;
+.influencer-search-followers-filter .followers-filter .filter-widget .header {
+  display: none;
 }
 
-.filter-widget .header .reset-btn {
+.filter-widget .header .reset-btn,
+.influencer-search-followers-filter > .header .reset-btn {
   font-size: 0.9rem;
   text-decoration: underline;
   cursor: pointer;
@@ -176,7 +173,8 @@ body:not(#error-page).show-body {
   padding: 0;
   font-weight: 400;
 }
-.filter-widget .header .reset-btn:hover {
+.filter-widget .header .reset-btn:hover,
+.influencer-search-followers-filter > .header .reset-btn:hover {
   opacity: 0.7;
 }
 .filter-widget.select-filter .checkbox-lists {

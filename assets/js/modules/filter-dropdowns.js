@@ -257,6 +257,35 @@
             updateTags();
         });
 
+        // --- Combined reset button for the follower-count group ---
+        // The min/max widgets keep their own (hidden) reset buttons so their
+        // existing reset logic still runs; this button mirrors their visibility
+        // and triggers both of them at once.
+        document.querySelectorAll('.influencer-search-followers-filter').forEach(function (group) {
+            var groupResetBtn  = group.querySelector('.header .reset-btn');
+            var innerResetBtns = group.querySelectorAll('.followers-filter .reset-btn');
+
+            if (!groupResetBtn || !innerResetBtns.length) return;
+
+            function syncGroupResetVisibility() {
+                var anyVisible = Array.prototype.some.call(innerResetBtns, function (btn) {
+                    return btn.style.display !== 'none';
+                });
+                groupResetBtn.style.display = anyVisible ? '' : 'none';
+            }
+
+            groupResetBtn.addEventListener('click', function () {
+                innerResetBtns.forEach(function (btn) { btn.click(); });
+            });
+
+            var observer = new MutationObserver(syncGroupResetVisibility);
+            innerResetBtns.forEach(function (btn) {
+                observer.observe(btn, { attributes: true, attributeFilter: ['style'] });
+            });
+
+            syncGroupResetVisibility();
+        });
+
         // --- Close dropdowns on outside click ---
         document.addEventListener('click', function (e) {
             document.querySelectorAll('.select-filter').forEach(function (widget) {

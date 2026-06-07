@@ -1610,7 +1610,10 @@ class Influencer_Search
                         <?= self::select_filter('niche', 'Niche Filter', 'Select your niche filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
                     <div class="influencer-search-followers-filter">
-                        <div class="header"><span>Follower Count</span></div>
+                        <div class="header">
+                            <span>Follower Count</span>
+                            <div class="reset-btn" style="display: none;">Reset</div>
+                        </div>
                         <div class="followers-filter">
                             <div class="influencer-search-item">
                                 <?= self::select_filter('min_followers', '', 'Min.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
