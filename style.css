@@ -3160,7 +3160,10 @@ body {
   background-color: var(--e-global-color-primary);
   color: #fff;
 }
-
+.followers-filter.followers-filter {
+  flex-wrap: nowrap;
+  flex-direction: row;
+}
 @media (max-width: 575px) {
   #user_avatar_div {
     grid-template-columns: 1fr;
