@@ -493,6 +493,41 @@ class Influencer_Search
     {
         check_ajax_referer('search_filter_nonce', 'security');
 
+        // --- Resilience for paged searches (the intermittent page 2/3 "An error occurred") ---
+        // Every request re-renders up to 12 Elementor cards via do_shortcode(); Elementor's
+        // renderer is memory-hungry, so the 2nd/3rd "Load More" in a single PHP worker's
+        // lifetime can tip it over memory_limit (or max_execution_time) and die with a fatal.
+        // Fatals bypass the try/catch around the scorer below, so they reach the browser as a
+        // bare HTTP 500 — exactly the symptom users report. Give the request more headroom,
+        // and install a shutdown handler that converts any such fatal into a clean JSON
+        // response the front-end can quietly retry instead of a scary 500.
+        if (function_exists('wp_raise_memory_limit')) {
+            wp_raise_memory_limit('admin'); // lifts to WP_MAX_MEMORY_LIMIT (256M default)
+        }
+        @set_time_limit(60);
+
+        register_shutdown_function(function () {
+            $err = error_get_last();
+            $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+            if (!$err || !in_array($err['type'], $fatal_types, true) || headers_sent()) {
+                return;
+            }
+            // Drop any partially-buffered output so we can emit clean JSON.
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            status_header(200); // a clean 200 + JSON, not a 500, so the UI can recover
+            nocache_headers();
+            header('Content-Type: application/json; charset=' . get_option('blog_charset'));
+            echo wp_json_encode([
+                'success' => false,
+                'data'    => [
+                    'message'     => __('A temporary error occurred. Please try again.', 'hello-elementor-child'),
+                    'recoverable' => true,
+                ],
+            ]);
+        });
+
         // 1. GATHER INPUTS (explicit form values)
         $explicit = [
             'niche'         => isset($_POST['niche']) ? $_POST['niche'] : [],
@@ -750,7 +785,12 @@ class Influencer_Search
 
         $query = new stdClass();
         $query->found_posts = $found_total;
-        $query->max_num_pages = $per_page > 0 ? (int) ceil($found_total / $per_page) : 0;
+        // The scored pool is capped at $score_cap, so only that many results are actually
+        // pageable even when the raw query matched more. Cap the page count to the pool size
+        // so "Load More" stops cleanly at the end of the pool instead of requesting pages that
+        // slice past it and return empty — which the UI rendered as a sudden "0 results".
+        $pageable_total = min($found_total, count($scored));
+        $query->max_num_pages = $per_page > 0 ? (int) ceil($pageable_total / $per_page) : 0;
         $query->posts = [];
         foreach ($page_ids as $pid) {
             $post = get_post((int) $pid);
@@ -796,7 +836,12 @@ class Influencer_Search
                 setup_postdata($post);
                 set_query_var('current_influencer_id', $post->ID);
                 if (class_exists('\Elementor\Plugin')) {
-                    echo do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_search_card', 1839) . '"]');
+                    try {
+                        echo do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_search_card', 1839) . '"]');
+                    } catch (\Throwable $e) {
+                        // A single unrenderable card shouldn't blow up the whole page of results.
+                        error_log('Influencer search: card render failed for #' . $post->ID . ' — ' . $e->getMessage());
+                    }
                 }
             }
             wp_reset_postdata();
