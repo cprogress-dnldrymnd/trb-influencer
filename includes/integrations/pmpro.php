@@ -143,6 +143,9 @@ function dd_pmpro_member_profile_edit_tabs()
             border-bottom: 1px solid var(--e-global-color-f35d6b9);
         }
         .pmpro-member-profile-edit .dd-profile-tab-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: transparent;
             border: none !important;
             padding: 12px 0;
@@ -154,6 +157,9 @@ function dd_pmpro_member_profile_edit_tabs()
             transition: color 0.2s ease, border-color 0.2s ease;
             border-radius:0;
             background-color:transparent !important;
+        }
+        .pmpro-member-profile-edit .dd-profile-tab-item svg {
+            flex-shrink: 0;
         }
         .pmpro-member-profile-edit .dd-profile-tab-item:hover,
         .pmpro-member-profile-edit .dd-profile-tab-item.active {
@@ -168,46 +174,71 @@ function dd_pmpro_member_profile_edit_tabs()
     </style>
     <script type="text/javascript">
         jQuery(document).ready(function($) {
+            // Feather-style outline icons (stroke="currentColor"), keyed to match this theme's existing inline-SVG convention.
+            var tabIcons = {
+                'account-information': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+                'more-information':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+                'profile':            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
+            };
+
             var $form = $('#member-profile-edit');
-            if (! $form.length) return;
 
-            var $fieldsets = $form.find('fieldset.pmpro_form_fieldset');
-            if ($fieldsets.length < 2) return;
+            if ($form.length) {
+                var $fieldsets = $form.find('fieldset.pmpro_form_fieldset');
 
-            $form.find('.pmpro_spacer').hide();
+                if ($fieldsets.length > 1) {
+                    $form.find('.pmpro_spacer').hide();
 
-            var $tabNav = $('<div class="dd-profile-tabs" role="tablist"></div>');
+                    var $tabNav = $('<div class="dd-profile-tabs" role="tablist"></div>');
 
-            $fieldsets.each(function(index) {
-                var $fieldset = $(this);
-                var label = $.trim($fieldset.find('.pmpro_form_legend h2').first().text()) || ('Section ' + (index + 1));
-                var panelId = $fieldset.attr('id');
+                    $fieldsets.each(function(index) {
+                        var $fieldset = $(this);
+                        var label = $.trim($fieldset.find('.pmpro_form_legend h2').first().text()) || ('Section ' + (index + 1));
+                        var panelId = $fieldset.attr('id') || ('dd-profile-panel-' + index);
+                        var iconKey = panelId.replace(/^pmpro_(member_profile_edit|form_fieldset)-/, '');
+                        var icon = tabIcons[iconKey] || '';
 
-                var $tab = $('<button type="button" class="dd-profile-tab-item"></button>')
-                    .attr({ role: 'tab', 'data-target': panelId, 'aria-selected': index === 0 ? 'true' : 'false' })
-                    .text(label);
+                        var $tab = $('<button type="button" class="dd-profile-tab-item"></button>')
+                            .attr({ role: 'tab', 'data-target': panelId, 'aria-selected': index === 0 ? 'true' : 'false' })
+                            .html(icon + '<span>' + label + '</span>');
 
-                if (index === 0) {
-                    $tab.addClass('active');
-                } else {
-                    $fieldset.hide();
+                        if (index === 0) {
+                            $tab.addClass('active');
+                        } else {
+                            $fieldset.hide();
+                        }
+
+                        $fieldset.addClass('dd-profile-tab-panel');
+                        $tabNav.append($tab);
+                    });
+
+                    $form.find('.pmpro_card_content').first().prepend($tabNav);
+
+                    $tabNav.on('click', '.dd-profile-tab-item', function() {
+                        var $tab = $(this);
+                        if ($tab.hasClass('active')) return;
+
+                        $tabNav.find('.dd-profile-tab-item').removeClass('active').attr('aria-selected', 'false');
+                        $tab.addClass('active').attr('aria-selected', 'true');
+
+                        $fieldsets.hide();
+                        $('#' + $tab.attr('data-target')).show();
+                    });
                 }
+            }
 
-                $fieldset.addClass('dd-profile-tab-panel');
-                $tabNav.append($tab);
-            });
+            // Prepend matching icons into the Brand logo field's Delete / Replace / Cancel buttons.
+            var actionIcons = {
+                '#pmpro_delete_file_user_avatar_button':          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
+                '#pmpro_replace_file_user_avatar_button':         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>',
+                '#pmpro_cancel_change_file_user_avatar_button':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+            };
 
-            $form.find('.pmpro_card_content').first().prepend($tabNav);
-
-            $tabNav.on('click', '.dd-profile-tab-item', function() {
-                var $tab = $(this);
-                if ($tab.hasClass('active')) return;
-
-                $tabNav.find('.dd-profile-tab-item').removeClass('active').attr('aria-selected', 'false');
-                $tab.addClass('active').attr('aria-selected', 'true');
-
-                $fieldsets.hide();
-                $('#' + $tab.attr('data-target')).show();
+            $.each(actionIcons, function(selector, svg) {
+                var $btn = $('#user_avatar_div').find(selector);
+                if ($btn.length && ! $btn.find('svg').length) {
+                    $btn.prepend(svg);
+                }
             });
         });
     </script>
