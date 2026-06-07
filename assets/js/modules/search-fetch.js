@@ -22,40 +22,40 @@
     };
 
     /**
-     * Positions the loading spinner over the centre of #my-loop-grid-container,
-     * using its current offset/size so the spinner lands in the middle of the
-     * results area regardless of how tall the grid grows or scrolls.
+     * Loading spinner: pinned to the centre of the viewport via `position: fixed`,
+     * so it stays in the same spot on screen regardless of scrolling.
      */
-    function position_loading_animation() {
-        var container = document.getElementById('my-loop-grid-container');
-        var $loader   = $('.loading-animation');
-
-        if (!container || !$loader.length) return;
-
-        // getBoundingClientRect() is viewport-relative, matching `position: fixed`,
-        // so this works regardless of any positioned ancestors in between.
-        var rect = container.getBoundingClientRect();
-
-        $loader.css({
+    function show_loading_animation() {
+        $('.loading-animation').css({
             position:  'fixed',
-            top:       rect.top + (rect.height / 2),
-            left:      rect.left + (rect.width / 2),
+            top:       '50%',
+            left:      '50%',
             transform: 'translate(-50%, -50%)',
             margin:    0
-        });
-    }
-
-    function show_loading_animation() {
-        position_loading_animation();
-        $('.loading-animation').show();
-        // Re-centre on resize only — not scroll — so it stays put on screen
-        // while the page scrolls instead of tracking the container.
-        $(window).on('resize.loading_animation', position_loading_animation);
+        }).show();
     }
 
     function hide_loading_animation() {
         $('.loading-animation').hide();
-        $(window).off('resize.loading_animation');
+    }
+
+    /**
+     * Overlay that covers #dashboard-content-inner while a search is running,
+     * blocking clicks on the dashboard underneath until results are ready.
+     */
+    function show_search_overlay() {
+        var $parent = $('.dashboard-content-inner');
+        if (!$parent.length) return;
+
+        var $overlay = $parent.children('.search-loading-overlay');
+        if (!$overlay.length) {
+            $overlay = $('<div class="search-loading-overlay"></div>').appendTo($parent);
+        }
+        $overlay.show();
+    }
+
+    function hide_search_overlay() {
+        $('.dashboard-content-inner').children('.search-loading-overlay').hide();
     }
 
     /**
@@ -120,7 +120,8 @@
             push_url_state(null, search_brief);
         }
 
-        container.css('opacity', '0.5').attr('aria-busy', 'true');
+        container.attr('aria-busy', 'true');
+        show_search_overlay();
         button.text('Loading...');
 
         $.ajax({
@@ -180,14 +181,16 @@
                     if (debug) InfluencerApp.render_brief_search_debug(debug);
                 }
 
-                container.css('opacity', '1').attr('aria-busy', 'false');
+                container.attr('aria-busy', 'false');
+                hide_search_overlay();
             },
             error: function () {
                 hide_loading_animation();
                 $('.total-found-influencer').text('0');
                 $('.current-found-influencer').text('0');
                 container.html('<p style="padding:20px 0;">An error occurred. Please try again.</p>');
-                container.css('opacity', '1').attr('aria-busy', 'false');
+                container.attr('aria-busy', 'false');
+                hide_search_overlay();
                 button.text('Try Again');
             }
         });

@@ -1674,9 +1674,11 @@ class Saves_Manager
             .inf-modal-header h3 {
                 margin: 0;
                 font-size: 18px;
-                color: var(--e-global-color-primary);
                 font-weight: 500;
                 font-family: Work Sans, sans-serif;
+                text-transform: uppercase;
+                color: rgb(102, 112, 133);
+                letter-spacing: 1px;
             }
 
             #inf-modal-overlay button.inf-btn-back {
@@ -1963,11 +1965,11 @@ class Saves_Manager
             </div>
             <div id="inf-view-save-search" class="inf-modal-content">
                 <div class="inf-modal-header">
-                    <h3>Name your search</h3>
+                    <h3>Save Your Search</h3>
                 </div>
                 <div class="inf-input-group">
                     <label>Search name<span>*</span></label>
-                    <input type="text" id="inf-save-search-name" class="inf-input" placeholder="e.g. Top Tech Creators UK">
+                    <input type="text" id="inf-save-search-name" class="inf-input" placeholder="Pregnancy Creators UK">
                 </div>
                 <div class="inf-modal-actions">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
