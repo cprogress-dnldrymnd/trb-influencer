@@ -342,7 +342,7 @@ function breadcrumbs()
             <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) { ?>
                 <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
 
-                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') { ?>
+                <?php if (is_single() && get_post_type() == 'influencer') { ?>
                     <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>">Search Results</a></li>
                 <?php } ?>
 
@@ -668,9 +668,12 @@ function most_engage_niches()
     return sprintf(
         /* translators: 1: niche name, 2: percentage, 3: niche name, 4: percentage, 5: niche name, 6: percentage */
         __('Your top niches this month: %1$s (%2$s%%), %3$s (%4$s%%), %5$s (%6$s%%).', 'hello-elementor-child'),
-        $ranked_niches[0]['name'], $ranked_niches[0]['percentage'],
-        $ranked_niches[1]['name'], $ranked_niches[1]['percentage'],
-        $ranked_niches[2]['name'], $ranked_niches[2]['percentage']
+        $ranked_niches[0]['name'],
+        $ranked_niches[0]['percentage'],
+        $ranked_niches[1]['name'],
+        $ranked_niches[1]['percentage'],
+        $ranked_niches[2]['name'],
+        $ranked_niches[2]['percentage']
     );
 }
 
