@@ -362,7 +362,7 @@ class Influencer_Search
                     </div>
                 </div>
             </div>
-            <div class="tags-container"></div>
+            <div class="tags-container" style="display: none;"></div>
         </div>
     <?php
         return ob_get_clean();
