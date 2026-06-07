@@ -48,12 +48,14 @@
     function show_loading_animation() {
         position_loading_animation();
         $('.loading-animation').show();
-        $(window).on('scroll.loading_animation resize.loading_animation', position_loading_animation);
+        // Re-centre on resize only — not scroll — so it stays put on screen
+        // while the page scrolls instead of tracking the container.
+        $(window).on('resize.loading_animation', position_loading_animation);
     }
 
     function hide_loading_animation() {
         $('.loading-animation').hide();
-        $(window).off('scroll.loading_animation resize.loading_animation');
+        $(window).off('resize.loading_animation');
     }
 
     /**
