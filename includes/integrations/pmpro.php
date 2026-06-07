@@ -144,6 +144,7 @@ function dd_pmpro_member_profile_edit_tabs()
             margin-bottom: 24px;
             border-bottom: 1px solid var(--e-global-color-f35d6b9);
         }
+
         .pmpro-member-profile-edit .dd-profile-tab-item {
             display: inline-flex;
             align-items: center;
@@ -157,32 +158,53 @@ function dd_pmpro_member_profile_edit_tabs()
             cursor: pointer;
             border-bottom: 3px solid transparent !important;
             transition: color 0.2s ease, border-color 0.2s ease;
-            border-radius:0;
-            background-color:transparent !important;
+            border-radius: 0;
+            background-color: transparent !important;
         }
+
         .pmpro-member-profile-edit .dd-profile-tab-item svg {
             flex-shrink: 0;
         }
+
         .pmpro-member-profile-edit .dd-profile-tab-item:hover,
         .pmpro-member-profile-edit .dd-profile-tab-item.active {
             color: var(--e-global-color-primary);
             border-bottom-color: var(--e-global-color-primary) !important;
         }
+
         .pmpro-member-profile-edit fieldset.dd-profile-tab-panel {
             border: none;
             margin: 0;
             padding: 0;
         }
+
         .pmpro-member-profile-edit .dd-change-password-link {
             margin: 4px 0 20px;
         }
+
         .pmpro-member-profile-edit .dd-change-password-link a {
             color: var(--e-global-color-primary);
             font-weight: 500;
             text-decoration: underline;
         }
+
         .pmpro-member-profile-edit .dd-change-password-link a:hover {
             color: var(--e-global-color-secondary);
+        }
+
+        .dd-change-password-link {
+            text-align: right;
+        }
+
+        .dd-change-password-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dd-change-password-link svg {
+            width: 20px;
+            height: 20px;
         }
     </style>
     <script type="text/javascript">
@@ -190,8 +212,8 @@ function dd_pmpro_member_profile_edit_tabs()
             // Feather-style outline icons (stroke="currentColor"), keyed to match this theme's existing inline-SVG convention.
             var tabIcons = {
                 'account-information': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
-                'more-information':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
-                'profile':            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
+                'more-information': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+                'profile': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
             };
 
             var changePasswordUrl = <?php echo wp_json_encode($change_password_url); ?>;
@@ -200,9 +222,9 @@ function dd_pmpro_member_profile_edit_tabs()
 
             // Add a "Change Password" link to the Account Information panel, just above the Update Profile / Cancel buttons.
             var $accountFieldset = $form.find('fieldset[id$="account-information"]').first();
-            if ($accountFieldset.length && ! $accountFieldset.find('.dd-change-password-link').length) {
+            if ($accountFieldset.length && !$accountFieldset.find('.dd-change-password-link').length) {
                 $accountFieldset.append(
-                    '<p class="dd-change-password-link"><a href="' + changePasswordUrl + '">Change Password</a></p>'
+                    '<p class="dd-change-password-link"><a href="' + changePasswordUrl + '"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="800px" height="800px" viewBox="0 0 512 512"> <g id="Change_password"> <path d="M464.4326,147.54a9.8985,9.8985,0,0,0-17.56,9.1406,214.2638,214.2638,0,0,1-38.7686,251.42c-83.8564,83.8476-220.3154,83.874-304.207-.0088a9.8957,9.8957,0,0,0-16.8926,7.0049v56.9a9.8965,9.8965,0,0,0,19.793,0v-34.55A234.9509,234.9509,0,0,0,464.4326,147.54Z"/> <path d="M103.8965,103.9022c83.8828-83.874,220.3418-83.8652,304.207-.0088a9.8906,9.8906,0,0,0,16.8926-6.9961v-56.9a9.8965,9.8965,0,0,0-19.793,0v34.55C313.0234-1.3556,176.0547,3.7509,89.9043,89.9012A233.9561,233.9561,0,0,0,47.5674,364.454a9.8985,9.8985,0,0,0,17.56-9.1406A214.2485,214.2485,0,0,1,103.8965,103.9022Z"/> <path d="M126.4009,254.5555v109.44a27.08,27.08,0,0,0,27,27H358.5991a27.077,27.077,0,0,0,27-27v-109.44a27.0777,27.0777,0,0,0-27-27H153.4009A27.0805,27.0805,0,0,0,126.4009,254.5555ZM328,288.13a21.1465,21.1465,0,1,1-21.1465,21.1464A21.1667,21.1667,0,0,1,328,288.13Zm-72,0a21.1465,21.1465,0,1,1-21.1465,21.1464A21.1667,21.1667,0,0,1,256,288.13Zm-72,0a21.1465,21.1465,0,1,1-21.1465,21.1464A21.1667,21.1667,0,0,1,184,288.13Z"/> <path d="M343.6533,207.756V171.7538a87.6533,87.6533,0,0,0-175.3066,0V207.756H188.14V171.7538a67.86,67.86,0,0,1,135.7208,0V207.756Z"/> </g> </svg> Change Password</a></p>'
                 );
             }
 
@@ -222,7 +244,11 @@ function dd_pmpro_member_profile_edit_tabs()
                         var icon = tabIcons[iconKey] || '';
 
                         var $tab = $('<button type="button" class="dd-profile-tab-item"></button>')
-                            .attr({ role: 'tab', 'data-target': panelId, 'aria-selected': index === 0 ? 'true' : 'false' })
+                            .attr({
+                                role: 'tab',
+                                'data-target': panelId,
+                                'aria-selected': index === 0 ? 'true' : 'false'
+                            })
                             .html(icon + '<span>' + label + '</span>');
 
                         if (index === 0) {
@@ -252,14 +278,14 @@ function dd_pmpro_member_profile_edit_tabs()
 
             // Prepend matching icons into the Brand logo field's Delete / Replace / Cancel buttons.
             var actionIcons = {
-                '#pmpro_delete_file_user_avatar_button':          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
-                '#pmpro_replace_file_user_avatar_button':         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>',
-                '#pmpro_cancel_change_file_user_avatar_button':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+                '#pmpro_delete_file_user_avatar_button': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
+                '#pmpro_replace_file_user_avatar_button': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>',
+                '#pmpro_cancel_change_file_user_avatar_button': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
             };
 
             $.each(actionIcons, function(selector, svg) {
                 var $btn = $('#user_avatar_div').find(selector);
-                if ($btn.length && ! $btn.find('svg').length) {
+                if ($btn.length && !$btn.find('svg').length) {
                     $btn.prepend(svg);
                 }
             });

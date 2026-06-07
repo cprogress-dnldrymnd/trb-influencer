@@ -3051,7 +3051,10 @@ body {
   font-weight: 500;
   border: 1px solid transparent;
   background-color: transparent;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 #user_avatar_div .pmpro_form_field-file-actions .pmpro_btn svg {
   flex-shrink: 0;
@@ -3092,6 +3095,7 @@ body {
 #dd_opt_out_free_trial-label input:checked + span:before {
   content: "✓";
 }
+
 
 @media (max-width: 575px) {
   #user_avatar_div {
