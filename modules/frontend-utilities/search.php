@@ -1656,7 +1656,7 @@ class Influencer_Search
                             </span>
                         </button>
                     </div>
-                    <div class="reset-btn reset-all-btn" style="display: none">Reset</div>
+                    <div class="reset-btn reset-all-btn" style="display: none">Reset All</div>
                     <div class="save-this-search">
                         <span class="save-search-trigger">Save this search</span>
                     </div>
