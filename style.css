@@ -370,8 +370,8 @@ body:not(#error-page).show-body {
     background-color 0.2s ease,
     color 0.2s ease,
     border-color 0.2s ease;
-      padding-top: 15px;
-      padding-bottom: 15px;
+  padding-top: 15px;
+  padding-bottom: 15px;
 }
 .influencer-search-button.influencer-search-button.influencer-search-button:hover,
 .influencer-search-button.influencer-search-button.influencer-search-button:active,
@@ -847,7 +847,6 @@ input:checked + .slider:before {
 }
 .influencer-search-main .influencer-search-button.influencer-search-button.influencer-search-button {
   width: auto;
-  margin-left: auto;
   display: block;
 }
 .influencer-search-main
@@ -3060,20 +3059,24 @@ body {
 }
 
 .influencer-search-main .reset-filters-btn {
-  background-color: transparent;
   border-color: var(--e-global-color-primary);
-  color: var(--e-global-color-primary);
   cursor: pointer;
   transition:
     background-color 0.2s ease,
     color 0.2s ease,
     border-color 0.2s ease;
+  font-size: 11px;
+  color: #000000;
+  background: none;
+  border: none;
+  padding: 0;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 .influencer-search-main .reset-filters-btn:hover,
 .influencer-search-main .reset-filters-btn:focus {
-  background-color: var(--e-global-color-primary);
-  color: #fff;
-  border-color: var(--e-global-color-primary);
+  text-decoration: underline;
 }
 
 /* If the dashboard contains a checked switch input, reveal the button */
