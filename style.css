@@ -608,7 +608,6 @@ input:checked + .slider:before {
 }
 .breadcrumbs ul li a:hover {
   opacity: 1;
-  text-decoration: underline;
 }
 .breadcrumbs ul li:not(:last-child):after {
   content: "";
