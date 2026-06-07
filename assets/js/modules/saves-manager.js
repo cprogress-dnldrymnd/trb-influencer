@@ -64,10 +64,8 @@ jQuery(document).ready(function($) {
         state.influencerId = state.triggerBtn.attr('influencer-id');
         state.entryPoint = 'influencer';
 
-        let $btnText = state.triggerBtn.find('.elementor-button-text');
-        let ogText = $btnText.text();
-        $btnText.text('Loading...');
-        state.triggerBtn.css('pointer-events', 'none');
+        $('#inf-lists-wrapper').html('<div class="inf-modal-loading">Fetching your saved lists…</div>');
+        switchModalView('inf-view-manage');
 
         $.ajax({
             url: ajax_vars.ajax_url,
@@ -86,8 +84,6 @@ jQuery(document).ready(function($) {
                 } else {
                     window.ddAlert('Error: ' + res.data.message);
                 }
-                $btnText.text(ogText);
-                state.triggerBtn.css('pointer-events', 'auto');
             }
         });
     });
