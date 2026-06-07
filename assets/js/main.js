@@ -37,6 +37,7 @@
         InfluencerApp.initSearchToggle();
         InfluencerApp.initAdvancedSearchToggle();
         InfluencerApp.init_sidebar_reset_all();
+        InfluencerApp.initRefineSearchToggle();
 
         InfluencerApp.initActiveFilterChips();
         InfluencerApp.validate_required_search_filters();

@@ -123,6 +123,23 @@
     };
 
     /**
+     * Toggles the sidebar search form as a sideout modal on small screens (<=767px).
+     * Shared `.refine-search-trigger` class is used by the open button, the close
+     * button, and the backdrop so any of them can open or close the panel.
+     */
+    InfluencerApp.initRefineSearchToggle = function () {
+        var triggers = document.querySelectorAll('.refine-search-trigger');
+        if (!triggers.length) return;
+
+        triggers.forEach(function (trigger) {
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.body.classList.toggle('refine-search-active');
+            });
+        });
+    };
+
+    /**
      * Toggles the advanced search filter panel open/closed when its trigger is clicked.
      */
     InfluencerApp.initAdvancedSearchToggle = function () {

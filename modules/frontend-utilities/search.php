@@ -1628,12 +1628,18 @@ class Influencer_Search
     public static function shortcode_search_form($atts = [])
     {
         $atts = shortcode_atts([
-            'layout'   => 'main',
-            'btn_text' => 'FIND MATCHES',
+            'layout'         => 'main',
+            'btn_text'       => 'FIND MATCHES',
+            'refine_icon'    => '<svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20"><path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path></svg>',
+            'refine_title'   => 'REFINE YOUR SEARCH',
+            'refine_subtext' => 'Filter your existing matches – no credits required.',
         ], $atts);
 
-        $layout   = $atts['layout'];
-        $btn_text = $atts['btn_text'];
+        $layout         = $atts['layout'];
+        $btn_text       = $atts['btn_text'];
+        $refine_icon    = html_entity_decode($atts['refine_icon'], ENT_QUOTES);
+        $refine_title   = $atts['refine_title'];
+        $refine_subtext = $atts['refine_subtext'];
 
         $raw_fields               = get_query_var('influencer_search_fields');
         $influencer_search_fields = is_array($raw_fields) ? $raw_fields : [];
@@ -1646,7 +1652,22 @@ class Influencer_Search
         if ($layout === 'sidebar') {
         ?>
             <form class="influencer-search influencer-search-sidebar" action="<?= esc_url($form_action) ?>" method="GET">
+                <div class="refine-search-trigger refine-search-open refine-search-heading-block" role="button" tabindex="0">
+                    <div class="refine-search-heading">
+                        <?= $refine_icon ?>
+                        <span class="refine-search-title"><?= esc_html($refine_title) ?></span>
+                    </div>
+                    <?php if (! empty($refine_subtext)) { ?>
+                        <p class="refine-search-subtext"><?= esc_html($refine_subtext) ?></p>
+                    <?php } ?>
+                </div>
+                <div class="refine-search-backdrop refine-search-trigger"></div>
                 <div class="influencer-search-filter-holder">
+                    <button type="button" class="refine-search-close refine-search-trigger" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                        </svg>
+                    </button>
                     <div class="influencer-search-item niche-filters required-on-search">
                         <?= self::select_filter('niche', 'Niche Filter', 'Select your niche filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>

@@ -186,6 +186,32 @@ body:not(#error-page).show-body {
 .influencer-search-sidebar .reset-all-btn:hover {
   opacity: 0.7;
 }
+.refine-search-heading-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.refine-search-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.refine-search-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #034146;
+}
+.refine-search-subtext {
+  margin: 0;
+  font-size: 13px;
+  color: rgb(102, 112, 133);
+}
+.refine-search-close,
+.refine-search-backdrop {
+  display: none;
+}
 .filter-widget.select-filter .checkbox-lists {
   display: none;
   position: absolute;
@@ -3472,6 +3498,62 @@ body {
   }
   .homepage-custom-section .custom-image-container {
     position: static !important;
+  }
+
+  .refine-search-heading-block {
+    cursor: pointer;
+  }
+  .refine-search-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: #000;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 9998;
+    transition:
+      opacity 300ms ease,
+      visibility 300ms ease;
+  }
+  .influencer-search-sidebar .influencer-search-filter-holder {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(85%, 360px);
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    background-color: #fff;
+    padding: 30px 20px;
+    z-index: 9999;
+    transform: translateX(100%);
+    transition: transform 300ms ease;
+  }
+  .refine-search-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 26px;
+    height: 26px;
+    background-color: #f2f2f2;
+    border: none;
+    border-radius: 5px;
+    color: #034146;
+    cursor: pointer;
+  }
+  body.refine-search-active {
+    overflow: hidden;
+  }
+  body.refine-search-active .influencer-search-sidebar .influencer-search-filter-holder {
+    transform: translateX(0);
+  }
+  body.refine-search-active .refine-search-backdrop {
+    opacity: 0.65;
+    visibility: visible;
   }
 }
 
