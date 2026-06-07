@@ -106,6 +106,9 @@ body:not(#error-page).show-body {
   .followers-filter.followers-filter {
     flex-direction: column;
   }
+  .loading-animation {
+    margin-left: 0;
+  }
 }
 @media (max-width: 767px) {
   .influencer-loop-grid {
