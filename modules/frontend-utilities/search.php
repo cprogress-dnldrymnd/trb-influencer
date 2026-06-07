@@ -706,15 +706,42 @@ class Influencer_Search
         $ids_args['orderby'] = 'date';
         $ids_args['order'] = 'DESC';
 
-        $ids_query = new WP_Query($ids_args);
-        $all_ids = array_map('intval', (array) $ids_query->posts);
-        $found_total = (int) $ids_query->found_posts;
+        // Cache the (expensive, sometimes flaky) ID pool + scoring per unique search so that
+        // paging through results (page 2, 3, ...) reuses the first page's work instead of
+        // re-running the scorer on every "Load More" click — this is what was intermittently
+        // erroring out and showing 0 results on later pages.
+        $pool_cache_key = 'dd_brief_pool_' . md5(wp_json_encode([$ids_args, $search_criteria, $score_cap]));
+        $cached_pool = get_transient($pool_cache_key);
 
-        $scored = function_exists('creatordb_brief_sort_post_ids_by_score')
-            ? creatordb_brief_sort_post_ids_by_score($all_ids, $search_criteria)
-            : array_map(function ($id) {
-                return ['id' => $id, 'score' => 50];
-            }, $all_ids);
+        if (is_array($cached_pool) && isset($cached_pool['scored'], $cached_pool['found_total']) && is_array($cached_pool['scored'])) {
+            $scored = $cached_pool['scored'];
+            $found_total = (int) $cached_pool['found_total'];
+        } else {
+            $ids_query = new WP_Query($ids_args);
+            $all_ids = array_map('intval', (array) $ids_query->posts);
+            $found_total = (int) $ids_query->found_posts;
+
+            $scored = null;
+            if (function_exists('creatordb_brief_sort_post_ids_by_score')) {
+                try {
+                    $scored = creatordb_brief_sort_post_ids_by_score($all_ids, $search_criteria);
+                } catch (\Throwable $e) {
+                    error_log('Influencer brief search: scoring failed — ' . $e->getMessage());
+                    $scored = null;
+                }
+            }
+
+            if (!is_array($scored)) {
+                $scored = array_map(function ($id) {
+                    return ['id' => $id, 'score' => 50];
+                }, $all_ids);
+            }
+
+            set_transient($pool_cache_key, [
+                'scored'      => $scored,
+                'found_total' => $found_total,
+            ], 10 * MINUTE_IN_SECONDS);
+        }
 
         $per_page = (int) $args['posts_per_page'];
         $offset = ($paged - 1) * $per_page;
@@ -792,7 +819,7 @@ class Influencer_Search
                     return (int) $p->ID;
                 }, $posts);
                 $debug_payload['score_cap'] = $score_cap;
-                $debug_payload['scored_pool'] = count($all_ids);
+                $debug_payload['scored_pool'] = count($scored);
             }
 
             $success_data = array(

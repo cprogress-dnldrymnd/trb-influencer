@@ -7,6 +7,10 @@
     var current_page = 1;
     var max_pages = 1;
 
+    // True once a "Load More" request has failed and the button now reads "Try Again" —
+    // lets the click handler retry the same page instead of skipping ahead to the next one.
+    var load_more_failed = false;
+
     /**
      * Renders the brief-search debug payload into the debug panel (dev only).
      */
@@ -197,6 +201,8 @@
             success: function (response) {
                 var debug = (response.data && response.data.debug) ? response.data.debug : null;
 
+                if (is_load_more) load_more_failed = false;
+
                 if (response.success) {
                     if (is_load_more) {
                         hide_button_spinner(button);
@@ -251,6 +257,7 @@
             error: function () {
                 if (is_load_more) {
                     hide_button_spinner(button);
+                    load_more_failed = true;
                 } else {
                     hide_loading_animation();
                 }
@@ -278,10 +285,16 @@
         });
     };
 
-    // Load More button (delegated, works after DOM is ready)
+    // Load More button (delegated, works after DOM is ready).
+    // If the previous "Load More" request errored (button now reads "Try Again"),
+    // retry the same page instead of advancing — advancing would skip the page
+    // that failed and could walk straight past the end of the result set.
     $(document).on('click', '#load-more-influencers', function (e) {
         e.preventDefault();
-        current_page++;
+        if (!load_more_failed) {
+            current_page++;
+        }
+        load_more_failed = false;
         InfluencerApp.fetch_influencers(true);
     });
 
