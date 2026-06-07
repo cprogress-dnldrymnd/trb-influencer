@@ -677,7 +677,7 @@ input:checked + .slider:before {
   background: transparent linear-gradient(251deg, #ecf799 0%, #caf7a1 30%, #d6f79e 67%, #bbf7a6 100%) 0% 0% no-repeat
     padding-box;
   border: 1px solid #034146;
-  font-size: 12px;
+  font-size: 0;
   color: #034146;
   font-weight: bold;
   padding: 14px 24px;
@@ -686,7 +686,10 @@ input:checked + .slider:before {
   font-family: Inter, sans-serif;
   cursor: pointer;
 }
-
+.mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:before {
+  content: 'SPEND 1 CREDIT TO UNLOCK INFORMATION';
+  font-size: 12px;
+}
 
 .influencer-search-main .influencer-search-item-row {
   display: flex;
