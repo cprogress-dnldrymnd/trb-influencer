@@ -3140,6 +3140,7 @@ body {
 
 .pmpro_form_submit .pmpro_btn-submit-update-profile:hover,
 .pmpro_form_submit .pmpro_btn-submit-checkout:hover,
+.pmpro_form_submit .pmpro_btn-submit-change-password:hover,
 .pmpro_form_submit #pmpro_btn-submit:hover {
   background-color: var(--e-global-color-secondary);
   border-color: var(--e-global-color-secondary);
