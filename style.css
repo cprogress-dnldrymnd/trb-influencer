@@ -910,14 +910,14 @@ input:checked + .slider:before {
   cursor: wait;
 }
 
-#load-more-influencers.is-loading::before {
+#load-more-influencers.is-loading::after {
   content: "";
   display: inline-block;
   vertical-align: middle;
   width: 14px;
   height: 14px;
   margin-right: 8px;
-  border: 2px solid var(--e-global-color-primary);
+  border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
   animation: load-more-spin 0.7s linear infinite;
