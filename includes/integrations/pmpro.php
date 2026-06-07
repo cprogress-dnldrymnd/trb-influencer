@@ -144,19 +144,20 @@ function dd_pmpro_member_profile_edit_tabs()
         }
         .pmpro-member-profile-edit .dd-profile-tab-item {
             background: transparent;
-            border: none;
-            padding: 12px 20px;
+            border: none !important;
+            padding: 12px 0;
             font-family: "Work Sans", sans-serif;
             font-weight: 500;
             color: var(--e-global-color-text);
             cursor: pointer;
-            border-bottom: 3px solid transparent;
+            border-bottom: 3px solid transparent !important;
             transition: color 0.2s ease, border-color 0.2s ease;
+            border-radius:0;
         }
         .pmpro-member-profile-edit .dd-profile-tab-item:hover,
         .pmpro-member-profile-edit .dd-profile-tab-item.active {
-            color: var(--e-global-color-primary);
-            border-bottom-color: var(--e-global-color-primary);
+            color: var(--e-global-color-2ba2932);
+            border-bottom-color: var(--e-global-color-primary) !important;
         }
         .pmpro-member-profile-edit fieldset.dd-profile-tab-panel {
             border: none;
