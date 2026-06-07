@@ -103,6 +103,9 @@ body:not(#error-page).show-body {
   .influencer-loop-grid {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
+  .followers-filter.followers-filter {
+    flex-direction: column;
+  }
 }
 @media (max-width: 767px) {
   .influencer-loop-grid {
