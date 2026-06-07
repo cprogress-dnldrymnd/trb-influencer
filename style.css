@@ -160,7 +160,12 @@ body:not(#error-page).show-body {
 
 .influencer-search-followers-filter .filter-widget .header {
   margin: 0;
+  justify-content: flex-end;
 }
+.influencer-search-followers-filter .filter-widget .header .reset-btn{
+  margin-bottom: 5px;
+}
+
 .filter-widget .header .reset-btn {
   font-size: 0.9rem;
   text-decoration: underline;
