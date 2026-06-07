@@ -50,17 +50,7 @@ add_action('init', 'dd_set_global_pmpro_variable');
 
 function action_wp_head()
 {
-    global $is_no_membership, $search_page_id, $search_results_page_id;
-
-    // Smooth cross-document crossfade between the search form and results
-    // pages (Chromium View Transitions API; no-op in browsers without support,
-    // so the navigation just falls back to its normal appearance).
-    if (is_page($search_page_id) || is_page($search_results_page_id)) {
-        echo '<style id="search-view-transitions">';
-        echo '@view-transition { navigation: auto; }';
-        echo '::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.32s; }';
-        echo '</style>';
-    }
+    global $is_no_membership;
 
     if (isset($_GET['search-brief']) && $_GET['search-brief'] != '') {
         $search_type = 'fullbrief';
