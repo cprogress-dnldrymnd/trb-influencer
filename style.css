@@ -3283,6 +3283,9 @@ body {
 .reset-btn-holder {
   text-align: center;
 }
+#outreach_form .elementor-field select option {
+  font-size: 14px;
+}
 @media (max-width: 575px) {
   #user_avatar_div {
     grid-template-columns: 1fr;

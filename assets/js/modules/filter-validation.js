@@ -11,18 +11,24 @@
     InfluencerApp.validate_required_search_filters = function () {
         // Typing into a required filter's option-search box and pressing Enter
         // would otherwise submit the form before the user finishes selecting.
-        $('.influencer-search-main .required-on-search .dropdown-search-input').on('keydown', function (e) {
+        $('.influencer-search .required-on-search .dropdown-search-input').on('keydown', function (e) {
             if (e.key === 'Enter' || e.which === 13) {
                 e.preventDefault();
             }
         });
 
-         $('.influencer-search-main').on('submit', function (e) {
+         $('.influencer-search').on('submit', function (e) {
             let isValid = true;
+            const $form = $(this);
 
-            if ($('.filtered-search.active').length > 1) {
+            // The filtered/brief toggle only exists on the main search form;
+            // when it's present, only enforce required filters in filtered mode.
+            // The sidebar form has no such toggle, so always enforce there.
+            const hasFilteredToggle = $form.find('.filtered-search').length > 0;
+
+            if (!hasFilteredToggle || $form.find('.filtered-search.active').length > 1) {
                 // Iterate over all required filter blocks
-                $(this).find('.required-on-search').each(function () {
+                $form.find('.required-on-search').each(function () {
                     const $container = $(this);
 
                     // Verify if tags exist in the tags-container
