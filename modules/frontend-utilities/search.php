@@ -1886,12 +1886,6 @@ class Influencer_Search
                         </button>
                     </div>
                 </div>
-
-                <div class="loading-animation search-transition-loading-animation" style="display: none;">
-                    <p class="loading-text">
-                        Scouring the globe for influencers who fit your brand<span class="loading-dots"><span></span><span></span><span></span></span>
-                    </p>
-                </div>
             </form>
 <?php
         }
