@@ -1396,6 +1396,24 @@ function shortcode_influencer_follower_growth($atts)
         return $na_output;
     }
 
+    // Influencers Club provided data already comes with its own 3-month growth figure;
+    // use it directly instead of deriving growth from the CreatorDB history.
+    if (get_post_meta($post_id, 'source_provider', true) === 'influencers_club') {
+        $club_growth = get_post_meta($post_id, 'instagram_creator_follower_growth_3_months_ago', true);
+
+        if ($club_growth === '' || $club_growth === null || ! is_numeric($club_growth)) {
+            return $na_output;
+        }
+
+        $raw_decimal_growth = (float) $club_growth;
+        $formatted_percent = ($raw_decimal_growth > 0 ? '+' : '') . convertDecimalToPercentage($raw_decimal_growth);
+
+        return sprintf(
+            '<span class="creatordb-follower-growth">%s</span>',
+            esc_html($formatted_percent)
+        );
+    }
+
     // Retrieve the history array from post meta.
     $history = get_post_meta($post_id, 'creatordb_history', true);
 
