@@ -3100,8 +3100,7 @@ body {
   flex-wrap: wrap;
   gap: 12px;
 }
-
-.pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn {
+.pmpro_form_submit .pmpro_btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
