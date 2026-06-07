@@ -133,7 +133,7 @@ body:not(#error-page).show-body {
 .filter-widget {
   border-radius: 8px;
 }
-.filter-widget .header span {
+.influencer-search-filter-holder .header span {
   display: flex;
   justify-content: space-between;
   align-items: center;
