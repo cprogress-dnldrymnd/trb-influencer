@@ -807,10 +807,17 @@ input:checked + .slider:before {
 }
 .loading-animation .loading-text {
   margin: 12px 0 0;
-  font-family: Inter, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
+  font-family:
+    Playfair Display,
+    sans-serif;
+  font-size: clamp(20px, 1.667vw, 32px);
+  font-weight: bold;
   color: var(--e-global-color-primary, #034146);
+  display: flex;
+  gap: 20px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .loading-animation .loading-dots {
   display: flex;
@@ -825,6 +832,7 @@ input:checked + .slider:before {
   width: 20px;
   height: 20px;
   background-color: var(--e-global-color-secondary);
+  border-radius: 50%;
 }
 .loading-animation .loading-dots span:nth-child(1) {
   animation-delay: 0s;
