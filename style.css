@@ -103,12 +103,6 @@ body:not(#error-page).show-body {
   .influencer-loop-grid {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
-  .followers-filter.followers-filter {
-    flex-direction: column !important;
-  }
-  .loading-animation {
-    left: 0;
-  }
 }
 @media (max-width: 767px) {
   .influencer-loop-grid {
@@ -633,6 +627,12 @@ input:checked + .slider:before {
     --breadcrumbs-gap: 5px;
     --icon-size: 12px;
   }
+  .followers-filter.followers-filter {
+    flex-direction: column !important;
+  }
+  .loading-animation {
+    left: 0 !important;
+  }
 }
 
 .premium-content-notice.premium-content-notice.premium-content-notice {
@@ -798,17 +798,17 @@ input:checked + .slider:before {
 }
 
 .loading-animation {
-      text-align: center;
-    margin-top: 20px;
-    position: fixed;
-    left: var(--sidebar-width, 0);
-    z-index: 9999;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  text-align: center;
+  margin-top: 20px;
+  position: fixed;
+  left: var(--sidebar-width, 0);
+  z-index: 9999;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .loading-animation img {
   width: 100px;
