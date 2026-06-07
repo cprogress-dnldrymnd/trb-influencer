@@ -137,8 +137,11 @@
      * Fires an AJAX call to retrieve influencer results.
      *
      * @param {boolean} is_load_more  True when appending results (Load More button).
+     * @param {boolean} should_scroll True to scroll the results into view once finished —
+     *                                used for the manual search trigger only, not the
+     *                                initial page-load search or Load More.
      */
-    InfluencerApp.fetch_influencers = function (is_load_more) {
+    InfluencerApp.fetch_influencers = function (is_load_more, should_scroll) {
         var container = $('#my-loop-grid-container');
         var button = $('#load-more-influencers');
 
@@ -242,7 +245,7 @@
 
                 if (!is_load_more) {
                     hide_search_overlay();
-                    scroll_to_search_results();
+                    if (should_scroll) scroll_to_search_results();
                 }
             },
             error: function () {
@@ -259,7 +262,7 @@
 
                 if (!is_load_more) {
                     hide_search_overlay();
-                    scroll_to_search_results();
+                    if (should_scroll) scroll_to_search_results();
                 }
             }
         });
@@ -271,7 +274,7 @@
     InfluencerApp.influencer_search_trigger = function () {
         $('.influencer-search-trigger').on('click', function (e) {
             e.preventDefault();
-            InfluencerApp.fetch_influencers(false);
+            InfluencerApp.fetch_influencers(false, true);
         });
     };
 
