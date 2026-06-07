@@ -340,10 +340,13 @@ function breadcrumbs()
             </li>
 
             <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) { ?>
-                <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
+                <?php if (get_the_ID() == $search_page_id) { ?>
+                    <li><?= $search_icon ?> <span>Influencer Discovery</span></li>
+                <?php } ?>
 
-                <?php if (is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>">Search Results</a></li>
+
+                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') { ?>
+                    <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>">Influencer Discovery</a></li>
                 <?php } ?>
 
                 <?php if (is_single() && get_post_type() == 'influencer') { ?>
