@@ -39,7 +39,7 @@
      * visible and clickable while more are appended.
      */
     function show_button_spinner(button) {
-        button.addClass('is-loading').prop('disabled', true);
+        button.addClass('is-loading').prop('disabled', true).text('Loading...');
     }
 
     function hide_button_spinner(button) {

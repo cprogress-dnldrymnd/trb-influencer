@@ -907,18 +907,16 @@ input:checked + .slider:before {
 }
 
 #load-more-influencers.is-loading {
-  color: transparent;
   cursor: wait;
 }
 
-#load-more-influencers.is-loading::after {
+#load-more-influencers.is-loading::before {
   content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  display: inline-block;
+  vertical-align: middle;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
   border: 2px solid var(--e-global-color-primary);
   border-top-color: transparent;
   border-radius: 50%;
