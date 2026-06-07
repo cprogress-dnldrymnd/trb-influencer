@@ -843,7 +843,7 @@ input:checked + .slider:before {
   background-color: var(--e-global-color-secondary);
 }
 .loading-animation .loading-dots span:nth-child(3) {
-  background-color: var(--e-global-color-primary);
+  background-color: var(--e-global-color-accent);
   animation-delay: 0.4s;
 }
 @keyframes loading-dots-fade {
