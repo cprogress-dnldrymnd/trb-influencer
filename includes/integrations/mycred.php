@@ -660,16 +660,16 @@ add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_l
  * @return string The modified HTML string containing the custom text.
  */
 function dd_override_mycred_buy_button_text( $button, $post_id ) {
-
+    
     // Define the new custom text for the buy button.
     $new_text = 'SPEND 1 CREDIT TO UNLOCK INFORMATION';
 
     // Use regex to target the inner content of the button or anchor tag.
     // $1 captures the opening tag and attributes, $2 is the old text, $3 is the closing tag.
-    $modified_button = preg_replace(
-        '/(<(?:button|a)[^>]*>)(.*?)(<\/(?:button|a)>)/is',
-        '$1' . $new_text . '$3',
-        $button
+    $modified_button = preg_replace( 
+        '/(<(?:button|a)[^>]*>)(.*?)(<\/(?:button|a)>)/is', 
+        '$1' . $new_text . '$3', 
+        $button 
     );
 
     // Return the modified button HTML, or fallback to original if regex fails.
