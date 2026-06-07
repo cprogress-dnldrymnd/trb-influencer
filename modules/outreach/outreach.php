@@ -2718,7 +2718,7 @@ class DD_Outreach_Manager
                                 </g>
                             </g>
                         </svg> </span>
-                    <span class="elementor-button-text">START OUTREACH</span>
+                    <span class="elementor-button-text">CONTACT THIS CREATOR</span>
                 </span>
             </a>
 
