@@ -189,7 +189,7 @@ body:not(#error-page).show-body {
 .refine-search-heading-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 20px;
   border-bottom: 1px solid var(--e-global-color-f35d6b9);
   padding-top: clamp(15px, 1.302vw, 25px);
   padding-bottom: clamp(15px, 1.302vw, 25px);
