@@ -41,19 +41,10 @@
                         isValid = false;
 
                         // Apply visual error cue
-                        $container.css({
-                            'border': '1px solid #ff4d4d',
-                            'padding': '10px',
-                            'border-radius': '8px',
-                            'transition': 'border 0.3s ease'
-                        });
+                        $container.find('.influencer-search-item-title').css('color', '#ff4d4d');
                     } else {
                         // Clear visual error cue
-                        $container.css({
-                            'border': '',
-                            'padding': '',
-                            'border-radius': ''
-                        });
+                        $container.find('.influencer-search-item-title').css('color', '');
                     }
                 });
             }
@@ -69,11 +60,7 @@
         $('.required-on-search').on('change', 'input[type="checkbox"]', function () {
             const $container = $(this).closest('.required-on-search');
             if ($container.find('input[type="checkbox"]:checked').length > 0) {
-                $container.css({
-                    'border': '',
-                    'padding': '',
-                    'border-radius': ''
-                });
+                $container.find('.influencer-search-item-title').css('color', '');
             }
         });
     };
