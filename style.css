@@ -3569,7 +3569,7 @@ body {
     transform: translateX(100%);
     transition: transform 300ms ease;
   }
-  .refine-search-close {
+  .refine-search-close.refine-search-close.refine-search-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3578,11 +3578,22 @@ body {
     right: 20px;
     width: 26px;
     height: 26px;
+    min-width: 26px;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
     background-color: #f2f2f2;
+    background-image: none;
     border: none;
     border-radius: 5px;
     color: #034146;
     cursor: pointer;
+    box-shadow: none;
+  }
+  .refine-search-close.refine-search-close.refine-search-close svg {
+    width: 16px;
+    height: 16px;
+    display: block;
   }
   body.refine-search-active {
     overflow: hidden;
