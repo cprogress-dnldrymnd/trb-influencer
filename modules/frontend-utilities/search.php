@@ -1475,6 +1475,7 @@ class Influencer_Search
             <?php if (! empty($parts) && empty($brief)) : ?>
                 <div class="search-summary-item search-summary-filters"><strong>Filters:</strong> <?= esc_html(implode(' • ', $parts)) ?></div>
             <?php endif; ?>
+            <!--
             <?php if ($prioritise_engagement || $engagement_boost_soft || $verified_only || $expert_only) : ?>
                 <div class="search-summary-item search-summary-notes">
                     <?php
@@ -1497,6 +1498,7 @@ class Influencer_Search
                     ?>
                 </div>
             <?php endif; ?>
+            -->
             <?php if (function_exists('creatordb_brief_search_debug_enabled') && creatordb_brief_search_debug_enabled()) : ?>
                 <div id="ic-brief-search-debug" class="ic-brief-search-debug" aria-live="polite">
                     <details open>
