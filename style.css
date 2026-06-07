@@ -891,6 +891,9 @@ input:checked + .slider:before {
   hyphens: auto;
 }
 
+body.search-loading-active {
+  overflow: hidden;
+}
 .loading-animation {
   text-align: center;
   position: fixed;

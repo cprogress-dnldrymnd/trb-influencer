@@ -31,10 +31,12 @@
      */
     function show_loading_animation() {
         $('.loading-animation').css('display', 'flex');
+        $('body').addClass('search-loading-active');
     }
 
     function hide_loading_animation() {
         $('.loading-animation').hide();
+        $('body').removeClass('search-loading-active');
     }
 
     /**
