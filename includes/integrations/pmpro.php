@@ -194,7 +194,7 @@ function dd_pmpro_member_profile_edit_tabs()
 
         .dd-change-password-link {
             text-align: right;
-            margin-top: 20px;
+            margin-top: 20px !important;
         }
 
         .dd-change-password-link a {
