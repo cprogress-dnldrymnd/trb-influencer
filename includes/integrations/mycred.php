@@ -647,3 +647,25 @@ function digitally_disruptive_standardize_mycred_log_text( $content, $log_entry 
 
 // Hook into myCRED's log entry parser with a standard priority of 10, accepting 2 arguments.
 add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_log_text', 10, 2 );
+
+/**
+ * Enqueues the confirmation gate for the myCred "Sell Content" buy button.
+ *
+ * myCred spends the user's credit and unlocks the content immediately on
+ * click. This script intercepts that click before myCred's own handler runs,
+ * shows a confirmation dialog via the theme's ddConfirm() modal, and only
+ * re-dispatches the click — letting the purchase proceed — once the user
+ * explicitly agrees to spend the credit.
+ *
+ * @return void
+ */
+function dd_enqueue_mycred_buy_confirm_script() {
+    wp_enqueue_script(
+        'dd-mycred-buy-confirm',
+        get_stylesheet_directory_uri() . '/assets/js/modules/mycred-buy-confirm.js',
+        array( 'dd-modal' ),
+        HELLO_ELEMENTOR_CHILD_VERSION,
+        true
+    );
+}
+add_action( 'wp_enqueue_scripts', 'dd_enqueue_mycred_buy_confirm_script' );
