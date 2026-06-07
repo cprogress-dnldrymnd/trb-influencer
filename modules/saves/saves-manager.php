@@ -1903,7 +1903,7 @@ class Saves_Manager
 
             <div id="inf-view-manage" class="inf-modal-content">
                 <div class="inf-modal-header">
-                    <h3>Manage groups</h3>
+                    <h3>Save This Creator</h3>
                 </div>
 
                 <div class="inf-lists-container" id="inf-lists-wrapper"></div>
