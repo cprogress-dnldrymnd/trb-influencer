@@ -22,20 +22,22 @@ function dd_render_post_search_select($name, $current_id, $type, $description)
             $current_title = $post->post_title;
         }
     }
-    ?>
+?>
     <div class="dd-ajax-select" data-type="<?php echo esc_attr($type); ?>">
         <div class="dd-ajax-field">
             <div class="dd-ajax-input-wrap">
                 <span class="dd-search-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
                 </span>
                 <input
                     type="text"
                     class="dd-ajax-search"
                     value="<?php echo esc_attr($current_title); ?>"
                     placeholder="Search…"
-                    autocomplete="off"
-                >
+                    autocomplete="off">
                 <button type="button" class="dd-ajax-clear" <?php echo $current_id > 0 ? '' : 'hidden'; ?> title="Clear">&times;</button>
             </div>
             <input type="hidden" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr($current_id ?: 0); ?>">
@@ -152,38 +154,38 @@ add_action('admin_menu', function () {
             if (! current_user_can('manage_options')) {
                 return;
             }
-            ?>
-            <div class="wrap dd-settings-wrap">
-                <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+    ?>
+        <div class="wrap dd-settings-wrap">
+            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 
-                <div class="dd-tab-nav">
-                    <button type="button" class="dd-tab-btn dd-tab-active" data-panel="pages">Page Assignments</button>
-                    <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
-                </div>
-
-                <div class="dd-tab-body">
-                    <form method="post" action="options.php">
-                        <?php settings_fields('dd_theme_page_ids'); ?>
-
-                        <div class="dd-panel" id="dd-panel-pages">
-                            <p class="dd-tab-desc">Select which WordPress pages serve each platform role.</p>
-                            <table class="form-table" role="presentation">
-                                <?php do_settings_fields('dd-theme-settings', 'dd_page_ids_section'); ?>
-                            </table>
-                        </div>
-
-                        <div class="dd-panel" id="dd-panel-templates" hidden>
-                            <p class="dd-tab-desc">Elementor templates used by the theme. Find these under <strong>Elementor → My Templates</strong>.</p>
-                            <table class="form-table" role="presentation">
-                                <?php do_settings_fields('dd-theme-settings-templates', 'dd_template_ids_section'); ?>
-                            </table>
-                        </div>
-
-                        <?php submit_button('Save Settings'); ?>
-                    </form>
-                </div>
+            <div class="dd-tab-nav">
+                <button type="button" class="dd-tab-btn dd-tab-active" data-panel="pages">Page Assignments</button>
+                <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
             </div>
-            <?php
+
+            <div class="dd-tab-body">
+                <form method="post" action="options.php">
+                    <?php settings_fields('dd_theme_page_ids'); ?>
+
+                    <div class="dd-panel" id="dd-panel-pages">
+                        <p class="dd-tab-desc">Select which WordPress pages serve each platform role.</p>
+                        <table class="form-table" role="presentation">
+                            <?php do_settings_fields('dd-theme-settings', 'dd_page_ids_section'); ?>
+                        </table>
+                    </div>
+
+                    <div class="dd-panel" id="dd-panel-templates" hidden>
+                        <p class="dd-tab-desc">Elementor templates used by the theme. Find these under <strong>Elementor → My Templates</strong>.</p>
+                        <table class="form-table" role="presentation">
+                            <?php do_settings_fields('dd-theme-settings-templates', 'dd_template_ids_section'); ?>
+                        </table>
+                    </div>
+
+                    <?php submit_button('Save Settings'); ?>
+                </form>
+            </div>
+        </div>
+    <?php
         }
     );
 });
@@ -271,7 +273,12 @@ add_action('wp_before_admin_bar_render', function () {
     }
     ?>
     <style>
-        #wpadminbar #wp-admin-bar-dd-theme-editor > .ab-item .dd-ab-favicon {
+        #wpadminbar #wp-admin-bar-dd-theme-editor>.ab-item {
+            display: flex;
+            width: 200px;
+        }
+
+        #wpadminbar #wp-admin-bar-dd-theme-editor>.ab-item .dd-ab-favicon {
             width: 16px;
             height: 16px;
             margin: 0 6px 0 2px;
@@ -299,7 +306,7 @@ add_action('wp_before_admin_bar_render', function () {
             width: 100%;
         }
     </style>
-    <?php
+<?php
 });
 
 // ---------------------------------------------------------------------------
@@ -311,16 +318,19 @@ add_action('admin_footer', function () {
         return;
     }
     $nonce = wp_create_nonce('dd_admin_search');
-    ?>
+?>
     <style>
         /* ── Tab nav ── */
-        .dd-settings-wrap h1 { margin-bottom: 12px; }
+        .dd-settings-wrap h1 {
+            margin-bottom: 12px;
+        }
 
         .dd-tab-nav {
             display: flex;
             gap: 0;
             margin: 0;
         }
+
         .dd-tab-btn {
             background: #f0f0f1;
             border: 1px solid #c3c4c7;
@@ -337,7 +347,12 @@ add_action('admin_footer', function () {
             z-index: 1;
             transition: background .1s, color .1s;
         }
-        .dd-tab-btn:hover:not(.dd-tab-active) { background: #fff; color: #1d2327; }
+
+        .dd-tab-btn:hover:not(.dd-tab-active) {
+            background: #fff;
+            color: #1d2327;
+        }
+
         .dd-tab-btn.dd-tab-active {
             background: #fff;
             border-bottom-color: #fff;
@@ -354,11 +369,20 @@ add_action('admin_footer', function () {
             position: relative;
             z-index: 0;
         }
-        .dd-tab-desc { color: #50575e; margin: 0 0 18px; }
+
+        .dd-tab-desc {
+            color: #50575e;
+            margin: 0 0 18px;
+        }
 
         /* ── Autocomplete input ── */
-        .dd-ajax-select { max-width: 340px; }
-        .dd-ajax-field  { position: relative; }
+        .dd-ajax-select {
+            max-width: 340px;
+        }
+
+        .dd-ajax-field {
+            position: relative;
+        }
 
         .dd-ajax-input-wrap {
             display: flex;
@@ -369,9 +393,11 @@ add_action('admin_footer', function () {
             padding-right: 8px;
             transition: border-color .15s, border-radius .1s;
         }
+
         .dd-ajax-input-wrap:focus-within {
             border-color: #50575e;
         }
+
         /* When dropdown is open — flatten bottom corners to connect with list */
         .dd-ajax-select.dd-open .dd-ajax-input-wrap {
             border-bottom-left-radius: 0;
@@ -380,12 +406,17 @@ add_action('admin_footer', function () {
         }
 
         .dd-search-icon {
-            display: flex; align-items: center;
-            padding: 0 8px; color: #a7aaad; flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            color: #a7aaad;
+            flex-shrink: 0;
             pointer-events: none;
         }
+
         .dd-ajax-search {
-            flex: 1 1 0; min-width: 0;
+            flex: 1 1 0;
+            min-width: 0;
             border: none !important;
             box-shadow: none !important;
             outline: none !important;
@@ -393,50 +424,86 @@ add_action('admin_footer', function () {
             background: transparent !important;
             font-size: 13px !important;
         }
+
         .dd-ajax-clear {
-            background: none; border: none; cursor: pointer;
-            font-size: 17px; line-height: 1; color: #a7aaad;
-            padding: 0; flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 17px;
+            line-height: 1;
+            color: #a7aaad;
+            padding: 0;
+            flex-shrink: 0;
         }
-        .dd-ajax-clear:hover { color: #d63638; }
+
+        .dd-ajax-clear:hover {
+            color: #d63638;
+        }
 
         /* ── Dropdown ── */
         .dd-ajax-results {
             position: absolute;
-            top: 100%; /* flush — no gap */
-            left: 0; right: 0;
+            top: 100%;
+            /* flush — no gap */
+            left: 0;
+            right: 0;
             background: #fff;
             border: 1px solid #8c8f94;
             border-top: 1px solid #e0e0e0;
             border-radius: 0 0 4px 4px;
-            max-height: 220px; overflow-y: auto;
+            max-height: 220px;
+            overflow-y: auto;
             z-index: 9999;
-            margin: 0; padding: 4px 0; list-style: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,.08);
+            margin: 0;
+            padding: 4px 0;
+            list-style: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .08);
         }
+
         .dd-ajax-results li {
             padding: 8px 12px;
             font-size: 13px;
             cursor: pointer;
             color: #1d2327;
         }
-        .dd-ajax-results li:hover { background: #f6f7f7; color: #1d2327; }
+
+        .dd-ajax-results li:hover {
+            background: #f6f7f7;
+            color: #1d2327;
+        }
+
         .dd-ajax-results li.dd-no-results,
         .dd-ajax-results li.dd-loading {
-            color: #a7aaad; cursor: default; font-style: italic;
+            color: #a7aaad;
+            cursor: default;
+            font-style: italic;
         }
-        .dd-ajax-results li.dd-loading { display: flex; align-items: center; gap: 7px; }
+
+        .dd-ajax-results li.dd-loading {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
         .dd-spinner {
-            width: 11px; height: 11px; flex-shrink: 0;
-            border: 2px solid #ddd; border-top-color: #2271b1;
+            width: 11px;
+            height: 11px;
+            flex-shrink: 0;
+            border: 2px solid #ddd;
+            border-top-color: #2271b1;
             border-radius: 50%;
             animation: dd-spin .55s linear infinite;
         }
-        @keyframes dd-spin { to { transform: rotate(360deg); } }
+
+        @keyframes dd-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
     <script>
-        jQuery(function ($) {
-            var nonce  = '<?php echo esc_js($nonce); ?>';
+        jQuery(function($) {
+            var nonce = '<?php echo esc_js($nonce); ?>';
             var timers = {};
 
             /* ── Tab switching ── */
@@ -447,16 +514,18 @@ add_action('admin_footer', function () {
                     .filter('[data-panel="' + panel + '"]').addClass('dd-tab-active');
                 $('.dd-panel').prop('hidden', true);
                 $('#dd-panel-' + panel).prop('hidden', false);
-                try { localStorage.setItem(LS_KEY, panel); } catch(e) {}
+                try {
+                    localStorage.setItem(LS_KEY, panel);
+                } catch (e) {}
             }
 
             // Restore last active tab
             try {
                 var saved = localStorage.getItem(LS_KEY);
                 if (saved) activateTab(saved);
-            } catch(e) {}
+            } catch (e) {}
 
-            $(document).on('click', '.dd-tab-btn', function () {
+            $(document).on('click', '.dd-tab-btn', function() {
                 activateTab($(this).data('panel'));
             });
 
@@ -465,6 +534,7 @@ add_action('admin_footer', function () {
                 $wrap.addClass('dd-open');
                 $wrap.find('.dd-ajax-results').prop('hidden', false);
             }
+
             function closeResults($wrap) {
                 $wrap.removeClass('dd-open');
                 $wrap.find('.dd-ajax-results').prop('hidden', true).empty();
@@ -477,31 +547,33 @@ add_action('admin_footer', function () {
 
                 $.get(ajaxurl, {
                     action: 'dd_admin_post_search',
-                    nonce:  nonce,
-                    type:   $wrap.data('type'),
-                    q:      q,
-                }).done(function (resp) {
+                    nonce: nonce,
+                    type: $wrap.data('type'),
+                    q: q,
+                }).done(function(resp) {
                     $results.empty();
                     if (!resp.success || !resp.data.length) {
                         $results.append('<li class="dd-no-results">No results found</li>');
                     } else {
-                        resp.data.forEach(function (item) {
+                        resp.data.forEach(function(item) {
                             $results.append($('<li>').attr('data-id', item.id).text(item.text));
                         });
                     }
                 });
             }
 
-            $(document).on('focus input', '.dd-ajax-search', function () {
+            $(document).on('focus input', '.dd-ajax-search', function() {
                 var $wrap = $(this).closest('.dd-ajax-select');
-                var key   = $wrap.find('input[type="hidden"]').attr('name');
+                var key = $wrap.find('input[type="hidden"]').attr('name');
                 clearTimeout(timers[key]);
                 var q = $(this).val();
-                timers[key] = setTimeout(function () { doSearch($wrap, q); }, 220);
+                timers[key] = setTimeout(function() {
+                    doSearch($wrap, q);
+                }, 220);
             });
 
             // mousedown fires before blur — selection registers before dropdown closes
-            $(document).on('mousedown', '.dd-ajax-results li[data-id]', function (e) {
+            $(document).on('mousedown', '.dd-ajax-results li[data-id]', function(e) {
                 e.preventDefault();
                 var $wrap = $(this).closest('.dd-ajax-select');
                 $wrap.find('.dd-ajax-search').val($(this).text());
@@ -510,12 +582,14 @@ add_action('admin_footer', function () {
                 closeResults($wrap);
             });
 
-            $(document).on('blur', '.dd-ajax-search', function () {
+            $(document).on('blur', '.dd-ajax-search', function() {
                 var $wrap = $(this).closest('.dd-ajax-select');
-                setTimeout(function () { closeResults($wrap); }, 150);
+                setTimeout(function() {
+                    closeResults($wrap);
+                }, 150);
             });
 
-            $(document).on('click', '.dd-ajax-clear', function () {
+            $(document).on('click', '.dd-ajax-clear', function() {
                 var $wrap = $(this).closest('.dd-ajax-select');
                 $wrap.find('.dd-ajax-search').val('').trigger('focus');
                 $wrap.find('input[type="hidden"]').val('0');
@@ -523,5 +597,5 @@ add_action('admin_footer', function () {
             });
         });
     </script>
-    <?php
+<?php
 });
