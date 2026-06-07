@@ -1556,29 +1556,31 @@ class Influencer_Search
 
         ob_start();
     ?>
-        <div class="influencer-results-meta">
-            <p class="influencer-results-meta__count">
-                Displaying <span class="current-found-influencer">0</span> of <span class="total-found-influencer">0</span> matches
-            </p>
-            <a class="influencer-results-meta__saved-link" href="<?= esc_url($saved_lists_url) ?>">
-                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z" />
-                </svg>
-                <span>View Saved Lists</span>
-            </a>
-        </div>
-        <div class="influencer-grid-box">
-            <div id="my-loop-grid-container" class="influencer-loop-grid" aria-live="polite" aria-atomic="false" aria-busy="false"></div>
-        </div>
-        <div class="load-more-wrapper">
-            <button id="load-more-influencers" class="elementor-button" style="display: none;">
-                Load More
-            </button>
-        </div>
-        <div class="loading-animation" style="display: none;">
-            <p class="loading-text">
-                Scouring the globe for influencers who fit your brand<span class="loading-dots"><span></span><span></span><span></span></span>
-            </p>
+        <div id="influencer-search-result">
+            <div class="influencer-results-meta">
+                <p class="influencer-results-meta__count">
+                    Displaying <span class="current-found-influencer">0</span> of <span class="total-found-influencer">0</span> matches
+                </p>
+                <a class="influencer-results-meta__saved-link" href="<?= esc_url($saved_lists_url) ?>">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z" />
+                    </svg>
+                    <span>View Saved Lists</span>
+                </a>
+            </div>
+            <div class="influencer-grid-box">
+                <div id="my-loop-grid-container" class="influencer-loop-grid" aria-live="polite" aria-atomic="false" aria-busy="false"></div>
+            </div>
+            <div class="load-more-wrapper">
+                <button id="load-more-influencers" class="elementor-button" style="display: none;">
+                    Load More
+                </button>
+            </div>
+            <div class="loading-animation" style="display: none;">
+                <p class="loading-text">
+                    Scouring the globe for influencers who fit your brand<span class="loading-dots"><span></span><span></span><span></span></span>
+                </p>
+            </div>
         </div>
         <?php
         return ob_get_clean();
