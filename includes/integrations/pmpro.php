@@ -208,59 +208,7 @@ function dd_pmpro_member_profile_edit_tabs()
             height: 20px;
         }
 
-        .pmpro-member-profile-edit .pmpro_form_submit {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
 
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            border-radius: 999px;
-            padding: 14px 28px;
-            font-weight: 600;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn svg {
-            flex-shrink: 0;
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-update-profile,
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-checkout,
-        .pmpro-member-profile-edit .pmpro_form_submit #pmpro_btn-submit {
-            background-color: var(--e-global-color-primary);
-            border-color: var(--e-global-color-primary);
-            color: #fff;
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-update-profile:hover,
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-submit-checkout:hover,
-        .pmpro-member-profile-edit .pmpro_form_submit #pmpro_btn-submit:hover {
-            background-color: var(--e-global-color-secondary);
-            border-color: var(--e-global-color-secondary);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel {
-            background-color: transparent;
-            border-color: var(--e-global-color-primary);
-            color: var(--e-global-color-primary);
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel:before {
-            content: '✖';
-        }
-
-        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel:hover {
-            background-color: var(--e-global-color-primary);
-            color: #fff;
-        }
     </style>
     <script type="text/javascript">
         jQuery(document).ready(function($) {
