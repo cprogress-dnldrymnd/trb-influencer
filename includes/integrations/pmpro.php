@@ -346,15 +346,13 @@ function dd_pmpro_member_profile_edit_tabs()
                 $input.replaceWith($button);
             });
 
-            var submitIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            var cancelIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+          
 
             $('.pmpro_form_submit .pmpro_btn').each(function() {
                 var $btn = $(this);
                 if ($btn.find('svg').length) {
                     return;
                 }
-                $btn.prepend($btn.hasClass('pmpro_btn-cancel') ? cancelIcon : submitIcon);
             });
 
             // Prepend matching icons into the Brand logo field's Delete / Replace / Cancel buttons.
