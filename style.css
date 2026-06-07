@@ -60,16 +60,13 @@ body:not(#error-page).show-body {
   justify-content: center;
   cursor: pointer;
 }
-.influencer-niche-container .niche-toggle:hover{
+.influencer-niche-container .niche-toggle:hover {
   background-color: var(--e-global-color-3868d1d);
-
 }
 .disable-niche-click .niche-toggle {
   pointer-events: none;
   cursor: text;
 }
-
-
 
 .is-verified .influencer-name .elementor-heading-title:after {
   margin-left: 10px;
@@ -113,8 +110,8 @@ body:not(#error-page).show-body {
   .influencer-loop-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
-  .experts-tag .elementor-icon-box-icon{
-    display: none;    
+  .experts-tag.experts-tag .elementor-icon-box-icon {
+    display: none;
   }
 }
 @media (max-width: 480px) {
@@ -911,9 +908,9 @@ input:checked + .slider:before {
 }
 
 .load-more-wrapper:before {
-  content: '';
+  content: "";
   height: 1px;
-  background-color: var( --e-global-color-2ba2932 );
+  background-color: var(--e-global-color-2ba2932);
   position: absolute;
   top: 50%;
   left: 0;
