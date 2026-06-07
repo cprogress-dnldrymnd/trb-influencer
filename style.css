@@ -2971,7 +2971,7 @@ body {
   border-radius: 4px;
 }
 
-#dd_opt_out_free_trial {
+#dd_opt_out_free_trial-label {
   display: flex;
   font-weight: bold;
   align-items: center;
@@ -2980,7 +2980,7 @@ body {
   font-size: 1rem;
   color: #000;
 }
-#dd_opt_out_free_trial input {
+#dd_opt_out_free_trial-label input {
   display: none;
 }
 .pmpro_checkmark.pmpro_checkmark {
@@ -2992,12 +2992,12 @@ body {
   align-items: center;
   justify-content: center;
 }
-#dd_opt_out_free_trial input:checked + span {
+#dd_opt_out_free_trial-label input:checked + span {
   background-color: var(--e-global-color-accent);
   border-color: var(--e-global-color-accent);
   color: #fff;
 }
-#dd_opt_out_free_trial input:checked + span:before {
+#dd_opt_out_free_trial-label input:checked + span:before {
   content: "✓";
 }
 @media (min-width: 768px) {
