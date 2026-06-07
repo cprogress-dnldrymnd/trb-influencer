@@ -1579,6 +1579,9 @@ class Influencer_Search
             <span class="loading-icon">
                 <img src="https://influencer.theprogressteam.com/wp-content/uploads/2026/01/Spin@1x-1.0s-200px-200px.svg" alt="Loading...">
             </span>
+            <p class="loading-text">
+                Scouring the globe for influencers who fit your brand<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+            </p>
         </div>
         <?php
         return ob_get_clean();
