@@ -220,7 +220,7 @@ body:not(#error-page).show-body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1rem;
+  font-size: clamp(0.75rem, 0.833vw, 1rem);
   color: #333333;
   box-sizing: border-box;
   transition: border-color 0.2s;
