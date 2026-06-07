@@ -194,7 +194,7 @@ add_action('admin_menu', function () {
 function dd_admin_bar_item_title($title, $badge)
 {
     return sprintf(
-        '<span class="ab-item-title">%s</span><span class="dd-ab-badge">%s</span>',
+        '<span class="elementor-edit-link-title">%s</span><span class="elementor-edit-link-type">%s</span>',
         esc_html($title),
         esc_html($badge)
     );
@@ -229,7 +229,7 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
                 'parent' => 'dd-theme-editor',
                 'title'  => dd_admin_bar_item_title(get_the_title($post), $role),
                 'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
-                'meta'   => ['target' => '_blank'],
+                'meta'   => ['target' => '_blank', 'class' => 'elementor-general-section'],
             ]);
         }
     }
@@ -259,7 +259,7 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
                 'parent' => 'dd-theme-editor-templates',
                 'title'  => dd_admin_bar_item_title(get_the_title($post), $role),
                 'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
-                'meta'   => ['target' => '_blank'],
+                'meta'   => ['target' => '_blank', 'class' => 'elementor-general-section'],
             ]);
         }
     }
@@ -279,20 +279,6 @@ add_action('wp_before_admin_bar_render', function () {
             border-radius: 2px;
             position: relative;
             top: -1px;
-        }
-
-        #wpadminbar #wp-admin-bar-dd-theme-editor .dd-ab-badge {
-            display: inline-block;
-            max-width: 100%;
-            margin-left: 8px;
-            padding: 1px 8px;
-            font-size: 11px;
-            line-height: 17px;
-            white-space: normal;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, .12);
-            color: rgba(255, 255, 255, .75);
-            vertical-align: middle;
         }
     </style>
     <?php
