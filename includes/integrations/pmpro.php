@@ -326,34 +326,36 @@ function dd_pmpro_member_profile_edit_tabs()
                         $('#' + $tab.attr('data-target')).show();
                     });
                 }
-
-                // Some PMPro views (e.g. Billing) render the submit controls as <input type="submit"/"button">
-                // rather than <button> elements. Convert them so icons can be prepended consistently below.
-                $form.find('.pmpro_form_submit input[type="submit"], .pmpro_form_submit input[type="button"]').each(function() {
-                    var $input = $(this);
-                    var $button = $('<button></button>').text($input.val());
-
-                    $.each(['id', 'name', 'class', 'type', 'onclick', 'aria-label'], function(_, attr) {
-                        var val = $input.attr(attr);
-                        if (typeof val !== 'undefined') {
-                            $button.attr(attr, val);
-                        }
-                    });
-
-                    $input.replaceWith($button);
-                });
-
-                var submitIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                var cancelIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-
-                $form.find('.pmpro_form_submit .pmpro_btn').each(function() {
-                    var $btn = $(this);
-                    if ($btn.find('svg').length) {
-                        return;
-                    }
-                    $btn.prepend($btn.hasClass('pmpro_btn-cancel') ? cancelIcon : submitIcon);
-                });
             }
+
+            // PMPro renders different forms across this page's views (profile edit, billing,
+            // change-password) — some with different IDs, some using <input type="submit"/"button">
+            // controls instead of <button> elements. Normalise + icon every .pmpro_form_submit
+            // on the page rather than scoping to a single form.
+            $('.pmpro_form_submit input[type="submit"], .pmpro_form_submit input[type="button"]').each(function() {
+                var $input = $(this);
+                var $button = $('<button></button>').text($input.val());
+
+                $.each(['id', 'name', 'class', 'type', 'onclick', 'aria-label'], function(_, attr) {
+                    var val = $input.attr(attr);
+                    if (typeof val !== 'undefined') {
+                        $button.attr(attr, val);
+                    }
+                });
+
+                $input.replaceWith($button);
+            });
+
+            var submitIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            var cancelIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+            $('.pmpro_form_submit .pmpro_btn').each(function() {
+                var $btn = $(this);
+                if ($btn.find('svg').length) {
+                    return;
+                }
+                $btn.prepend($btn.hasClass('pmpro_btn-cancel') ? cancelIcon : submitIcon);
+            });
 
             // Prepend matching icons into the Brand logo field's Delete / Replace / Cancel buttons.
             var actionIcons = {

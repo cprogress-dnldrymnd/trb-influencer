@@ -1809,10 +1809,6 @@ input:checked + .slider:before {
   display: none !important;
 }
 
-.pmpro_form_fields.pmpro_form_fields {
-  gap: 10px;
-}
-
 .pmpro_level-current .pmpro_btn {
   background-color: var(--e-global-color-secondary) !important;
 }
