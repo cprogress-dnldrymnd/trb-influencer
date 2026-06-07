@@ -794,10 +794,11 @@ input:checked + .slider:before {
 .loading-animation {
   text-align: center;
   margin-top: 20px;
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  left: var(--sidebar-width, 0);
 }
 .loading-animation img {
   width: 100px;

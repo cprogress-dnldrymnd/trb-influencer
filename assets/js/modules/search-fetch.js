@@ -5,7 +5,7 @@
 
     // Module-level pagination state
     var current_page = 1;
-    var max_pages    = 1;
+    var max_pages = 1;
 
     /**
      * Renders the brief-search debug payload into the debug panel (dev only).
@@ -26,13 +26,7 @@
      * so it stays in the same spot on screen regardless of scrolling.
      */
     function show_loading_animation() {
-        $('.loading-animation').css({
-            position:  'fixed',
-            top:       '50%',
-            left:      '50%',
-            transform: 'translate(-50%, -50%)',
-            margin:    0
-        }).show();
+        $('.loading-animation').show();
     }
 
     function hide_loading_animation() {
@@ -88,7 +82,7 @@
         urlParams.set('search_active', 'true');
 
         var newUrl = window.location.protocol + '//' + window.location.host +
-                     window.location.pathname + '?' + urlParams.toString();
+            window.location.pathname + '?' + urlParams.toString();
         window.history.pushState({ path: newUrl }, '', newUrl);
     }
 
@@ -99,22 +93,22 @@
      */
     InfluencerApp.fetch_influencers = function (is_load_more) {
         var container = $('#my-loop-grid-container');
-        var button    = $('#load-more-influencers');
+        var button = $('#load-more-influencers');
         show_loading_animation();
 
         if (!is_load_more) current_page = 1;
 
-        var filter_niche       = get_filter_values('niche[]');
-        var filter_country     = get_filter_values('country[]');
-        var filter_lang        = get_filter_values('lang[]');
-        var filter_gender      = get_filter_values('gender[]');
+        var filter_niche = get_filter_values('niche[]');
+        var filter_country = get_filter_values('country[]');
+        var filter_lang = get_filter_values('lang[]');
+        var filter_gender = get_filter_values('gender[]');
         var filter_content_tag = get_filter_values('content_tag[]');
-        var filter_filter      = get_filter_values('filter[]');
-        var search_brief       = $('#search-brief').length ? $('#search-brief').val() : '';
-        var min_f_arr          = get_filter_values('min_followers[]');
-        var max_f_arr          = get_filter_values('max_followers[]');
-        var filter_min         = min_f_arr.length > 0 ? min_f_arr[0] : '';
-        var filter_max         = max_f_arr.length > 0 ? max_f_arr[0] : '';
+        var filter_filter = get_filter_values('filter[]');
+        var search_brief = $('#search-brief').length ? $('#search-brief').val() : '';
+        var min_f_arr = get_filter_values('min_followers[]');
+        var max_f_arr = get_filter_values('max_followers[]');
+        var filter_min = min_f_arr.length > 0 ? min_f_arr[0] : '';
+        var filter_max = max_f_arr.length > 0 ? max_f_arr[0] : '';
 
         if (!is_load_more) {
             push_url_state(null, search_brief);
@@ -125,21 +119,21 @@
         button.text('Loading...');
 
         $.ajax({
-            url:  ajax_vars.ajax_url,
+            url: ajax_vars.ajax_url,
             type: 'POST',
             data: {
-                action:       'my_custom_loop_filter',
-                security:     ajax_vars.search_filter_nonce,
-                niche:        filter_niche,
-                country:      filter_country,
-                lang:         filter_lang,
-                gender:       filter_gender,
-                content_tag:  filter_content_tag,
+                action: 'my_custom_loop_filter',
+                security: ajax_vars.search_filter_nonce,
+                niche: filter_niche,
+                country: filter_country,
+                lang: filter_lang,
+                gender: filter_gender,
+                content_tag: filter_content_tag,
                 min_followers: filter_min,
                 max_followers: filter_max,
-                filter:       filter_filter,
+                filter: filter_filter,
                 search_brief: search_brief,
-                paged:        current_page,
+                paged: current_page,
                 search_active: 'true'
             },
             success: function (response) {
