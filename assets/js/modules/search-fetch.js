@@ -53,12 +53,33 @@
     }
 
     /**
-     * Scrolls the results section into view once a (non load-more) search finishes.
+     * Height of whichever members-area header is currently visible, so the
+     * scroll target isn't tucked underneath it (desktop vs. mobile header).
+     */
+    function get_members_area_header_height() {
+        var $mobile  = $('#members-area-header-mobile');
+        var $desktop = $('#members-area-header');
+
+        if ($mobile.length && $mobile.is(':visible')) {
+            return $mobile.outerHeight();
+        }
+        if ($desktop.length && $desktop.is(':visible')) {
+            return $desktop.outerHeight();
+        }
+        return 0;
+    }
+
+    /**
+     * Scrolls the results section into view once a (non load-more) search finishes,
+     * offset by the height of the sticky members-area header.
      */
     function scroll_to_search_results() {
         var target = document.getElementById('influencer-search-result');
         if (!target) return;
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        var top = target.getBoundingClientRect().top + window.pageYOffset - get_members_area_header_height();
+
+        window.scrollTo({ top: top, behavior: 'smooth' });
     }
 
     /**
