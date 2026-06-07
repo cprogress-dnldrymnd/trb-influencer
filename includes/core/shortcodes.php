@@ -20,14 +20,23 @@ function get_country_flag_from_meta()
     // 2. Prepare Display Text (Keep original 3-letter or 2-letter format)
     $display_text = strtoupper(esc_html($raw_code));
 
-    // 3. Prepare Image Source Code (Must be 2-letter lowercase)
-    $code_clean = strtolower(esc_attr($raw_code));
-    $flag_code  = $code_clean; // Default assumption
+    // 3. Resolve to a 2-letter flag code. The 'country' meta may hold a
+    // 2-letter code, a 3-letter code, or a full country name (e.g. "United States").
+    $code_clean = strtolower(trim($raw_code));
+    $flag_code  = false;
 
-    // If it is a 3-letter code, convert it
-    if (strlen($code_clean) === 3) {
+    if (strlen($code_clean) === 2) {
+        $flag_code = $code_clean;
+    } elseif (strlen($code_clean) === 3) {
         $flag_code = iso_alpha3_to_alpha2($code_clean);
+    } else {
+        $flag_code = country_name_to_alpha2($code_clean);
+        if ($flag_code) {
+            // Show the resolved code rather than the full name, to match other entries
+            $display_text = strtoupper($flag_code);
+        }
     }
+
     // If no valid flag code found after conversion, just return text
     if (! $flag_code) {
         return $display_text;
@@ -39,7 +48,7 @@ function get_country_flag_from_meta()
     // Flag Image
     $output .= sprintf(
         '<img src="https://flagcdn.com/%s.svg" alt="%s Flag" >',
-        $flag_code,
+        esc_attr($flag_code),
         $display_text
     );
 
