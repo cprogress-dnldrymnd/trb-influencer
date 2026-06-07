@@ -680,6 +680,9 @@ input:checked + .slider:before {
   .breadcrumbs ul li {
     font-size: 10px;
   }
+  .breadcrumbs ul li svg{
+    display: none;
+  }
 }
 @media (min-width: 1341px) and (max-width: 1440px) {
   .breadcrumbs {
