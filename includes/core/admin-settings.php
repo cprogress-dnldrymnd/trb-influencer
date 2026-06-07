@@ -280,6 +280,24 @@ add_action('wp_before_admin_bar_render', function () {
             position: relative;
             top: -1px;
         }
+
+        /* Elementor scopes its edit-link styling to #wp-admin-bar-elementor_edit_page —
+           mirror those rules here so our menu matches it visually. */
+        #wp-admin-bar-dd-theme-editor .elementor-edit-link-type {
+            background: #3f444b;
+            border-radius: 3px;
+            font-size: 11px;
+            line-height: 9px;
+            margin-block-start: 6px;
+            padding: 4px 8px;
+        }
+
+        #wp-admin-bar-dd-theme-editor .elementor-edit-link-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
     </style>
     <?php
 });
