@@ -228,6 +228,9 @@ body:not(#error-page).show-body {
   font-weight: var(--e-global-typography-4fc7f56-font-weight);
   line-height: var(--e-global-typography-4fc7f56-line-height);
 }
+.refine-search-subtext:last-child {
+  margin-bottom: 0;
+}
 .refine-search-close,
 .refine-search-backdrop {
   display: none;
