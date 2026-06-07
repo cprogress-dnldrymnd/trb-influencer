@@ -1927,6 +1927,7 @@ class Saves_Manager
                             <polyline points="12 19 5 12 12 5"></polyline>
                         </svg> Back
                     </button>
+                    <h3 id="inf-edit-modal-title">Create New Group</h3>
                 </div>
                 <input type="hidden" id="inf-edit-id" value="">
                 <div class="inf-input-group">

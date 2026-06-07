@@ -156,6 +156,7 @@ jQuery(document).ready(function($) {
     $('#inf-btn-go-create').on('click', function() {
         $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
         $('#inf-btn-back-manage').css('display', 'flex');
+        $('#inf-edit-modal-title').text('Create New Group');
         switchModalView('inf-view-edit');
     });
 
@@ -163,6 +164,7 @@ jQuery(document).ready(function($) {
         state.entryPoint = 'shortcode';
         $('#inf-edit-id, #inf-edit-name, #inf-edit-desc').val('');
         $('#inf-btn-back-manage').hide();
+        $('#inf-edit-modal-title').text('Create New Group');
         switchModalView('inf-view-edit');
     });
 
@@ -171,6 +173,7 @@ jQuery(document).ready(function($) {
         $('#inf-edit-id').val($(this).attr('data-id'));
         $('#inf-edit-name').val($(this).attr('data-name'));
         $('#inf-edit-desc').val($(this).attr('data-desc'));
+        $('#inf-edit-modal-title').text('Edit Group');
 
         if (state.entryPoint === 'influencer') {
             $('#inf-btn-back-manage').css('display', 'flex');
