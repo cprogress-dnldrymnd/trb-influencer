@@ -316,7 +316,7 @@ body:not(#error-page).show-body {
 .influencer-search-button.influencer-search-button.influencer-search-button:active,
 .influencer-search-button.influencer-search-button.influencer-search-button:focus {
   background-color: var(--e-global-color-accent) !important;
-  color: #fff;
+  color: #fff !important;
   border-color: var(--e-global-color-accent) !important;
 }
 .influencer-search-button svg {

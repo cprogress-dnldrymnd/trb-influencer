@@ -27,17 +27,19 @@
      * results area regardless of how tall the grid grows or scrolls.
      */
     function position_loading_animation() {
-        var $container = $('#my-loop-grid-container');
-        var $loader    = $('.loading-animation');
+        var container = document.getElementById('my-loop-grid-container');
+        var $loader   = $('.loading-animation');
 
-        if (!$container.length || !$loader.length) return;
+        if (!container || !$loader.length) return;
 
-        var offset = $container.offset();
+        // getBoundingClientRect() is viewport-relative, matching `position: fixed`,
+        // so this works regardless of any positioned ancestors in between.
+        var rect = container.getBoundingClientRect();
 
         $loader.css({
-            position:  'absolute',
-            top:       offset.top + ($container.outerHeight() / 2),
-            left:      offset.left + ($container.outerWidth() / 2),
+            position:  'fixed',
+            top:       rect.top + (rect.height / 2),
+            left:      rect.left + (rect.width / 2),
             transform: 'translate(-50%, -50%)',
             margin:    0
         });
@@ -46,12 +48,12 @@
     function show_loading_animation() {
         position_loading_animation();
         $('.loading-animation').show();
-        $(window).on('resize.loading_animation', position_loading_animation);
+        $(window).on('scroll.loading_animation resize.loading_animation', position_loading_animation);
     }
 
     function hide_loading_animation() {
         $('.loading-animation').hide();
-        $(window).off('resize.loading_animation');
+        $(window).off('scroll.loading_animation resize.loading_animation');
     }
 
     /**
