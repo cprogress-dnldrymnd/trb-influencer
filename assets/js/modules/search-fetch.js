@@ -34,6 +34,19 @@
     }
 
     /**
+     * Inline spinner on the Load More button itself, used instead of the
+     * full-page loading animation/overlay so the rest of the results stay
+     * visible and clickable while more are appended.
+     */
+    function show_button_spinner(button) {
+        button.addClass('is-loading').prop('disabled', true);
+    }
+
+    function hide_button_spinner(button) {
+        button.removeClass('is-loading').prop('disabled', false);
+    }
+
+    /**
      * Overlay that covers #dashboard-content-inner while a search is running,
      * blocking clicks on the dashboard underneath until results are ready.
      */
@@ -128,7 +141,12 @@
     InfluencerApp.fetch_influencers = function (is_load_more) {
         var container = $('#my-loop-grid-container');
         var button = $('#load-more-influencers');
-        show_loading_animation();
+
+        if (is_load_more) {
+            show_button_spinner(button);
+        } else {
+            show_loading_animation();
+        }
 
         if (!is_load_more) current_page = 1;
 
@@ -149,8 +167,11 @@
         }
 
         container.attr('aria-busy', 'true');
-        show_search_overlay();
-        button.text('Loading...');
+
+        if (!is_load_more) {
+            show_search_overlay();
+            button.text('Loading...');
+        }
 
         $.ajax({
             url: ajax_vars.ajax_url,
@@ -174,7 +195,11 @@
                 var debug = (response.data && response.data.debug) ? response.data.debug : null;
 
                 if (response.success) {
-                    hide_loading_animation();
+                    if (is_load_more) {
+                        hide_button_spinner(button);
+                    } else {
+                        hide_loading_animation();
+                    }
                     max_pages = response.data.max_pages;
 
                     if (is_load_more) {
@@ -197,7 +222,11 @@
                     if (debug) InfluencerApp.render_brief_search_debug(debug);
 
                 } else {
-                    hide_loading_animation();
+                    if (is_load_more) {
+                        hide_button_spinner(button);
+                    } else {
+                        hide_loading_animation();
+                    }
                     $('.total-found-influencer').text('0');
                     $('.current-found-influencer').text('0');
 
@@ -210,20 +239,28 @@
                 }
 
                 container.attr('aria-busy', 'false');
-                hide_search_overlay();
 
-                if (!is_load_more) scroll_to_search_results();
+                if (!is_load_more) {
+                    hide_search_overlay();
+                    scroll_to_search_results();
+                }
             },
             error: function () {
-                hide_loading_animation();
+                if (is_load_more) {
+                    hide_button_spinner(button);
+                } else {
+                    hide_loading_animation();
+                }
                 $('.total-found-influencer').text('0');
                 $('.current-found-influencer').text('0');
                 container.html('<p style="padding:20px 0;">An error occurred. Please try again.</p>');
                 container.attr('aria-busy', 'false');
-                hide_search_overlay();
                 button.text('Try Again');
 
-                if (!is_load_more) scroll_to_search_results();
+                if (!is_load_more) {
+                    hide_search_overlay();
+                    scroll_to_search_results();
+                }
             }
         });
     };

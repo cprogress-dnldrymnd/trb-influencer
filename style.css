@@ -903,6 +903,32 @@ input:checked + .slider:before {
   font-weight: 500;
   text-transform: uppercase;
   cursor: pointer;
+  position: relative;
+}
+
+#load-more-influencers.is-loading {
+  color: transparent;
+  cursor: wait;
+}
+
+#load-more-influencers.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid var(--e-global-color-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: load-more-spin 0.7s linear infinite;
+}
+
+@keyframes load-more-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .load-more-wrapper {
