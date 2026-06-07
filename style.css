@@ -3000,6 +3000,10 @@ body {
 #dd_opt_out_free_trial-label input:checked + span:before {
   content: "✓";
 }
+#pmpro_form_fieldset-more-information .pmpro_form_fields {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
 #pmpro_form_fieldset-more-information .pmpro_form_fields > * {
   width: calc(50% - calc(var(--pmpro--base--spacing--medium) / 2));
 }
