@@ -36,11 +36,11 @@ class Influencer_Search_Form_Widget extends \Elementor\Widget_Base {
             'condition' => [ 'form_layout' => 'sidebar' ],
         ] );
         $this->add_control( 'refine_icon', [
-            'label'       => esc_html__( 'Icon (SVG markup)', 'trb-influencer' ),
-            'type'        => \Elementor\Controls_Manager::TEXTAREA,
-            'default'     => '<svg xmlns="http://www.w3.org/2000/svg" width="23.66" height="20" viewBox="0 0 23.66 20"><path id="target" d="M24.044,20.152A10.187,10.187,0,0,1,24.1,21.2,10,10,0,1,1,19.973,13.1l-.745,2.778a7.375,7.375,0,1,0,2.037,3.527l2.777.744ZM13.436,21.579a.764.764,0,0,0,1.045.278l6.549-3.781,2.312.619,4.414-2.549-3.356-.9.9-3.356-4.414,2.549-.619,2.312-6.551,3.782a.764.764,0,0,0-.278,1.045Zm.661-3.032a2.671,2.671,0,0,1,.518.05L17.2,17.106a5.132,5.132,0,1,0,2.03,4.089,5.173,5.173,0,0,0-.04-.641l-2.582,1.491a2.649,2.649,0,1,1-2.51-3.5Z" transform="translate(-4.097 -11.195)" fill="#00a6ed" fill-rule="evenodd"></path></svg>',
+            'label'       => esc_html__( 'Icon', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::MEDIA,
+            'default'     => [ 'url' => '' ],
             'condition'   => [ 'form_layout' => 'sidebar' ],
-            'description' => esc_html__( 'Shown beside the title. The whole heading also acts as the mobile sideout trigger.', 'trb-influencer' ),
+            'description' => esc_html__( 'Upload an icon from the media library. Leave empty to use the default target icon. Shown beside the title — the whole heading also acts as the mobile sideout trigger.', 'trb-influencer' ),
         ] );
         $this->add_control( 'refine_title', [
             'label'     => esc_html__( 'Title', 'trb-influencer' ),
@@ -67,7 +67,7 @@ class Influencer_Search_Form_Widget extends \Elementor\Widget_Base {
         ];
 
         if ( 'sidebar' === $s['form_layout'] ) {
-            $atts['refine_icon']    = $s['refine_icon'];
+            $atts['refine_icon']    = $s['refine_icon']['url'] ?? '';
             $atts['refine_title']   = $s['refine_title'];
             $atts['refine_subtext'] = $s['refine_subtext'];
         }

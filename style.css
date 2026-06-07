@@ -201,6 +201,12 @@ body:not(#error-page).show-body {
   align-items: center;
   gap: 8px;
 }
+.refine-search-icon {
+  width: 23.66px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .influencer-search-sidebar .influencer-search-filter-holder {
   padding-top: clamp(15px, 1.302vw, 25px);
   padding-bottom: clamp(15px, 1.302vw, 25px);
