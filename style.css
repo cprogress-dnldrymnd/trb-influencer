@@ -3931,6 +3931,12 @@ body {
   align-items: center;
   justify-content: center;
   font-family: inherit;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.inf-modal-overlay, .inf-modal-overlay * {
+  box-sizing: border-box;
 }
 
 .inf-modal-content {
