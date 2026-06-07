@@ -595,13 +595,18 @@ input:checked + .slider:before {
 .breadcrumbs ul li a {
   color: inherit;
 }
+
 .breadcrumbs ul li svg {
   width: var(--icon-size);
   height: var(--icon-size);
   flex: 0 0 var(--icon-size);
 }
-.breadcrumbs ul li:not(:last-child)  {
+.breadcrumbs ul li:not(:last-child) a,
+.breadcrumbs ul li:not(:last-child):after {
   opacity: 0.5;
+}
+.breadcrumbs ul li a:hover {
+  opacity: 1;
 }
 .breadcrumbs ul li:not(:last-child):after {
   content: "";
@@ -3483,7 +3488,7 @@ body {
   font-size: 13px !important;
   color: #000 !important;
   font-weight: 500 !important;
-  font-family: 'Work Sans', sans-serif !important;
+  font-family: "Work Sans", sans-serif !important;
   line-height: 1.5 !important;
 }
 
@@ -3495,7 +3500,7 @@ body {
   border-radius: 6px !important;
   font-size: 14px !important;
   box-sizing: border-box !important;
-  font-family: 'Work Sans', sans-serif !important;
+  font-family: "Work Sans", sans-serif !important;
   color: var(--e-global-color-primary) !important;
   background-color: #fff !important;
   line-height: 1.5 !important;
@@ -3571,7 +3576,7 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Work Sans', sans-serif;
+  font-family: "Work Sans", sans-serif;
 }
 
 .inf-card-actions {
@@ -3731,7 +3736,9 @@ body {
   margin: 0;
   font-size: 18px;
   font-weight: 500;
-  font-family: Work Sans, sans-serif;
+  font-family:
+    Work Sans,
+    sans-serif;
   text-transform: uppercase;
   color: rgb(102, 112, 133);
   letter-spacing: 1px;
@@ -3822,7 +3829,9 @@ body {
   font-size: 14px;
   color: #000;
   user-select: none;
-  font-family: Work Sans, sans-serif;
+  font-family:
+    Work Sans,
+    sans-serif;
 }
 
 #inf-modal-overlay button.inf-create-btn {
@@ -3879,8 +3888,6 @@ button.inf-btn-save {
   background-color: var(--e-global-color-primary) !important;
   color: #fff !important;
 }
-
-
 
 button.inf-btn-save:hover,
 button.inf-btn-save:focus,
@@ -3965,5 +3972,5 @@ button.inf-btn-save:active {
   padding: 30px 0;
   font-size: 14px;
   color: #666;
-  font-family: 'Work Sans', sans-serif;
+  font-family: "Work Sans", sans-serif;
 }
