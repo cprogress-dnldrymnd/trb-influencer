@@ -207,6 +207,9 @@ body:not(#error-page).show-body {
   object-fit: contain;
   flex-shrink: 0;
 }
+.refine-search-indicator {
+  display: none;
+}
 .influencer-search-sidebar .influencer-search-filter-holder {
   padding-top: clamp(15px, 1.302vw, 25px);
   padding-bottom: clamp(15px, 1.302vw, 25px);
@@ -3518,7 +3521,23 @@ body {
   }
 
   .refine-search-heading-block {
+    position: relative;
     cursor: pointer;
+    padding-right: clamp(40px, 8vw, 56px);
+  }
+  .refine-search-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    right: clamp(15px, 1.302vw, 25px);
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: var(--e-global-color-c9360c1, #ebebeb);
+    color: var(--e-global-color-accent, #00a6ed);
   }
   .refine-search-backdrop {
     display: block;

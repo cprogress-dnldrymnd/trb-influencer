@@ -1664,6 +1664,11 @@ class Influencer_Search
                     <?php if (! empty($refine_subtext)) { ?>
                         <p class="refine-search-subtext"><?= esc_html($refine_subtext) ?></p>
                     <?php } ?>
+                    <span class="refine-search-indicator" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 6 15 12 9 18"></polyline>
+                        </svg>
+                    </span>
                 </div>
                 <div class="refine-search-backdrop refine-search-trigger"></div>
                 <div class="influencer-search-filter-holder">
