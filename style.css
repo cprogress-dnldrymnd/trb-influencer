@@ -113,7 +113,7 @@ body:not(#error-page).show-body {
   .influencer-loop-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
-  .experts-tag .elementor-icon{
+  .experts-tag .elementor-icon-box-icon{
     display: none;    
   }
 }
