@@ -53,6 +53,15 @@
     }
 
     /**
+     * Scrolls the results section into view once a (non load-more) search finishes.
+     */
+    function scroll_to_search_results() {
+        var target = document.getElementById('influencer-search-result');
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /**
      * Reads checked filter values for a given input name.
      */
     function get_filter_values(name) {
@@ -177,6 +186,8 @@
 
                 container.attr('aria-busy', 'false');
                 hide_search_overlay();
+
+                if (!is_load_more) scroll_to_search_results();
             },
             error: function () {
                 hide_loading_animation();
@@ -186,6 +197,8 @@
                 container.attr('aria-busy', 'false');
                 hide_search_overlay();
                 button.text('Try Again');
+
+                if (!is_load_more) scroll_to_search_results();
             }
         });
     };
