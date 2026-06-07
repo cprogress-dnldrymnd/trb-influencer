@@ -18,7 +18,18 @@ window.ddAlert = function (msg) {
     btn.focus();
 };
 
-window.ddConfirm = function (msg, onOk) {
+/**
+ * @param {string}   msg
+ * @param {function} onOk     Called when the user confirms. If options.keepOpen is set,
+ *                            it receives a `close` function to call once processing is done.
+ * @param {object}   [options]
+ * @param {boolean}  [options.keepOpen]       Don't auto-close on confirm; instead disable the
+ *                                            buttons, switch the confirm label to processingText,
+ *                                            and leave closing up to the caller via `close()`.
+ * @param {string}   [options.processingText] Label shown on the confirm button while keepOpen is active.
+ */
+window.ddConfirm = function (msg, onOk, options) {
+    options = options || {};
     var overlay = document.createElement('div');
     Object.assign(overlay.style, {position:'fixed',top:'0',left:'0',right:'0',bottom:'0',background:'rgba(0,0,0,0.5)',zIndex:'99999',display:'flex',alignItems:'center',justifyContent:'center'});
     var box = document.createElement('div');
@@ -36,8 +47,24 @@ window.ddConfirm = function (msg, onOk) {
     okBtn.type = 'button';
     Object.assign(okBtn.style, {background:'#1a1a1a',color:'#fff',border:'none',borderRadius:'6px',padding:'10px 24px',fontSize:'14px',cursor:'pointer'});
     okBtn.textContent = 'Confirm';
-    cancelBtn.addEventListener('click', function () { document.body.removeChild(overlay); });
-    okBtn.addEventListener('click', function () { document.body.removeChild(overlay); onOk(); });
+    var close = function () {
+        if (overlay.parentNode) {
+            document.body.removeChild(overlay);
+        }
+    };
+    cancelBtn.addEventListener('click', close);
+    okBtn.addEventListener('click', function () {
+        if (options.keepOpen) {
+            cancelBtn.disabled = true;
+            okBtn.disabled = true;
+            okBtn.textContent = options.processingText || 'Processing…';
+            Object.assign(okBtn.style, {cursor:'default',opacity:'0.7'});
+            onOk(close);
+        } else {
+            close();
+            onOk();
+        }
+    });
     row.appendChild(cancelBtn);
     row.appendChild(okBtn);
     box.appendChild(p);
