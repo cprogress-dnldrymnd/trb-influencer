@@ -3411,6 +3411,13 @@ body {
   font-size: 14px;
 }
 @media (max-width: 575px) {
+  #search-header .toggle-holder {
+    gap: 10px;
+  }
+  #search-header .toggle-text.full-brief-search {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
   #user_avatar_div {
     grid-template-columns: 1fr;
     grid-template-areas:
