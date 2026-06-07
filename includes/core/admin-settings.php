@@ -273,7 +273,7 @@ add_action('wp_before_admin_bar_render', function () {
     }
     ?>
     <style>
-        #wpadminbar #wp-admin-bar-dd-theme-edito ul .ab-item {
+        #wpadminbar #wp-admin-bar-dd-theme-editor ul .ab-item {
             display: flex;
             width: 200px;
         }
