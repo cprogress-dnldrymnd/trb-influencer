@@ -3543,8 +3543,8 @@ body {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background-color: var(--e-global-color-c9360c1, #ebebeb);
-    color: var(--e-global-color-accent, #00a6ed);
+    background-color: var(--e-global-color-primary);
+    color: var(--e-global-color-2ba2932);
   }
   .refine-search-backdrop {
     display: block;
