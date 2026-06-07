@@ -153,7 +153,7 @@ function dd_pmpro_member_profile_edit_tabs()
             border-bottom: 3px solid transparent !important;
             transition: color 0.2s ease, border-color 0.2s ease;
             border-radius:0;
-            background-color:transparent !!mportant;
+            background-color:transparent !important;
         }
         .pmpro-member-profile-edit .dd-profile-tab-item:hover,
         .pmpro-member-profile-edit .dd-profile-tab-item.active {
