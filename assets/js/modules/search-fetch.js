@@ -22,6 +22,24 @@
     };
 
     /**
+     * Shows the loading spinner pinned to the viewport centre, so it stays
+     * visible and centred even if the page is scrolled mid-search.
+     */
+    function show_loading_animation() {
+        $('.loading-animation').css({
+            position:  'fixed',
+            top:       '50%',
+            left:      '50%',
+            transform: 'translate(-50%, -50%)',
+            margin:    0
+        }).show();
+    }
+
+    function hide_loading_animation() {
+        $('.loading-animation').hide();
+    }
+
+    /**
      * Reads checked filter values for a given input name.
      */
     function get_filter_values(name) {

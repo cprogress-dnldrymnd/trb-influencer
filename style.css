@@ -164,14 +164,16 @@ body:not(#error-page).show-body {
 
 .filter-widget .header .reset-btn,
 .influencer-search-followers-filter > .header .reset-btn {
-  font-size: 0.9rem;
-  text-decoration: underline;
-  cursor: pointer;
-  color: #000000;
-  background: none;
-  border: none;
-  padding: 0;
-  font-weight: 400;
+     font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+    color: #000000;
+    background: none;
+    border: none;
+    padding: 0;
+    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 1px;
 }
 .filter-widget .header .reset-btn:hover,
 .influencer-search-followers-filter > .header .reset-btn:hover {
