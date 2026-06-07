@@ -647,3 +647,35 @@ function digitally_disruptive_standardize_mycred_log_text( $content, $log_entry 
 
 // Hook into myCRED's log entry parser with a standard priority of 10, accepting 2 arguments.
 add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_log_text', 10, 2 );
+
+/**
+ * Overrides the default myCred Sell Content button text.
+ * * This function intercepts the HTML generated for the %buy_button% template tag
+ * and uses regex to safely replace the inner text of the button. This guarantees
+ * that all required data-attributes and CSS classes for myCred's AJAX processing
+ * are completely maintained.
+ *
+ * @param string $button  The raw HTML string of the purchase button.
+ * @param int    $post_id The ID of the current post/content being purchased.
+ * @return string The modified HTML string containing the custom text.
+ */
+function dd_override_mycred_buy_button_text( $button, $post_id ) {
+    
+    // Define the new custom text for the buy button.
+    $new_text = 'SPEND 1 CREDIT TO UNLOCK INFORMATION';
+
+    // Use regex to target the inner content of the button or anchor tag.
+    // $1 captures the opening tag and attributes, $2 is the old text, $3 is the closing tag.
+    $modified_button = preg_replace( 
+        '/(<(?:button|a)[^>]*>)(.*?)(<\/(?:button|a)>)/is', 
+        '$1' . $new_text . '$3', 
+        $button 
+    );
+
+    // Return the modified button HTML, or fallback to original if regex fails.
+    return $modified_button ? $modified_button : $button;
+}
+
+// Hook into both standard and AJAX button generation filters provided by myCred.
+add_filter( 'mycred_sell_content_button_ajax', 'dd_override_mycred_buy_button_text', 10, 2 );
+add_filter( 'mycred_sell_content_button', 'dd_override_mycred_buy_button_text', 10, 2 );
