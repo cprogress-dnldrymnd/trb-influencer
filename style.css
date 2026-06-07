@@ -896,6 +896,7 @@ input:checked + .slider:before {
   right: 0;
   align-items: center;
   justify-content: center;
+  padding: 2rem;
 }
 .loading-animation img {
   width: 100px;
@@ -1641,7 +1642,7 @@ input:checked + .slider:before {
   display: none;
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.95);
   z-index: 1000;
   cursor: wait;
 }
