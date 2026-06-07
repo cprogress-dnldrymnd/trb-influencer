@@ -191,6 +191,15 @@ add_action('admin_menu', function () {
 // ---------------------------------------------------------------------------
 // Admin bar — quick links to open theme pages/templates in the Elementor editor
 // ---------------------------------------------------------------------------
+function dd_admin_bar_item_title($title, $badge)
+{
+    return sprintf(
+        '<span class="ab-item-title">%s</span><span class="dd-ab-badge">%s</span>',
+        esc_html($title),
+        esc_html($badge)
+    );
+}
+
 add_action('admin_bar_menu', function ($wp_admin_bar) {
     if (! current_user_can('manage_options')) {
         return;
@@ -202,34 +211,35 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
         'href'  => admin_url('options-general.php?page=dd-theme-settings'),
     ]);
 
-    $pages = [
-        'dd_search_results_page_id' => ['Search Results Page',   1949],
-        'dd_search_page_id'         => ['Search Form Page',      2149],
-        'dd_dashboard_page_id'      => ['Dashboard Page',        1565],
-        'dd_login_redirect_page_id' => ['Login / Redirect Page', 4144],
+    $page_keys = [
+        'dd_search_results_page_id' => 1949,
+        'dd_search_page_id'         => 2149,
+        'dd_dashboard_page_id'      => 1565,
+        'dd_login_redirect_page_id' => 4144,
     ];
-    foreach ($pages as $key => [$label, $default]) {
-        $id = dd_get_page_id($key, $default);
-        if ($id > 0) {
+    foreach ($page_keys as $key => $default) {
+        $id   = dd_get_page_id($key, $default);
+        $post = $id > 0 ? get_post($id) : null;
+        if ($post) {
             $wp_admin_bar->add_node([
                 'id'     => 'dd-theme-editor-' . $key,
                 'parent' => 'dd-theme-editor',
-                'title'  => esc_html($label),
+                'title'  => dd_admin_bar_item_title(get_the_title($post), 'Page'),
                 'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
                 'meta'   => ['target' => '_blank'],
             ]);
         }
     }
 
-    $templates = [
-        'dd_tpl_header_nav'           => ['Header Navigation',             1571],
-        'dd_tpl_dashboard_content'    => ['Dashboard Content (Members)',   1640],
-        'dd_tpl_dashboard_no_access'  => ['Dashboard Content (No Access)', 14403],
-        'dd_tpl_single_influencer'    => ['Single Influencer Content',     1868],
-        'dd_tpl_search_card'          => ['Search Result Card',            1839],
-        'dd_tpl_saves_empty'          => ['Saved Groups Empty State',      27501],
-        'dd_tpl_group_influencer_row' => ['Group Influencer Row',          14897],
-        'dd_tpl_no_data_fallback'     => ['No Data Fallback',              27230],
+    $template_keys = [
+        'dd_tpl_header_nav'           => 1571,
+        'dd_tpl_dashboard_content'    => 1640,
+        'dd_tpl_dashboard_no_access'  => 14403,
+        'dd_tpl_single_influencer'    => 1868,
+        'dd_tpl_search_card'          => 1839,
+        'dd_tpl_saves_empty'          => 27501,
+        'dd_tpl_group_influencer_row' => 14897,
+        'dd_tpl_no_data_fallback'     => 27230,
     ];
 
     $wp_admin_bar->add_node([
@@ -237,19 +247,43 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
         'parent' => 'dd-theme-editor',
         'title'  => 'Elementor Templates',
     ]);
-    foreach ($templates as $key => [$label, $default]) {
-        $id = dd_get_template_id($key, $default);
-        if ($id > 0) {
+    foreach ($template_keys as $key => $default) {
+        $id   = dd_get_template_id($key, $default);
+        $post = $id > 0 ? get_post($id) : null;
+        if ($post) {
+            $type  = get_post_meta($id, '_elementor_template_type', true);
+            $badge = $type ? ucwords(str_replace(['-', '_'], ' ', $type)) : 'Template';
             $wp_admin_bar->add_node([
                 'id'     => 'dd-theme-editor-' . $key,
                 'parent' => 'dd-theme-editor-templates',
-                'title'  => esc_html($label),
+                'title'  => dd_admin_bar_item_title(get_the_title($post), $badge),
                 'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
                 'meta'   => ['target' => '_blank'],
             ]);
         }
     }
 }, 100);
+
+add_action('wp_before_admin_bar_render', function () {
+    if (! current_user_can('manage_options')) {
+        return;
+    }
+    ?>
+    <style>
+        #wpadminbar #wp-admin-bar-dd-theme-editor .dd-ab-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 1px 8px;
+            font-size: 11px;
+            line-height: 17px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, .12);
+            color: rgba(255, 255, 255, .75);
+            vertical-align: middle;
+        }
+    </style>
+    <?php
+});
 
 // ---------------------------------------------------------------------------
 // Styles + JS (settings page only)
