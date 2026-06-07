@@ -91,6 +91,38 @@
     };
 
     /**
+     * Shows/hides the "Reset All" button on the sidebar search form based on
+     * whether any filters are currently selected, and clears every filter
+     * widget in the form when clicked.
+     */
+    InfluencerApp.init_sidebar_reset_all = function () {
+        var $form = $('.influencer-search-sidebar');
+        if (!$form.length) return;
+
+        var $resetBtn = $form.find('.reset-filters-btn');
+        if (!$resetBtn.length) return;
+
+        function hasActiveFilters() {
+            return $form.find('input[type="checkbox"]:checked, input[type="radio"]:checked').length > 0;
+        }
+
+        function syncVisibility() {
+            $resetBtn.css('display', hasActiveFilters() ? '' : 'none');
+        }
+
+        $form.on('change', 'input[type="checkbox"], input[type="radio"]', syncVisibility);
+
+        $resetBtn.on('click', function (e) {
+            e.preventDefault();
+            $form.find('.filter-widget .reset-btn').each(function () { this.click(); });
+            $form.find('.checkbox-filter input[type="checkbox"]').prop('checked', false);
+            syncVisibility();
+        });
+
+        syncVisibility();
+    };
+
+    /**
      * Toggles the advanced search filter panel open/closed when its trigger is clicked.
      */
     InfluencerApp.initAdvancedSearchToggle = function () {

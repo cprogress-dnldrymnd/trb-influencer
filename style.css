@@ -337,6 +337,24 @@ body:not(#error-page).show-body {
   font-weight: 500;
   font-size: 14px;
 }
+.influencer-search-sidebar .reset-filters-btn {
+  display: block;
+  margin: 8px auto 0;
+  background-color: transparent;
+  border-color: var(--e-global-color-primary);
+  color: var(--e-global-color-primary);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.influencer-search-sidebar .reset-filters-btn:hover,
+.influencer-search-sidebar .reset-filters-btn:focus {
+  background-color: var(--e-global-color-primary);
+  color: #fff;
+  border-color: var(--e-global-color-primary);
+}
 
 .fixed-long-text,
 .fixed-long-text > * {
@@ -644,6 +662,18 @@ input:checked + .slider:before {
   gap: 40px;
 }
 .premium-content-notice.premium-content-notice.premium-content-notice .spend-credit-notice {
+  background: transparent linear-gradient(251deg, #ecf799 0%, #caf7a1 30%, #d6f79e 67%, #bbf7a6 100%) 0% 0% no-repeat
+    padding-box;
+  border: 1px solid #034146;
+  font-size: 12px;
+  color: #034146;
+  font-weight: bold;
+  padding: 14px 24px;
+  border-radius: 5px;
+  letter-spacing: 0.6px;
+  font-family: Inter, sans-serif;
+}
+.mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button {
   background: transparent linear-gradient(251deg, #ecf799 0%, #caf7a1 30%, #d6f79e 67%, #bbf7a6 100%) 0% 0% no-repeat
     padding-box;
   border: 1px solid #034146;

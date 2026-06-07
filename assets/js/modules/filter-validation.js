@@ -9,6 +9,14 @@
      * submission when no selection has been made.
      */
     InfluencerApp.validate_required_search_filters = function () {
+        // Typing into a required filter's option-search box and pressing Enter
+        // would otherwise submit the form before the user finishes selecting.
+        $('.influencer-search-main .required-on-search .dropdown-search-input').on('keydown', function (e) {
+            if (e.key === 'Enter' || e.which === 13) {
+                e.preventDefault();
+            }
+        });
+
          $('.influencer-search-main').on('submit', function (e) {
             let isValid = true;
 

@@ -71,13 +71,17 @@
 
     /**
      * Scrolls the results section into view once a (non load-more) search finishes,
-     * offset by the height of the sticky members-area header.
+     * offset by the height of the sticky members-area header and, for logged-in
+     * admins, the WordPress admin bar.
      */
     function scroll_to_search_results() {
         var target = document.getElementById('influencer-search-result');
         if (!target) return;
 
-        var top = target.getBoundingClientRect().top + window.pageYOffset - get_members_area_header_height();
+        var $admin_bar    = $('#wpadminbar');
+        var admin_bar_height = ($admin_bar.length && $admin_bar.is(':visible')) ? $admin_bar.outerHeight() : 0;
+
+        var top = target.getBoundingClientRect().top + window.pageYOffset - get_members_area_header_height() - admin_bar_height;
 
         window.scrollTo({ top: top, behavior: 'smooth' });
     }
