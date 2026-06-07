@@ -1405,8 +1405,8 @@ function shortcode_influencer_follower_growth($atts)
             return $na_output;
         }
 
-        $raw_decimal_growth = (float) $club_growth;
-        $formatted_percent = ($raw_decimal_growth > 0 ? '+' : '') . convertDecimalToPercentage($raw_decimal_growth);
+        $growth_percent = (float) $club_growth;
+        $formatted_percent = ($growth_percent > 0 ? '+' : '') . number_format($growth_percent, 2) . '%';
 
         return sprintf(
             '<span class="creatordb-follower-growth">%s</span>',
