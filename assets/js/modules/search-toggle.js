@@ -17,7 +17,7 @@
         var advancedFilters = $('.advanced-search-filters');
 
         function hasActiveFilters() {
-            return $('.influencer-search-main input[type="checkbox"]:not(#my-toggle):checked').length > 0;
+            return $('.influencer-search-main input[type="checkbox"]:not(#my-toggle):checked, .influencer-search-main input[type="radio"]:checked').length > 0;
         }
 
         function syncResetBtn() {
@@ -77,7 +77,7 @@
         });
 
         // Show/hide reset button as filters are toggled
-        $('.influencer-search-main').on('change', 'input[type="checkbox"]', function () {
+        $('.influencer-search-main').on('change', 'input[type="checkbox"], input[type="radio"]', function () {
             if (this.id === 'my-toggle') return;
             syncResetBtn();
         });
