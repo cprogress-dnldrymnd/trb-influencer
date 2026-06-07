@@ -2762,6 +2762,9 @@ body {
 .page-template-page-dashboard .pmpro_card_actions a {
   color: #fff !important;
 }
+.page-template-page-dashboard .pmpro_card_actions a:hover {
+  text-decoration: underline;
+}
 .page-template-page-dashboard .toggle-switch input:not(:checked) + .slider,
 .page-template-page-dashboard .toggle-switch input:checked + .slider {
   background-color: var(--e-global-color-primary);
