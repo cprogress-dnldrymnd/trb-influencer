@@ -22,21 +22,36 @@
     };
 
     /**
-     * Shows the loading spinner pinned to the viewport centre, so it stays
-     * visible and centred even if the page is scrolled mid-search.
+     * Positions the loading spinner over the centre of #my-loop-grid-container,
+     * using its current offset/size so the spinner lands in the middle of the
+     * results area regardless of how tall the grid grows or scrolls.
      */
-    function show_loading_animation() {
-        $('.loading-animation').css({
-            position:  'fixed',
-            top:       '50%',
-            left:      '50%',
+    function position_loading_animation() {
+        var $container = $('#my-loop-grid-container');
+        var $loader    = $('.loading-animation');
+
+        if (!$container.length || !$loader.length) return;
+
+        var offset = $container.offset();
+
+        $loader.css({
+            position:  'absolute',
+            top:       offset.top + ($container.outerHeight() / 2),
+            left:      offset.left + ($container.outerWidth() / 2),
             transform: 'translate(-50%, -50%)',
             margin:    0
-        }).show();
+        });
+    }
+
+    function show_loading_animation() {
+        position_loading_animation();
+        $('.loading-animation').show();
+        $(window).on('resize.loading_animation', position_loading_animation);
     }
 
     function hide_loading_animation() {
         $('.loading-animation').hide();
+        $(window).off('resize.loading_animation');
     }
 
     /**
