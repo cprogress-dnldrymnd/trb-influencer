@@ -1311,6 +1311,22 @@ body.search-loading-active {
   flex-wrap: wrap;
 }
 
+.influencer-search-summary.influencer-search-summary .search-summary-filters.search-summary-item {
+  border: 1px solid var(--e-global-color-primary, #034146);
+  border-radius: 8px;
+  background: #f3f9f8;
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #2d2d2d;
+}
+
+.influencer-search-summary.influencer-search-summary .search-summary-filters strong {
+  color: var(--e-global-color-primary, #034146);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
 .influencer-search-summary.influencer-search-summary .search-summary-brief.search-summary-item {
   border: 1px solid var(--e-global-color-primary, #034146);
   border-radius: 8px;
@@ -2661,12 +2677,15 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 .no-influencers-found {
   text-align: center;
-  text-transform: uppercase;
-  padding: 30px;
-  border: 2px dashed;
-  border-radius: 10px;
+  text-transform: none;
+  letter-spacing: 0.1px;
+  padding: 40px 32px;
+  border: 1px dashed var(--e-global-color-accent);
+  border-radius: 12px;
+  background: rgba(247, 125, 103, 0.06);
   color: var(--e-global-color-accent);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 16px;
   min-height: 200px;
   display: flex;
   align-items: center;
