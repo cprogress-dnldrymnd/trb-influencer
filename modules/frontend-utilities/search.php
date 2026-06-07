@@ -1556,7 +1556,7 @@ class Influencer_Search
 
         ob_start();
     ?>
-        <div id="influencer-search-result">
+        <div id="influencer-search-result-holder">
             <div class="influencer-results-meta">
                 <p class="influencer-results-meta__count">
                     Displaying <span class="current-found-influencer">0</span> of <span class="total-found-influencer">0</span> matches
