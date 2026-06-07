@@ -1282,7 +1282,9 @@ input:checked + .slider:before {
   background: #fff;
   border: 1px solid #c5d0d8;
   color: #2d4a56;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .brief-quality-notice__actions .brief-quality-continue:hover,
@@ -1376,7 +1378,9 @@ input:checked + .slider:before {
   background: #fff;
   border: 1px solid #c5d0d8;
   color: #2d4a56;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .brief-quality-banner__btn:hover {
@@ -2381,7 +2385,9 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   background: transparent;
   border: none;
   line-height: 1;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .advanced-search-trigger svg {
@@ -2768,7 +2774,7 @@ body {
 }
 .single-influencer .custom-tab .custom-tab-item.active *,
 .single-influencer .custom-tab .custom-tab-item:hover *,
-.single-influencer .custom-tab .custom-tab-item:focus  {
+.single-influencer .custom-tab .custom-tab-item:focus {
   color: #fff !important;
 }
 
@@ -2932,6 +2938,52 @@ body {
 .not-draggable-carousel .swiper-wrapper {
   touch-action: auto !important;
   pointer-events: none !important;
+}
+#dd_trial_opt_out_container {
+  display: none;
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+}
+#dd_bank_transfer_notice {
+  display: none;
+  margin-bottom: 15px;
+  color: #8a6d3b;
+  background-color: #fcf8e3;
+  padding: 12px;
+  border: 1px solid #faebcc;
+  border-radius: 4px;
+}
+
+#dd_opt_out_free_trial {
+  display: flex;
+  font-weight: bold;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #000;
+}
+#dd_opt_out_free_trial input {
+  display: none;
+}
+.pmpro_checkmark.pmpro_checkmark {
+  width: 20px;
+  height: 20px;
+  border: 1px solid;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#dd_opt_out_free_trial input:checked + span {
+  background-color: var(--e-global-color-accent);
+  border-color: var(--e-global-color-accent);
+  color: #fff;
+}
+#dd_opt_out_free_trial input:checked + span:before {
+  content: "✓";
 }
 
 @media (min-width: 768px) {
