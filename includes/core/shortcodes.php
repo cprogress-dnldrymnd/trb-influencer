@@ -322,9 +322,13 @@ function breadcrumbs()
 ?>
     <nav class="breadcrumbs breadcrumbs-<?= esc_attr($type) ?>" aria-label="Breadcrumbs">
         <ul>
-            <?php if (is_page_template('templates/page-dashboard.php')) { ?>
-                <li><?= $dashboard_icon ?> <span>Dashboard</span></li>
-            <?php } ?>
+            <li>
+                <?php if (get_the_ID() == $dashboard_page_id) { ?>
+                    <?= $dashboard_icon ?> <span>Dashboard</span>
+                <?php } else { ?>
+                    <a href="<?= esc_url(get_the_permalink($dashboard_page_id)) ?>"><?= $dashboard_icon ?> <span>Dashboard</span></a>
+                <?php } ?>
+            </li>
 
             <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) { ?>
                 <li><?= $search_icon ?> <span>Influencer Discovery</span></li>

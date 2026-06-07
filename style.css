@@ -600,7 +600,7 @@ input:checked + .slider:before {
   height: var(--icon-size);
   flex: 0 0 var(--icon-size);
 }
-.breadcrumbs ul li:not(:last-child) {
+.breadcrumbs ul li:not(:last-child)  {
   opacity: 0.5;
 }
 .breadcrumbs ul li:not(:last-child):after {
@@ -3724,6 +3724,7 @@ body {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
+  justify-content: space-between;
 }
 
 .inf-modal-header h3 {
