@@ -189,6 +189,69 @@ add_action('admin_menu', function () {
 });
 
 // ---------------------------------------------------------------------------
+// Admin bar — quick links to open theme pages/templates in the Elementor editor
+// ---------------------------------------------------------------------------
+add_action('admin_bar_menu', function ($wp_admin_bar) {
+    if (! current_user_can('manage_options')) {
+        return;
+    }
+
+    $wp_admin_bar->add_node([
+        'id'    => 'dd-theme-editor',
+        'title' => 'Theme Editor',
+        'href'  => admin_url('options-general.php?page=dd-theme-settings'),
+    ]);
+
+    $pages = [
+        'dd_search_results_page_id' => ['Search Results Page',   1949],
+        'dd_search_page_id'         => ['Search Form Page',      2149],
+        'dd_dashboard_page_id'      => ['Dashboard Page',        1565],
+        'dd_login_redirect_page_id' => ['Login / Redirect Page', 4144],
+    ];
+    foreach ($pages as $key => [$label, $default]) {
+        $id = dd_get_page_id($key, $default);
+        if ($id > 0) {
+            $wp_admin_bar->add_node([
+                'id'     => 'dd-theme-editor-' . $key,
+                'parent' => 'dd-theme-editor',
+                'title'  => esc_html($label),
+                'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
+                'meta'   => ['target' => '_blank'],
+            ]);
+        }
+    }
+
+    $templates = [
+        'dd_tpl_header_nav'           => ['Header Navigation',             1571],
+        'dd_tpl_dashboard_content'    => ['Dashboard Content (Members)',   1640],
+        'dd_tpl_dashboard_no_access'  => ['Dashboard Content (No Access)', 14403],
+        'dd_tpl_single_influencer'    => ['Single Influencer Content',     1868],
+        'dd_tpl_search_card'          => ['Search Result Card',            1839],
+        'dd_tpl_saves_empty'          => ['Saved Groups Empty State',      27501],
+        'dd_tpl_group_influencer_row' => ['Group Influencer Row',          14897],
+        'dd_tpl_no_data_fallback'     => ['No Data Fallback',              27230],
+    ];
+
+    $wp_admin_bar->add_node([
+        'id'     => 'dd-theme-editor-templates',
+        'parent' => 'dd-theme-editor',
+        'title'  => 'Elementor Templates',
+    ]);
+    foreach ($templates as $key => [$label, $default]) {
+        $id = dd_get_template_id($key, $default);
+        if ($id > 0) {
+            $wp_admin_bar->add_node([
+                'id'     => 'dd-theme-editor-' . $key,
+                'parent' => 'dd-theme-editor-templates',
+                'title'  => esc_html($label),
+                'href'   => admin_url('post.php?post=' . $id . '&action=elementor'),
+                'meta'   => ['target' => '_blank'],
+            ]);
+        }
+    }
+}, 100);
+
+// ---------------------------------------------------------------------------
 // Styles + JS (settings page only)
 // ---------------------------------------------------------------------------
 add_action('admin_footer', function () {
