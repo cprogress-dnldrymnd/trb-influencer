@@ -190,23 +190,34 @@ body:not(#error-page).show-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border-bottom: 1px solid var(--e-global-color-f35d6b9);
+  padding-top: clamp(15px, 1.302vw, 25px);
+  padding-bottom: clamp(15px, 1.302vw, 25px);
+  padding-left: clamp(15px, 1.302vw, 25px);
+  padding-right: clamp(15px, 1.302vw, 25px);
 }
 .refine-search-heading {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+.influencer-search-sidebar .influencer-search-filter-holder {
+  padding-top: clamp(15px, 1.302vw, 25px);
+  padding-bottom: clamp(15px, 1.302vw, 25px);
+  padding-left: clamp(15px, 1.302vw, 25px);
+  padding-right: clamp(15px, 1.302vw, 25px);
+}
 .refine-search-title {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #034146;
+  font-family: var(--e-global-typography-c7a58ec-font-family), Sans-serif;
+  font-size: var(--e-global-typography-c7a58ec-font-size);
+  font-weight: var(--e-global-typography-c7a58ec-font-weight);
+  color: var(--e-global-color-text);
 }
 .refine-search-subtext {
-  margin: 0;
-  font-size: 13px;
-  color: rgb(102, 112, 133);
+  font-family: var(--e-global-typography-4fc7f56-font-family), Sans-serif;
+  font-size: var(--e-global-typography-4fc7f56-font-size);
+  font-weight: var(--e-global-typography-4fc7f56-font-weight);
+  line-height: var(--e-global-typography-4fc7f56-line-height);
 }
 .refine-search-close,
 .refine-search-backdrop {
@@ -935,7 +946,7 @@ input:checked + .slider:before {
 
 .load-more-wrapper:before {
   content: "";
-  border-bottom: 1px solid var( --e-global-color-670824e );
+  border-bottom: 1px solid var(--e-global-color-670824e);
   position: absolute;
   top: 50%;
   left: 0;
