@@ -909,13 +909,12 @@ input:checked + .slider:before {
 
 .load-more-wrapper:before {
   content: "";
-  height: 1px;
-  background-color: var(--e-global-color-2ba2932);
+  border-bottom: 1px solid var( --e-global-color-670824e );
   position: absolute;
   top: 50%;
   left: 0;
   right: 0;
-  transform: translateX(-50%);
+  transform: translateY(-50%);
 }
 
 #load-more-influencers {

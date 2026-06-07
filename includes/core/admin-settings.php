@@ -275,6 +275,7 @@ add_action('wp_before_admin_bar_render', function () {
     <style>
         #wpadminbar #wp-admin-bar-dd-theme-editor-default  .ab-item {
             display: flex;
+            width: 200px;
         }
 
         #wpadminbar #wp-admin-bar-dd-theme-editor>.ab-item .dd-ab-favicon {
