@@ -138,7 +138,7 @@ function dd_pmpro_member_profile_edit_tabs()
         .pmpro-member-profile-edit .dd-profile-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 20px;
             margin-bottom: 24px;
             border-bottom: 1px solid var(--e-global-color-f35d6b9);
         }
@@ -153,10 +153,11 @@ function dd_pmpro_member_profile_edit_tabs()
             border-bottom: 3px solid transparent !important;
             transition: color 0.2s ease, border-color 0.2s ease;
             border-radius:0;
+            background-color:transparent !!mportant;
         }
         .pmpro-member-profile-edit .dd-profile-tab-item:hover,
         .pmpro-member-profile-edit .dd-profile-tab-item.active {
-            color: var(--e-global-color-2ba2932);
+            color: var(--e-global-color-primary);
             border-bottom-color: var(--e-global-color-primary) !important;
         }
         .pmpro-member-profile-edit fieldset.dd-profile-tab-panel {
