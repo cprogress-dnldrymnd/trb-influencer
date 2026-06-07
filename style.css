@@ -195,9 +195,6 @@ body:not(#error-page).show-body {
   padding-bottom: clamp(15px, 1.302vw, 25px);
   padding-left: clamp(15px, 1.302vw, 25px);
   padding-right: clamp(15px, 1.302vw, 25px);
-  background-color: var(--e-global-color-primary);
-  color: var(--e-global-color-2ba2932);
-  border-radius: 10px;
 }
 .refine-search-heading {
   display: flex;
@@ -3540,6 +3537,9 @@ body {
     position: relative;
     cursor: pointer;
     padding-right: clamp(40px, 8vw, 56px);
+    background-color: var(--e-global-color-primary);
+    color: var(--e-global-color-2ba2932);
+    border-radius: 10px;
   }
   .refine-search-indicator {
     display: flex;
