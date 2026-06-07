@@ -3567,7 +3567,7 @@ body {
     overflow-y: auto;
     box-sizing: border-box;
     background-color: #fff;
-    padding: 60px 30px 20px;
+    padding: 15px 15px 15px;
     z-index: 99999;
     transform: translateX(100%);
     transition: transform 300ms ease;
@@ -3578,15 +3578,18 @@ body {
   .refine-search-subtext--modal {
     display: block;
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 0;
+  }
+  .refine-search-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .refine-search-close.refine-search-close.refine-search-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    flex-shrink: 0;
     width: 26px;
     height: 26px;
     min-width: 26px;
