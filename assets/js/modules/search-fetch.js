@@ -81,7 +81,7 @@
     InfluencerApp.fetch_influencers = function (is_load_more) {
         var container = $('#my-loop-grid-container');
         var button    = $('#load-more-influencers');
-        $('.loading-animation').show();
+        show_loading_animation();
 
         if (!is_load_more) current_page = 1;
 
@@ -126,7 +126,7 @@
                 var debug = (response.data && response.data.debug) ? response.data.debug : null;
 
                 if (response.success) {
-                    $('.loading-animation').hide();
+                    hide_loading_animation();
                     max_pages = response.data.max_pages;
 
                     if (is_load_more) {
@@ -149,7 +149,7 @@
                     if (debug) InfluencerApp.render_brief_search_debug(debug);
 
                 } else {
-                    $('.loading-animation').hide();
+                    hide_loading_animation();
                     $('.total-found-influencer').text('0');
                     $('.current-found-influencer').text('0');
 
@@ -164,7 +164,7 @@
                 container.css('opacity', '1').attr('aria-busy', 'false');
             },
             error: function () {
-                $('.loading-animation').hide();
+                hide_loading_animation();
                 $('.total-found-influencer').text('0');
                 $('.current-found-influencer').text('0');
                 container.html('<p style="padding:20px 0;">An error occurred. Please try again.</p>');
