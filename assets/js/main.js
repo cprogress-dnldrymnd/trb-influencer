@@ -41,6 +41,7 @@
 
         InfluencerApp.initActiveFilterChips();
         InfluencerApp.validate_required_search_filters();
+        InfluencerApp.init_search_transition_overlay();
         InfluencerApp.initBriefQuality();
 
         InfluencerApp.influencer_select_filters();

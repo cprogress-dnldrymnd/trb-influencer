@@ -154,6 +154,20 @@
     };
 
     /**
+     * Shows the full-page loading animation the instant the main search form is
+     * submitted (after required-filter validation passes), so the brief moment
+     * spent navigating to the results page reads as "loading" rather than a
+     * jarring blank-page reload. Bound after validate_required_search_filters,
+     * so e.isDefaultPrevented() reflects whether validation blocked submission.
+     */
+    InfluencerApp.init_search_transition_overlay = function () {
+        $('.influencer-search-main').on('submit', function (e) {
+            if (e.isDefaultPrevented()) return;
+            $(this).find('.search-transition-loading-animation').css('display', 'flex');
+        });
+    };
+
+    /**
      * Toggles the advanced search filter panel open/closed when its trigger is clicked.
      */
     InfluencerApp.initAdvancedSearchToggle = function () {
