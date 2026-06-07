@@ -1609,12 +1609,15 @@ class Influencer_Search
                     <div class="influencer-search-item niche-filters">
                         <?= self::select_filter('niche', 'Niche Filter', 'Select your niche filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
-                    <div class="influencer-search-filter-holder followers-filter">
-                        <div class="influencer-search-item">
-                            <?= self::select_filter('min_followers', 'Minimum Followers', 'Min.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                        </div>
-                        <div class="influencer-search-item">
-                            <?= self::select_filter('max_followers', 'Maximum Followers', 'Max.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                    <div class="influencer-search-filter-holder">
+                        <div class="header">Follower Count</div>
+                        <div class="followers-filter">
+                            <div class="influencer-search-item">
+                                <?= self::select_filter('min_followers', '', 'Min.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                            </div>
+                            <div class="influencer-search-item">
+                                <?= self::select_filter('max_followers', '', 'Max.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                            </div>
                         </div>
                     </div>
                     <div class="influencer-search-item">

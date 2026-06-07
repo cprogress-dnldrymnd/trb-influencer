@@ -138,9 +138,12 @@ body:not(#error-page).show-body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  font-size: 11px;
   font-weight: 600;
-  color: #000000;
-  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(102, 112, 133);
+  line-height: 1.3;
 }
 .filter-widget .header .reset-btn {
   font-size: 0.9rem;
