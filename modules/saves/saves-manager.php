@@ -1811,17 +1811,25 @@ class Saves_Manager
 
             button.inf-btn-cancel {
                 background-color: transparent !important;
-                color: var(--e-global-color-secondary) !important;
-                border: 1px solid var(--e-global-color-secondary) !important;
+                color: var(--e-global-color-primary) !important;
+                border: 1px solid var(--e-global-color-primary) !important;
             }
 
             button.inf-btn-cancel:hover {
-                background-color: #eaeaea !important;
+               opacity: 0.88 !important;
             }
 
             button.inf-btn-save {
-                background-color: var(--e-global-color-secondary) !important;
+                background-color: var(--e-global-color-primary) !important;
                 color: #fff !important;
+            }
+
+
+
+            button.inf-btn-save:hover,
+            button.inf-btn-save:focus,
+            button.inf-btn-save:active {
+                background-color: var(--e-global-color-secondary) !important;
             }
 
             /* Enhanced Group Creators Loop Grid */
