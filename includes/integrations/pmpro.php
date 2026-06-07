@@ -118,6 +118,103 @@ add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99);
 
 
 /**
+ * Description: Restructures the [pmpro_member_profile_edit] form into a tabbed layout.
+ *
+ * PMPro renders this shortcode's "Account Information", "More Information", and
+ * "Profile" sections as stacked <fieldset class="pmpro_form_fieldset"> blocks. Since
+ * that markup comes from the PMPro plugin core (no template override exists in this
+ * theme), we restructure it client-side: build a tab nav from each fieldset's legend
+ * heading and toggle panel visibility on click.
+ */
+function dd_pmpro_member_profile_edit_tabs()
+{
+    global $post;
+
+    if (empty($post) || ! has_shortcode($post->post_content, 'pmpro_member_profile_edit')) {
+        return;
+    }
+?>
+    <style>
+        .pmpro-member-profile-edit .dd-profile-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--e-global-color-f35d6b9);
+        }
+        .pmpro-member-profile-edit .dd-profile-tab-item {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            font-family: "Work Sans", sans-serif;
+            font-weight: 500;
+            color: var(--e-global-color-text);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: color 0.2s ease, border-color 0.2s ease;
+        }
+        .pmpro-member-profile-edit .dd-profile-tab-item:hover,
+        .pmpro-member-profile-edit .dd-profile-tab-item.active {
+            color: var(--e-global-color-primary);
+            border-bottom-color: var(--e-global-color-primary);
+        }
+        .pmpro-member-profile-edit fieldset.dd-profile-tab-panel {
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            var $form = $('#member-profile-edit');
+            if (! $form.length) return;
+
+            var $fieldsets = $form.find('fieldset.pmpro_form_fieldset');
+            if ($fieldsets.length < 2) return;
+
+            $form.find('.pmpro_spacer').hide();
+
+            var $tabNav = $('<div class="dd-profile-tabs" role="tablist"></div>');
+
+            $fieldsets.each(function(index) {
+                var $fieldset = $(this);
+                var label = $.trim($fieldset.find('.pmpro_form_legend h2').first().text()) || ('Section ' + (index + 1));
+                var panelId = $fieldset.attr('id');
+
+                var $tab = $('<button type="button" class="dd-profile-tab-item"></button>')
+                    .attr({ role: 'tab', 'data-target': panelId, 'aria-selected': index === 0 ? 'true' : 'false' })
+                    .text(label);
+
+                if (index === 0) {
+                    $tab.addClass('active');
+                } else {
+                    $fieldset.hide();
+                }
+
+                $fieldset.addClass('dd-profile-tab-panel');
+                $tabNav.append($tab);
+            });
+
+            $form.find('.pmpro_card_content').first().prepend($tabNav);
+
+            $tabNav.on('click', '.dd-profile-tab-item', function() {
+                var $tab = $(this);
+                if ($tab.hasClass('active')) return;
+
+                $tabNav.find('.dd-profile-tab-item').removeClass('active').attr('aria-selected', 'false');
+                $tab.addClass('active').attr('aria-selected', 'true');
+
+                $fieldsets.hide();
+                $('#' + $tab.attr('data-target')).show();
+            });
+        });
+    </script>
+<?php
+}
+add_action('wp_footer', 'dd_pmpro_member_profile_edit_tabs', 99);
+
+
+/**
  * Intercepts and modifies localization strings for Paid Memberships Pro.
  * * This function hooks into the WordPress 'gettext' translation system. It checks 
  * if the text domain is PMPro and if the original string matches known lost 
