@@ -685,9 +685,20 @@ input:checked + .slider:before {
   letter-spacing: 0.6px;
   font-family: Inter, sans-serif;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:before {
-  content: 'SPEND 1 CREDIT TO UNLOCK INFORMATION';
+  content: "";
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20.389" height="20.5" viewBox="0 0 20.389 20.5"><g id="padlock" transform="translate(-499.574 -675)"><g id="padlock-unlocked-svgrepo-com" transform="translate(495.074 673)"><path id="Path_94" data-name="Path 94" d="M4.5,11.393c0,1.739,0,5.371,0,7.806,0,2.692,4.164,3.3,7.5,3.3s7.5-.609,7.5-3.3V11.393a1,1,0,0,0-1-1H5.5A1,1,0,0,0,4.5,11.393Zm6,4.61a1.6,1.6,0,0,0,.536,1.2v1.552a1,1,0,0,0,1,1h.143a1,1,0,0,0,1-1V17.2A1.607,1.607,0,1,0,10.5,16Z" fill="%23034146" fill-rule="evenodd"></path><path id="Path_95" data-name="Path 95" d="M8.182,10.7s0-2.568,0-4.108A3.682,3.682,0,0,1,12,3a3.682,3.682,0,0,1,3.818,3.595" fill="none" stroke="%23034146" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path id="sparkles-svgrepo-com_1_" data-name="sparkles-svgrepo-com (1)" d="M11.7,15.809a.452.452,0,0,0,.475-.419c.5-3.733.629-3.733,4.487-4.473a.473.473,0,0,0,.433-.475.483.483,0,0,0-.433-.475c-3.858-.531-4-.657-4.487-4.459a.469.469,0,0,0-.937.014c-.461,3.746-.657,3.732-4.487,4.445a.493.493,0,0,0-.433.475c0,.28.182.433.489.475,3.8.615,3.97.713,4.431,4.445A.453.453,0,0,0,11.7,15.809Z" transform="translate(7.791 -0.045)" fill="%23f9c23c"></path></g></g></svg>');
+  width: 15px;
+  height: 15px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:after {
+  content: "SPEND 1 CREDIT TO UNLOCK INFORMATION";
   font-size: 12px;
 }
 
