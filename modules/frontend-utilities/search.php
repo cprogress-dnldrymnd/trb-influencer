@@ -803,7 +803,7 @@ class Influencer_Search
                     'debug'   => $debug_payload,
                 ));
             } else {
-                wp_send_json_error( __('No posts found', 'hello-elementor-child') );
+                wp_send_json_error(__('No posts found', 'hello-elementor-child'));
             }
         }
 
@@ -1455,8 +1455,8 @@ class Influencer_Search
                     </div>
                     <a class="edit-summary-brieft" href="<?= esc_url(get_the_permalink(dd_get_page_id('dd_search_page_id', 2149))) ?>?search-brief=<?= urlencode($brief) ?>">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M12 20h9"/>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
                         </svg>
                         <span>Edit brief</span>
                     </a>
@@ -1562,7 +1562,7 @@ class Influencer_Search
             </p>
             <a class="influencer-results-meta__saved-link" href="<?= esc_url($saved_lists_url) ?>">
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"/>
+                    <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z" />
                 </svg>
                 <span>View Saved Lists</span>
             </a>
@@ -1609,11 +1609,13 @@ class Influencer_Search
                     <div class="influencer-search-item niche-filters">
                         <?= self::select_filter('niche', 'Niche Filter', 'Select your niche filters', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                     </div>
-                    <div class="influencer-search-item">
-                        <?= self::select_filter('min_followers', 'Minimum Followers', 'Select Minimum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
-                    </div>
-                    <div class="influencer-search-item">
-                        <?= self::select_filter('max_followers', 'Maximum Followers', 'Select Maximum Followers', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                    <div class="influencer-search-filter-holder">
+                        <div class="influencer-search-item">
+                            <?= self::select_filter('min_followers', 'Minimum Followers', 'Min.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                        </div>
+                        <div class="influencer-search-item">
+                            <?= self::select_filter('max_followers', 'Maximum Followers', 'Max.', $influencer_search_fields['followers'] ?? '', 'radio') ?>
+                        </div>
                     </div>
                     <div class="influencer-search-item">
                         <?= self::select_filter('country', 'Location', 'Select a new location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
@@ -1759,7 +1761,7 @@ class Influencer_Search
                                             continue;
                                         }
                                         $label = $card['label'] ?? '';
-                                        ?>
+                                    ?>
                                         <div class="brief-example-card">
                                             <?php if ($label !== '') : ?>
                                                 <span class="brief-example-card__label"><?= esc_html($label) ?></span>
