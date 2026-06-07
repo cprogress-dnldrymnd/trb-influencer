@@ -133,6 +133,8 @@ function dd_pmpro_member_profile_edit_tabs()
     if (empty($post) || ! has_shortcode($post->post_content, 'pmpro_member_profile_edit')) {
         return;
     }
+
+    $change_password_url = esc_url(add_query_arg('view', 'change-password', get_permalink($post)));
 ?>
     <style>
         .pmpro-member-profile-edit .dd-profile-tabs {
@@ -171,6 +173,17 @@ function dd_pmpro_member_profile_edit_tabs()
             margin: 0;
             padding: 0;
         }
+        .pmpro-member-profile-edit .dd-change-password-link {
+            margin: 4px 0 20px;
+        }
+        .pmpro-member-profile-edit .dd-change-password-link a {
+            color: var(--e-global-color-primary);
+            font-weight: 500;
+            text-decoration: underline;
+        }
+        .pmpro-member-profile-edit .dd-change-password-link a:hover {
+            color: var(--e-global-color-secondary);
+        }
     </style>
     <script type="text/javascript">
         jQuery(document).ready(function($) {
@@ -181,7 +194,17 @@ function dd_pmpro_member_profile_edit_tabs()
                 'profile':            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
             };
 
+            var changePasswordUrl = <?php echo wp_json_encode($change_password_url); ?>;
+
             var $form = $('#member-profile-edit');
+
+            // Add a "Change Password" link to the Account Information panel, just above the Update Profile / Cancel buttons.
+            var $accountFieldset = $form.find('fieldset[id$="account-information"]').first();
+            if ($accountFieldset.length && ! $accountFieldset.find('.dd-change-password-link').length) {
+                $accountFieldset.append(
+                    '<p class="dd-change-password-link"><a href="' + changePasswordUrl + '">Change Password</a></p>'
+                );
+            }
 
             if ($form.length) {
                 var $fieldsets = $form.find('fieldset.pmpro_form_fieldset');

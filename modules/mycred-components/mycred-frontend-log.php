@@ -281,14 +281,18 @@ class Custom_MyCred_Frontend_Log
             }
 
             .mycred-log-filter {
+                background-color: var(--pmpro--color--base);
+                border: 1px solid var(--pmpro--color--border);
+                border-radius: var(--pmpro--base--border-radius);
+                box-shadow: none;
+                box-sizing: border-box;
+                color: var(--pmpro--color--contrast);
+                font-size: 16px;
+                margin: 0;
+                min-height: auto;
+                outline: none;
                 padding: 8px 12px;
-                border: 1px solid #cbd5e1;
-                border-radius: 6px;
-                background-color: #ffffff;
-                color: #334155;
-                font-size: 0.95rem;
-                min-width: 220px;
-                cursor: pointer;
+                line-height: 1;
             }
 
             .mycred-log-filter:focus {
