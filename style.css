@@ -60,11 +60,16 @@ body:not(#error-page).show-body {
   justify-content: center;
   cursor: pointer;
 }
+.influencer-niche-container .niche-toggle:hover{
+  background-color: var(--e-global-color-3868d1d);
 
+}
 .disable-niche-click .niche-toggle {
   pointer-events: none;
   cursor: text;
 }
+
+
 
 .is-verified .influencer-name .elementor-heading-title:after {
   margin-left: 10px;
