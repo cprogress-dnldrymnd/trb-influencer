@@ -31,10 +31,10 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // --- DELAY REMOVAL / OVERRIDES ---
             // Removes subscription delay hooks EARLY
             add_filter('pmpro_checkout_level', [$this, 'remove_delay_if_opted_out'], 5, 1);
-            
+
             // Forces the Initial Payment to equal Billing Amount LATE (Bypasses Payment Plans Add-on overrides)
             add_filter('pmpro_checkout_level', [$this, 'force_full_payment_if_opted_out'], 50, 1);
-            
+
             // LAYER 1: Enforce account-level trial logic (Includes your custom Level 15 exception)
             add_filter('pmpro_checkout_level', [$this, 'enforce_one_time_subscription_delay'], 15, 1);
 
@@ -177,18 +177,19 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             }
 
             $opt_out = isset($_REQUEST['dd_opt_out_free_trial']) ? '1' : '0';
-            
+
             // Evaluate if Stripe validation recently failed to force the UI to remain open
             $force_stripe_ui = $this->require_stripe_opt_out ? 'true' : 'false';
-            ?>
-            <div id="dd_trial_opt_out_container" class="pmpro_checkout-field pmpro_checkout-field-checkbox" style="display:none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9;">
-                
-                <div id="dd_bank_transfer_notice" style="display:none; margin-bottom: 15px; color: #8a6d3b; background-color: #fcf8e3; padding: 12px; border: 1px solid #faebcc; border-radius: 4px;">
+?>
+            <div id="dd_trial_opt_out_container" class="pmpro_checkout-field pmpro_checkout-field-checkbox">
+
+                <div id="dd_bank_transfer_notice">
                     <strong>Notice:</strong> If you choose to pay by bank transfer, your order and account will be held pending until we’ve received and confirmed your payment. <strong>The free trial is not available when paying via bank transfer.</strong>
                 </div>
-                
-                <label for="dd_opt_out_free_trial" class="pmpro_clickable" style="display: block; font-weight: bold; cursor: pointer; font-size: 1rem; color: #000">
+
+                <label id="dd_opt_out_free_trial" for="dd_opt_out_free_trial" class="pmpro_clickable free-trial-opt-out">
                     <input type="checkbox" id="dd_opt_out_free_trial" name="dd_opt_out_free_trial" value="1" <?php checked($opt_out, '1'); ?> />
+                    <span class="pmpro_checkmark"></span>
                     I understand and agree to opt-out of the free trial to proceed.
                 </label>
             </div>
@@ -196,13 +197,13 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             <script type="text/javascript">
                 jQuery(document).ready(function($) {
                     var forceStripeOptOut = <?php echo $force_stripe_ui; ?>;
-                    
+
                     function dd_check_gateway() {
                         var gateway = $('input[name=gateway]:checked').val();
                         if (!gateway) {
                             gateway = $('#gateway').val();
                         }
-                        
+
                         // 1. Manage Visibility of the Opt-Out Container
                         if (gateway === 'check') {
                             $('#dd_trial_opt_out_container').slideDown();
@@ -226,7 +227,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                     });
                 });
             </script>
-            <?php
+<?php
         }
 
         /**
@@ -269,7 +270,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
 
             // Check if the opt-out box was ticked
             if (isset($_REQUEST['dd_opt_out_free_trial']) && $_REQUEST['dd_opt_out_free_trial'] === '1') {
-                
+
                 // Comprehensively wipe out the Subscription Delay add-on for this transaction
                 remove_filter('pmpro_profile_start_date', 'pmprosd_pmpro_profile_start_date', 10, 2);
                 remove_action('pmpro_after_checkout', 'pmprosd_pmpro_after_checkout');
@@ -293,7 +294,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             }
 
             if (isset($_REQUEST['dd_opt_out_free_trial']) && $_REQUEST['dd_opt_out_free_trial'] === '1') {
-                
+
                 // If there's a recurring billing amount, force the initial payment to match it
                 if (isset($level->billing_amount) && (float)$level->billing_amount > 0) {
                     $level->initial_payment = $level->billing_amount;
@@ -350,19 +351,19 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             // --- OPT-OUT BYPASS ---
             // If the user already ticked the opt-out box, bypass the fingerprint block entirely
             if (isset($_REQUEST['dd_opt_out_free_trial']) && $_REQUEST['dd_opt_out_free_trial'] === '1') {
-                return $continue; 
+                return $continue;
             }
 
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
 
             if (!$live_token) {
-                return $continue; 
+                return $continue;
             }
 
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Validation Check: Could not resolve a valid Stripe API Key.');
-                return $continue; 
+                return $continue;
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -381,7 +382,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 if ($has_trial > 0) {
                     // Force the UI to remain open for the user to tick the box
                     $this->require_stripe_opt_out = true;
-                    
+
                     // Instruct the user to check the box
                     pmpro_setMessage(__('Payment Declined: It looks like you have already used your free trial. To proceed without a trial, please check the "opt-out" box below.', 'pmpro'), 'pmpro_error');
                     return false;
@@ -400,7 +401,7 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $api_key = $this->get_pmpro_stripe_api_key();
             if (empty($api_key)) {
                 error_log('DD PMPro Trial Error - Logging Check: Could not resolve a valid Stripe API Key.');
-                return; 
+                return;
             }
 
             if (!class_exists('\Stripe\Stripe')) {
@@ -411,19 +412,19 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
             $fingerprint = false;
 
             $live_token = !empty($_REQUEST['payment_method_id']) ? sanitize_text_field($_REQUEST['payment_method_id']) : (!empty($_REQUEST['stripeToken']) ? sanitize_text_field($_REQUEST['stripeToken']) : '');
-            
+
             if ($live_token) {
                 $fingerprint = $this->get_stripe_fingerprint($live_token);
             }
 
             if (!$fingerprint) {
                 $customer_id = get_user_meta($user_id, 'pmpro_stripe_customerid', true);
-                
+
                 if ($customer_id) {
                     try {
                         $customer = \Stripe\Customer::retrieve($customer_id);
                         $payment_method_id = $customer->invoice_settings->default_payment_method ?? '';
-                        
+
                         if (!$payment_method_id) {
                             $payment_methods = \Stripe\PaymentMethod::all([
                                 'customer' => $customer_id,
