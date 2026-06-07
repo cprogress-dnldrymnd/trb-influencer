@@ -2994,6 +2994,17 @@ body {
 }
 
 #user_avatar_div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "label    label"
+    "preview  info"
+    "preview  actions"
+    "upload   upload"
+    "hint     hint";
+  column-gap: 20px;
+  row-gap: 6px;
+  align-items: start;
   max-width: 420px;
   padding: 24px;
   background: #fff;
@@ -3001,9 +3012,13 @@ body {
   border-radius: 10px;
 }
 #user_avatar_div .pmpro_form_label {
+  grid-area: label;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   font-weight: 600;
+}
+#user_avatar_div .pmpro_form_field-file-preview {
+  grid-area: preview;
 }
 #user_avatar_div .pmpro_form_field-file-preview img {
   width: 88px;
@@ -3011,21 +3026,29 @@ body {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 #user_avatar_div .pmpro_form_field-file-name {
-  margin: 14px 0;
+  grid-area: info;
+  align-self: center;
+  margin: 0;
   font-size: 14px;
   color: var(--e-global-color-text);
 }
 #user_avatar_div .pmpro_form_field-file-actions {
+  grid-area: actions;
   display: flex;
   gap: 10px;
+  margin-top: 8px;
 }
 #user_avatar_div .pmpro_form_field-file-actions .pmpro_btn {
   border-radius: 6px;
   padding: 10px 20px;
   font-weight: 500;
 }
+#user_avatar_div .pmpro_form_field-file-upload {
+  grid-area: upload;
+}
 #user_avatar_div .pmpro_form_hint {
-  margin: 16px 0 0;
+  grid-area: hint;
+  margin: 10px 0 0;
   font-size: 13px;
   color: var(--e-global-color-text);
   opacity: 0.65;
