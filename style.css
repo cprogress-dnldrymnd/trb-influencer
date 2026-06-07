@@ -133,7 +133,7 @@ body:not(#error-page).show-body {
 .filter-widget {
   border-radius: 8px;
 }
-.filter-widget .header {
+.filter-widget .header span {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3166,6 +3166,11 @@ body {
 .followers-filter.followers-filter {
   flex-wrap: nowrap;
   flex-direction: row;
+  display: flex;
+  gap: 10px;
+}
+.followers-filter.followers-filter > div {
+  flex-grow: 1;
 }
 @media (max-width: 575px) {
   #user_avatar_div {
