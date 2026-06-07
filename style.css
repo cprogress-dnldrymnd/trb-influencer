@@ -594,6 +594,7 @@ input:checked + .slider:before {
 }
 .breadcrumbs ul li a {
   color: inherit;
+  transition: 400ms;
 }
 
 .breadcrumbs ul li svg {
@@ -607,6 +608,7 @@ input:checked + .slider:before {
 }
 .breadcrumbs ul li a:hover {
   opacity: 1;
+  text-decoration: underline;
 }
 .breadcrumbs ul li:not(:last-child):after {
   content: "";
