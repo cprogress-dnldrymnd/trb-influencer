@@ -253,6 +253,10 @@ function dd_pmpro_member_profile_edit_tabs()
             color: var(--e-global-color-primary);
         }
 
+        .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel:before {
+            content: '✖';
+        }
+
         .pmpro-member-profile-edit .pmpro_form_submit .pmpro_btn-cancel:hover {
             background-color: var(--e-global-color-primary);
             color: #fff;
@@ -345,7 +349,7 @@ function dd_pmpro_member_profile_edit_tabs()
                 $input.replaceWith($button);
             });
 
-          
+
 
             $('.pmpro_form_submit .pmpro_btn').each(function() {
                 var $btn = $(this);
