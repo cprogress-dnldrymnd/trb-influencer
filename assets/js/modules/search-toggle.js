@@ -137,6 +137,12 @@
                 document.body.classList.toggle('refine-search-active');
             });
         });
+
+        // Auto-close the sideout panel when a search is run from it so the
+        // loading animation on the results page becomes visible.
+        $('.influencer-search-sidebar .influencer-search-trigger').on('click', function () {
+            document.body.classList.remove('refine-search-active');
+        });
     };
 
     /**
