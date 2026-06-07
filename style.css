@@ -3067,7 +3067,7 @@ body {
   font-size: 11px;
   color: #000000;
   background: none;
-  border: none;
+  border: none !important;
   padding: 0;
   text-transform: uppercase;
   font-weight: 500;
