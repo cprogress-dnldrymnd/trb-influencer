@@ -893,6 +893,7 @@ class DD_Follower_Growth_Chart
                             const filteredData = allData.filter(point => point[0] >= cutoffTs);
 
                             growthRateChart.updateSeries([{
+                                name: 'Growth Rate',
                                 data: filteredData
                             }]);
                         }
