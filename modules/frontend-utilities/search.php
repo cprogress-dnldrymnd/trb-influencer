@@ -1656,20 +1656,10 @@ class Influencer_Search
                             </span>
                         </button>
                     </div>
+                    <div class="reset-btn reset-all-btn" style="display: none">Reset</div>
                     <div class="save-this-search">
                         <span class="save-search-trigger">Save this search</span>
                     </div>
-                    <button type="button" class="reset-filters-btn elementor-button elementor-button-outline elementor-size-sm" style="display: none;">
-                        <span class="elementor-button-content-wrapper">
-                            <span class="elementor-button-icon elementor-align-icon-left">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                                    <path d="M3 3v5h5" />
-                                </svg>
-                            </span>
-                            <span class="elementor-button-text">RESET ALL</span>
-                        </span>
-                    </button>
                 </div>
             </form>
         <?php

@@ -163,7 +163,8 @@ body:not(#error-page).show-body {
 }
 
 .filter-widget .header .reset-btn,
-.influencer-search-followers-filter > .header .reset-btn {
+.influencer-search-followers-filter > .header .reset-btn,
+.influencer-search-sidebar .reset-all-btn {
   font-size: 11px;
   text-decoration: underline;
   cursor: pointer;
@@ -176,7 +177,8 @@ body:not(#error-page).show-body {
   letter-spacing: 1px;
 }
 .filter-widget .header .reset-btn:hover,
-.influencer-search-followers-filter > .header .reset-btn:hover {
+.influencer-search-followers-filter > .header .reset-btn:hover,
+.influencer-search-sidebar .reset-all-btn:hover {
   opacity: 0.7;
 }
 .filter-widget.select-filter .checkbox-lists {
@@ -337,25 +339,6 @@ body:not(#error-page).show-body {
   font-weight: 500;
   font-size: 14px;
 }
-.influencer-search-sidebar .reset-filters-btn {
-  display: block;
-  margin: 8px auto 0;
-  background-color: transparent;
-  border-color: var(--e-global-color-primary);
-  color: var(--e-global-color-primary);
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-.influencer-search-sidebar .reset-filters-btn:hover,
-.influencer-search-sidebar .reset-filters-btn:focus {
-  background-color: var(--e-global-color-primary);
-  color: #fff;
-  border-color: var(--e-global-color-primary);
-}
-
 .fixed-long-text,
 .fixed-long-text > * {
   white-space: normal;
@@ -687,7 +670,7 @@ input:checked + .slider:before {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 3px;
 }
 .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:hover,
 .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:focus,
@@ -2970,10 +2953,6 @@ body {
   background-color: var(--e-global-color-primary);
   color: #fff;
   border-color: var(--e-global-color-primary);
-}
-/* Hide the button by default */
-.page-template-page-dashboard .reset-filters-btn {
-  display: none;
 }
 
 /* If the dashboard contains a checked switch input, reveal the button */

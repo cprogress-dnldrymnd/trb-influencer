@@ -99,7 +99,7 @@
         var $form = $('.influencer-search-sidebar');
         if (!$form.length) return;
 
-        var $resetBtn = $form.find('.reset-filters-btn');
+        var $resetBtn = $form.find('.reset-all-btn');
         if (!$resetBtn.length) return;
 
         function hasActiveFilters() {
