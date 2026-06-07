@@ -85,6 +85,14 @@
         resetAllBtn.on('click', function (e) {
             e.preventDefault();
             $('.filter-widget .reset-btn').each(function () { this.click(); });
+
+            // Some filter widgets (e.g. the verified/engagement/expert
+            // checkbox group) have no reset button of their own, so clear
+            // any remaining checked inputs directly.
+            $('.influencer-search-main input[type="checkbox"]:not(#my-toggle):checked, .influencer-search-main input[type="radio"]:checked')
+                .prop('checked', false)
+                .trigger('change');
+
             $('.active-filter-chip').remove();
             syncResetBtn();
         });
