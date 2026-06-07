@@ -195,6 +195,9 @@ body:not(#error-page).show-body {
   padding-bottom: clamp(15px, 1.302vw, 25px);
   padding-left: clamp(15px, 1.302vw, 25px);
   padding-right: clamp(15px, 1.302vw, 25px);
+  background-color: var(--e-global-color-primary);
+  color: var(--e-global-color-2ba2932);
+  border-radius: 10px;
 }
 .refine-search-heading {
   display: flex;
@@ -220,7 +223,7 @@ body:not(#error-page).show-body {
   font-family: var(--e-global-typography-c7a58ec-font-family), Sans-serif;
   font-size: var(--e-global-typography-c7a58ec-font-size);
   font-weight: var(--e-global-typography-c7a58ec-font-weight);
-  color: var(--e-global-color-text);
+  color: inherit;
 }
 .refine-search-subtext {
   font-family: var(--e-global-typography-4fc7f56-font-family), Sans-serif;
