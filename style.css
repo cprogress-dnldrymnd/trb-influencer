@@ -2034,6 +2034,7 @@ body.search-loading-active {
   transition:
     opacity 0.2s ease-in-out,
     visibility 0.2s ease-in-out;
+    font-size: 11px;
 }
 
 .dd-tip[data-tooltip]:hover::after,
