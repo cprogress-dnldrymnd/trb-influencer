@@ -2846,8 +2846,8 @@ class DD_Outreach_Manager
                 </span>
             </a>
         <?php else : ?>
-            <a href="#" class="elementor-button outreach-button"
-                title="You need to unlock this creator first before sending an outreach."
+            <a href="#" class="elementor-button outreach-button dd-tip"
+                data-tooltip="Unlock this creator's full profile first"
                 style="opacity: 0.6; cursor: not-allowed;"
                 onclick="event.preventDefault();">
                 <span class="elementor-button-content-wrapper">

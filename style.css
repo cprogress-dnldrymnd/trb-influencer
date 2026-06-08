@@ -680,7 +680,7 @@ input:checked + .slider:before {
   .breadcrumbs ul li {
     font-size: 10px;
   }
-  .breadcrumbs ul li svg{
+  .breadcrumbs ul li svg {
     display: none;
   }
 }
@@ -1979,6 +1979,73 @@ body.search-loading-active {
   /* Shifts down slightly during the reveal */
 }
 
+/*
+ * .dd-tip
+ * Reusable hover/focus tooltip driven entirely by a [data-tooltip] attribute.
+ * Used on disabled action buttons (locked outreach / save) to replace the native
+ * browser title with a styled dark bubble. The bubble and its caret share the same
+ * reveal state so they appear together above the trigger.
+ */
+.dd-tip {
+  position: relative;
+}
+
+.dd-tip[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 12px;
+  background-color: #0d3b3e;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: center;
+  border-radius: 6px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease-in-out,
+    visibility 0.2s ease-in-out;
+}
+
+.dd-tip[data-tooltip]::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #0d3b3e transparent transparent transparent;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease-in-out,
+    visibility 0.2s ease-in-out;
+}
+
+.dd-tip[data-tooltip]:hover::after,
+.dd-tip[data-tooltip]:hover::before,
+.dd-tip[data-tooltip]:focus::after,
+.dd-tip[data-tooltip]:focus::before,
+.dd-tip[data-tooltip]:focus-within::after,
+.dd-tip[data-tooltip]:focus-within::before {
+  opacity: 1;
+  visibility: visible;
+}
+
 @media (max-width: 1340px) {
   .header-points.header-points * {
     font-size: 14px !important;
@@ -2196,6 +2263,12 @@ body.search-loading-active {
   align-items: center;
   justify-content: center;
   background-color: rgba(255, 255, 255, 0.1);
+}
+.dd-outreach-actions {
+  position: static;
+}
+.dd-outreach-actions .premium-content-notice.premium-content-notice.premium-content-notice {
+  padding: 0 !important;
 }
 .mycred-sell-this-wrapper.mycred-sell-this-wrapper + div {
   filter: blur(5px) !important;
@@ -3957,7 +4030,8 @@ body {
   padding-right: 15px;
 }
 
-.inf-modal-overlay, .inf-modal-overlay * {
+.inf-modal-overlay,
+.inf-modal-overlay * {
   box-sizing: border-box;
 }
 

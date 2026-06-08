@@ -495,7 +495,7 @@ class Saves_Manager
         if (!is_influencer_unlocked($influencer_id)) {
             ob_start();
 ?>
-            <div class="elementor-button-wrapper add-to-groups" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" title="You need to unlock this influencer first before saving.">
+            <div class="elementor-button-wrapper add-to-groups dd-tip" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" data-tooltip="Unlock this creator's full profile first">
                 <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
