@@ -361,12 +361,12 @@ class Custom_MyCred_Frontend_Log
                 background-color: #f8fafc;
             }
 
-            .positive-points {
+            .positive-points.positive-points.positive-points {
                 color: #6b21a8;
                 font-weight: 700;
             }
 
-            .negative-points {
+            .negative-points.negative-points.negative-points {
                 color: #b91c1c;
                 font-weight: 700;
             }
