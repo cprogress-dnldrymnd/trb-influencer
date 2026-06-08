@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: DD Follower Growth Chart
  * Description: Renders follower analytics interfaces utilizing ApexCharts via independent shortcodes.
@@ -295,6 +294,49 @@ class DD_Follower_Growth_Chart
 
         ob_start();
 ?>
+        <style>
+            .dd-chart-card {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 16px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+
+            .dd-chart-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 10px;
+                font-size: 13px;
+                color: #888;
+                font-family: Inter, sans-serif !important;
+                padding: 0 10px;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            #ddMonthlyChart * {
+                font-family: Inter, sans-serif !important;
+            }
+
+            #ddMonthlyChart .apexcharts-datalabels rect {
+                fill: #F0FFF4 !important;
+                stroke: #034146 !important;
+                stroke-width: 1.5px !important;
+                rx: 5px !important;
+                ry: 5px !important;
+            }
+
+            #ddMonthlyChart .apexcharts-datalabels text {
+                fill: #034146 !important;
+                font-weight: 600 !important;
+            }
+            @media(max-width: 767)
+        </style>
+
         <div class="dd-chart-card">
             <div id="ddMonthlyChart"></div>
             <div class="dd-chart-footer">
@@ -482,6 +524,37 @@ class DD_Follower_Growth_Chart
 
         ob_start();
     ?>
+        <style>
+            .dd-chart-card {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 16px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+
+            .dd-timeline-footer {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                margin-top: 10px;
+                font-size: 13px;
+                color: #888;
+                font-family: Inter, sans-serif !important;
+                padding: 0 10px;
+            }
+
+            #ddTimelineChart * {
+                font-family: Inter, sans-serif !important;
+            }
+
+            #ddTimelineChart .apexcharts-tooltip-marker {
+                background-color: #FF7347 !important;
+            }
+        </style>
+
         <div class="dd-chart-card">
             <div id="ddTimelineChart"></div>
             <div class="dd-timeline-footer">
@@ -619,6 +692,79 @@ class DD_Follower_Growth_Chart
 
         ob_start();
     ?>
+        <style>
+            .dd-growth-rate-card {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 16px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+
+            .dd-growth-rate-header {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 10px;
+                padding: 0 10px;
+            }
+
+            .dd-time-filters.dd-time-filters.dd-time-filters {
+                display: inline-flex;
+                background: #ffff;
+                border: 1px solid #f77d67;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn {
+                background: transparent;
+                border: none;
+                padding: 11px 18px;
+                font-size: 12px;
+                font-family: Inter, sans-serif;
+                cursor: pointer;
+                font-weight: 500;
+                border-right: 1px solid #E5E5E5;
+                transition: color 0.2s ease;
+                letter-spacing: 0.6px;
+                border-radius: 0;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
+                border-right: none;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn:hover {
+                background: #f77d67;
+                color: #fff;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn.active {
+                background: #f77d67;
+                color: #fff;
+            }
+
+            .dd-growth-rate-footer {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                margin-top: 10px;
+                font-size: 13px;
+                color: #888;
+                font-family: Inter, sans-serif !important;
+                padding: 0 10px;
+            }
+
+            #ddGrowthRateChart * {
+                font-family: Inter, sans-serif !important;
+            }
+
+            #ddGrowthRateChart .apexcharts-tooltip-marker {
+                background-color: #00BFFF !important;
+            }
+        </style>
+
         <div class="dd-growth-rate-card">
 
             <div class="dd-growth-rate-header">
@@ -803,6 +949,166 @@ class DD_Follower_Growth_Chart
 
         ob_start();
     ?>
+        <style>
+            .dd-range-card {
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                width: 100%;
+                padding: 24px 32px;
+                font-family: Inter, sans-serif !important;
+                box-sizing: border-box;
+            }
+
+            .dd-range-header {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                margin-bottom: 30px;
+            }
+
+            /* Inherits the exact tab styling requested */
+            .dd-time-filters.dd-time-filters.dd-time-filters {
+                display: inline-flex;
+                background: #ffff;
+                border: 1px solid #f77d67;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn {
+                background: transparent;
+                border: none;
+                padding: 11px 18px;
+                font-size: 12px;
+                font-family: Inter, sans-serif;
+                cursor: pointer;
+                font-weight: 500;
+                border-right: 1px solid #E5E5E5;
+                transition: color 0.2s ease;
+                letter-spacing: 0.6px;
+                border-radius: 0;
+                color: #888;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn:last-child {
+                border-right: none;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn:hover {
+                background: #f77d67;
+                color: #fff;
+            }
+
+            .dd-time-btn.dd-time-btn.dd-time-btn.active {
+                background: #f77d67;
+                color: #fff;
+            }
+
+            /* Stats Display */
+            .dd-range-stats {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-bottom: 12px;
+                font-family: Inter, sans-serif;
+            }
+
+            .dd-stat-block {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .dd-stat-value {
+                font-size: 21px;
+                font-weight: 600;
+            }
+
+            .dd-stat-label {
+                font-size: 13px;
+            }
+
+            /* Gradient Bar & Hoverable Marker */
+            .dd-gradient-track {
+                height: 12px;
+                border-radius: 10px;
+                background: linear-gradient(to right, #FF8A7A, #FFEA00, #A2FF00, #0B4646);
+                position: relative;
+                width: 100%;
+            }
+
+            .dd-gradient-marker {
+                position: absolute;
+                height: 16px;
+                width: 2px;
+                background-color: #000;
+                top: -2px;
+                transition: left 0.4s ease;
+                cursor: pointer;
+                z-index: 10;
+            }
+
+            /* CSS Tooltip Implementation */
+            .dd-gradient-marker::after {
+                content: attr(data-value);
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%) translateY(-5px);
+                background-color: #111;
+                color: #fff;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 500;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.2s ease;
+            }
+
+            .dd-gradient-marker::before {
+                content: '';
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%) translateY(-1px);
+                border: 4px solid transparent;
+                border-top-color: #111;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.2s ease;
+            }
+
+            /* Hover Reveal */
+            .dd-gradient-marker:hover::after {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-8px);
+            }
+
+            .dd-gradient-marker:hover::before {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-4px);
+            }
+
+            @media(max-width: 575px) {
+                .dd-range-card {
+                    padding: 20px;
+                }
+
+                .dd-time-btn.dd-time-btn.dd-time-btn {
+                    padding: 8px;
+                    font-size: 10px;
+
+                }
+
+                .dd-time-filters.dd-time-filters.dd-time-filters {
+                    width: 100%;
+                }
+
+            }
+        </style>
+
         <div class="dd-range-card" id="ddLikeRangeWrapper">
             <div class="dd-range-header">
                 <div class="dd-time-filters">
@@ -839,7 +1145,7 @@ class DD_Follower_Growth_Chart
                 if (typeof ddChartPayload === 'undefined') return;
 
                 const container = document.getElementById('ddLikeRangeWrapper');
-
+                
                 // DOM Existence Check
                 if (!container) return;
 
