@@ -3,10 +3,6 @@
 
     window.InfluencerApp = window.InfluencerApp || {};
 
-    /**
-     * Disables invalid min/max follower options so users cannot select a
-     * maximum that is lower than the current minimum and vice versa.
-     */
     InfluencerApp.sync_follower_min_max_states = function () {
         var minRadios = document.querySelectorAll('input[name="min_followers[]"], input[name="min_followers"]');
         var maxRadios = document.querySelectorAll('input[name="max_followers[]"], input[name="max_followers"]');
@@ -44,20 +40,13 @@
         });
     };
 
-    /**
-     * Initialises all .select-filter dropdown widgets:
-     *   - open/close behaviour
-     *   - live text search (sync and async/AJAX)
-     *   - tag display for selected values
-     *   - reset buttons
-     *   - follower min/max re-sync on change
-     */
     InfluencerApp.influencer_select_filters = function () {
 
         document.querySelectorAll('.select-filter').forEach(function (widget) {
             var dropdownBtn    = widget.querySelector('.dropdown-button');
             var dropdownMenu   = widget.querySelector('.dropdown-menu');
             var tagsContainer  = widget.querySelector('.tags-container');
+            var placeholderEl  = widget.querySelector('.dropdown-placeholder');
             var resetBtn       = widget.querySelector('.reset-btn');
             var searchInput    = widget.querySelector('.dropdown-search-input');
             var optionsList    = widget.querySelector('.options-list');
@@ -68,8 +57,124 @@
             var searchTimer    = null;
             var requestSeq     = 0;
             var currentXhr     = null;
+            var persistEl      = null;
 
-            // --- Open / close ---
+            if (isAsyncSearch) {
+                persistEl = document.createElement('div');
+                persistEl.className = 'selection-persist';
+                persistEl.setAttribute('aria-hidden', 'true');
+                widget.appendChild(persistEl);
+            }
+
+            function cssEscapeValue(value) {
+                return (window.CSS && CSS.escape) ? CSS.escape(value) : String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            }
+
+            function getInputName() {
+                var filterName = dropdownMenu.getAttribute('data-filter-name');
+                if (filterName) return filterName + '[]';
+                return ajaxSearchType === 'content_tag' ? 'content_tag[]' : 'niche[]';
+            }
+
+            function getSelectedMap() {
+                var map = {};
+
+                if (isAsyncSearch && persistEl) {
+                    persistEl.querySelectorAll('input').forEach(function (inp) {
+                        map[inp.value] = inp.getAttribute('data-label') || inp.value;
+                    });
+                    return map;
+                }
+
+                widget.querySelectorAll('.options-list .dropdown-item input:checked').forEach(function (inp) {
+                    map[inp.value] = inp.getAttribute('data-label') || inp.value;
+                });
+                return map;
+            }
+
+            function addToPersist(value, label) {
+                if (!persistEl) return;
+                if (persistEl.querySelector('input[value="' + cssEscapeValue(value) + '"]')) return;
+
+                var inp = document.createElement('input');
+                inp.type = 'checkbox';
+                inp.name = getInputName();
+                inp.value = value;
+                inp.setAttribute('data-label', label);
+                inp.checked = true;
+                inp.className = 'selection-persist-input';
+                persistEl.appendChild(inp);
+            }
+
+            function removeFromPersist(value) {
+                if (!persistEl) return;
+                var inp = persistEl.querySelector('input[value="' + cssEscapeValue(value) + '"]');
+                if (inp) inp.remove();
+            }
+
+            function clearPersist() {
+                if (persistEl) persistEl.innerHTML = '';
+            }
+
+            function seedPersistFromDom() {
+                if (!isAsyncSearch) return;
+
+                widget.querySelectorAll('.options-list .dropdown-item input').forEach(function (cb) {
+                    if (cb.checked) {
+                        addToPersist(cb.value, cb.getAttribute('data-label') || cb.value);
+                    }
+                    cb.removeAttribute('name');
+                });
+            }
+
+            function renderOptionsFromItems(items) {
+                if (!items.length) {
+                    optionsList.innerHTML = '<div class="options-list-empty" style="padding:12px;text-align:center;color:#999;font-size:14px;">No matches found.</div>';
+                    return;
+                }
+
+                var selectedMap = getSelectedMap();
+                var inputName   = getInputName();
+
+                optionsList.innerHTML = items.map(function (item) {
+                    var isSelected = !!selectedMap[item.value] || item.selected;
+                    var checked    = isSelected ? 'checked="checked"' : '';
+                    var nameAttr   = isAsyncSearch ? '' : 'name="' + escapeHtml(inputName) + '"';
+
+                    return '<label class="dropdown-item checkbox-list-item">' +
+                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" ' + nameAttr + ' ' + checked + '> ' +
+                        '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
+                        '</label>';
+                }).join('');
+            }
+
+            function renderShortQueryState() {
+                var map   = getSelectedMap();
+                var items = Object.keys(map).map(function (value) {
+                    return { value: value, label: map[value], selected: true };
+                });
+
+                if (!items.length) {
+                    optionsList.innerHTML = '<div class="options-list-hint" style="padding:12px;color:#888;font-size:14px;">Type ' + minChars + '+ characters to search…</div>';
+                    return;
+                }
+
+                renderOptionsFromItems(items);
+            }
+
+            function syncPlaceholder() {
+                if (!placeholderEl) return;
+                var hasTags = tagsContainer && tagsContainer.children.length > 0;
+                placeholderEl.style.display = hasTags ? 'none' : '';
+                if (dropdownBtn) {
+                    dropdownBtn.classList.toggle('has-selection', hasTags);
+                }
+            }
+
+            function findVisibleCheckbox(value) {
+                return widget.querySelector('.options-list input[value="' + cssEscapeValue(value) + '"]');
+            }
+
             dropdownBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 closeAllOtherDropdowns(dropdownMenu, dropdownBtn);
@@ -80,7 +185,10 @@
                 }
             });
 
-            // --- Search input ---
+            if (tagsContainer) {
+                tagsContainer.addEventListener('click', function (e) { e.stopPropagation(); });
+            }
+
             if (searchInput) {
                 searchInput.addEventListener('input', function (e) {
                     var raw    = e.target.value || '';
@@ -97,8 +205,14 @@
                     if (searchTimer) clearTimeout(searchTimer);
 
                     searchTimer = setTimeout(function () {
-                        var term = raw.trim();
-                        if (term.length < minChars) { optionsList.innerHTML = ''; return; }
+                        var term        = raw.trim();
+                        var selectedMap = getSelectedMap();
+                        var selected    = Object.keys(selectedMap);
+
+                        if (term.length < minChars) {
+                            renderShortQueryState();
+                            return;
+                        }
 
                         dropdownMenu.setAttribute('aria-busy', 'true');
                         optionsList.innerHTML =
@@ -112,18 +226,11 @@
                             '</div>';
 
                         if (currentXhr) { currentXhr.abort(); currentXhr = null; }
-                        var mySeq         = ++requestSeq;
-                        var selectedInputs = Array.from(widget.querySelectorAll('.dropdown-item input:checked'));
-                        var selected       = selectedInputs.map(function (i) { return i.value; });
-                        var selectedMap    = {};
-                        selectedInputs.forEach(function (i) {
-                            selectedMap[i.value] = i.getAttribute('data-label') || i.value;
-                        });
+                        var mySeq = ++requestSeq;
 
                         var actionName = ajaxSearchType === 'content_tag'
                             ? 'dd_search_content_tag_options'
                             : 'dd_search_niche_options';
-                        var inputName = ajaxSearchType === 'content_tag' ? 'content_tag[]' : 'niche[]';
 
                         currentXhr = $.ajax({
                             url:  ajax_vars.ajax_url,
@@ -135,18 +242,19 @@
                                 if (mySeq !== requestSeq) return;
 
                                 if (!response || !response.success || !Array.isArray(response.data.items)) {
-                                    optionsList.innerHTML = '<div style="padding:15px;text-align:center;color:#999;font-size:14px;">No matches found.</div>';
+                                    renderShortQueryState();
                                     return;
                                 }
 
                                 var items       = response.data.items.slice(0, maxResults);
                                 var mergedItems = [];
                                 var seen        = {};
+                                var freshMap    = getSelectedMap();
 
-                                Object.keys(selectedMap).forEach(function (value) {
+                                Object.keys(freshMap).forEach(function (value) {
                                     if (seen[value]) return;
                                     seen[value] = true;
-                                    mergedItems.push({ value: value, label: selectedMap[value], selected: true });
+                                    mergedItems.push({ value: value, label: freshMap[value], selected: true });
                                 });
 
                                 items.forEach(function (item) {
@@ -156,18 +264,11 @@
                                 });
 
                                 if (!mergedItems.length) {
-                                    optionsList.innerHTML = '<div style="padding:15px;text-align:center;color:#999;font-size:14px;">No matches found.</div>';
+                                    renderShortQueryState();
                                     return;
                                 }
 
-                                optionsList.innerHTML = mergedItems.map(function (item) {
-                                    var checked = item.selected ? 'checked="checked"' : '';
-                                    return '<label class="dropdown-item checkbox-list-item">' +
-                                        '<input class="pseudo-checkbox-input" type="checkbox" value="' + escapeHtml(item.value) + '" data-label="' + escapeHtml(item.label) + '" name="' + inputName + '" ' + checked + '> ' +
-                                        '<span class="pseudo-checkbox"></span> ' + escapeHtml(item.label) +
-                                        '</label>';
-                                }).join('');
-
+                                renderOptionsFromItems(mergedItems);
                                 updateTags();
                             },
                             error: function (jqXHR) {
@@ -183,26 +284,35 @@
                 searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
             }
 
-            // --- Checkbox change ---
             widget.addEventListener('change', function (e) {
                 var target = e.target;
                 if (target && target.matches('.dropdown-item input')) {
+                    if (isAsyncSearch) {
+                        var label = target.getAttribute('data-label') || target.value;
+                        if (target.checked) {
+                            addToPersist(target.value, label);
+                        } else {
+                            removeFromPersist(target.value);
+                        }
+                    }
                     updateTags();
-                    if (target.name.includes('followers')) {
+                    if (target.name && target.name.includes('followers')) {
                         InfluencerApp.sync_follower_min_max_states();
                     }
                 }
             });
 
-            // --- Reset ---
             resetBtn.addEventListener('click', function () {
                 widget.querySelectorAll('.dropdown-item input').forEach(function (box) {
                     box.checked = false;
                 });
+                if (isAsyncSearch) {
+                    clearPersist();
+                }
                 if (searchInput) {
                     searchInput.value = '';
                     if (isAsyncSearch) {
-                        optionsList.innerHTML = '';
+                        optionsList.innerHTML = '<div class="options-list-hint" style="padding:12px;color:#888;font-size:14px;">Type ' + minChars + '+ characters to search…</div>';
                     } else {
                         widget.querySelectorAll('.dropdown-item').forEach(function (item) {
                             item.style.display = '';
@@ -213,24 +323,24 @@
                 InfluencerApp.sync_follower_min_max_states();
             });
 
-            // --- Tag helpers ---
             function updateTags() {
-                var checkboxes   = widget.querySelectorAll('.dropdown-item input');
+                if (!tagsContainer) return;
+
                 tagsContainer.innerHTML = '';
                 var hasSelection = false;
+                var map          = getSelectedMap();
 
-                checkboxes.forEach(function (checkbox) {
-                    if (checkbox.checked) {
-                        createTag(checkbox.dataset.label, checkbox);
-                        hasSelection = true;
-                    }
+                Object.keys(map).forEach(function (value) {
+                    createTag(map[value], value);
+                    hasSelection = true;
                 });
 
                 tagsContainer.style.display = hasSelection ? '' : 'none';
                 resetBtn.style.display      = hasSelection ? '' : 'none';
+                syncPlaceholder();
             }
 
-            function createTag(label, linkedCheckbox) {
+            function createTag(label, value) {
                 var tag      = document.createElement('div');
                 tag.classList.add('tag');
 
@@ -241,10 +351,22 @@
                 closeBtn.classList.add('tag-close');
                 closeBtn.innerHTML = '&times;';
 
-                closeBtn.addEventListener('click', function () {
-                    linkedCheckbox.checked = false;
+                closeBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+
+                    if (isAsyncSearch) {
+                        removeFromPersist(value);
+                        var visible = findVisibleCheckbox(value);
+                        if (visible) visible.checked = false;
+                    } else {
+                        var linked = findVisibleCheckbox(value);
+                        if (linked) linked.checked = false;
+                    }
+
                     updateTags();
-                    if (linkedCheckbox.name.includes('followers')) {
+
+                    var linkedForFollowers = findVisibleCheckbox(value);
+                    if (linkedForFollowers && linkedForFollowers.name && linkedForFollowers.name.includes('followers')) {
                         InfluencerApp.sync_follower_min_max_states();
                     }
                 });
@@ -254,13 +376,10 @@
                 tagsContainer.appendChild(tag);
             }
 
+            seedPersistFromDom();
             updateTags();
         });
 
-        // --- Combined reset button for the follower-count group ---
-        // The min/max widgets keep their own (hidden) reset buttons so their
-        // existing reset logic still runs; this button mirrors their visibility
-        // and triggers both of them at once.
         document.querySelectorAll('.influencer-search-followers-filter').forEach(function (group) {
             var groupResetBtn  = group.querySelector('.header .reset-btn');
             var innerResetBtns = group.querySelectorAll('.followers-filter .reset-btn');
@@ -286,7 +405,6 @@
             syncGroupResetVisibility();
         });
 
-        // --- Close dropdowns on outside click ---
         document.addEventListener('click', function (e) {
             document.querySelectorAll('.select-filter').forEach(function (widget) {
                 var btn  = widget.querySelector('.dropdown-button');

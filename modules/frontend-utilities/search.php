@@ -335,7 +335,10 @@ class Influencer_Search
 
             <div class="dropdown-container">
                 <div class="dropdown-button">
-                    <?= $placeholder ?>
+                    <div class="dropdown-button__content">
+                        <span class="dropdown-placeholder"><?= esc_html($placeholder) ?></span>
+                        <div class="tags-container" style="display: none;"></div>
+                    </div>
                     <span class="arrow-holder"><span class="arrow"></span></span>
                 </div>
 
@@ -372,7 +375,6 @@ class Influencer_Search
                     </div>
                 </div>
             </div>
-            <div class="tags-container" style="display: none;"></div>
         </div>
     <?php
         return ob_get_clean();

@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.0.3');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.0.4');
 
 /**
  * Load child theme scripts & styles.
@@ -31,6 +31,12 @@ function hello_elementor_child_scripts_styles()
     $version = HELLO_ELEMENTOR_CHILD_VERSION;
 
     wp_enqueue_style('influencer-style', get_stylesheet_directory_uri() . '/style.css');
+    wp_enqueue_style(
+        'ic-search-ui',
+        get_stylesheet_directory_uri() . '/assets/css/ic-search-ui.css',
+        ['influencer-style'],
+        HELLO_ELEMENTOR_CHILD_VERSION
+    );
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
 
     // ------------------------------------------------------------------
