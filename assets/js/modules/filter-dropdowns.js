@@ -58,8 +58,10 @@
             var requestSeq     = 0;
             var currentXhr     = null;
             var persistEl      = null;
+            var isCompactTags  = widget.classList.contains('select-filter--compact-tags');
+
             function getMaxVisibleTags() {
-                if (!isAsyncSearch) return 0;
+                if (!isCompactTags) return 0;
                 return window.matchMedia('(max-width: 575px)').matches ? 1 : 2;
             }
 
@@ -421,7 +423,7 @@
                 tagsContainer.appendChild(tag);
             }
 
-            if (isAsyncSearch && window.matchMedia) {
+            if (isCompactTags && window.matchMedia) {
                 var mobileMql = window.matchMedia('(max-width: 575px)');
                 var onMobileBreakpoint = function () { updateTags(); };
                 if (mobileMql.addEventListener) {
