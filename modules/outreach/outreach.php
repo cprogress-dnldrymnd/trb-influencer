@@ -2773,7 +2773,7 @@ class DD_Outreach_Manager
 
         ob_start();
     ?>
-        <div class="dd-outreach-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div class="dd-outreach-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; flex-wrap: nowrap">
             <?php if ($is_unlocked) : ?>
 
                 <?php echo $this->render_outreach_unlocked_badge($atts['unlocked_text'], $atts['unlocked_icon']); ?>
