@@ -20,17 +20,29 @@ class Widget_Add_To_Groups extends \Elementor\Widget_Base {
             'raw'  => esc_html__( 'Renders [add_to_groups_btn]. Displays the button to add the current influencer to the user\'s saved groups.', 'trb-influencer' ),
         ] );
         $this->add_control( 'text', [
-            'label'   => esc_html__( 'Button Text', 'trb-influencer' ),
-            'type'    => \Elementor\Controls_Manager::TEXT,
-            'default' => esc_html__( 'SAVE', 'trb-influencer' ),
+            'label'       => esc_html__( 'Unlocked Button Text', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::TEXT,
+            'default'     => esc_html__( 'SAVE', 'trb-influencer' ),
+            'description' => esc_html__( 'Shown when the creator is unlocked and the button is active.', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'locked_text', [
+            'label'       => esc_html__( 'Locked Button Text', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::TEXT,
+            'default'     => esc_html__( 'SAVE', 'trb-influencer' ),
+            'description' => esc_html__( 'Shown (disabled) when the creator is still locked.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        $s    = $this->get_settings_for_display();
-        $text = isset( $s['text'] ) ? str_replace( [ '"', '[', ']' ], '', $s['text'] ) : 'SAVE';
+        $s           = $this->get_settings_for_display();
+        $text        = isset( $s['text'] ) && $s['text'] !== '' ? str_replace( [ '"', '[', ']' ], '', $s['text'] ) : 'SAVE';
+        $locked_text = isset( $s['locked_text'] ) && $s['locked_text'] !== '' ? str_replace( [ '"', '[', ']' ], '', $s['locked_text'] ) : 'SAVE';
 
-        echo do_shortcode( '[add_to_groups_btn text="' . esc_attr( $text ) . '"]' );
+        echo do_shortcode( sprintf(
+            '[add_to_groups_btn text="%s" locked_text="%s"]',
+            esc_attr( $text ),
+            esc_attr( $locked_text )
+        ) );
     }
 }
