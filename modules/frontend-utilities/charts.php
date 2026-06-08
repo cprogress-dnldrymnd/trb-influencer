@@ -269,7 +269,21 @@ class DD_Follower_Growth_Chart
             $template_id = 27230;
         }
 
-        return do_shortcode('[elementor-template id="' . $template_id . '"]');
+        $html = do_shortcode('[elementor-template id="' . $template_id . '"]');
+
+        // The Elementor template can resolve to an empty string when it is
+        // missing, unpublished, or the configured ID is wrong. Never let that
+        // leave a blank card — emit a guaranteed-visible placeholder instead.
+        // The HTML comment also makes the active branch greppable in page source.
+        if (trim($html) === '') {
+            $html = '<!-- dd-no-data-fallback: elementor template ' . (int) $template_id . ' returned empty -->'
+                . '<div class="dd-chart-no-data" style="text-align:center;padding:40px 20px;color:#888;'
+                . 'font-family:Inter,sans-serif;font-size:14px;">'
+                . esc_html__('No data available yet for this creator.', 'dd-follower-chart')
+                . '</div>';
+        }
+
+        return $html;
     }
 
     /**
