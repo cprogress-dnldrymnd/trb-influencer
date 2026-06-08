@@ -320,12 +320,13 @@ class Influencer_Search
             $selected_values = is_array($_GET[$name]) ? $_GET[$name] : array($_GET[$name]);
         }
 
-        // Updated to support both niche and content_tag (hashtags) async searches
-        $is_async = (($name === 'niche' || $name === 'content_tag') && $has_search && $type === 'checkbox');
+        // Async AJAX option lists (niche + hashtags); all checkbox multi-selects use compact in-field tags
+        $is_async        = (($name === 'niche' || $name === 'content_tag') && $has_search && $type === 'checkbox');
+        $use_compact_tags = ($type === 'checkbox');
 
         ob_start();
 ?>
-        <div class="filter-widget select-filter<?= $is_async ? ' select-filter--compact-tags' : '' ?>" data-filter-name="<?= esc_attr($name) ?>">
+        <div class="filter-widget select-filter<?= $use_compact_tags ? ' select-filter--compact-tags' : '' ?>" data-filter-name="<?= esc_attr($name) ?>">
             <div class="header">
                 <?php if ($label != false) { ?>
                     <span><?= $label ?></span>

@@ -58,7 +58,12 @@
             var requestSeq     = 0;
             var currentXhr     = null;
             var persistEl      = null;
-            var maxVisibleTags = isAsyncSearch ? 2 : 0;
+            var isCompactTags  = widget.classList.contains('select-filter--compact-tags');
+
+            function getMaxVisibleTags() {
+                if (!isCompactTags) return 0;
+                return window.matchMedia('(max-width: 575px)').matches ? 1 : 2;
+            }
 
             if (isAsyncSearch) {
                 persistEl = document.createElement('div');
@@ -331,8 +336,9 @@
                 var map          = getSelectedMap();
                 var keys         = Object.keys(map);
                 var hasSelection = keys.length > 0;
-                var visibleKeys  = maxVisibleTags > 0 ? keys.slice(0, maxVisibleTags) : keys;
-                var hiddenCount  = maxVisibleTags > 0 ? Math.max(0, keys.length - visibleKeys.length) : 0;
+                var maxVisible   = getMaxVisibleTags();
+                var visibleKeys  = maxVisible > 0 ? keys.slice(0, maxVisible) : keys;
+                var hiddenCount  = maxVisible > 0 ? Math.max(0, keys.length - visibleKeys.length) : 0;
 
                 visibleKeys.forEach(function (value) {
                     createTag(map[value], value);
@@ -415,6 +421,16 @@
                 tag.appendChild(text);
                 tag.appendChild(closeBtn);
                 tagsContainer.appendChild(tag);
+            }
+
+            if (isCompactTags && window.matchMedia) {
+                var mobileMql = window.matchMedia('(max-width: 575px)');
+                var onMobileBreakpoint = function () { updateTags(); };
+                if (mobileMql.addEventListener) {
+                    mobileMql.addEventListener('change', onMobileBreakpoint);
+                } else if (mobileMql.addListener) {
+                    mobileMql.addListener(onMobileBreakpoint);
+                }
             }
 
             seedPersistFromDom();
