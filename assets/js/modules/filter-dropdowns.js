@@ -58,6 +58,7 @@
             var requestSeq     = 0;
             var currentXhr     = null;
             var persistEl      = null;
+            var maxVisibleTags = isAsyncSearch ? 2 : 0;
 
             if (isAsyncSearch) {
                 persistEl = document.createElement('div');
@@ -327,17 +328,57 @@
                 if (!tagsContainer) return;
 
                 tagsContainer.innerHTML = '';
-                var hasSelection = false;
                 var map          = getSelectedMap();
+                var keys         = Object.keys(map);
+                var hasSelection = keys.length > 0;
+                var visibleKeys  = maxVisibleTags > 0 ? keys.slice(0, maxVisibleTags) : keys;
+                var hiddenCount  = maxVisibleTags > 0 ? Math.max(0, keys.length - visibleKeys.length) : 0;
 
-                Object.keys(map).forEach(function (value) {
+                visibleKeys.forEach(function (value) {
                     createTag(map[value], value);
-                    hasSelection = true;
                 });
+
+                if (hiddenCount > 0) {
+                    createMoreTag(hiddenCount);
+                }
 
                 tagsContainer.style.display = hasSelection ? '' : 'none';
                 resetBtn.style.display      = hasSelection ? '' : 'none';
                 syncPlaceholder();
+            }
+
+            function createMoreTag(count) {
+                var tag  = document.createElement('div');
+                tag.classList.add('tag', 'tag-more');
+                tag.setAttribute('role', 'button');
+                tag.setAttribute('tabindex', '0');
+                tag.setAttribute('aria-label', count + ' more selected — open list');
+
+                var text = document.createElement('span');
+                text.innerText = '+' + count + ' more';
+                tag.appendChild(text);
+
+                function openDropdown(e) {
+                    if (e) e.stopPropagation();
+                    if (!dropdownMenu.classList.contains('show')) {
+                        closeAllOtherDropdowns(dropdownMenu, dropdownBtn);
+                        dropdownMenu.classList.add('show');
+                        dropdownBtn.classList.add('open');
+                        if (searchInput) {
+                            setTimeout(function () { searchInput.focus(); }, 100);
+                        }
+                    }
+                }
+
+                tag.addEventListener('click', openDropdown);
+                tag.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openDropdown(e);
+                    }
+                });
+
+                tagsContainer.appendChild(tag);
             }
 
             function createTag(label, value) {

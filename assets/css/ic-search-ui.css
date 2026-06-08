@@ -70,6 +70,70 @@
   align-items: center;
 }
 
+/* Keep filter columns equal width — niche pills must not stretch the row */
+.influencer-search-main .influencer-search-item-row > .influencer-search-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.influencer-search-main .influencer-search-item .filter-widget,
+.influencer-search-main .influencer-search-item .dropdown-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.influencer-search-main .select-filter--compact-tags .dropdown-button {
+  min-height: 44px;
+  max-height: 44px;
+}
+
+.influencer-search-main .select-filter--compact-tags .dropdown-button__content {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  padding: 6px 10px;
+  gap: 4px;
+}
+
+.influencer-search-main .select-filter--compact-tags .tags-container {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+}
+
+.influencer-search-main .select-filter--compact-tags .tags-container .tag {
+  padding: 2px 7px;
+  font-size: 11px;
+  line-height: 1.25;
+  flex-shrink: 0;
+  max-width: 7.5rem;
+}
+
+.influencer-search-main .select-filter--compact-tags .tags-container .tag .tag-close {
+  margin-left: 5px;
+  font-size: 1rem;
+}
+
+.influencer-search-main .select-filter--compact-tags .tags-container .tag-more {
+  background: #e8f4f2;
+  border-color: #9ab3b5;
+  color: #034146;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: none;
+  font-weight: 600;
+}
+
+.influencer-search-main .select-filter--compact-tags .tags-container .tag-more:hover {
+  background: #d9eeea;
+  border-color: #7a9a9e;
+}
+
+.influencer-search-main .select-filter--compact-tags .dropdown-button .arrow-holder {
+  padding: 12px;
+}
+
 /* ------------------------------------------------------------------
    Main search layout
    ------------------------------------------------------------------ */

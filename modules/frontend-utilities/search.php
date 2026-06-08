@@ -325,7 +325,7 @@ class Influencer_Search
 
         ob_start();
 ?>
-        <div class="filter-widget select-filter">
+        <div class="filter-widget select-filter<?= $is_async ? ' select-filter--compact-tags' : '' ?>" data-filter-name="<?= esc_attr($name) ?>">
             <div class="header">
                 <?php if ($label != false) { ?>
                     <span><?= $label ?></span>
