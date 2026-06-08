@@ -237,6 +237,23 @@ class DD_Follower_Growth_Chart
     }
 
     /**
+     * Determines whether the raw history holds at least one usable follower
+     * snapshot. A creator whose history is empty — or contains only zero/blank
+     * follower counts — has nothing meaningful to chart, so callers fall back
+     * to the no-data template instead of rendering an empty chart card.
+     */
+    private function has_usable_data(array $raw_data): bool
+    {
+        foreach ($raw_data as $entry) {
+            if (isset($entry['followers']) && (int) $entry['followers'] > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Renders the fallback Elementor template when no analytical data is present.
      * Utilizes WordPress's do_shortcode for robust fallback handling without direct Elementor class dependencies.
      *
@@ -295,7 +312,7 @@ class DD_Follower_Growth_Chart
         global $post;
         $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
 
-        if (empty($raw_data)) {
+        if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
         }
 
@@ -525,7 +542,7 @@ class DD_Follower_Growth_Chart
         global $post;
         $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
 
-        if (empty($raw_data)) {
+        if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
         }
 
@@ -693,7 +710,7 @@ class DD_Follower_Growth_Chart
         global $post;
         $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
 
-        if (empty($raw_data)) {
+        if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
         }
 
@@ -950,7 +967,7 @@ class DD_Follower_Growth_Chart
         global $post;
         $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
 
-        if (empty($raw_data)) {
+        if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
         }
 
