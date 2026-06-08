@@ -4581,6 +4581,7 @@ button.inf-btn-save:active {
 @media (max-width: 767px) {
   .dd-range-card {
     padding: 0;
+    border: none;
   }
 
   .dd-time-btn.dd-time-btn.dd-time-btn {
