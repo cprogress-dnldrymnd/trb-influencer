@@ -2787,7 +2787,6 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
   border-width: 1px 1px 1px 1px;
   border-color: var(--e-global-color-primary);
   padding: 14px 24px 14px 24px;
-  width: 100%;
 }
 .outreach-button.outreach-button.outreach-button:hover {
   background-color: transparent;
@@ -3639,6 +3638,9 @@ body {
   }
 }
 @media (max-width: 767px) {
+  .outreach-button.outreach-button.outreach-button {
+    width: 100%;
+  }
   .filter-widget .checkbox-lists .checkbox-list-item {
     padding: 0;
   }
