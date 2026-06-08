@@ -211,13 +211,13 @@ class Custom_MyCred_Frontend_Log
         foreach ($log->results as $entry) :
         ?>
             <tr>
-                <td>
+                <td data-label="Date">
                     <?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $entry->time)); ?>
                 </td>
-                <td>
+                <td data-label="Transaction Details">
                     <?php echo wp_kses_post($mycred->parse_template_tags($entry->entry, $entry)); ?>
                 </td>
-                <td class="<?php echo ($entry->creds > 0) ? 'positive-points' : 'negative-points'; ?>">
+                <td data-label="Points Impact" class="<?php echo ($entry->creds > 0) ? 'positive-points' : 'negative-points'; ?>">
                     <?php
                     $prefix = ($entry->creds > 0) ? '+' : '';
                     echo esc_html($prefix . $mycred->format_creds($entry->creds));
@@ -263,14 +263,16 @@ class Custom_MyCred_Frontend_Log
         <style>
             .mycred-ajax-wrapper {
                 position: relative;
+                font-family: "Work Sans", sans-serif;
             }
 
             /* Filter Styles */
             .mycred-filter-container {
-                margin-bottom: 15px;
+                margin-bottom: 16px;
                 display: flex;
                 align-items: center;
                 gap: 12px;
+                flex-wrap: wrap;
             }
 
             .mycred-filter-container label {
@@ -281,18 +283,18 @@ class Custom_MyCred_Frontend_Log
             }
 
             .mycred-log-filter {
-                background-color: var(--pmpro--color--base);
-                border: 1px solid var(--pmpro--color--border);
-                border-radius: var(--pmpro--base--border-radius);
+                background-color: var(--pmpro--color--base, #fff);
+                border: 1px solid var(--pmpro--color--border, #cbd5e1);
+                border-radius: var(--pmpro--base--border-radius, 8px);
                 box-shadow: none;
                 box-sizing: border-box;
-                color: var(--pmpro--color--contrast);
+                color: var(--pmpro--color--contrast, #334155);
                 font-size: 16px;
                 margin: 0;
                 min-height: auto;
                 outline: none;
                 padding: 8px 12px;
-                line-height: 1;
+                line-height: 1.4;
             }
 
             .mycred-log-filter:focus {
@@ -305,8 +307,10 @@ class Custom_MyCred_Frontend_Log
             .mycred-table-responsive-wrapper {
                 overflow-x: auto;
                 margin: 0 0 20px 0;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                -webkit-overflow-scrolling: touch;
             }
 
             .mycred-custom-log-table {
@@ -318,41 +322,59 @@ class Custom_MyCred_Frontend_Log
 
             .mycred-custom-log-table th,
             .mycred-custom-log-table td {
-                padding: 16px 20px;
-                border-bottom: 1px solid #e2e8f0;
+                padding: 14px 20px;
+                border-bottom: 1px solid #eef2f6;
+                vertical-align: middle;
+            }
+
+            .mycred-custom-log-table tbody tr:last-child td {
+                border-bottom: none;
             }
 
             .mycred-custom-log-table td {
-                font-size: clamp(12px, 0.938vw, 18px);
+                font-size: clamp(13px, 0.9vw, 16px);
+                color: #475569;
             }
 
             .mycred-custom-log-table th {
                 background-color: #f8fafc;
                 font-weight: 600;
-                color: #334155;
+                color: #64748b;
                 text-transform: uppercase;
-                font-size: 0.85rem;
+                font-size: 0.72rem;
                 letter-spacing: 0.05em;
+                white-space: nowrap;
+            }
+
+            /* Right-align the points column for a tidy ledger feel */
+            .mycred-custom-log-table th:last-child,
+            .mycred-custom-log-table td:last-child {
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            .mycred-custom-log-table tbody tr {
+                transition: background-color 0.15s ease;
             }
 
             .mycred-custom-log-table tbody tr:hover {
-                background-color: #f1f5f9;
+                background-color: #f8fafc;
             }
 
             .positive-points {
                 color: #15803d;
-                font-weight: 600;
+                font-weight: 700;
             }
 
             .negative-points {
                 color: #b91c1c;
-                font-weight: 600;
+                font-weight: 700;
             }
 
             .mycred-empty-log {
                 text-align: center;
                 color: #64748b;
-                padding: 20px !important;
+                padding: 32px 20px !important;
             }
 
             /* Pagination & States */
@@ -360,31 +382,36 @@ class Custom_MyCred_Frontend_Log
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
             }
 
             .mycred-btn-paginate.mycred-btn-paginate.mycred-btn-paginate {
-                background: #f1f5f9;
+                background: #ffffff;
                 border: 1px solid #cbd5e1;
                 color: #334155;
-                padding: 8px 16px;
-                border-radius: 6px;
+                padding: 9px 18px;
+                border-radius: 8px;
                 cursor: pointer;
-                font-weight: 500;
-                transition: background 0.2s ease;
+                font-weight: 600;
+                font-size: 0.875rem;
+                transition: background 0.2s ease, border-color 0.2s ease;
             }
 
             .mycred-btn-paginate.mycred-btn-paginate.mycred-btn-paginate:hover:not(:disabled) {
-                background: #e2e8f0;
+                background: #f1f5f9;
+                border-color: #94a3b8;
             }
 
             .mycred-btn-paginate.mycred-btn-paginate.mycred-btn-paginate:disabled {
-                opacity: 0.5;
+                opacity: 0.45;
                 cursor: not-allowed;
             }
 
             .mycred-page-indicator {
                 color: #64748b;
-                font-size: 0.9rem;
+                font-size: 0.875rem;
+                font-weight: 500;
             }
 
             /* Loading Overlay */
@@ -395,7 +422,108 @@ class Custom_MyCred_Frontend_Log
                 background: rgba(255, 255, 255, 0.6);
                 backdrop-filter: blur(2px);
                 z-index: 10;
-                border-radius: 8px;
+                border-radius: 12px;
+            }
+
+            /* ============================================================
+               Mobile: collapse the table into stacked cards (no h-scroll)
+               ============================================================ */
+            @media (max-width: 640px) {
+                .mycred-table-responsive-wrapper {
+                    overflow-x: visible;
+                    border: none;
+                    box-shadow: none;
+                    border-radius: 0;
+                    background: transparent;
+                }
+
+                .mycred-custom-log-table,
+                .mycred-custom-log-table tbody,
+                .mycred-custom-log-table tr,
+                .mycred-custom-log-table td {
+                    display: block;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+
+                /* Visually hide the header row but keep it for screen readers */
+                .mycred-custom-log-table thead {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
+
+                .mycred-custom-log-table tbody tr {
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+                    margin-bottom: 14px;
+                    padding: 6px 16px;
+                }
+
+                .mycred-custom-log-table tbody tr:hover {
+                    background: #ffffff;
+                }
+
+                .mycred-custom-log-table td {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 16px;
+                    padding: 11px 0;
+                    border-bottom: 1px solid #f1f5f9;
+                    text-align: right;
+                    font-size: 15px;
+                }
+
+                .mycred-custom-log-table tr td:last-child {
+                    border-bottom: none;
+                }
+
+                /* Field label, taken from the data-label attribute */
+                .mycred-custom-log-table td::before {
+                    content: attr(data-label);
+                    font-weight: 600;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    font-size: 0.7rem;
+                    letter-spacing: 0.04em;
+                    text-align: left;
+                    flex-shrink: 0;
+                }
+
+                /* Empty state spans the full card cleanly */
+                .mycred-custom-log-table td.mycred-empty-log {
+                    display: block;
+                    text-align: center;
+                }
+
+                .mycred-custom-log-table td.mycred-empty-log::before {
+                    content: none;
+                }
+
+                .mycred-pagination-controls {
+                    justify-content: center;
+                }
+
+                .mycred-btn-paginate.mycred-btn-paginate.mycred-btn-paginate {
+                    flex: 1 1 auto;
+                    text-align: center;
+                }
+
+                .mycred-page-indicator {
+                    order: -1;
+                    width: 100%;
+                    text-align: center;
+                    margin-bottom: 4px;
+                }
             }
         </style>
     <?php
