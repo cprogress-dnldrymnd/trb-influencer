@@ -1727,8 +1727,9 @@ class DD_Outreach_Manager
         $meta_country    = get_user_meta($current_user_id, 'country', true);
         $country_display = $this->get_country_display($meta_country);
 
-        $influencer_id   = absint($data['influencer_id']);
-        $influencer_name = get_the_title($influencer_id);
+        $influencer_id    = absint($data['influencer_id']);
+        $influencer_name  = get_the_title($influencer_id);
+        $influencer_email = get_post_meta($influencer_id, 'creator_contact_emails', true);
 
         // Execute the shortcodes to grab the HTML avatars
         $user_avatar_html       = do_shortcode('[user_avatar is_email_template="true"]');
@@ -1797,8 +1798,13 @@ class DD_Outreach_Manager
                 $headers[] = 'Bcc: ' . $bcc;
             }
 
-            if (is_email($to)) {
-                $sent = wp_mail($to, $subject, $body, $headers);
+            // The "to" field may resolve to a comma-separated list of addresses.
+            // Split, trim, and validate each so wp_mail() receives an array of
+            // valid recipients (is_email() would reject a comma-separated string).
+            $recipients = array_values(array_filter(array_map('trim', explode(',', $to)), 'is_email'));
+
+            if (!empty($recipients)) {
+                $sent = wp_mail($recipients, $subject, $body, $headers);
                 if ($sent) $success = true;
             }
         }
