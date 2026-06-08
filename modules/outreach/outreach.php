@@ -34,6 +34,9 @@ class DD_Outreach_Manager
         add_action('elementor_pro/forms/new_record', [$this, 'process_elementor_form_response'], 10, 2);
         add_action('wp_footer', [$this, 'inject_elementor_success_scripts']);
 
+        // reCAPTCHA v3 token fix for the outreach form (rendered inside an Elementor Popup)
+        add_action('wp_footer', [$this, 'inject_recaptcha_popup_fix']);
+
         // Dynamic Elementor Form Option Injection
         add_filter('elementor_pro/forms/render/item', [$this, 'inject_elementor_form_options'], 10, 3);
 
@@ -1921,6 +1924,114 @@ class DD_Outreach_Manager
                     });
                 }
             });
+        </script>
+    <?php
+    }
+
+    /**
+     * Guarantees a fresh reCAPTCHA v3 token for the outreach form.
+     *
+     * The outreach form is rendered inside an Elementor Popup that is pre-built into the
+     * page and sits hidden until the user clicks the contact button. Elementor's own
+     * reCAPTCHA v3 token handler does not reliably (re)generate a token for a form in that
+     * hidden/deferred state, so the token posted on submit is empty or has already expired
+     * (v3 tokens are valid for ~120s). Google's server-side verification then fails and
+     * Elementor returns the generic "An error occurred" — even though identical inline
+     * forms elsewhere work fine.
+     *
+     * To fix this without touching Elementor core, we take over token generation for this
+     * single form: we intercept its submit, fetch a fresh token via grecaptcha.execute(),
+     * inject it into the form, then let Elementor send the request normally. Other forms are
+     * left untouched, and if reCAPTCHA isn't available we never block the submit.
+     */
+    public function inject_recaptcha_popup_fix()
+    {
+        // The outreach form is only ever exposed to logged-in users, so skip the rest.
+        if (is_admin() || !is_user_logged_in()) {
+            return;
+        }
+    ?>
+        <script>
+            (function() {
+                'use strict';
+
+                var OUTREACH_FORM_ID = 'outreach_form';
+                var RECAPTCHA_ACTION = 'elementor_form';
+                var siteKey = null;
+                var resubmitting = false;
+
+                // Elementor enqueues the reCAPTCHA API as api.js?render=SITEKEY; read the key from there.
+                function getSiteKey() {
+                    if (siteKey) return siteKey;
+                    var scripts = document.querySelectorAll('script[src*="recaptcha/api.js"]');
+                    for (var i = 0; i < scripts.length; i++) {
+                        var m = scripts[i].src.match(/[?&]render=([^&]+)/);
+                        if (m && m[1] && m[1] !== 'explicit') {
+                            siteKey = decodeURIComponent(m[1]);
+                            return siteKey;
+                        }
+                    }
+                    var el = document.querySelector('[data-sitekey]');
+                    if (el) siteKey = el.getAttribute('data-sitekey');
+                    return siteKey;
+                }
+
+                function isOutreachForm(form) {
+                    if (!form || !form.querySelector) return false;
+                    var idField = form.querySelector('input[name="form_id"]');
+                    return idField && idField.value === OUTREACH_FORM_ID;
+                }
+
+                // Write the token into Elementor's existing hidden field(s); create one if absent.
+                function setToken(form, token) {
+                    var inputs = form.querySelectorAll('input[name^="g-recaptcha-response"]');
+                    if (inputs.length) {
+                        for (var i = 0; i < inputs.length; i++) inputs[i].value = token;
+                    } else {
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'g-recaptcha-response';
+                        hidden.value = token;
+                        form.appendChild(hidden);
+                    }
+                }
+
+                function resubmit(form) {
+                    resubmitting = true;
+                    if (window.jQuery) {
+                        window.jQuery(form).trigger('submit');
+                    } else if (form.requestSubmit) {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                    setTimeout(function() { resubmitting = false; }, 0);
+                }
+
+                // Capture phase so we run before Elementor's jQuery-bound submit handler.
+                document.addEventListener('submit', function(e) {
+                    var form = e.target;
+                    if (!isOutreachForm(form) || resubmitting) return;
+
+                    var key = getSiteKey();
+                    if (!key || typeof grecaptcha === 'undefined' || !grecaptcha.execute) {
+                        return; // reCAPTCHA unavailable — let Elementor handle the submit as-is.
+                    }
+
+                    // Hold this submit, get a fresh token, then re-fire so Elementor sends it.
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute(key, { action: RECAPTCHA_ACTION }).then(function(token) {
+                            setToken(form, token);
+                            resubmit(form);
+                        }).catch(function() {
+                            resubmit(form); // Don't trap the user if Google's call fails.
+                        });
+                    });
+                }, true);
+            })();
         </script>
     <?php
     }
