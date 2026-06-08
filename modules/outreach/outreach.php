@@ -2879,7 +2879,7 @@ class DD_Outreach_Manager
                 </span>
             </a>
         <?php else : ?>
-            <span class="dd-tip" data-tooltip="Unlock this creator's full profile first" style="display:inline-block;">
+            <span class="dd-tip" data-tooltip="Unlock this creator's full profile first" style="display:inline-block; width: 100%;">
                 <a href="#" class="elementor-button outreach-button"
                     style="opacity: 0.6; cursor: not-allowed;"
                     onclick="event.preventDefault();">
