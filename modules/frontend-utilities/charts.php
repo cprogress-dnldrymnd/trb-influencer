@@ -471,7 +471,34 @@ class DD_Follower_Growth_Chart
                                 return prefix + val.toLocaleString() + " followers";
                             }
                         }
-                    }
+                    },
+                    responsive: [{
+                        breakpoint: 600,
+                        options: {
+                            chart: {
+                                height: 280
+                            },
+                            plotOptions: {
+                                bar: {
+                                    columnWidth: '55%'
+                                }
+                            },
+                            // The floating value badges collide on narrow screens; values stay available via tap/tooltip.
+                            dataLabels: {
+                                enabled: false
+                            },
+                            xaxis: {
+                                labels: {
+                                    rotate: -45,
+                                    rotateAlways: true,
+                                    hideOverlappingLabels: true,
+                                    style: {
+                                        fontSize: '10px'
+                                    }
+                                }
+                            }
+                        }
+                    }]
                 };
 
                 const monthlyChart = new ApexCharts(document.querySelector("#ddMonthlyChart"), monthlyOptions);
