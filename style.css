@@ -2788,7 +2788,7 @@ body:not(.page-id-4144) span#pmpro_submit_span:hover:before {
 }
 .outreach-profile-unlocked.outreach-profile-unlocked.outreach-profile-unlocked {
   background: none;
-  border-color: #E3E3E3;
+  border-color: #e3e3e3;
   color: var(--e-global-color-primary);
 }
 :root {
@@ -4264,14 +4264,13 @@ button.inf-btn-save:active {
 .add-to-groups.add-to-groups.add-to-groups:not(.delete-save) button {
   background-color: transparent;
   color: var(--e-global-color-accent) !important;
+  border-color: var(--e-global-color-accent) !important;
 }
-
 
 .add-to-groups.add-to-groups.add-to-groups:not(.delete-save) button:hover {
   color: #fff;
   background-color: var(--e-global-color-accent) !important;
 }
-
 
 .add-to-groups.add-to-groups.add-to-groups.delete-save button {
   background-color: var(--e-global-color-accent);
