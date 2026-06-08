@@ -3143,6 +3143,7 @@ body {
 .dd-time-btn.active,
 .dd-time-btn:hover {
   background-color: var(--e-global-color-primary) !important;
+  color: #fff;
 }
 .dd-time-filters {
   border-color: var(--e-global-color-primary) !important;
@@ -4333,8 +4334,8 @@ button.inf-btn-save:active {
 
 /* Shared chart card (monthly bar + timeline line) */
 .dd-chart-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E0E0E0;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   width: 100%;
   padding: 24px 16px;
@@ -4367,7 +4368,7 @@ button.inf-btn-save:active {
 }
 
 #ddMonthlyChart .apexcharts-datalabels rect {
-  fill: #F0FFF4 !important;
+  fill: #f0fff4 !important;
   stroke: #034146 !important;
   stroke-width: 1.5px !important;
   rx: 5px !important;
@@ -4396,7 +4397,7 @@ button.inf-btn-save:active {
 }
 
 #ddTimelineChart .apexcharts-tooltip-marker {
-  background-color: #FF7347 !important;
+  background-color: #ff7347 !important;
 }
 
 /* Shared time-range filter tabs (growth rate + like range) */
@@ -4416,7 +4417,7 @@ button.inf-btn-save:active {
   font-family: Inter, sans-serif;
   cursor: pointer;
   font-weight: 500;
-  border-right: 1px solid #E5E5E5;
+  border-right: 1px solid #e5e5e5;
   transition: color 0.2s ease;
   letter-spacing: 0.6px;
   border-radius: 0;
@@ -4438,7 +4439,7 @@ button.inf-btn-save:active {
 
 /* Growth rate area chart */
 .dd-growth-rate-card {
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   width: 100%;
   padding: 24px 16px;
@@ -4469,12 +4470,12 @@ button.inf-btn-save:active {
 }
 
 #ddGrowthRateChart .apexcharts-tooltip-marker {
-  background-color: #00BFFF !important;
+  background-color: #00bfff !important;
 }
 
 /* Like range gradient component */
 .dd-range-card {
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   width: 100%;
   padding: 24px 32px;
@@ -4520,7 +4521,7 @@ button.inf-btn-save:active {
 .dd-gradient-track {
   height: 12px;
   border-radius: 10px;
-  background: linear-gradient(to right, #FF8A7A, #FFEA00, #A2FF00, #0B4646);
+  background: linear-gradient(to right, #ff8a7a, #ffea00, #a2ff00, #0b4646);
   position: relative;
   width: 100%;
 }
@@ -4555,7 +4556,7 @@ button.inf-btn-save:active {
 }
 
 .dd-gradient-marker::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 100%;
   left: 50%;
