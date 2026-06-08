@@ -362,7 +362,7 @@ class Custom_MyCred_Frontend_Log
             }
 
             .positive-points {
-                color: #15803d;
+                color: #6b21a8;
                 font-weight: 700;
             }
 
