@@ -144,6 +144,20 @@
   border-color: #7a9a9e;
 }
 
+/* Dropdown panel must sit above fields below (niche → follower count, etc.) */
+.influencer-search-main .filter-widget.select-filter .dropdown-container {
+  overflow: visible;
+}
+
+.influencer-search-main .influencer-search-item:has(.checkbox-lists.show) {
+  position: relative;
+  z-index: 50;
+}
+
+.influencer-search-main .filter-widget.select-filter .checkbox-lists.show {
+  z-index: 51;
+}
+
 /* ------------------------------------------------------------------
    Mobile — filtered search layout
    ------------------------------------------------------------------ */
@@ -155,7 +169,13 @@
     min-width: 0;
   }
 
-  .influencer-search-main .select-filter--compact-tags .dropdown-container,
+  .influencer-search-main .select-filter--compact-tags .dropdown-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
   .influencer-search-main .select-filter--compact-tags .dropdown-button {
     width: 100%;
     max-width: 100%;
