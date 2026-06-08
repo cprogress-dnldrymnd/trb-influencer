@@ -2846,15 +2846,16 @@ class DD_Outreach_Manager
                 </span>
             </a>
         <?php else : ?>
-            <a href="#" class="elementor-button outreach-button dd-tip"
-                data-tooltip="Unlock this creator's full profile first"
-                style="opacity: 0.6; cursor: not-allowed;"
-                onclick="event.preventDefault();">
-                <span class="elementor-button-content-wrapper">
-                    <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
-                    <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
-                </span>
-            </a>
+            <span class="dd-tip" data-tooltip="Unlock this creator's full profile first" style="display:inline-block;">
+                <a href="#" class="elementor-button outreach-button"
+                    style="opacity: 0.6; cursor: not-allowed;"
+                    onclick="event.preventDefault();">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                        <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
+                    </span>
+                </a>
+            </span>
     <?php
         endif;
         return ob_get_clean();
@@ -2870,10 +2871,10 @@ class DD_Outreach_Manager
     private function render_outreach_button_icon($icon)
     {
         if (!empty($icon)) {
-            return '<img src="' . esc_url($icon) . '" alt="" class="dd-outreach-btn-icon" style="width:20px;height:20px;object-fit:contain;" />';
+            return '<img src="' . esc_url($icon) . '" alt="" class="dd-outreach-btn-icon" style="width:15px;height:15px;object-fit:contain;" />';
         }
 
-        return '<svg xmlns="http://www.w3.org/2000/svg" width="20.389" height="20.5" viewBox="0 0 20.389 20.5">
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 20.389 20.5">
                     <g id="padlock" transform="translate(-499.574 -675)">
                         <g id="padlock-unlocked-svgrepo-com" transform="translate(495.074 673)">
                             <path id="Path_94" data-name="Path 94" d="M4.5,11.393c0,1.739,0,5.371,0,7.806,0,2.692,4.164,3.3,7.5,3.3s7.5-.609,7.5-3.3V11.393a1,1,0,0,0-1-1H5.5A1,1,0,0,0,4.5,11.393Zm6,4.61a1.6,1.6,0,0,0,.536,1.2v1.552a1,1,0,0,0,1,1h.143a1,1,0,0,0,1-1V17.2A1.607,1.607,0,1,0,10.5,16Z" fill="#034146" fill-rule="evenodd"></path>
