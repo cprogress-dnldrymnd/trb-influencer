@@ -4587,6 +4587,7 @@ button.inf-btn-save:active {
   .dd-time-btn.dd-time-btn.dd-time-btn {
     padding: 8px;
     font-size: 10px;
+    flex-grow: 1;
   }
 
   .dd-time-filters.dd-time-filters.dd-time-filters {
