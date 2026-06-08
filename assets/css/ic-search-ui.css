@@ -83,13 +83,14 @@
 }
 
 .influencer-search-main .select-filter--compact-tags .dropdown-button {
-  min-height: 48px;
+  min-height: 44px;
+  max-height: 44px;
 }
 
 .influencer-search-main .select-filter--compact-tags .dropdown-button__content {
   flex-wrap: nowrap;
   overflow: hidden;
-  padding: 8px 12px;
+  padding: 6px 10px;
   gap: 4px;
 }
 
@@ -127,6 +128,10 @@
 .influencer-search-main .select-filter--compact-tags .tags-container .tag-more:hover {
   background: #d9eeea;
   border-color: #7a9a9e;
+}
+
+.influencer-search-main .select-filter--compact-tags .dropdown-button .arrow-holder {
+  padding: 12px;
 }
 
 /* ------------------------------------------------------------------

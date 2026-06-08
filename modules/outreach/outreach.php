@@ -2786,7 +2786,7 @@ class DD_Outreach_Manager
 
             <?php endif; ?>
         </div>
-<?php
+    <?php
         return ob_get_clean();
     }
 
@@ -2844,14 +2844,15 @@ class DD_Outreach_Manager
             .dd-outreach-actions .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:after {
                 content: "<?php echo $this->escape_css_string($text); ?>";
             }
-            <?php if (!empty($icon)) : ?>
-            .dd-outreach-actions .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:before {
+
+            <?php if (!empty($icon)) : ?>.dd-outreach-actions .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:before {
                 background-image: url("<?php echo esc_url($icon); ?>");
             }
+
             <?php endif; ?>
         </style>
         <?php echo do_shortcode('[mycred_sell_this id="' . intval($influencer_id) . '"]'); ?>
-    <?php
+        <?php
         return ob_get_clean();
     }
 
@@ -2870,7 +2871,7 @@ class DD_Outreach_Manager
 
         ob_start();
         if ($enabled) :
-    ?>
+        ?>
             <a href="#" class="elementor-button outreach-button outreach-form-popup-trigger">
                 <span class="elementor-button-content-wrapper">
                     <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
@@ -2888,7 +2889,7 @@ class DD_Outreach_Manager
                     </span>
                 </a>
             </span>
-    <?php
+<?php
         endif;
         return ob_get_clean();
     }

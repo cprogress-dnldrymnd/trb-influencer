@@ -1655,7 +1655,7 @@ body.search-loading-active {
   transition:
     opacity 0.2s ease-in-out,
     visibility 0.2s ease-in-out;
-    font-size: 11px;
+  font-size: 11px;
 }
 
 .dd-tip[data-tooltip]:hover::after,
@@ -1886,7 +1886,7 @@ body.search-loading-active {
   justify-content: center;
   background-color: rgba(255, 255, 255, 0.1);
 }
-.dd-outreach-actions .mycred-sell-this-wrapper.mycred-sell-this-wrapper{
+.dd-outreach-actions .mycred-sell-this-wrapper.mycred-sell-this-wrapper {
   position: static;
 }
 .dd-outreach-actions .premium-content-notice.premium-content-notice.premium-content-notice {
