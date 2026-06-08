@@ -83,14 +83,13 @@
 }
 
 .influencer-search-main .select-filter--compact-tags .dropdown-button {
-  min-height: 44px;
-  max-height: 44px;
+  min-height: 48px;
 }
 
 .influencer-search-main .select-filter--compact-tags .dropdown-button__content {
   flex-wrap: nowrap;
   overflow: hidden;
-  padding: 6px 10px;
+  padding: 8px 12px;
   gap: 4px;
 }
 
@@ -103,16 +102,31 @@
 }
 
 .influencer-search-main .select-filter--compact-tags .tags-container .tag {
+  display: inline-flex;
+  align-items: center;
   padding: 2px 7px;
   font-size: 11px;
   line-height: 1.25;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   max-width: 7.5rem;
 }
 
+.influencer-search-main .select-filter--compact-tags .tags-container .tag > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .influencer-search-main .select-filter--compact-tags .tags-container .tag .tag-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   margin-left: 5px;
-  font-size: 1rem;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .influencer-search-main .select-filter--compact-tags .tags-container .tag-more {
@@ -130,8 +144,42 @@
   border-color: #7a9a9e;
 }
 
-.influencer-search-main .select-filter--compact-tags .dropdown-button .arrow-holder {
-  padding: 12px;
+/* ------------------------------------------------------------------
+   Mobile — filtered search layout
+   ------------------------------------------------------------------ */
+
+@media (max-width: 575px) {
+  .influencer-search-main .filtered-search .influencer-search-item-row > .influencer-search-item {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .influencer-search-main .select-filter--compact-tags .dropdown-container,
+  .influencer-search-main .select-filter--compact-tags .dropdown-button {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .influencer-search-main .select-filter--compact-tags .tags-container .tag {
+    max-width: 8.5rem;
+  }
+
+  .influencer-search-main .select-filter--compact-tags .tags-container .tag-more {
+    flex-shrink: 0;
+  }
+
+  .influencer-search-main .filtered-search .field-groups {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .influencer-search-main .filtered-search .field-groups > .filter-widget {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 /* ------------------------------------------------------------------
