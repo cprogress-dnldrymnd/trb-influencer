@@ -1729,13 +1729,31 @@ class DD_Outreach_Manager
 
         $influencer_id    = absint($data['influencer_id']);
         $influencer_name  = get_the_title($influencer_id);
+
+        // creator_contact_emails may be stored as a string or (via ACF) an
+        // array; normalise to a trimmed comma-separated string so a
+        // whitespace-only value is correctly treated as empty below.
         $influencer_email = get_post_meta($influencer_id, 'creator_contact_emails', true);
+        if (is_array($influencer_email)) {
+            $influencer_email = implode(',', $influencer_email);
+        }
+        $influencer_email = trim((string) $influencer_email);
+
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[DD Outreach] influencer #' . $influencer_id . ' creator_contact_emails = ' . var_export($influencer_email, true));
+        }
 
         // Execute the shortcodes to grab the HTML avatars
         $user_avatar_html       = do_shortcode('[user_avatar is_email_template="true"]');
         $influencer_avatar_html = do_shortcode('[influencer_avatar is_email_template="true" post_id="' . $influencer_id . '"]');
 
-        if (empty($influencer_email) || !is_email($influencer_email)) {
+        // Fall back to the influencer post author's account email only when no
+        // contact emails are stored. creator_contact_emails may be a
+        // comma-separated LIST, which is split and validated per-recipient at
+        // send time below — so do NOT run is_email() on the whole string here
+        // (it returns false for any comma-separated value and would wrongly
+        // discard a valid multi-address list).
+        if (empty($influencer_email)) {
             $influencer_post = get_post($influencer_id);
             if ($influencer_post) {
                 $influencer_user = get_userdata($influencer_post->post_author);
