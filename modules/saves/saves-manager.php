@@ -483,6 +483,9 @@ class Saves_Manager
     {
         if (! is_user_logged_in()) return '';
 
+        $atts = shortcode_atts(['text' => 'SAVE'], $atts, 'add_to_groups_btn');
+        $default_text = $atts['text'];
+
         $influencer_id = get_the_ID();
         if (! $influencer_id) return '';
 
@@ -500,7 +503,7 @@ class Saves_Manager
                                 <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
                             </svg>
                         </span>
-                        <span class="elementor-button-text">SAVE</span>
+                        <span class="elementor-button-text"><?php echo esc_html($default_text); ?></span>
                     </span>
                 </button>
             </div>
@@ -510,7 +513,7 @@ class Saves_Manager
 
         // --- STANDARD SAVE BUTTON ---
         $post_id = $this->get_existing_influencer_save_id($influencer_id, $user_id);
-        $button_text = 'SAVE';
+        $button_text = $default_text;
         $extra_class = '';
 
         if ($post_id) {

@@ -19,10 +19,18 @@ class Widget_Add_To_Groups extends \Elementor\Widget_Base {
             'type' => \Elementor\Controls_Manager::RAW_HTML,
             'raw'  => esc_html__( 'Renders [add_to_groups_btn]. Displays the button to add the current influencer to the user\'s saved groups.', 'trb-influencer' ),
         ] );
+        $this->add_control( 'text', [
+            'label'   => esc_html__( 'Button Text', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::TEXT,
+            'default' => esc_html__( 'SAVE', 'trb-influencer' ),
+        ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[add_to_groups_btn]' );
+        $s    = $this->get_settings_for_display();
+        $text = isset( $s['text'] ) ? str_replace( [ '"', '[', ']' ], '', $s['text'] ) : 'SAVE';
+
+        echo do_shortcode( '[add_to_groups_btn text="' . esc_attr( $text ) . '"]' );
     }
 }

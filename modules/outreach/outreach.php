@@ -2755,58 +2755,144 @@ class DD_Outreach_Manager
             return '';
         }
 
-        $influencer_id = get_the_ID();
+        $atts = shortcode_atts([
+            'unlock_text'  => 'UNLOCK FULL PROFILE',
+            'unlock_icon'  => '',
+            'contact_text' => 'CONTACT THIS CREATOR',
+            'contact_icon' => '',
+        ], $atts, 'outreach_button');
 
-        // IMPORTANT: Replace this boolean with your actual unlock-checking logic
-        // For example: $is_unlocked = check_if_user_unlocked_influencer($user_id, $influencer_id);
-        $is_unlocked = is_influencer_unlocked($influencer_id);
+        $influencer_id = get_the_ID();
+        $is_unlocked   = is_influencer_unlocked($influencer_id);
 
         ob_start();
     ?>
+        <div class="dd-outreach-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <?php if ($is_unlocked) : ?>
 
-        <?php if ($is_unlocked) : ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], true); ?>
 
+            <?php else : ?>
+
+                <?php echo $this->render_outreach_unlock_button($influencer_id, $atts['unlock_text'], $atts['unlock_icon']); ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], false); ?>
+
+            <?php endif; ?>
+        </div>
+<?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Renders the "Unlock Full Profile" button by delegating to myCred's native
+     * Sell Content buy button. This intentionally reuses myCred's purchase flow so the
+     * existing confirmation popup (mycred-buy-confirm.js, which targets
+     * .mycred-buy-this-content-button) and the "Unlocked creator profile: …" log
+     * relabelling both apply automatically — identical to the default myCred unlock.
+     *
+     * The button's icon and label are normally baked into global CSS pseudo-elements
+     * (style.css), so a scoped <style> override is injected to honour the per-instance
+     * icon/text configured on the Elementor widget.
+     *
+     * @param int    $influencer_id The influencer post being unlocked.
+     * @param string $text          Custom button label.
+     * @param string $icon          Optional custom icon URL.
+     * @return string
+     */
+    private function render_outreach_unlock_button($influencer_id, $text, $icon)
+    {
+        // Graceful fallback if the myCred Sell Content add-on is unavailable.
+        if (!shortcode_exists('mycred_sell_this')) {
+            return $this->render_outreach_contact_button($text, $icon, false);
+        }
+
+        ob_start();
+    ?>
+        <style>
+            .dd-outreach-actions .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:after {
+                content: "<?php echo $this->escape_css_string($text); ?>";
+            }
+            <?php if (!empty($icon)) : ?>
+            .dd-outreach-actions .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button:before {
+                background-image: url("<?php echo esc_url($icon); ?>");
+            }
+            <?php endif; ?>
+        </style>
+        <?php echo do_shortcode('[mycred_sell_this id="' . intval($influencer_id) . '"]'); ?>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Renders the outreach contact CTA button.
+     *
+     * @param string $text    Button label.
+     * @param string $icon    Optional custom icon URL (falls back to the bundled padlock SVG).
+     * @param bool   $enabled When true the button opens the outreach popup; otherwise it is shown
+     *                        disabled with a hint that the creator must be unlocked first.
+     * @return string
+     */
+    private function render_outreach_contact_button($text, $icon, $enabled)
+    {
+        $icon_html = $this->render_outreach_button_icon($icon);
+
+        ob_start();
+        if ($enabled) :
+    ?>
             <a href="#" class="elementor-button outreach-button outreach-form-popup-trigger">
                 <span class="elementor-button-content-wrapper">
-                    <span class="elementor-button-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20.389" height="20.5" viewBox="0 0 20.389 20.5">
-                            <g id="padlock" transform="translate(-499.574 -675)">
-                                <g id="padlock-unlocked-svgrepo-com" transform="translate(495.074 673)">
-                                    <path id="Path_94" data-name="Path 94" d="M4.5,11.393c0,1.739,0,5.371,0,7.806,0,2.692,4.164,3.3,7.5,3.3s7.5-.609,7.5-3.3V11.393a1,1,0,0,0-1-1H5.5A1,1,0,0,0,4.5,11.393Zm6,4.61a1.6,1.6,0,0,0,.536,1.2v1.552a1,1,0,0,0,1,1h.143a1,1,0,0,0,1-1V17.2A1.607,1.607,0,1,0,10.5,16Z" fill="#034146" fill-rule="evenodd"></path>
-                                    <path id="Path_95" data-name="Path 95" d="M8.182,10.7s0-2.568,0-4.108A3.682,3.682,0,0,1,12,3a3.682,3.682,0,0,1,3.818,3.595" fill="none" stroke="#034146" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                    <path id="sparkles-svgrepo-com_1_" data-name="sparkles-svgrepo-com (1)" d="M11.7,15.809a.452.452,0,0,0,.475-.419c.5-3.733.629-3.733,4.487-4.473a.473.473,0,0,0,.433-.475.483.483,0,0,0-.433-.475c-3.858-.531-4-.657-4.487-4.459a.469.469,0,0,0-.937.014c-.461,3.746-.657,3.732-4.487,4.445a.493.493,0,0,0-.433.475c0,.28.182.433.489.475,3.8.615,3.97.713,4.431,4.445A.453.453,0,0,0,11.7,15.809Z" transform="translate(7.791 -0.045)" fill="#f9c23c"></path>
-                                </g>
-                            </g>
-                        </svg> </span>
-                    <span class="elementor-button-text">CONTACT THIS CREATOR</span>
+                    <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                    <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
                 </span>
             </a>
-
         <?php else : ?>
-
             <a href="#" class="elementor-button outreach-button"
                 title="You need to unlock this creator first before sending an outreach."
                 style="opacity: 0.6; cursor: not-allowed;"
                 onclick="event.preventDefault();">
                 <span class="elementor-button-content-wrapper">
-                    <span class="elementor-button-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20.389" height="20.5" viewBox="0 0 20.389 20.5">
-                            <g id="padlock" transform="translate(-499.574 -675)">
-                                <g id="padlock-unlocked-svgrepo-com" transform="translate(495.074 673)">
-                                    <path id="Path_94" data-name="Path 94" d="M4.5,11.393c0,1.739,0,5.371,0,7.806,0,2.692,4.164,3.3,7.5,3.3s7.5-.609,7.5-3.3V11.393a1,1,0,0,0-1-1H5.5A1,1,0,0,0,4.5,11.393Zm6,4.61a1.6,1.6,0,0,0,.536,1.2v1.552a1,1,0,0,0,1,1h.143a1,1,0,0,0,1-1V17.2A1.607,1.607,0,1,0,10.5,16Z" fill="#034146" fill-rule="evenodd"></path>
-                                    <path id="Path_95" data-name="Path 95" d="M8.182,10.7s0-2.568,0-4.108A3.682,3.682,0,0,1,12,3a3.682,3.682,0,0,1,3.818,3.595" fill="none" stroke="#034146" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                    <path id="sparkles-svgrepo-com_1_" data-name="sparkles-svgrepo-com (1)" d="M11.7,15.809a.452.452,0,0,0,.475-.419c.5-3.733.629-3.733,4.487-4.473a.473.473,0,0,0,.433-.475.483.483,0,0,0-.433-.475c-3.858-.531-4-.657-4.487-4.459a.469.469,0,0,0-.937.014c-.461,3.746-.657,3.732-4.487,4.445a.493.493,0,0,0-.433.475c0,.28.182.433.489.475,3.8.615,3.97.713,4.431,4.445A.453.453,0,0,0,11.7,15.809Z" transform="translate(7.791 -0.045)" fill="#f9c23c"></path>
-                                </g>
-                            </g>
-                        </svg> </span>
-                    <span class="elementor-button-text">SPEND 1 CREDIT TO UNLOCK THIS CREATOR</span>
+                    <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                    <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
                 </span>
             </a>
-
-        <?php endif; ?>
-
-<?php
+    <?php
+        endif;
         return ob_get_clean();
+    }
+
+    /**
+     * Returns the markup for a button icon — a custom uploaded image when provided,
+     * otherwise the default bundled padlock SVG.
+     *
+     * @param string $icon Optional icon URL.
+     * @return string
+     */
+    private function render_outreach_button_icon($icon)
+    {
+        if (!empty($icon)) {
+            return '<img src="' . esc_url($icon) . '" alt="" class="dd-outreach-btn-icon" style="width:20px;height:20px;object-fit:contain;" />';
+        }
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="20.389" height="20.5" viewBox="0 0 20.389 20.5">
+                    <g id="padlock" transform="translate(-499.574 -675)">
+                        <g id="padlock-unlocked-svgrepo-com" transform="translate(495.074 673)">
+                            <path id="Path_94" data-name="Path 94" d="M4.5,11.393c0,1.739,0,5.371,0,7.806,0,2.692,4.164,3.3,7.5,3.3s7.5-.609,7.5-3.3V11.393a1,1,0,0,0-1-1H5.5A1,1,0,0,0,4.5,11.393Zm6,4.61a1.6,1.6,0,0,0,.536,1.2v1.552a1,1,0,0,0,1,1h.143a1,1,0,0,0,1-1V17.2A1.607,1.607,0,1,0,10.5,16Z" fill="#034146" fill-rule="evenodd"></path>
+                            <path id="Path_95" data-name="Path 95" d="M8.182,10.7s0-2.568,0-4.108A3.682,3.682,0,0,1,12,3a3.682,3.682,0,0,1,3.818,3.595" fill="none" stroke="#034146" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            <path id="sparkles-svgrepo-com_1_" data-name="sparkles-svgrepo-com (1)" d="M11.7,15.809a.452.452,0,0,0,.475-.419c.5-3.733.629-3.733,4.487-4.473a.473.473,0,0,0,.433-.475.483.483,0,0,0-.433-.475c-3.858-.531-4-.657-4.487-4.459a.469.469,0,0,0-.937.014c-.461,3.746-.657,3.732-4.487,4.445a.493.493,0,0,0-.433.475c0,.28.182.433.489.475,3.8.615,3.97.713,4.431,4.445A.453.453,0,0,0,11.7,15.809Z" transform="translate(7.791 -0.045)" fill="#f9c23c"></path>
+                        </g>
+                    </g>
+                </svg>';
+    }
+
+    /**
+     * Escapes a string for safe use inside a CSS content:"…" declaration.
+     *
+     * @param string $value
+     * @return string
+     */
+    private function escape_css_string($value)
+    {
+        return str_replace(['\\', '"'], ['\\\\', '\\"'], wp_strip_all_tags($value));
     }
 }
 
