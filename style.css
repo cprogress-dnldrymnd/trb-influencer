@@ -3143,7 +3143,7 @@ body {
 .dd-time-btn.active,
 .dd-time-btn:hover {
   background-color: var(--e-global-color-primary) !important;
-  color: #fff;
+  color: #fff !important;
 }
 .dd-time-filters {
   border-color: var(--e-global-color-primary) !important;
