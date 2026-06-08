@@ -17,36 +17,68 @@ class Widget_Outreach_Button extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [outreach_button]. Shows an "Unlock Full Profile" button (myCred unlock) when locked, plus a contact button. Once unlocked, only the enabled contact button shows.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [outreach_button]. Locked: "Unlock Full Profile" (myCred unlock) + a disabled contact button. Unlocked: a "Profile Unlocked" status button + the enabled contact button.', 'trb-influencer' ),
         ] );
 
+        // --- Locked state ---
         $this->add_control( 'unlock_heading', [
-            'label'     => esc_html__( 'Unlock Full Profile Button', 'trb-influencer' ),
+            'label'     => esc_html__( 'Locked: Unlock Full Profile Button', 'trb-influencer' ),
             'type'      => \Elementor\Controls_Manager::HEADING,
             'separator' => 'before',
         ] );
         $this->add_control( 'unlock_text', [
-            'label'   => esc_html__( 'Unlock Button Text', 'trb-influencer' ),
+            'label'   => esc_html__( 'Text', 'trb-influencer' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => esc_html__( 'UNLOCK FULL PROFILE', 'trb-influencer' ),
         ] );
         $this->add_control( 'unlock_icon', [
-            'label' => esc_html__( 'Unlock Button Icon', 'trb-influencer' ),
+            'label' => esc_html__( 'Icon', 'trb-influencer' ),
+            'type'  => \Elementor\Controls_Manager::MEDIA,
+        ] );
+
+        $this->add_control( 'contact_locked_heading', [
+            'label'     => esc_html__( 'Locked: Contact Button (disabled)', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'contact_locked_text', [
+            'label'   => esc_html__( 'Text', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::TEXT,
+            'default' => esc_html__( 'UNLOCK TO CONTACT', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'contact_locked_icon', [
+            'label' => esc_html__( 'Icon', 'trb-influencer' ),
+            'type'  => \Elementor\Controls_Manager::MEDIA,
+        ] );
+
+        // --- Unlocked state ---
+        $this->add_control( 'unlocked_heading', [
+            'label'     => esc_html__( 'Unlocked: Profile Unlocked Button', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'unlocked_text', [
+            'label'   => esc_html__( 'Text', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::TEXT,
+            'default' => esc_html__( 'PROFILE UNLOCKED', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'unlocked_icon', [
+            'label' => esc_html__( 'Icon', 'trb-influencer' ),
             'type'  => \Elementor\Controls_Manager::MEDIA,
         ] );
 
         $this->add_control( 'contact_heading', [
-            'label'     => esc_html__( 'Contact Button', 'trb-influencer' ),
+            'label'     => esc_html__( 'Unlocked: Contact Button (enabled)', 'trb-influencer' ),
             'type'      => \Elementor\Controls_Manager::HEADING,
             'separator' => 'before',
         ] );
         $this->add_control( 'contact_text', [
-            'label'   => esc_html__( 'Contact Button Text', 'trb-influencer' ),
+            'label'   => esc_html__( 'Text', 'trb-influencer' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => esc_html__( 'CONTACT THIS CREATOR', 'trb-influencer' ),
         ] );
         $this->add_control( 'contact_icon', [
-            'label' => esc_html__( 'Contact Button Icon', 'trb-influencer' ),
+            'label' => esc_html__( 'Icon', 'trb-influencer' ),
             'type'  => \Elementor\Controls_Manager::MEDIA,
         ] );
 
@@ -56,18 +88,26 @@ class Widget_Outreach_Button extends \Elementor\Widget_Base {
     protected function render() {
         $s = $this->get_settings_for_display();
 
-        $unlock_text  = isset( $s['unlock_text'] ) ? $this->sanitize_attr( $s['unlock_text'] ) : 'UNLOCK FULL PROFILE';
-        $contact_text = isset( $s['contact_text'] ) ? $this->sanitize_attr( $s['contact_text'] ) : 'CONTACT THIS CREATOR';
-        $unlock_icon  = ! empty( $s['unlock_icon']['url'] ) ? esc_url( $s['unlock_icon']['url'] ) : '';
-        $contact_icon = ! empty( $s['contact_icon']['url'] ) ? esc_url( $s['contact_icon']['url'] ) : '';
+        $fields = [
+            'unlock_text'         => 'UNLOCK FULL PROFILE',
+            'contact_locked_text' => 'UNLOCK TO CONTACT',
+            'unlocked_text'       => 'PROFILE UNLOCKED',
+            'contact_text'        => 'CONTACT THIS CREATOR',
+        ];
+        $icons = [ 'unlock_icon', 'contact_locked_icon', 'unlocked_icon', 'contact_icon' ];
 
-        echo do_shortcode( sprintf(
-            '[outreach_button unlock_text="%s" unlock_icon="%s" contact_text="%s" contact_icon="%s"]',
-            $unlock_text,
-            $unlock_icon,
-            $contact_text,
-            $contact_icon
-        ) );
+        $shortcode = '[outreach_button';
+        foreach ( $fields as $key => $default ) {
+            $value = isset( $s[ $key ] ) && $s[ $key ] !== '' ? $this->sanitize_attr( $s[ $key ] ) : $default;
+            $shortcode .= sprintf( ' %s="%s"', $key, $value );
+        }
+        foreach ( $icons as $key ) {
+            $url = ! empty( $s[ $key ]['url'] ) ? esc_url( $s[ $key ]['url'] ) : '';
+            $shortcode .= sprintf( ' %s="%s"', $key, $url );
+        }
+        $shortcode .= ']';
+
+        echo do_shortcode( $shortcode );
     }
 
     /**

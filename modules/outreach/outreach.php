@@ -2756,10 +2756,16 @@ class DD_Outreach_Manager
         }
 
         $atts = shortcode_atts([
-            'unlock_text'  => 'UNLOCK FULL PROFILE',
-            'unlock_icon'  => '',
-            'contact_text' => 'CONTACT THIS CREATOR',
-            'contact_icon' => '',
+            // Locked state
+            'unlock_text'         => 'UNLOCK FULL PROFILE',
+            'unlock_icon'         => '',
+            'contact_locked_text' => 'UNLOCK TO CONTACT',
+            'contact_locked_icon' => '',
+            // Unlocked state
+            'unlocked_text'       => 'PROFILE UNLOCKED',
+            'unlocked_icon'       => '',
+            'contact_text'        => 'CONTACT THIS CREATOR',
+            'contact_icon'        => '',
         ], $atts, 'outreach_button');
 
         $influencer_id = get_the_ID();
@@ -2770,16 +2776,42 @@ class DD_Outreach_Manager
         <div class="dd-outreach-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <?php if ($is_unlocked) : ?>
 
+                <?php echo $this->render_outreach_unlocked_badge($atts['unlocked_text'], $atts['unlocked_icon']); ?>
                 <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], true); ?>
 
             <?php else : ?>
 
                 <?php echo $this->render_outreach_unlock_button($influencer_id, $atts['unlock_text'], $atts['unlock_icon']); ?>
-                <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], false); ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_locked_text'], $atts['contact_locked_icon'], false); ?>
 
             <?php endif; ?>
         </div>
 <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Renders the static "Profile Unlocked" status button shown (alongside the contact
+     * button) once the influencer has been unlocked. It is non-interactive — purely a
+     * state indicator — and its label/icon are configurable via the Elementor widget.
+     *
+     * @param string $text Button label.
+     * @param string $icon Optional custom icon URL (falls back to the bundled open-padlock SVG).
+     * @return string
+     */
+    private function render_outreach_unlocked_badge($text, $icon)
+    {
+        $icon_html = $this->render_outreach_button_icon($icon);
+
+        ob_start();
+    ?>
+        <span class="elementor-button outreach-button outreach-profile-unlocked" style="cursor: default;">
+            <span class="elementor-button-content-wrapper">
+                <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
+            </span>
+        </span>
+    <?php
         return ob_get_clean();
     }
 
