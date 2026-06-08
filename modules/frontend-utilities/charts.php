@@ -244,7 +244,15 @@ class DD_Follower_Growth_Chart
      */
     private function render_no_data_fallback(): string
     {
-        return do_shortcode('[elementor-template id="' . dd_get_template_id('dd_tpl_no_data_fallback', 27230) . '"]');
+        // dd_get_template_id() returns the stored option, which may be 0 if the
+        // admin "No Data Fallback" field was saved empty. id="0" renders nothing,
+        // so guard against it and fall back to the known-good default template.
+        $template_id = dd_get_template_id('dd_tpl_no_data_fallback', 27230);
+        if ($template_id <= 0) {
+            $template_id = 27230;
+        }
+
+        return do_shortcode('[elementor-template id="' . $template_id . '"]');
     }
 
     /**
@@ -256,7 +264,6 @@ class DD_Follower_Growth_Chart
 
         if (is_single() && get_post_type() == 'influencer') {
             wp_enqueue_script('apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', [], '3.40.0', true);
-            wp_enqueue_script('dd-chart-init', plugin_dir_url(__FILE__) . 'assets/js/dummy.js', ['apexcharts'], '1.0.0', true);
 
             $raw_data = $this->get_raw_follower_data($post->ID);
 
@@ -276,7 +283,7 @@ class DD_Follower_Growth_Chart
                 'like_range'  => $like_range_data
             ];
 
-            wp_localize_script('dd-chart-init', 'ddChartPayload', $unified_payload);
+            wp_localize_script('apexcharts', 'ddChartPayload', $unified_payload);
         }
     }
 
