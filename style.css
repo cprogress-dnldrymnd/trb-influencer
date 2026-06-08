@@ -4576,7 +4576,9 @@ button.inf-btn-save:active {
   opacity: 1;
   transform: translateX(-50%) translateY(-4px);
 }
-
+.image-box-followers .elementor-image-box-wrapper {
+  display: inline-flex;
+}
 @media (max-width: 575px) {
   .dd-range-card {
     padding: 20px;
