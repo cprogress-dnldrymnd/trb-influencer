@@ -4267,7 +4267,7 @@ button.inf-btn-save:active {
   border-color: var(--e-global-color-accent) !important;
 }
 
-.add-to-groups.add-to-groups.add-to-groups:not(.delete-save) button:hover {
+.add-to-groups.add-to-groups.add-to-groups:not(.delete-save):hover button {
   color: #fff !important;
   border-color: #fff !important;
   background-color: var(--e-global-color-accent) !important;
