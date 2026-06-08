@@ -1802,6 +1802,14 @@ class DD_Outreach_Manager
         foreach ($templates as $tpl) {
 
             $to         = str_replace($search, $replace, $tpl['to']);
+
+            // The admin "To" input shows {influencer_email} only as placeholder
+            // text, so a template saved with a blank To field arrives here empty.
+            // Default it to the influencer's contact emails in that case.
+            if (trim($to) === '') {
+                $to = $influencer_email;
+            }
+
             $subject    = str_replace($search, $replace, $tpl['subject']);
             $from_name  = str_replace($search, $replace, $tpl['from_name']);
             $from_email = str_replace($search, $replace, $tpl['from_email']);
