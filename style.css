@@ -4345,11 +4345,6 @@ button.inf-btn-save:active {
   box-sizing: border-box;
 }
 
-@media (max-width: 767px) {
-  .dd-chart-card {
-    padding: 10px;
-  }
-}
 
 /* Monthly bar chart */
 .dd-chart-footer {
@@ -4592,5 +4587,9 @@ button.inf-btn-save:active {
 
   .dd-time-filters.dd-time-filters.dd-time-filters {
     width: 100%;
+  }
+   .dd-chart-card {
+    padding: 0;
+    border: none;
   }
 }
