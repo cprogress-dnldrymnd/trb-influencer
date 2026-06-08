@@ -1772,6 +1772,15 @@ class DD_Outreach_Manager
 
         $success = false;
 
+        // Capture wp_mail/SMTP failure reasons so they can be inspected in
+        // wp-content/debug.log (when WP_DEBUG_LOG is enabled). Useful on hosts
+        // without an SMTP plugin email log.
+        $mail_error    = '';
+        $capture_error = function ($wp_error) use (&$mail_error) {
+            $mail_error = $wp_error->get_error_message();
+        };
+        add_action('wp_mail_failed', $capture_error);
+
         foreach ($templates as $tpl) {
 
             $to         = str_replace($search, $replace, $tpl['to']);
@@ -1799,15 +1808,34 @@ class DD_Outreach_Manager
             }
 
             // The "to" field may resolve to a comma-separated list of addresses.
-            // Split, trim, and validate each so wp_mail() receives an array of
-            // valid recipients (is_email() would reject a comma-separated string).
+            // Split, trim, and validate each (is_email() would reject a
+            // comma-separated string outright).
             $recipients = array_values(array_filter(array_map('trim', explode(',', $to)), 'is_email'));
 
-            if (!empty($recipients)) {
-                $sent = wp_mail($recipients, $subject, $body, $headers);
-                if ($sent) $success = true;
+            if (empty($recipients) && (defined('WP_DEBUG') && WP_DEBUG)) {
+                error_log('[DD Outreach] No valid recipients resolved from "to" = "' . $to . '" (influencer #' . $influencer_id . ')');
+            }
+
+            // Send to each recipient individually so one bad/rejected address
+            // does not abort delivery to the rest of the list. CC/BCC are
+            // attached only to the first send to avoid duplicate copies.
+            foreach ($recipients as $i => $recipient) {
+                $this_headers = ($i === 0) ? $headers : array_values(array_filter($headers, function ($h) {
+                    return stripos($h, 'Cc:') !== 0 && stripos($h, 'Bcc:') !== 0;
+                }));
+
+                $mail_error = '';
+                $sent = wp_mail($recipient, $subject, $body, $this_headers);
+
+                if ($sent) {
+                    $success = true;
+                } elseif (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('[DD Outreach] wp_mail failed for ' . $recipient . ' — ' . ($mail_error ?: 'no error message'));
+                }
             }
         }
+
+        remove_action('wp_mail_failed', $capture_error);
 
         return $success;
     }
