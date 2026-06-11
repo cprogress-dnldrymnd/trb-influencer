@@ -259,6 +259,12 @@ jQuery(document).ready(function($) {
         $('.inf-dropdown-wrapper').removeClass('active');
     });
 
+    // Show/hide the Export PDF button depending on whether the group has any saved influencers
+    function updateExportPdfVisibility() {
+        var hasInfluencers = $('#inf-view-group-body .inf-loop-item-row').length > 0;
+        $('#inf-export-group-pdf').toggle(hasInfluencers);
+    }
+
     $(document).on('click', '.view-group-influencers-trigger', function() {
         let id = $(this).attr('data-group-id');
         let name = $(this).attr('data-group-name');
@@ -283,6 +289,7 @@ jQuery(document).ready(function($) {
                 } else {
                     $('#inf-view-group-body').html('<div class="inf-alert">' + res.data.message + '</div>');
                 }
+                updateExportPdfVisibility();
             }
         });
     });
@@ -370,6 +377,7 @@ jQuery(document).ready(function($) {
                         if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
                             $('#inf-bulk-action-bar').remove();
                             $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                            updateExportPdfVisibility();
                         } else {
                             $('#inf-bulk-select-all').prop('checked', false).prop('indeterminate', false);
                             $('#inf-bulk-count').text('0');
@@ -387,6 +395,15 @@ jQuery(document).ready(function($) {
     $(document).on('click', '#inf-export-group-pdf', function() {
         if (!state.viewingGroupId) {
             window.ddAlert('No group selected.');
+            return;
+        }
+
+        const $btn = $(this);
+        if ($btn.attr('data-growth-plan') !== '1') {
+            const upgradeUrl = $btn.attr('data-upgrade-url');
+            window.ddConfirm('Exporting saved lists to PDF is available on the Growth plan. Upgrade your plan to unlock this feature.', function() {
+                if (upgradeUrl) window.location.href = upgradeUrl;
+            });
             return;
         }
 
@@ -488,6 +505,7 @@ jQuery(document).ready(function($) {
                             if ($('#inf-view-group-body .inf-loop-item-row').length === 0) {
                                 $('#inf-bulk-action-bar').remove();
                                 $('#inf-view-group-body').html('<div class="inf-alert" style="margin:20px;">No creators remain in this group.</div>');
+                                updateExportPdfVisibility();
                             } else {
                                 $('#inf-bulk-count').text($('.inf-bulk-check:checked').length);
                             }

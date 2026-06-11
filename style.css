@@ -4242,6 +4242,19 @@ button.inf-btn-save:active {
   background-color: var(--e-global-color-secondary) !important;
 }
 
+button.inf-btn-save.inf-btn-locked,
+button.inf-btn-save.inf-btn-locked:hover,
+button.inf-btn-save.inf-btn-locked:focus,
+button.inf-btn-save.inf-btn-locked:active {
+  background-color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+button.inf-btn-save .inf-btn-lock-icon {
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+
 /* Enhanced Group Creators Loop Grid */
 .inf-group-creators-loop {
   display: flex;
