@@ -4312,12 +4312,16 @@ button.inf-btn-save .inf-btn-lock-icon {
 }
 
 .inf-bulk-select-all-label.inf-bulk-select-all-label.inf-bulk-select-all-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  cursor: pointer;
-  font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: Inter, sans-serif;
+    color: var(--e-global-color-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .inf-bulk-select-all-label.inf-bulk-select-all-label.inf-bulk-select-all-label input[type="checkbox"] {
