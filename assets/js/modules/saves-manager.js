@@ -301,13 +301,13 @@ jQuery(document).ready(function($) {
         // Remove any leftover bulk bar from previous view
         $('#inf-bulk-action-bar').remove();
 
-        // Prepend bulk action bar (hidden until a selection is made)
+        // Prepend bulk action bar (hidden until there are rows to act on)
         $body.before(
-            '<div id="inf-bulk-action-bar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:12px;">' +
-                '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">' +
+            '<div id="inf-bulk-action-bar" class="inf-bulk-action-bar">' +
+                '<label class="inf-bulk-select-all-label">' +
                     '<input type="checkbox" id="inf-bulk-select-all"> Select all' +
                 '</label>' +
-                '<button type="button" id="inf-bulk-remove-btn" class="inf-btn" style="margin-left:auto;">Remove selected (<span id="inf-bulk-count">0</span>)</button>' +
+                '<button type="button" id="inf-bulk-remove-btn" class="inf-bulk-remove-btn" disabled>Remove selected (<span id="inf-bulk-count">0</span>)</button>' +
             '</div>'
         );
 
@@ -317,7 +317,7 @@ jQuery(document).ready(function($) {
                                $(this).find('[data-influencer-id]').first().attr('data-influencer-id');
             if (influencerId && !$(this).find('.inf-bulk-check').length) {
                 $(this).prepend(
-                    '<label class="inf-bulk-check-label" style="display:flex;align-items:center;padding:8px;cursor:pointer;">' +
+                    '<label class="inf-bulk-check-label">' +
                         '<input type="checkbox" class="inf-bulk-check" data-influencer-id="' + influencerId + '">' +
                     '</label>'
                 );
@@ -326,7 +326,7 @@ jQuery(document).ready(function($) {
 
         // Show the bar if there are any rows
         if ($body.find('.inf-loop-item-row').length > 0) {
-            $('#inf-bulk-action-bar').css('display', 'flex');
+            $('#inf-bulk-action-bar').addClass('inf-bulk-action-bar--visible');
         }
     }
 
@@ -334,6 +334,7 @@ jQuery(document).ready(function($) {
     $(document).on('change', '.inf-bulk-check', function() {
         var count = $('.inf-bulk-check:checked').length;
         $('#inf-bulk-count').text(count);
+        $('#inf-bulk-remove-btn').prop('disabled', count === 0);
         var allChecked = count > 0 && count === $('.inf-bulk-check').length;
         $('#inf-bulk-select-all').prop('checked', allChecked).prop('indeterminate', count > 0 && !allChecked);
     });
@@ -342,7 +343,9 @@ jQuery(document).ready(function($) {
     $(document).on('change', '#inf-bulk-select-all', function() {
         var checked = $(this).is(':checked');
         $('.inf-bulk-check').prop('checked', checked);
-        $('#inf-bulk-count').text(checked ? $('.inf-bulk-check').length : 0);
+        var count = checked ? $('.inf-bulk-check').length : 0;
+        $('#inf-bulk-count').text(count);
+        $('#inf-bulk-remove-btn').prop('disabled', count === 0);
     });
 
     // Bulk remove submit
@@ -367,7 +370,7 @@ jQuery(document).ready(function($) {
                 influencer_ids: ids
             },
             success: function(res) {
-                $btn.html('Remove selected (<span id="inf-bulk-count">0</span>)').prop('disabled', false);
+                $btn.html('Remove selected (<span id="inf-bulk-count">0</span>)').prop('disabled', true);
                 if (res.success) {
                     $.each(res.data.removed, function(i, influencerId) {
                         var $row = $('.inf-bulk-check[data-influencer-id="' + influencerId + '"]').closest('.inf-loop-item-row');
@@ -386,7 +389,8 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                $btn.html('Remove selected (<span id="inf-bulk-count">0</span>)').prop('disabled', false);
+                var count = $('.inf-bulk-check:checked').length;
+                $btn.html('Remove selected (<span id="inf-bulk-count">' + count + '</span>)').prop('disabled', count === 0);
                 $('#inf-view-group-body').prepend('<div class="inf-alert" style="color:#c00;margin-bottom:12px;">Bulk remove failed. Please try again.</div>');
             }
         });

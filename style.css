@@ -4270,6 +4270,87 @@ button.inf-btn-save .inf-btn-lock-icon {
 
 .inf-loop-item-row {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inf-loop-item-row > .inf-bulk-check-label {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.inf-loop-item-row > .inf-bulk-check-label .inf-bulk-check {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.inf-loop-item-row > *:not(.inf-bulk-check-label) {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Bulk action bar above the group influencers list */
+.inf-bulk-action-bar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin: 16px 24px 12px;
+}
+
+.inf-bulk-action-bar.inf-bulk-action-bar--visible {
+  display: flex;
+}
+
+.inf-bulk-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.inf-bulk-select-all-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+button.inf-bulk-remove-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  margin: 0 0 0 auto !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  border: 1px solid #dc3545 !important;
+  background-color: #fff !important;
+  color: #dc3545 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: 0.2s !important;
+}
+
+button.inf-bulk-remove-btn:hover:not(:disabled) {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+button.inf-bulk-remove-btn:disabled {
+  border-color: #d1d5db !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
 }
 
 .add-to-groups.add-to-groups.add-to-groups button,
