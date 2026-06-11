@@ -4311,7 +4311,7 @@ button.inf-btn-save .inf-btn-lock-icon {
   display: flex;
 }
 
-.inf-bulk-select-all-label {
+.inf-bulk-select-all-label.inf-bulk-select-all-label.inf-bulk-select-all-label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -4320,7 +4320,7 @@ button.inf-btn-save .inf-btn-lock-icon {
   font-size: 13px;
 }
 
-.inf-bulk-select-all-label input[type="checkbox"] {
+.inf-bulk-select-all-label.inf-bulk-select-all-label.inf-bulk-select-all-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin: 0;
