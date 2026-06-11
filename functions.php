@@ -90,6 +90,7 @@ function hello_elementor_child_scripts_styles()
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
+        'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
         'search_filter_nonce'   => wp_create_nonce('search_filter_nonce'),
         'brief_quality_nonce'   => wp_create_nonce('brief_quality_nonce'),
         'brief_quality_min_chars' => function_exists('creatordb_brief_quality_min_length')
