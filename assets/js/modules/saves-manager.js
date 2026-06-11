@@ -399,9 +399,9 @@ jQuery(document).ready(function($) {
         }
 
         const $btn = $(this);
-        if ($btn.attr('data-growth-plan') !== '1') {
+        if ($btn.attr('data-pdf-allowed') !== '1') {
             const upgradeUrl = $btn.attr('data-upgrade-url');
-            window.ddConfirm('Exporting saved lists to PDF is available on the Growth plan. Upgrade your plan to unlock this feature.', function() {
+            window.ddConfirm('Exporting saved lists to PDF is not available on your current plan. Upgrade your plan to unlock this feature.', function() {
                 if (upgradeUrl) window.location.href = upgradeUrl;
             });
             return;

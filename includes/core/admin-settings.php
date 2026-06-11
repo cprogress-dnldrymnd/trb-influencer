@@ -13,6 +13,43 @@ function dd_get_template_id($key, $fallback = 0)
     return (int) get_option($key, $fallback);
 }
 
+/**
+ * Renders a checkbox list of all PMPro membership levels.
+ *
+ * @param string $name        The option/field name (rendered as `{$name}[]`).
+ * @param array  $selected    Array of currently-selected level IDs.
+ * @param string $description Optional helper text shown below the field.
+ */
+function dd_render_pmpro_levels_checkboxes($name, $selected, $description = '')
+{
+    $selected = is_array($selected) ? array_map('intval', $selected) : [];
+
+    if (! function_exists('pmpro_getAllLevels')) {
+        echo '<p class="description">Paid Memberships Pro is not active.</p>';
+        return;
+    }
+
+    $levels = pmpro_getAllLevels(true, true);
+
+    if (empty($levels)) {
+        echo '<p class="description">No membership levels found.</p>';
+        return;
+    }
+?>
+    <fieldset>
+        <?php foreach ($levels as $level): ?>
+            <label style="display:block;margin-bottom:6px;">
+                <input type="checkbox" name="<?php echo esc_attr($name); ?>[]" value="<?php echo esc_attr($level->id); ?>" <?php checked(in_array((int) $level->id, $selected, true)); ?>>
+                <?php echo esc_html($level->name); ?>
+            </label>
+        <?php endforeach; ?>
+    </fieldset>
+    <?php if ($description): ?>
+        <p class="description"><?php echo esc_html($description); ?></p>
+    <?php endif; ?>
+<?php
+}
+
 function dd_render_post_search_select($name, $current_id, $type, $description)
 {
     $current_title = '';
@@ -109,8 +146,20 @@ add_action('admin_init', function () {
         ]);
     }
 
+    register_setting('dd_theme_page_ids', 'dd_export_pdf_allowed_levels', [
+        'type'              => 'array',
+        'sanitize_callback' => function ($value) {
+            if (! is_array($value)) {
+                return [];
+            }
+            return array_values(array_unique(array_map('absint', $value)));
+        },
+        'default'           => [],
+    ]);
+
     add_settings_section('dd_page_ids_section',     '', '__return_false', 'dd-theme-settings');
     add_settings_section('dd_template_ids_section', '', '__return_false', 'dd-theme-settings-templates');
+    add_settings_section('dd_functionality_section', '', '__return_false', 'dd-theme-settings-functionality');
 
     $page_fields = [
         'dd_search_results_page_id' => ['Search Results Page',   1949, 'Where influencer search results are displayed.'],
@@ -139,6 +188,14 @@ add_action('admin_init', function () {
             dd_render_post_search_select($key, dd_get_template_id($key, $default), 'elementor_template', $desc);
         }, 'dd-theme-settings-templates', 'dd_template_ids_section');
     }
+
+    add_settings_field('dd_export_pdf_allowed_levels', 'Export PDF Restriction', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_export_pdf_allowed_levels',
+            get_option('dd_export_pdf_allowed_levels', []),
+            'Only members with the selected membership levels can export saved lists to PDF. Leave all unchecked to disable the feature for everyone.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
 });
 
 // ---------------------------------------------------------------------------
@@ -161,6 +218,7 @@ add_action('admin_menu', function () {
             <div class="dd-tab-nav">
                 <button type="button" class="dd-tab-btn dd-tab-active" data-panel="pages">Page Assignments</button>
                 <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
+                <button type="button" class="dd-tab-btn" data-panel="functionality">Functionality</button>
             </div>
 
             <div class="dd-tab-body">
@@ -178,6 +236,13 @@ add_action('admin_menu', function () {
                         <p class="dd-tab-desc">Elementor templates used by the theme. Find these under <strong>Elementor → My Templates</strong>.</p>
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings-templates', 'dd_template_ids_section'); ?>
+                        </table>
+                    </div>
+
+                    <div class="dd-panel" id="dd-panel-functionality" hidden>
+                        <p class="dd-tab-desc">Toggles and access restrictions for individual platform features.</p>
+                        <table class="form-table" role="presentation">
+                            <?php do_settings_fields('dd-theme-settings-functionality', 'dd_functionality_section'); ?>
                         </table>
                     </div>
 

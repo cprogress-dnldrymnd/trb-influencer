@@ -1366,19 +1366,26 @@ class Saves_Manager
     }
 
     /**
-     * Helper: Does the current user have the "Growth" PMPro membership level?
+     * Helper: Is the current user's PMPro membership level allowed to export PDFs?
+     *
+     * Allowed levels are configured under Settings → Influencer Theme → Functionality.
      *
      * @return bool
      */
-    private function user_has_growth_plan()
+    private function user_can_export_pdf()
     {
         if (!function_exists('pmpro_getMembershipLevelForUser')) {
             return false;
         }
 
+        $allowed_levels = get_option('dd_export_pdf_allowed_levels', []);
+        if (empty($allowed_levels)) {
+            return false;
+        }
+
         $level = pmpro_getMembershipLevelForUser(get_current_user_id());
 
-        return !empty($level->name) && stripos($level->name, 'growth') !== false;
+        return !empty($level->id) && in_array((int) $level->id, array_map('intval', $allowed_levels), true);
     }
 
     /**
@@ -1386,7 +1393,7 @@ class Saves_Manager
      */
     public function render_inline_assets()
     {
-        $is_growth_plan = $this->user_has_growth_plan();
+        $can_export_pdf = $this->user_can_export_pdf();
         $upgrade_url    = function_exists('pmpro_url') ? pmpro_url('levels') : '#';
     ?>
         <div id="inf-modal-overlay" class="inf-modal-overlay">
@@ -1451,11 +1458,11 @@ class Saves_Manager
                     <div style="text-align:center; padding:20px;">LOADING INFLUENCERS...</div>
                 </div>
                 <div class="inf-view-group-footer">
-                    <button type="button" class="inf-btn inf-btn-save<?php echo $is_growth_plan ? '' : ' inf-btn-locked'; ?>" id="inf-export-group-pdf" data-growth-plan="<?php echo $is_growth_plan ? '1' : '0'; ?>" data-upgrade-url="<?php echo esc_url($upgrade_url); ?>" style="width: 100%; margin-bottom: 10px; display: none;">
+                    <button type="button" class="inf-btn inf-btn-save<?php echo $can_export_pdf ? '' : ' inf-btn-locked'; ?>" id="inf-export-group-pdf" data-pdf-allowed="<?php echo $can_export_pdf ? '1' : '0'; ?>" data-upgrade-url="<?php echo esc_url($upgrade_url); ?>" style="width: 100%; margin-bottom: 10px; display: none;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-pdf" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z" />
                         </svg> Export PDF
-                        <?php if (!$is_growth_plan) : ?>
+                        <?php if (!$can_export_pdf) : ?>
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-lock-fill inf-btn-lock-icon" viewBox="0 0 16 16">
                                 <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
                             </svg>
