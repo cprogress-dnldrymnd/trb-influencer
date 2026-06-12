@@ -48,6 +48,8 @@ class DD_PMPro_Rewards_Manager
 
         // Point allocation logic
         add_action('pmpro_after_checkout', array($this, 'award_registration_points'), 10, 2);
+        // Admin-side / API level grants never fire pmpro_after_checkout; catch them here too.
+        add_action('pmpro_after_change_membership_level', array($this, 'award_points_on_level_change'), 10, 3);
         add_action('dd_pmpro_daily_rewards_check', array($this, 'process_monthly_points'));
 
         // Point consumption tracking natively hooked to the WP Meta API
@@ -321,6 +323,45 @@ class DD_PMPro_Rewards_Manager
                 $this->insert_log($user_id, "Points Spent: " . abs($amount) . ". Allowance Tracker updated: {$allowance_balance} -> {$new_allowance}");
             }
         }
+    }
+
+    /**
+     * LOGIC: Award Registration Points on Manual / Programmatic Level Change
+     * The front-end checkout fires `pmpro_after_checkout`, but admin "Add Member",
+     * the Edit User membership dropdown, and direct `pmpro_changeMembershipLevel()`
+     * calls only fire `pmpro_after_change_membership_level`. This bridges that gap so
+     * manually added members still receive their registration points and allowance bucket.
+     *
+     * Reuses award_registration_points(); the `_dd_registration_points_awarded` guard
+     * inside it makes this idempotent and prevents a double-award during a real checkout
+     * (where both hooks fire). Level 0 means cancellation/expiry and is ignored.
+     *
+     * @param int      $level_id     The new membership level ID (0 on cancellation).
+     * @param int      $user_id      The affected user ID.
+     * @param int|null $cancel_level The level being cancelled, if any (unused).
+     * @return void
+     */
+    public function award_points_on_level_change($level_id, $user_id, $cancel_level = null)
+    {
+        if (! function_exists('mycred_add')) return;
+
+        $level_id = intval($level_id);
+        $user_id  = intval($user_id);
+
+        // Level 0 = membership cancelled/expired; nothing to award.
+        if ($level_id <= 0 || $user_id <= 0) return;
+
+        // If registration points were already granted (e.g. via checkout), skip the
+        // pseudo-order path entirely to avoid redundant work and log noise.
+        if (get_user_meta($user_id, '_dd_registration_points_awarded', true)) return;
+
+        // Build a minimal order-like object carrying the level so the shared awarder
+        // can resolve the matching reward rule.
+        $pseudo_order = new stdClass();
+        $pseudo_order->membership_id = $level_id;
+
+        $this->insert_log($user_id, "Level change detected outside checkout (Level {$level_id}). Processing registration award.");
+        $this->award_registration_points($user_id, $pseudo_order);
     }
 
     /**

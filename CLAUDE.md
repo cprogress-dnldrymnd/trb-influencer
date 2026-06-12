@@ -152,6 +152,12 @@ that are flushed on `save_post`/`delete_post` of an influencer.
   separately on admin screens).
 - `ajax_vars` (localized onto the `influencer-js` handle) carries `ajax_url`, the configured page
   IDs, and all nonces. Reference it from any module.
+- `Saves_Manager::enqueue_ajax_variables()` (`modules/saves/saves-manager.php`) **also** localizes
+  a second, smaller `ajax_vars` object onto a separate `theme-saves-js` handle (runs on every page,
+  not just search). Both objects share the same global JS variable name, so on pages where both
+  handles load, whichever prints last in the DOM wins. When adding a nonce/value that
+  `saves-manager.js` needs on non-search pages (e.g. `export_pdf_nonce`), add it to **both**
+  localizations.
 
 ### Data model & user activity
 
@@ -188,6 +194,13 @@ the PHP check in sync — the PHP check is the real boundary.
   checkout (`#buycred-checkout-form`) into the influencer look, a click-confirm gate before
   spending a credit (`mycred-buy-confirm.js`), and bank-transfer pending-notification handling.
   Also see `pmpro-mycred-rewards-manager.php` under membership-extensions.
+- **Registration points on non-checkout level changes** (`pmpro-mycred-rewards-manager.php`,
+  `DD_PMPro_Rewards_Manager`) — `pmpro_after_checkout` only fires for real front-end checkouts, so
+  admin "Add Member"/Edit User level changes and direct `pmpro_changeMembershipLevel()` calls are
+  also hooked via `pmpro_after_change_membership_level` → `award_points_on_level_change()`, which
+  builds a pseudo-order and reuses `award_registration_points()`. The `_dd_registration_points_awarded`
+  user-meta guard inside that method keeps this idempotent (no double-award on real checkouts where
+  both hooks fire); level `0` (cancellation/expiry) is ignored.
 - **Elementor** (`elementor.php`) — registers **custom query IDs** consumed by Loop widgets via
   `add_action('elementor/query/{id}', …)`: `recently_view_influencers`, `saved_lists`,
   `unlocked_influencers`, `current_user_posts`, `featured_influencers`. Also adds a **"MyCred
