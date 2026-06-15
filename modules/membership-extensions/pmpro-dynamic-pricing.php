@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.26
+ * Version: 1.0.27
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -606,8 +606,27 @@ class DD_PMPro_Frontend_Pricing
 			$payment_reason = 'Prorated upgrade cost';
 		}
 
+		// Determine when full-price billing actually begins.
+		// A discount code (or native level config) that applies a Custom Trial defers the first
+		// real charge by `trial_limit` billing cycles. When a code is applied at checkout, PMPro
+		// merges trial_limit / cycle_number / cycle_period onto $pmpro_level — so derive the start
+		// date from the trial rather than profile_start_date, which is only populated by the
+		// Subscription Delays Add On (not by discount-code trials) and would otherwise show a stale
+		// delay-based date that ignores the trial periods.
 		$start_date_str = "Now";
-		if (!empty($pmpro_level->profile_start_date)) {
+
+		$trial_limit  = isset($pmpro_level->trial_limit) ? (int) $pmpro_level->trial_limit : 0;
+		$cycle_number = isset($pmpro_level->cycle_number) ? (int) $pmpro_level->cycle_number : 0;
+		$cycle_period = isset($pmpro_level->cycle_period) ? trim($pmpro_level->cycle_period) : '';
+
+		if ($trial_limit > 0 && $cycle_number > 0 && !empty($cycle_period)) {
+			// First full-price charge lands after all trial cycles complete (e.g. 2 × 1 Month).
+			$total_cycles = $trial_limit * $cycle_number;
+			$start_ts = strtotime('+' . $total_cycles . ' ' . $cycle_period, current_time('timestamp'));
+			if ($start_ts) {
+				$start_date_str = date_i18n(get_option('date_format'), $start_ts);
+			}
+		} elseif (!empty($pmpro_level->profile_start_date)) {
 			$start_date_str = date_i18n(get_option('date_format'), strtotime($pmpro_level->profile_start_date));
 		}
 
