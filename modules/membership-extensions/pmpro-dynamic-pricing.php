@@ -681,7 +681,7 @@ class DD_PMPro_Frontend_Pricing
 				'bullets' => [
 					'Enjoy unlimited access to your selected plan features.',
 					'From the starting date shown, you\'ll be charged for your updated subscription.',
-					'Cancel anytime online. <a href="/terms-of-use/">Terms apply</a>.'
+					'<strong>Cancel anytime online. <a href="/terms-of-use/">Terms apply</a></strong>.'
 				]
 			]
 		];

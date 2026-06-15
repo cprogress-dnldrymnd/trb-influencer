@@ -207,10 +207,14 @@ the PHP check in sync — the PHP check is the real boundary.
   locking plan changes during free trials (both in the UI and via a `template_redirect` URL guard).
   Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
   `influencer_style_pmpro_checkout`) into the influencer look.
-  > Gotcha: the "billing starts on" date shown on checkout must be derived from
+  > Gotcha: the "billing starts on" date (`calculate_billing_start_date()`) must be derived from
   > `trial_limit`/`cycle_number`/`cycle_period` (populated when a discount code applies a Custom
   > Trial) rather than `profile_start_date`, which is only set by the Subscription Delays Add On and
-  > goes stale once a trial-bearing discount code is used.
+  > goes stale once a trial-bearing discount code is used. Discount codes are applied **client-side
+  > via AJAX after page render**, so the initial server-rendered date can't see a code-driven trial;
+  > the checkout JS re-fetches it from `wp_ajax_dd_get_trial_start_date`
+  > (`ajax_get_trial_start_date()`, nonce `dd_trial_start`) whenever a discount-code AJAX call
+  > completes, and patches the `.dd-start-date` span.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription
