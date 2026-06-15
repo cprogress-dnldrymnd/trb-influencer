@@ -1012,6 +1012,9 @@ class DD_PMPro_Frontend_Pricing
 				font-size: 14px;
 				color: #b3b3b3;
 			}
+			.dd-start-date {
+				color: var(--e-global-color-primary);
+			}
 
 			/* Bullet Points */
 			.infl-bullets.infl-bullets {

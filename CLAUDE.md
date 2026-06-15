@@ -213,8 +213,13 @@ the PHP check in sync — the PHP check is the real boundary.
   > goes stale once a trial-bearing discount code is used. Discount codes are applied **client-side
   > via AJAX after page render**, so the initial server-rendered date can't see a code-driven trial;
   > the checkout JS re-fetches it from `wp_ajax_dd_get_trial_start_date`
-  > (`ajax_get_trial_start_date()`, nonce `dd_trial_start`) whenever a discount-code AJAX call
-  > completes, and patches the `.dd-start-date` span.
+  > (`ajax_get_trial_start_date()`, nonce `dd_trial_start`) whenever the applied discount code
+  > changes — detected via `ajaxComplete` on any pmpro/discount request plus a 1s poll comparing
+  > against the last-seen code — and patches the `.dd-start-date` span. Server-side,
+  > `ajax_get_trial_start_date()` prefers reading the code's trial straight from
+  > `{$wpdb->prefix}pmpro_discount_codes_levels` (`get_discounted_level_pricing()`), since
+  > `pmpro_getLevelAtCheckout()` can silently drop the trial depending on validation context (use
+  > limits, login state); it falls back to `pmpro_getLevelAtCheckout()` then plain `pmpro_getLevel()`.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription
