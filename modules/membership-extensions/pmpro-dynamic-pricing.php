@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.29
+ * Version: 1.0.30
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -1012,7 +1012,7 @@ class DD_PMPro_Frontend_Pricing
 				font-size: 14px;
 				color: #b3b3b3;
 			}
-			.dd-start-date {
+			.dd-start-date.dd-start-date.dd-start-date {
 				color: var(--e-global-color-primary);
 			}
 
@@ -1285,31 +1285,61 @@ class DD_PMPro_Frontend_Pricing
 						// this via AJAX/REST post-render), so re-derive the recurring start date
 						// whenever the applied code changes. We watch the applied-code value directly
 						// (poll + ajaxComplete) to stay independent of how the checkout applies it.
+						// Enable verbose logging by adding ?dd_debug=1 to the checkout URL.
+						var ddDebug = /[?&]dd_debug=1/.test(window.location.search);
+						function ddLog() {
+							if (ddDebug && window.console) {
+								console.log.apply(console, ['[dd-trial]'].concat([].slice.call(arguments)));
+							}
+						}
+
 						function ddGetAppliedDiscountCode() {
-							// Prefer the hidden "applied" field over the visible typing field so we
-							// only react once a code is actually applied, not as it's typed.
-							var sels = ['input[name="discount_code"]', '#discount_code', 'input[name="other_discount_code"]', '#other_discount_code'];
-							for (var i = 0; i < sels.length; i++) {
-								var $f = $(sels[i]);
-								if ($f.length && $.trim($f.val() || '') !== '') {
-									return $.trim($f.val());
+							// 1. Any discount-named input that currently holds a value. The block
+							//    checkout may use a different field name than classic PMPro, so match
+							//    on "discount" appearing anywhere in the name/id rather than fixed ids.
+							var code = '';
+							$('input').each(function() {
+								var key = (((this.name || '') + ' ' + (this.id || '')).toLowerCase());
+								if (key.indexOf('discount') !== -1) {
+									var v = $.trim($(this).val() || '');
+									if (v) {
+										code = v;
+										return false; // break
+									}
 								}
+							});
+							if (code) return code;
+
+							// 2. Fallback: some checkouts clear the field after applying and only show
+							//    a "<CODE> code has been applied" message — pull the code out of that.
+							var $msg = $('[id*="discount"], [class*="discount"]').filter(function() {
+								return /applied/i.test($(this).text());
+							}).first();
+							if ($msg.length) {
+								var m = $msg.text().match(/\b([A-Z0-9]{4,})\b/);
+								if (m) return m[1];
 							}
 							return '';
 						}
 
 						function ddRefreshStartDate(code) {
 							if (!currentLevelId) return;
+							ddLog('fetching start date for level', currentLevelId, 'code', code || '(none)');
 							$.post(ddAjaxUrl, {
 								action: 'dd_get_trial_start_date',
 								level: currentLevelId,
 								discount_code: code || '',
 								nonce: ddStartDateNonce
 							}, function(resp) {
+								ddLog('response', resp);
 								if (resp && resp.success && resp.data && resp.data.start_date) {
 									dynamicStartDate = resp.data.start_date;
-									$('#dd-influencer-summary .dd-start-date').text(resp.data.start_date);
+									var $target = $('#dd-influencer-summary .dd-start-date');
+									ddLog('updating .dd-start-date (' + $target.length + ' found) ->', resp.data.start_date);
+									$target.text(resp.data.start_date);
 								}
+							}).fail(function(xhr) {
+								ddLog('request FAILED', xhr && xhr.status, xhr && xhr.responseText);
 							});
 						}
 
@@ -1317,6 +1347,7 @@ class DD_PMPro_Frontend_Pricing
 						function ddMaybeRefresh() {
 							var code = ddGetAppliedDiscountCode();
 							if (code !== ddLastCode) {
+								ddLog('applied code changed:', JSON.stringify(ddLastCode), '->', JSON.stringify(code));
 								ddLastCode = code;
 								ddRefreshStartDate(code);
 							}
