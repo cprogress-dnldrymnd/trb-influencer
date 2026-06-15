@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.27
+ * Version: 1.0.28
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -31,6 +31,65 @@ class DD_PMPro_Frontend_Pricing
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
 		add_action('template_redirect', [$this, 'prevent_checkout_for_pending_downgrade']); // Block checkout on pending-downgrade target level
 		add_action('wp_footer', [$this, 'influencer_style_pmpro_checkout'], 50); // Influencer UI Override
+		// Recompute the "Starting" date when a discount code is applied via AJAX (post page-load)
+		add_action('wp_ajax_dd_get_trial_start_date', [$this, 'ajax_get_trial_start_date']);
+		add_action('wp_ajax_nopriv_dd_get_trial_start_date', [$this, 'ajax_get_trial_start_date']);
+	}
+
+	/**
+	 * Calculates the date full-price recurring billing begins for a given PMPro level object.
+	 *
+	 * A Custom Trial (applied natively or via a discount code) defers the first real charge by
+	 * `trial_limit` billing cycles, so the start date is now + (trial_limit * cycle). Falls back to
+	 * the Subscription Delays Add On's `profile_start_date`, then "Now".
+	 *
+	 * @param object $level A PMPro level object (ideally post-discount, e.g. from pmpro_getLevelAtCheckout).
+	 * @return string Localized date string, or "Now".
+	 */
+	private function calculate_billing_start_date($level)
+	{
+		if (empty($level)) {
+			return 'Now';
+		}
+
+		$trial_limit  = isset($level->trial_limit) ? (int) $level->trial_limit : 0;
+		$cycle_number = isset($level->cycle_number) ? (int) $level->cycle_number : 0;
+		$cycle_period = isset($level->cycle_period) ? trim($level->cycle_period) : '';
+
+		if ($trial_limit > 0 && $cycle_number > 0 && !empty($cycle_period)) {
+			// First full-price charge lands after all trial cycles complete (e.g. 2 × 1 Month).
+			$total_cycles = $trial_limit * $cycle_number;
+			$start_ts = strtotime('+' . $total_cycles . ' ' . $cycle_period, current_time('timestamp'));
+			if ($start_ts) {
+				return date_i18n(get_option('date_format'), $start_ts);
+			}
+		} elseif (!empty($level->profile_start_date)) {
+			return date_i18n(get_option('date_format'), strtotime($level->profile_start_date));
+		}
+
+		return 'Now';
+	}
+
+	/**
+	 * AJAX: returns the recurring-billing start date for a level with an (optional) discount code
+	 * applied. Discount codes are applied client-side via AJAX after page render, so the server's
+	 * initial timeline can't see the resulting trial — this lets the front-end re-fetch it using
+	 * PMPro's own discount-application logic.
+	 * @return void
+	 */
+	public function ajax_get_trial_start_date()
+	{
+		$level_id      = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
+		$discount_code = isset($_REQUEST['discount_code']) ? sanitize_text_field(wp_unslash($_REQUEST['discount_code'])) : '';
+
+		if (!$level_id || !function_exists('pmpro_getLevelAtCheckout')) {
+			wp_send_json_error(['message' => 'invalid_request']);
+		}
+
+		// pmpro_getLevelAtCheckout applies a valid discount code (incl. its trial) onto the level.
+		$level = pmpro_getLevelAtCheckout($level_id, $discount_code);
+
+		wp_send_json_success(['start_date' => $this->calculate_billing_start_date($level)]);
 	}
 
 	/**
@@ -606,29 +665,11 @@ class DD_PMPro_Frontend_Pricing
 			$payment_reason = 'Prorated upgrade cost';
 		}
 
-		// Determine when full-price billing actually begins.
-		// A discount code (or native level config) that applies a Custom Trial defers the first
-		// real charge by `trial_limit` billing cycles. When a code is applied at checkout, PMPro
-		// merges trial_limit / cycle_number / cycle_period onto $pmpro_level — so derive the start
-		// date from the trial rather than profile_start_date, which is only populated by the
-		// Subscription Delays Add On (not by discount-code trials) and would otherwise show a stale
-		// delay-based date that ignores the trial periods.
-		$start_date_str = "Now";
-
-		$trial_limit  = isset($pmpro_level->trial_limit) ? (int) $pmpro_level->trial_limit : 0;
-		$cycle_number = isset($pmpro_level->cycle_number) ? (int) $pmpro_level->cycle_number : 0;
-		$cycle_period = isset($pmpro_level->cycle_period) ? trim($pmpro_level->cycle_period) : '';
-
-		if ($trial_limit > 0 && $cycle_number > 0 && !empty($cycle_period)) {
-			// First full-price charge lands after all trial cycles complete (e.g. 2 × 1 Month).
-			$total_cycles = $trial_limit * $cycle_number;
-			$start_ts = strtotime('+' . $total_cycles . ' ' . $cycle_period, current_time('timestamp'));
-			if ($start_ts) {
-				$start_date_str = date_i18n(get_option('date_format'), $start_ts);
-			}
-		} elseif (!empty($pmpro_level->profile_start_date)) {
-			$start_date_str = date_i18n(get_option('date_format'), strtotime($pmpro_level->profile_start_date));
-		}
+		// Determine when full-price billing begins. NOTE: a discount-code trial is applied
+		// client-side via AJAX after this renders, so $pmpro_level here only reflects a trial that
+		// came in via the URL. The front-end re-fetches this through ajax_get_trial_start_date()
+		// once a code is applied (see the dd-start-date script below).
+		$start_date_str = $this->calculate_billing_start_date($pmpro_level);
 
 		// Safely get the dynamic Membership Levels page URL for the "Change plan" link
 		$levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
@@ -984,6 +1025,11 @@ class DD_PMPro_Frontend_Pricing
 				var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
 				var dynamicStartDate = <?php echo wp_json_encode($start_date_str); ?>;
 
+				// Endpoint + nonce used to re-derive the "Starting" date after a discount code
+				// is applied via AJAX (the trial only exists once PMPro applies the code).
+				var ddAjaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+				var ddStartDateNonce = <?php echo wp_json_encode(wp_create_nonce('dd_trial_start')); ?>;
+
 				// 1. Inject Header and Title Row immediately
 				$('.dd-influencer-header, .dd-checkout-title-row').remove();
 				var headerHtml = '<div class="dd-influencer-header">' +
@@ -1089,7 +1135,7 @@ class DD_PMPro_Frontend_Pricing
                                 <div class="infl-timeline-item" id="dd-timeline-later">
                                     <div class="infl-dot hollow"></div>
                                     <div class="infl-content">
-                                        <p><strong>Starting ${dynamicStartDate}:</strong> ${recurringPrice} /${cycle}</p>
+                                        <p><strong>Starting <span class="dd-start-date">${dynamicStartDate}</span>:</strong> ${recurringPrice} /${cycle}</p>
                                         <span>${planName}</span>
                                     </div>
                                 </div>
@@ -1168,6 +1214,47 @@ class DD_PMPro_Frontend_Pricing
 
 						ddHandleGatewaySwitch(); // Initial run
 						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
+
+						// --- DISCOUNT-CODE START DATE SYNC ---
+						// Discount codes are applied via AJAX after this script runs, so the trial
+						// (and therefore the recurring start date) only exists post-apply. Re-derive
+						// it server-side through PMPro whenever a discount AJAX call completes.
+						function ddGetAppliedDiscountCode() {
+							var sels = ['input[name="discount_code"]', '#discount_code', 'input[name="other_discount_code"]', '#other_discount_code'];
+							for (var i = 0; i < sels.length; i++) {
+								var $f = $(sels[i]);
+								if ($f.length && $.trim($f.val() || '') !== '') {
+									return $.trim($f.val());
+								}
+							}
+							return '';
+						}
+
+						function ddRefreshStartDate() {
+							if (!currentLevelId) return;
+							$.post(ddAjaxUrl, {
+								action: 'dd_get_trial_start_date',
+								level: currentLevelId,
+								discount_code: ddGetAppliedDiscountCode(),
+								nonce: ddStartDateNonce
+							}, function(resp) {
+								if (resp && resp.success && resp.data && resp.data.start_date) {
+									dynamicStartDate = resp.data.start_date;
+									$('#dd-influencer-summary .dd-start-date').text(resp.data.start_date);
+								}
+							});
+						}
+
+						// Re-run whenever any PMPro discount-code AJAX request completes (apply OR remove).
+						$(document).ajaxComplete(function(event, xhr, settings) {
+							var probe = (((settings && settings.url) || '') + ((settings && settings.data) || '')).toLowerCase();
+							if (probe.indexOf('discount') !== -1) {
+								setTimeout(ddRefreshStartDate, 50);
+							}
+						});
+
+						// Catch a discount code already applied at page load (e.g. passed via URL).
+						ddRefreshStartDate();
 
 						// MutationObserver to catch PMPro's AJAX injection of check instructions
 						var instrObserver = new MutationObserver(function() {

@@ -201,6 +201,22 @@ the PHP check in sync — the PHP check is the real boundary.
   builds a pseudo-order and reuses `award_registration_points()`. The `_dd_registration_points_awarded`
   user-meta guard inside that method keeps this idempotent (no double-award on real checkouts where
   both hooks fire); level `0` (cancellation/expiry) is ignored.
+- **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
+  `[dd_pricing_table]` shortcode renders a Monthly/Yearly toggle pricing UI, auto-pairing each base
+  level with its "Annual" Payment Plan extension, disabling owned/pending-downgrade plans, and
+  locking plan changes during free trials (both in the UI and via a `template_redirect` URL guard).
+  Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
+  `influencer_style_pmpro_checkout`) into the influencer look.
+  > Gotcha: the "billing starts on" date shown on checkout must be derived from
+  > `trial_limit`/`cycle_number`/`cycle_period` (populated when a discount code applies a Custom
+  > Trial) rather than `profile_start_date`, which is only set by the Subscription Delays Add On and
+  > goes stale once a trial-bearing discount code is used.
+- **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
+  fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
+  (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription
+  Delay.
+- **AJAX signup** (`pmpro-sign-up.php`, `DD_PMPro_Ajax_Signup`) — extends PMPro registration with an
+  avatar upload field and a terms-acceptance checkbox.
 - **Elementor** (`elementor.php`) — registers **custom query IDs** consumed by Loop widgets via
   `add_action('elementor/query/{id}', …)`: `recently_view_influencers`, `saved_lists`,
   `unlocked_influencers`, `current_user_posts`, `featured_influencers`. Also adds a **"MyCred
