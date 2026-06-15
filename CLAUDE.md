@@ -183,7 +183,7 @@ shown) for **non-empty** groups; the front-end (`saves-manager.js`) routes disal
 upgrade URL instead of triggering the `creatordb_export_saved_list_pdf` AJAX. Keep the JS guard and
 the PHP check in sync — the PHP check is the real boundary.
 
-### Third-party integrations (`includes/integrations/`)
+### Third-party integrations (`includes/integrations/`, `modules/membership-extensions/`)
 
 - **PMPro** (`pmpro.php`) — membership is the access spine: enforces a single active level,
   prorates initial payment on plan switches (`pmpro_checkout_level`), forces free-tier (level 15)
@@ -214,10 +214,16 @@ the PHP check in sync — the PHP check is the real boundary.
   > via AJAX after page render**, so the initial server-rendered date can't see a code-driven trial;
   > the checkout JS re-fetches it from `wp_ajax_dd_get_trial_start_date`
   > (`ajax_get_trial_start_date()`, nonce `dd_trial_start`) whenever the applied discount code
-  > changes — detected via `ajaxComplete` on any pmpro/discount request plus a 1s poll comparing
-  > against the last-seen code — and patches the `.dd-start-date` span. Server-side,
-  > `ajax_get_trial_start_date()` prefers reading the code's trial straight from
-  > `{$wpdb->prefix}pmpro_discount_codes_levels` (`get_discounted_level_pricing()`), since
+  > changes — detected via `ajaxComplete` on any pmpro/discount request (ignoring its own
+  > `dd_get_trial_start_date` calls) plus a 1s poll comparing against the last-synced code — and
+  > patches the `.dd-start-date` span. The applied code is read by `ddGetAppliedDiscountCode()`,
+  > which scans non-button/checkbox/radio inputs whose name/id contains "discount" for a held value
+  > (the block checkout doesn't use PMPro's classic field names), falling back to parsing an
+  > "applied" confirmation message's text if no input holds a value. The refresh call itself is
+  > guarded against a slow/blocked network: only one request in flight at a time, an 8s timeout, and
+  > sync disables itself after 3 consecutive failures (`ddStopSync`) rather than piling up hung
+  > requests. Server-side, `ajax_get_trial_start_date()` prefers reading the code's trial straight
+  > from `{$wpdb->prefix}pmpro_discount_codes_levels` (`get_discounted_level_pricing()`), since
   > `pmpro_getLevelAtCheckout()` can silently drop the trial depending on validation context (use
   > limits, login state); it falls back to `pmpro_getLevelAtCheckout()` then plain `pmpro_getLevel()`.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —

@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.30
+ * Version: 1.0.32
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -1285,20 +1285,18 @@ class DD_PMPro_Frontend_Pricing
 						// this via AJAX/REST post-render), so re-derive the recurring start date
 						// whenever the applied code changes. We watch the applied-code value directly
 						// (poll + ajaxComplete) to stay independent of how the checkout applies it.
-						// Enable verbose logging by adding ?dd_debug=1 to the checkout URL.
-						var ddDebug = /[?&]dd_debug=1/.test(window.location.search);
-						function ddLog() {
-							if (ddDebug && window.console) {
-								console.log.apply(console, ['[dd-trial]'].concat([].slice.call(arguments)));
-							}
-						}
-
 						function ddGetAppliedDiscountCode() {
-							// 1. Any discount-named input that currently holds a value. The block
-							//    checkout may use a different field name than classic PMPro, so match
-							//    on "discount" appearing anywhere in the name/id rather than fixed ids.
+							// 1. Any discount-named *value* input that currently holds a value. The
+							//    block checkout may use a different field name than classic PMPro, so
+							//    match on "discount" appearing anywhere in the name/id rather than fixed
+							//    ids. Skip buttons/submits — their value is the label ("Apply"), not a code.
 							var code = '';
 							$('input').each(function() {
+								var type = (this.type || 'text').toLowerCase();
+								if (type === 'submit' || type === 'button' || type === 'reset' ||
+									type === 'checkbox' || type === 'radio' || type === 'image') {
+									return; // continue
+								}
 								var key = (((this.name || '') + ' ' + (this.id || '')).toLowerCase());
 								if (key.indexOf('discount') !== -1) {
 									var v = $.trim($(this).val() || '');
@@ -1322,46 +1320,69 @@ class DD_PMPro_Frontend_Pricing
 							return '';
 						}
 
-						function ddRefreshStartDate(code) {
-							if (!currentLevelId) return;
-							ddLog('fetching start date for level', currentLevelId, 'code', code || '(none)');
-							$.post(ddAjaxUrl, {
-								action: 'dd_get_trial_start_date',
-								level: currentLevelId,
-								discount_code: code || '',
-								nonce: ddStartDateNonce
-							}, function(resp) {
-								ddLog('response', resp);
-								if (resp && resp.success && resp.data && resp.data.start_date) {
-									dynamicStartDate = resp.data.start_date;
-									var $target = $('#dd-influencer-summary .dd-start-date');
-									ddLog('updating .dd-start-date (' + $target.length + ' found) ->', resp.data.start_date);
-									$target.text(resp.data.start_date);
-								}
-							}).fail(function(xhr) {
-								ddLog('request FAILED', xhr && xhr.status, xhr && xhr.responseText);
-							});
-						}
+						// Network-safety state: never run more than one request at a time, fail fast,
+						// and give up after repeated failures so a slow/blocked network can't make us
+						// pile up hung requests and exhaust the browser's connection pool to the host.
+						var ddInFlight = false;
+						var ddSyncedCode = null;   // last code we successfully reflected in the UI
+						var ddFailCount = 0;
+						var ddSyncEnabled = true;
+						var ddPollTimer = null;
 
-						var ddLastCode = null;
-						function ddMaybeRefresh() {
-							var code = ddGetAppliedDiscountCode();
-							if (code !== ddLastCode) {
-								ddLog('applied code changed:', JSON.stringify(ddLastCode), '->', JSON.stringify(code));
-								ddLastCode = code;
-								ddRefreshStartDate(code);
+						function ddStopSync() {
+							ddSyncEnabled = false;
+							if (ddPollTimer) {
+								clearInterval(ddPollTimer);
+								ddPollTimer = null;
 							}
 						}
 
-						// Snappy: react to any PMPro / discount AJAX request. Safety net: poll the
-						// applied-code value so we catch it regardless of the apply mechanism.
+						function ddRefreshStartDate(code) {
+							if (!ddSyncEnabled || !currentLevelId || ddInFlight) return;
+							ddInFlight = true;
+							$.ajax({
+								url: ddAjaxUrl,
+								method: 'POST',
+								timeout: 8000, // fail fast instead of hanging ~30s and holding a connection
+								data: {
+									action: 'dd_get_trial_start_date',
+									level: currentLevelId,
+									discount_code: code || '',
+									nonce: ddStartDateNonce
+								}
+							}).done(function(resp) {
+								ddFailCount = 0;
+								if (resp && resp.success && resp.data && resp.data.start_date) {
+									ddSyncedCode = code;
+									dynamicStartDate = resp.data.start_date;
+									$('#dd-influencer-summary .dd-start-date').text(resp.data.start_date);
+								}
+							}).fail(function() {
+								ddFailCount++;
+								if (ddFailCount >= 3) {
+									ddStopSync();
+								}
+							}).always(function() {
+								ddInFlight = false;
+							});
+						}
+
+						function ddMaybeRefresh() {
+							if (!ddSyncEnabled) return;
+							var code = ddGetAppliedDiscountCode();
+							if (code === ddSyncedCode) return; // UI already shows the right date
+							ddRefreshStartDate(code);
+						}
+
+						// Snappy: react to discount-apply AJAX. Safety net: poll the applied-code value.
 						$(document).ajaxComplete(function(event, xhr, settings) {
 							var probe = (((settings && settings.url) || '') + ((settings && settings.data) || '')).toLowerCase();
+							if (probe.indexOf('dd_get_trial_start_date') !== -1) return; // ignore our own call
 							if (probe.indexOf('pmpro') !== -1 || probe.indexOf('discount') !== -1) {
 								setTimeout(ddMaybeRefresh, 50);
 							}
 						});
-						setInterval(ddMaybeRefresh, 1000);
+						ddPollTimer = setInterval(ddMaybeRefresh, 1000);
 						ddMaybeRefresh(); // initial (covers a code already applied at load)
 
 						// MutationObserver to catch PMPro's AJAX injection of check instructions
