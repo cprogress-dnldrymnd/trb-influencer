@@ -5,7 +5,7 @@ if (! defined('ABSPATH')) {
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
  * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.28
+ * Version: 1.0.29
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -82,14 +82,76 @@ class DD_PMPro_Frontend_Pricing
 		$level_id      = isset($_REQUEST['level']) ? (int) $_REQUEST['level'] : 0;
 		$discount_code = isset($_REQUEST['discount_code']) ? sanitize_text_field(wp_unslash($_REQUEST['discount_code'])) : '';
 
-		if (!$level_id || !function_exists('pmpro_getLevelAtCheckout')) {
+		if (!$level_id) {
 			wp_send_json_error(['message' => 'invalid_request']);
 		}
 
-		// pmpro_getLevelAtCheckout applies a valid discount code (incl. its trial) onto the level.
-		$level = pmpro_getLevelAtCheckout($level_id, $discount_code);
+		$level = false;
+
+		// 1. Prefer the discount-code pricing pulled straight from the DB. pmpro_getLevelAtCheckout()
+		//    can silently drop the trial depending on validation context (use limits, login state),
+		//    whereas the discount_codes_levels row is exactly how the code was configured.
+		if (!empty($discount_code)) {
+			$level = $this->get_discounted_level_pricing($level_id, $discount_code);
+		}
+
+		// 2. Fallback: PMPro's own level-at-checkout (URL-applied codes / native trials).
+		if (empty($level) && function_exists('pmpro_getLevelAtCheckout')) {
+			$level = pmpro_getLevelAtCheckout($level_id, $discount_code);
+		}
+
+		// 3. Final fallback: the plain base level.
+		if (empty($level) && function_exists('pmpro_getLevel')) {
+			$level = pmpro_getLevel($level_id);
+		}
 
 		wp_send_json_success(['start_date' => $this->calculate_billing_start_date($level)]);
+	}
+
+	/**
+	 * Reads the pricing/trial a discount code applies to a level directly from PMPro's tables.
+	 * Bypasses pmpro_getLevelAtCheckout()'s validation so the trial is reflected regardless of
+	 * the AJAX request's user/use-limit context.
+	 *
+	 * @param int    $level_id      The PMPro level ID.
+	 * @param string $discount_code The discount code string.
+	 * @return object|false Level-like object with trial fields, or false if the code/row is absent.
+	 */
+	private function get_discounted_level_pricing($level_id, $discount_code)
+	{
+		global $wpdb;
+
+		$code_id = $wpdb->get_var($wpdb->prepare(
+			"SELECT id FROM {$wpdb->prefix}pmpro_discount_codes WHERE code = %s LIMIT 1",
+			$discount_code
+		));
+
+		if (!$code_id) {
+			return false;
+		}
+
+		$row = $wpdb->get_row($wpdb->prepare(
+			"SELECT initial_payment, billing_amount, cycle_number, cycle_period, trial_amount, trial_limit
+			 FROM {$wpdb->prefix}pmpro_discount_codes_levels
+			 WHERE code_id = %d AND level_id = %d
+			 LIMIT 1",
+			$code_id,
+			$level_id
+		));
+
+		if (!$row) {
+			return false;
+		}
+
+		// Normalize into a level-like object that calculate_billing_start_date() understands.
+		return (object) [
+			'initial_payment' => $row->initial_payment,
+			'billing_amount'  => $row->billing_amount,
+			'cycle_number'    => $row->cycle_number,
+			'cycle_period'    => $row->cycle_period,
+			'trial_amount'    => $row->trial_amount,
+			'trial_limit'     => $row->trial_limit,
+		];
 	}
 
 	/**
@@ -1216,10 +1278,13 @@ class DD_PMPro_Frontend_Pricing
 						$(document).on('change', 'input[name=gateway], #gateway', ddHandleGatewaySwitch);
 
 						// --- DISCOUNT-CODE START DATE SYNC ---
-						// Discount codes are applied via AJAX after this script runs, so the trial
-						// (and therefore the recurring start date) only exists post-apply. Re-derive
-						// it server-side through PMPro whenever a discount AJAX call completes.
+						// A discount code's trial only exists AFTER the code is applied (PMPro does
+						// this via AJAX/REST post-render), so re-derive the recurring start date
+						// whenever the applied code changes. We watch the applied-code value directly
+						// (poll + ajaxComplete) to stay independent of how the checkout applies it.
 						function ddGetAppliedDiscountCode() {
+							// Prefer the hidden "applied" field over the visible typing field so we
+							// only react once a code is actually applied, not as it's typed.
 							var sels = ['input[name="discount_code"]', '#discount_code', 'input[name="other_discount_code"]', '#other_discount_code'];
 							for (var i = 0; i < sels.length; i++) {
 								var $f = $(sels[i]);
@@ -1230,12 +1295,12 @@ class DD_PMPro_Frontend_Pricing
 							return '';
 						}
 
-						function ddRefreshStartDate() {
+						function ddRefreshStartDate(code) {
 							if (!currentLevelId) return;
 							$.post(ddAjaxUrl, {
 								action: 'dd_get_trial_start_date',
 								level: currentLevelId,
-								discount_code: ddGetAppliedDiscountCode(),
+								discount_code: code || '',
 								nonce: ddStartDateNonce
 							}, function(resp) {
 								if (resp && resp.success && resp.data && resp.data.start_date) {
@@ -1245,16 +1310,25 @@ class DD_PMPro_Frontend_Pricing
 							});
 						}
 
-						// Re-run whenever any PMPro discount-code AJAX request completes (apply OR remove).
+						var ddLastCode = null;
+						function ddMaybeRefresh() {
+							var code = ddGetAppliedDiscountCode();
+							if (code !== ddLastCode) {
+								ddLastCode = code;
+								ddRefreshStartDate(code);
+							}
+						}
+
+						// Snappy: react to any PMPro / discount AJAX request. Safety net: poll the
+						// applied-code value so we catch it regardless of the apply mechanism.
 						$(document).ajaxComplete(function(event, xhr, settings) {
 							var probe = (((settings && settings.url) || '') + ((settings && settings.data) || '')).toLowerCase();
-							if (probe.indexOf('discount') !== -1) {
-								setTimeout(ddRefreshStartDate, 50);
+							if (probe.indexOf('pmpro') !== -1 || probe.indexOf('discount') !== -1) {
+								setTimeout(ddMaybeRefresh, 50);
 							}
 						});
-
-						// Catch a discount code already applied at page load (e.g. passed via URL).
-						ddRefreshStartDate();
+						setInterval(ddMaybeRefresh, 1000);
+						ddMaybeRefresh(); // initial (covers a code already applied at load)
 
 						// MutationObserver to catch PMPro's AJAX injection of check instructions
 						var instrObserver = new MutationObserver(function() {
