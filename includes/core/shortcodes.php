@@ -1399,28 +1399,24 @@ function shortcode_influencer_follower_growth($atts)
         return $na_output;
     }
 
-    // Influencers Club provided data already comes with its own 3-month growth figure;
-    // use it directly instead of deriving growth from the CreatorDB history.
-    if (get_post_meta($post_id, 'source_provider', true) === 'influencers_club') {
-        $club_growth = get_post_meta($post_id, 'instagram_creator_follower_growth_3_months_ago', true);
-
-        if ($club_growth === '' || $club_growth === null || ! is_numeric($club_growth)) {
-            return $na_output;
-        }
-
-        $growth_percent = (float) $club_growth;
-        $formatted_percent = ($growth_percent > 0 ? '+' : '') . number_format($growth_percent, 2) . '%';
-
-        return sprintf(
-            '<span class="creatordb-follower-growth">%s</span>',
-            esc_html($formatted_percent)
-        );
-    }
-
-    // Retrieve the history array from post meta.
-    $history = get_post_meta($post_id, 'creatordb_history', true);
+    $history = function_exists('trb_instagram_history_rows')
+        ? trb_instagram_history_rows($post_id)
+        : get_post_meta($post_id, 'creatordb_history', true);
 
     if (empty($history) || ! is_array($history) || count($history) < 2) {
+        if (get_post_meta($post_id, 'source_provider', true) === 'influencers_club') {
+            $club_growth = get_post_meta($post_id, 'instagram_creator_follower_growth_3_months_ago', true);
+            if ($club_growth !== '' && $club_growth !== null && is_numeric($club_growth)) {
+                $growth_percent = (float) $club_growth;
+                $formatted_percent = ($growth_percent > 0 ? '+' : '') . number_format($growth_percent, 2) . '%';
+
+                return sprintf(
+                    '<span class="creatordb-follower-growth">%s</span>',
+                    esc_html($formatted_percent)
+                );
+            }
+        }
+
         return $na_output;
     }
 
@@ -1510,17 +1506,18 @@ function calculate_influencer_platform_score($post_id = null)
         return null;
     }
 
+    $history = function_exists('trb_instagram_history_rows')
+        ? trb_instagram_history_rows($post_id)
+        : (array) get_post_meta($post_id, 'creatordb_history', true);
+
     // 1. Engagement rate: use meta or derive from history
     $engagement_rate = (float) get_post_meta($post_id, 'engagerate', true);
-    if ($engagement_rate <= 0) {
-        $history = get_post_meta($post_id, 'creatordb_history', true);
-        if (is_array($history) && !empty($history)) {
-            $latest = end($history);
-            $avglikes   = (float) ($latest['avglikes'] ?? 0);
-            $avgcomments = (float) ($latest['avgcomments'] ?? 0);
-            if ($followers > 0) {
-                $engagement_rate = (($avglikes + $avgcomments) / $followers) * 100;
-            }
+    if ($engagement_rate <= 0 && is_array($history) && !empty($history)) {
+        $latest = end($history);
+        $avglikes   = (float) ($latest['avglikes'] ?? 0);
+        $avgcomments = (float) ($latest['avgcomments'] ?? 0);
+        if ($followers > 0) {
+            $engagement_rate = (($avglikes + $avgcomments) / $followers) * 100;
         }
     }
 
@@ -1529,38 +1526,35 @@ function calculate_influencer_platform_score($post_id = null)
     $growth_meta = get_post_meta($post_id, 'followersgrowth', true);
     if ($growth_meta !== '' && $growth_meta !== null && is_numeric($growth_meta)) {
         $growth_rate = (float) $growth_meta;
-    } else {
-        $history = get_post_meta($post_id, 'creatordb_history', true);
-        if (is_array($history) && count($history) >= 2) {
-            $rows = array_values($history);
-            usort($rows, function ($a, $b) {
-                return ((int) ($a['timestamp_ms'] ?? 0)) <=> ((int) ($b['timestamp_ms'] ?? 0));
-            });
-            $current  = (int) ($rows[count($rows) - 1]['followers'] ?? 0);
-            $previous = null;
-            $now_ms   = (int) ($rows[count($rows) - 1]['timestamp_ms'] ?? 0);
-            $thirty_days_ms = 30 * 24 * 60 * 60 * 1000;
-            for ($i = count($rows) - 2; $i >= 0; $i--) {
-                $ts = (int) ($rows[$i]['timestamp_ms'] ?? 0);
-                if ($now_ms - $ts >= $thirty_days_ms) {
-                    $previous = (int) ($rows[$i]['followers'] ?? 0);
-                    break;
-                }
+    } elseif (is_array($history) && count($history) >= 2) {
+        $rows = function_exists('trb_instagram_history_sort_asc')
+            ? trb_instagram_history_sort_asc($history)
+            : array_values($history);
+        $current  = (int) ($rows[count($rows) - 1]['followers'] ?? 0);
+        $previous = null;
+        $now_ms   = (int) ($rows[count($rows) - 1]['timestamp_ms'] ?? 0);
+        $thirty_days_ms = 30 * 24 * 60 * 60 * 1000;
+        for ($i = count($rows) - 2; $i >= 0; $i--) {
+            $ts = (int) ($rows[$i]['timestamp_ms'] ?? 0);
+            if ($now_ms - $ts >= $thirty_days_ms) {
+                $previous = (int) ($rows[$i]['followers'] ?? 0);
+                break;
             }
-            if ($previous !== null && $previous > 0) {
-                $growth_rate = (($current - $previous) / $previous) * 100;
-            }
+        }
+        if ($previous === null && count($rows) >= 2) {
+            $previous = (int) ($rows[0]['followers'] ?? 0);
+        }
+        if ($previous !== null && $previous > 0) {
+            $growth_rate = (($current - $previous) / $previous) * 100;
         }
     }
 
-    // 3. Avg posts per day: derive from creatordb_history
+    // 3. Avg posts per day: derive from history rows
     $avg_posts_per_day = 0.0;
-    $history = get_post_meta($post_id, 'creatordb_history', true);
     if (is_array($history) && count($history) >= 2) {
-        $rows = array_values($history);
-        usort($rows, function ($a, $b) {
-            return ((int) ($a['timestamp_ms'] ?? 0)) <=> ((int) ($b['timestamp_ms'] ?? 0));
-        });
+        $rows = function_exists('trb_instagram_history_sort_asc')
+            ? trb_instagram_history_sort_asc($history)
+            : array_values($history);
         $first_ts = (int) ($rows[0]['timestamp_ms'] ?? 0);
         $last_ts  = (int) ($rows[count($rows) - 1]['timestamp_ms'] ?? 0);
         $days = ($last_ts - $first_ts) / (24 * 60 * 60 * 1000);

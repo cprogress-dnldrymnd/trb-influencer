@@ -1,6 +1,72 @@
 <?php
 
 /**
+ * Instagram metrics history for theme charts and scores.
+ *
+ * Prefers ICDH canonical `instagram_metrics_history` (IC + migrated CDB), then legacy `creatordb_history`.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function trb_instagram_history_rows($post_id)
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0) {
+        return [];
+    }
+
+    if (function_exists('icdh_instagram_history_display_rows')) {
+        $rows = icdh_instagram_history_display_rows($post_id);
+        if (is_array($rows) && $rows !== []) {
+            return $rows;
+        }
+    }
+
+    $legacy = get_post_meta($post_id, 'creatordb_history', true);
+
+    return is_array($legacy) ? $legacy : [];
+}
+
+/**
+ * @param array<int,array<string,mixed>> $rows
+ * @return array<int,array<string,mixed>>
+ */
+function trb_instagram_history_sort_asc(array $rows)
+{
+    usort($rows, function ($a, $b) {
+        $ta = (int) ($a['timestamp_ms'] ?? 0);
+        $tb = (int) ($b['timestamp_ms'] ?? 0);
+        if ($ta !== $tb) {
+            return $ta <=> $tb;
+        }
+
+        return strcmp((string) ($a['date'] ?? ''), (string) ($b['date'] ?? ''));
+    });
+
+    return array_values($rows);
+}
+
+/**
+ * Simple follower growth % from earliest to latest history row (works with IC's 2-point series).
+ */
+function trb_instagram_history_span_growth_percent(array $rows): ?float
+{
+    $rows = trb_instagram_history_sort_asc($rows);
+    if (count($rows) < 2) {
+        return null;
+    }
+
+    $first = $rows[0];
+    $last = $rows[count($rows) - 1];
+    $past = (int) ($first['followers'] ?? 0);
+    $latest = (int) ($last['followers'] ?? 0);
+    if ($past <= 0) {
+        return null;
+    }
+
+    return ((float) ($latest - $past) / (float) $past) * 100.0;
+}
+
+/**
  * Helper: Check if the current user has unlocked (purchased) the influencer.
  */
 function is_influencer_unlocked($influencer_id)

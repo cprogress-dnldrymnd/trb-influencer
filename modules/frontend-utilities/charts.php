@@ -227,6 +227,13 @@ class DD_Follower_Growth_Chart
      */
     private function get_raw_follower_data(int $post_id): array
     {
+        if (function_exists('trb_instagram_history_rows')) {
+            $history = trb_instagram_history_rows($post_id);
+            if (is_array($history) && $history !== []) {
+                return $history;
+            }
+        }
+
         $history = get_post_meta($post_id, 'creatordb_history', true);
 
         if (! is_array($history)) {
