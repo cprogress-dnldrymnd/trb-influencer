@@ -198,7 +198,11 @@ class DD_Follower_Growth_Chart
     private function prepare_like_range_data(array $raw_data): array
     {
         if (empty($raw_data)) {
-            return ['series_data' => []];
+            return [
+                'series_data'  => [],
+                'point_count'  => 0,
+                'default_days' => 30,
+            ];
         }
 
         usort($raw_data, function ($a, $b) {
@@ -217,9 +221,37 @@ class DD_Follower_Growth_Chart
             ];
         }
 
+        $point_count = count($series_data);
+
         return [
-            'series_data' => $series_data
+            'series_data'  => $series_data,
+            'point_count'  => $point_count,
+            // IC import_seed is ~1 month ago; default wider window when the series is sparse.
+            'default_days' => $point_count > 0 && $point_count <= 3 ? 365 : 30,
         ];
+    }
+
+    /**
+     * Resolve influencer post ID for chart reads (Elementor may not set global $post).
+     */
+    private function resolve_chart_post_id(): int
+    {
+        $id = (int) get_the_ID();
+        if ($id > 0 && get_post_type($id) === 'influencer') {
+            return $id;
+        }
+
+        global $post;
+        if ($post instanceof \WP_Post && $post->post_type === 'influencer') {
+            return (int) $post->ID;
+        }
+
+        $queried = (int) get_queried_object_id();
+        if ($queried > 0 && get_post_type($queried) === 'influencer') {
+            return $queried;
+        }
+
+        return 0;
     }
 
     /**
@@ -253,6 +285,9 @@ class DD_Follower_Growth_Chart
     {
         foreach ($raw_data as $entry) {
             if (isset($entry['followers']) && (int) $entry['followers'] > 0) {
+                return true;
+            }
+            if (isset($entry['avglikes']) && (float) $entry['avglikes'] > 0) {
                 return true;
             }
         }
@@ -298,12 +333,15 @@ class DD_Follower_Growth_Chart
      */
     public function enqueue_scripts(): void
     {
-        global $post;
+        $post_id = $this->resolve_chart_post_id();
+        if ($post_id <= 0 && is_singular('influencer')) {
+            $post_id = (int) get_queried_object_id();
+        }
 
-        if (is_single() && get_post_type() == 'influencer') {
+        if ($post_id > 0 && get_post_type($post_id) === 'influencer') {
             wp_enqueue_script('apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', [], '3.40.0', true);
 
-            $raw_data = $this->get_raw_follower_data($post->ID);
+            $raw_data = $this->get_raw_follower_data($post_id);
 
             $monthly_data     = $this->prepare_monthly_chart_data($raw_data);
             $timeline_data    = $this->prepare_timeline_chart_data($raw_data);
@@ -330,8 +368,8 @@ class DD_Follower_Growth_Chart
      */
     public function render_monthly_shortcode(): string
     {
-        global $post;
-        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+        $post_id = $this->resolve_chart_post_id();
+        $raw_data = $post_id > 0 ? $this->get_raw_follower_data($post_id) : [];
 
         if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
@@ -517,15 +555,15 @@ class DD_Follower_Growth_Chart
      */
     public function render_timeline_shortcode(): string
     {
-        global $post;
-        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+        $post_id = $this->resolve_chart_post_id();
+        $raw_data = $post_id > 0 ? $this->get_raw_follower_data($post_id) : [];
 
         if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
         }
 
         ob_start();
-    ?>
+?>
         <div class="dd-chart-card">
             <div id="ddTimelineChart"></div>
             <div class="dd-timeline-footer">
@@ -654,8 +692,8 @@ class DD_Follower_Growth_Chart
      */
     public function render_growth_rate_shortcode(): string
     {
-        global $post;
-        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+        $post_id = $this->resolve_chart_post_id();
+        $raw_data = $post_id > 0 ? $this->get_raw_follower_data($post_id) : [];
 
         if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
@@ -838,8 +876,8 @@ class DD_Follower_Growth_Chart
      */
     public function render_like_range_shortcode(): string
     {
-        global $post;
-        $raw_data = $post ? $this->get_raw_follower_data($post->ID) : [];
+        $post_id = $this->resolve_chart_post_id();
+        $raw_data = $post_id > 0 ? $this->get_raw_follower_data($post_id) : [];
 
         if (! $this->has_usable_data($raw_data)) {
             return $this->render_no_data_fallback();
@@ -914,7 +952,12 @@ class DD_Follower_Growth_Chart
                     const latestTs = rawLikeData[rawLikeData.length - 1].ts;
                     const cutoffTs = latestTs - (days * 24 * 60 * 60 * 1000);
 
-                    const filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
+                    let filteredLikes = rawLikeData.filter(d => d.ts >= cutoffTs).map(d => d.likes);
+
+                    // Sparse IC history (import_seed ~1 month ago): widen to all points when the window is too narrow.
+                    if (filteredLikes.length < 2 && rawLikeData.length >= 2) {
+                        filteredLikes = rawLikeData.map(d => d.likes);
+                    }
 
                     // Check if there are no items
                     if (filteredLikes.length === 0) {
@@ -926,15 +969,12 @@ class DD_Follower_Growth_Chart
                     const min = Math.min(...filteredLikes);
                     const max = Math.max(...filteredLikes);
 
-                    // If there are less than 2 points, OR the data points are totally identical, 
-                    // we cannot accurately display a comparative range line. 
-                    if (filteredLikes.length < 2 || min === max) {
+                    if (filteredLikes.length < 2) {
                         contentDiv.style.display = 'none';
                         emptyDiv.style.display = 'block';
                         return;
                     }
 
-                    // Otherwise, render the UI wrapper and populate the data
                     contentDiv.style.display = 'block';
                     emptyDiv.style.display = 'none';
 
@@ -944,7 +984,7 @@ class DD_Follower_Growth_Chart
                     container.querySelector('.val-min').innerText = formatToK(min);
                     container.querySelector('.val-max').innerText = formatToK(max);
 
-                    const markerPercent = ((avg - min) / (max - min)) * 100;
+                    const markerPercent = min === max ? 50 : ((avg - min) / (max - min)) * 100;
 
                     const markerEl = container.querySelector('.range-marker');
                     markerEl.style.left = `${markerPercent}%`;
@@ -960,8 +1000,15 @@ class DD_Follower_Growth_Chart
                     });
                 });
 
-                // Trigger default UI state
-                container.querySelector('.dd-time-btn[data-days="30"]').click();
+                const defaultDays = payloadLikeRange.default_days || 30;
+                const defaultBtn = container.querySelector('.dd-time-btn[data-days="' + defaultDays + '"]')
+                    || container.querySelector('.dd-time-btn[data-days="365"]')
+                    || container.querySelector('.dd-time-btn');
+                if (defaultBtn) {
+                    tabs.forEach(b => b.classList.remove('active'));
+                    defaultBtn.classList.add('active');
+                    defaultBtn.click();
+                }
             });
         </script>
 <?php
