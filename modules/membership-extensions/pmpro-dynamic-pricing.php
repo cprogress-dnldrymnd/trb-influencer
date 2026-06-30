@@ -720,7 +720,7 @@ class DD_PMPro_Frontend_Pricing
 				$payment_reason = 'Adjusted for banked time';
 			} else {
 				// Context: Standard free level or fully discounted checkout for new/guest users
-				$payment_reason = 'Free entry';
+				$payment_reason = 'Free trial period';
 			}
 		} elseif (isset($pmpro_level->billing_amount) && $paying_now > 0 && $paying_now < (float)$pmpro_level->billing_amount) {
 			// Context: User is upgrading; the cost is a monetary proration
