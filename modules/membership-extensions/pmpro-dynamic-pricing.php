@@ -1005,7 +1005,7 @@ class DD_PMPro_Frontend_Pricing
 			.infl-content p {
 				margin: 0 0 2px 0 !important;
 				font-size: 15px;
-				font-weight: 700;
+				font-weight: 500;
 			}
 
 			.infl-content p + span {
