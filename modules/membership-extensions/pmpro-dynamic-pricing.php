@@ -1185,8 +1185,8 @@ class DD_PMPro_Frontend_Pricing
                                     <span>${planDetails.account_type}</span>
                                 </div>
                                 <div class="infl-price-info">
-                                    <h4>${recurringPrice} </h4>
-                                    <span>/${cycle}</span>
+                                    <h4 class="dd-due-today-val">${dynamicPayingNow} </h4>
+                                    <span>due today</span>
                                 </div>
                             </div>
                             <div class="infl-timeline">
@@ -1260,10 +1260,12 @@ class DD_PMPro_Frontend_Pricing
 							// A) Update Timeline UI
 							if (gateway === 'check') {
 								$('.dd-paying-now-val').html(recurringPrice); // <-- Changed to .html
+								$('.dd-due-today-val').html(recurringPrice);
 								$('.dd-paying-now-reason').text('Standard initial payment (Trial disabled)');
 								$('#dd-timeline-later').hide();
 							} else {
 								$('.dd-paying-now-val').html(dynamicPayingNow); // <-- Changed to .html
+								$('.dd-due-today-val').html(dynamicPayingNow);
 								$('.dd-paying-now-reason').text(paymentReason);
 								$('#dd-timeline-later').show();
 							}
