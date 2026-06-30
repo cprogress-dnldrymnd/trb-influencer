@@ -1187,6 +1187,7 @@ class DD_PMPro_Frontend_Pricing
                                 <div class="infl-price-info">
                                     <h4 class="dd-due-today-val">${dynamicPayingNow} </h4>
                                     <span>due today</span>
+                                    <span class="membership-amount" style="display:none;">${recurringPrice}/${cycle}</span>
                                 </div>
                             </div>
                             <div class="infl-timeline">
