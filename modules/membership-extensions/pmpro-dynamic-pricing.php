@@ -1005,12 +1005,13 @@ class DD_PMPro_Frontend_Pricing
 			.infl-content p {
 				margin: 0 0 2px 0 !important;
 				font-size: 15px;
-				font-weight: 500;
+				font-weight: 700;
 			}
 
 			.infl-content p + span {
 				font-size: 14px;
 				color: #b3b3b3;
+				font-weight: 500;
 			}
 			.dd-start-date.dd-start-date.dd-start-date {
 				color: var(--e-global-color-primary);
