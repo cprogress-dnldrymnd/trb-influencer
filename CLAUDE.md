@@ -12,7 +12,7 @@ and PHP renders them with `do_shortcode('[elementor-template id="…"]')`.
 > The `readme.txt` and theme header are leftover Hello-Elementor-Child boilerplate — ignore
 > them as documentation of this project. The real entry point is `functions.php`.
 
-### The CreatorDB companion plugin (most important architectural fact)
+### Companion plugins (most important architectural fact)
 
 This theme does **not** define the `influencer` post type, its taxonomies (`niche`, `topic`,
 `content_tag`, `platform`), or the "smart" brief-parsing / match-scoring logic. Those come from
@@ -29,6 +29,12 @@ if (function_exists('creatordb_calculate_match_score')) {
 When editing search, scoring, or brief logic, assume the **plugin's version wins at runtime in
 production** and the in-theme code is the fallback. Keep the two behaviourally compatible.
 `grep -rn "function_exists('creatordb" .` lists every integration seam.
+
+A second companion plugin, **ICDH** (Influencers Club Data Handler), exposes `icdh_*` functions.
+Instagram metrics history is now read through theme helpers (`trb_instagram_history_rows()`,
+etc. — see `includes/core/helpers.php`) that prefer `icdh_instagram_history_display_rows()` when
+available, then fall back to the `creatordb_history` post meta. Touch points:
+`grep -rn "function_exists('icdh" .`
 
 ## Build / test / lint
 
@@ -164,6 +170,9 @@ that are flushed on `save_post`/`delete_post` of an influencer.
 - **Influencer attributes** live in post meta: `followers`, `engagerate`, `avglikes`,
   `avgcomments`, `posts`, `country` (alpha-3), `lang`, `gender`, `isverified`, `is_expert`,
   `creatordb_last_updated`, etc. — plus taxonomies `niche` / `topic` / `content_tag` / `platform`.
+  Instagram metrics history is accessed via `trb_instagram_history_rows($post_id)` (prefers ICDH
+  canonical data, falls back to `creatordb_history` meta). Use `trb_instagram_history_sort_asc()`
+  to sort rows — do not inline `usort` on the raw history array.
 - **User activity** is modelled as custom post types, **registered by `Saves_Manager`**:
   `saved-influencer`, `viewed-influencer`, `saved-search` (the `outreach` CPT is provided
   externally). These store an `influencer_id` meta linking back to the influencer; helpers in
@@ -206,7 +215,9 @@ the PHP check in sync — the PHP check is the real boundary.
   level with its "Annual" Payment Plan extension, disabling owned/pending-downgrade plans, and
   locking plan changes during free trials (both in the UI and via a `template_redirect` URL guard).
   Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
-  `influencer_style_pmpro_checkout`) into the influencer look.
+  `influencer_style_pmpro_checkout`) into the influencer look. The summary card header
+  prominently shows the **amount due today** (`dd-due-today-val`), not the recurring price; the
+  recurring price is stored in a hidden `.membership-amount` span (`display:none`) for JS access.
   > Gotcha: the "billing starts on" date (`calculate_billing_start_date()`) must be derived from
   > `trial_limit`/`cycle_number`/`cycle_period` (populated when a discount code applies a Custom
   > Trial) rather than `profile_start_date`, which is only set by the Subscription Delays Add On and
@@ -255,8 +266,9 @@ the PHP check in sync — the PHP check is the real boundary.
 ## Conventions & gotchas
 
 - **Prefixes:** `dd_` (Digitally Disruptive) for this theme's PHP functions/options/hooks;
-  `creatordb_` for companion-plugin functions; `influencer_*` shortcode names; `inf-*` JS enqueue
-  handles; `InfluencerApp.*` JS methods.
+  `trb_` for theme-defined helper wrappers (e.g. `trb_instagram_history_rows`);
+  `creatordb_` for CreatorDB companion-plugin functions; `icdh_` for ICDH companion-plugin
+  functions; `influencer_*` shortcode names; `inf-*` JS enqueue handles; `InfluencerApp.*` JS methods.
 - **Rendering style:** PHP render functions use output buffering (`ob_start()` … `return
   ob_get_clean()`); inline `<style>`/`<script>` blocks are emitted directly from render functions
   and hooks rather than living in `style.css`/JS files. New UI should follow the surrounding
@@ -270,6 +282,11 @@ the PHP check in sync — the PHP check is the real boundary.
   a hardcoded inline-`<div>` fallback if that template is empty) instead of an empty chart card when
   follower history is missing/unusable. The `.dd-time-filters` time-range tabs are shared chart
   chrome — keep their markup/CSS unified rather than re-inlining per chart.
+- **Chart post ID in Elementor context:** Elementor may not set `global $post` when rendering a
+  widget outside the main query. `DD_Follower_Growth_Chart` resolves the post ID via
+  `resolve_chart_post_id()` which tries `get_the_ID()`, `global $post`, then `get_queried_object_id()`
+  in order. Use this pattern (or `trb_instagram_history_rows()`) rather than reading `$post->ID`
+  directly in chart/shortcode code.
 - **reCAPTCHA v3 inside Elementor Popups:** the outreach form lives in an Elementor Popup, where
   Elementor's bundled reCAPTCHA v3 handler does not reliably regenerate a token. `DD_Outreach_Manager::inject_recaptcha_popup_fix()` (`wp_footer`) intercepts that single form's submit, reads the
   site key from the enqueued `recaptcha/api.js?render=…`, fetches a fresh token via
