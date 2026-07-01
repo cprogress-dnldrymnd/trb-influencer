@@ -752,6 +752,12 @@ class DD_PMPro_Frontend_Pricing
 		$avatar_html = do_shortcode('[user_avatar]');
 	?>
 		<style>
+			<?php if ($level_id === 9) : ?>
+			/* Level 9 (Growth): hide the checkout sidebar */
+			.checkout-sidebar {
+				display: none !important;
+			}
+			<?php endif; ?>
 			/* influencer-style CSS Overrides for PMPro */
 			#pmpro_form {
 				max-width: 600px;
