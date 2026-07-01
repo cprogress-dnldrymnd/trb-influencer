@@ -812,7 +812,7 @@ class DD_Outreach_Manager
                 'project_type'      => esc_html($project_type),
                 'project_length'  => esc_html($project_length),
                 'project_dates'   => esc_html($project_dates),
-                'budget'          => esc_html($budget),
+                'budget'          => do_shortcode(esc_html($budget)),
                 'message'         => wp_kses_post(wpautop($message)),
                 'subject'         => esc_html($subject),
                 'sender_email'    => $sender ? $sender->user_email : 'no-reply@example.com',
@@ -1580,7 +1580,7 @@ class DD_Outreach_Manager
             <div class="tag" style="' . $tag_style . '"><strong>Project type :</strong> ' . esc_html($data['project_type'] ?? 'N/A') . '</div>
             <div class="tag" style="' . $tag_style . '"><strong>Project length :</strong> ' . esc_html($data['project_length'] ?? 'N/A') . '</div>
             <div class="tag" style="' . $tag_style . '"><strong>Project Dates :</strong> ' . esc_html($data['project_dates'] ?? 'Flexible') . '</div>
-            <div class="tag" style="' . $tag_style . '"><strong>Budget : </strong> ' . esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed') . '</div>
+            <div class="tag" style="' . $tag_style . '"><strong>Budget : </strong> ' . do_shortcode(esc_html($data['budget'] ?? $data['budget_range'] ?? 'To be discussed')) . '</div>
         </div>';
 
         // Strip massive natural linebreaks surrounding the fields placeholder before injection
@@ -1780,7 +1780,7 @@ class DD_Outreach_Manager
             '{project_type}'      => esc_html($data['project_type'] ?? 'N/A'),
             '{project_length}'  => esc_html($data['project_length'] ?? 'N/A'),
             '{project_dates}'   => esc_html($data['project_dates'] ?? 'Flexible'),
-            '{budget}'          => esc_html($data['budget'] ?? 'To be discussed'),
+            '{budget}'          => do_shortcode(esc_html($data['budget'] ?? 'To be discussed')),
             '{message}'         => wp_kses_post(wpautop($data['message'] ?? '')),
             '{subject}'         => esc_html($data['subject'] ?? 'No Subject'),
             '{site_url}'        => get_site_url()
