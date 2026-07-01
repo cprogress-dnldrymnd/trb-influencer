@@ -1967,14 +1967,14 @@ function dd_geolocate_country_code($ip = '') {
  */
 function shortcode_currency() {
     $map = array(
-        'GB' => '£',  // United Kingdom
-        'US' => '$',  // United States
-        'AU' => 'A$', // Australia
-        'CA' => 'C$', // Canada
+        'GB' => 'GBP', // United Kingdom
+        'US' => 'USD', // United States
+        'AU' => 'AUD', // Australia
+        'CA' => 'CAD', // Canada
     );
 
     $country = dd_geolocate_country_code();
 
-    return isset($map[$country]) ? $map[$country] : '$';
+    return isset($map[$country]) ? $map[$country] : 'USD';
 }
 add_shortcode('currency', 'shortcode_currency');
