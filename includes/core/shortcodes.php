@@ -1973,6 +1973,16 @@ function shortcode_currency() {
         'CA' => 'CAD', // Canada
     );
 
+    // Euro-area countries (eurozone members + microstates that use the euro).
+    $eur_countries = array(
+        'AT', 'BE', 'HR', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE',
+        'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES',
+        'AD', 'MC', 'SM', 'VA', 'ME', 'XK',
+    );
+    foreach ($eur_countries as $eur_country) {
+        $map[$eur_country] = 'EUR';
+    }
+
     $country = dd_geolocate_country_code();
 
     return isset($map[$country]) ? $map[$country] : 'USD';
