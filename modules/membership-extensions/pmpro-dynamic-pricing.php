@@ -733,6 +733,27 @@ class DD_PMPro_Frontend_Pricing
 		// once a code is applied (see the dd-start-date script below).
 		$start_date_str = $this->calculate_billing_start_date($pmpro_level);
 
+		// TEMP DEBUG — remove once the monthly trial source is identified. Dumps the live
+		// checkout math + subscription-delay option so we can see WHICH source forces $0/trial.
+		if (defined('WP_DEBUG') && WP_DEBUG) {
+			error_log('DD_CHECKOUT_DEBUG ' . wp_json_encode(array(
+				'level_id'                 => $level_id,
+				'chosen_plan'              => isset($_REQUEST['pmpropp_chosen_plan']) ? sanitize_text_field(wp_unslash($_REQUEST['pmpropp_chosen_plan'])) : null,
+				'discount_code'            => isset($_REQUEST['discount_code']) ? sanitize_text_field(wp_unslash($_REQUEST['discount_code'])) : null,
+				'initial_payment'          => isset($pmpro_level->initial_payment) ? $pmpro_level->initial_payment : null,
+				'billing_amount'           => isset($pmpro_level->billing_amount) ? $pmpro_level->billing_amount : null,
+				'trial_limit'              => isset($pmpro_level->trial_limit) ? $pmpro_level->trial_limit : null,
+				'trial_amount'             => isset($pmpro_level->trial_amount) ? $pmpro_level->trial_amount : null,
+				'cycle_number'             => isset($pmpro_level->cycle_number) ? $pmpro_level->cycle_number : null,
+				'cycle_period'             => isset($pmpro_level->cycle_period) ? $pmpro_level->cycle_period : null,
+				'profile_start_date'       => isset($pmpro_level->profile_start_date) ? $pmpro_level->profile_start_date : null,
+				'subscription_delay_opt'   => get_option('pmpro_subscription_delay_' . $level_id, ''),
+				'paying_now_formatted'     => $paying_now_formatted,
+				'payment_reason'           => $payment_reason,
+				'start_date_str'           => $start_date_str,
+			)));
+		}
+
 		// Safely get the dynamic Membership Levels page URL for the "Change plan" link
 		$levels_url = function_exists('pmpro_url') ? pmpro_url('levels') : '/membership-levels/';
 
