@@ -1889,7 +1889,7 @@ SVG;
 }
 add_shortcode('influencer_unlocked_badge', 'shortcode_influencer_unlocked_badge');
 
-function currency() {
-    return '$';
+function shortcode_currency() {
+    return '£';
 }
-add_shortcode('currency', 'currency');
+add_shortcode('currency', 'shortcode_currency');
