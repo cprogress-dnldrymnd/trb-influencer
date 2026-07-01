@@ -1888,3 +1888,8 @@ function shortcode_influencer_unlocked_badge($atts)
 SVG;
 }
 add_shortcode('influencer_unlocked_badge', 'shortcode_influencer_unlocked_badge');
+
+function currency() {
+    return '$';
+}
+add_shortcode('currency', 'currency');

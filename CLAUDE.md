@@ -117,8 +117,9 @@ gates the group **Export PDF** action (see the saves module below). When adding 
 toggle, register it on the `dd-theme-settings-functionality` page / `dd_functionality_section` and
 read it via `get_option()`.
 
-> Caveat: integration files still contain **environment-specific magic page IDs** tied to the
-> production site (e.g. `is_page(1551)` checkout, `4191` buy-credits, free PMPro level `15`).
+> Caveat: integration files still contain **environment-specific magic page/level IDs** tied to
+> the production site (e.g. `is_page(1551)` checkout, `4191` buy-credits, free PMPro level `15`;
+> `influencer_style_pmpro_checkout()` also hides `.checkout-sidebar` specifically for level `9`).
 > These are not in the settings system; treat them as production constants.
 
 ### Influencer search pipeline (the core feature)
