@@ -1889,7 +1889,92 @@ SVG;
 }
 add_shortcode('influencer_unlocked_badge', 'shortcode_influencer_unlocked_badge');
 
+/**
+ * Resolve the visiting client's IP, honouring common proxy/CDN headers.
+ *
+ * @return string A validated public IP, or '' when none can be determined.
+ */
+function dd_get_client_ip() {
+    $keys = array(
+        'HTTP_CF_CONNECTING_IP', // Cloudflare
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_REAL_IP',
+        'REMOTE_ADDR',
+    );
+
+    foreach ($keys as $key) {
+        if (empty($_SERVER[$key])) {
+            continue;
+        }
+        // X-Forwarded-For can be a comma list "client, proxy1, proxy2".
+        $ip = trim(explode(',', $_SERVER[$key])[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Look up the ISO 3166-1 alpha-2 country code for an IP via a free geo API,
+ * cached per-IP in a transient so we hit the network at most once per IP/week.
+ *
+ * @param string $ip Optional IP; defaults to the current visitor.
+ * @return string Two-letter country code (e.g. "GB"), or '' if unknown.
+ */
+function dd_geolocate_country_code($ip = '') {
+    if ($ip === '') {
+        $ip = dd_get_client_ip();
+    }
+    // No IP, or a private/reserved address (local/dev) — nothing to geolocate.
+    if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return '';
+    }
+
+    $cache_key = 'dd_geo_cc_' . md5($ip);
+    $cached = get_transient($cache_key);
+    if ($cached !== false) {
+        return $cached === 'none' ? '' : $cached;
+    }
+
+    $country = '';
+    $response = wp_remote_get('https://ipapi.co/' . rawurlencode($ip) . '/country/', array(
+        'timeout' => 3,
+    ));
+
+    if (!is_wp_error($response) && (int) wp_remote_retrieve_response_code($response) === 200) {
+        $body = strtoupper(trim(wp_remote_retrieve_body($response)));
+        if (preg_match('/^[A-Z]{2}$/', $body)) {
+            $country = $body;
+        }
+    }
+
+    // Cache successes for a week; cache failures briefly so a transient outage
+    // or rate-limit doesn't wedge every subsequent request for a week.
+    set_transient(
+        $cache_key,
+        $country === '' ? 'none' : $country,
+        $country === '' ? HOUR_IN_SECONDS : WEEK_IN_SECONDS
+    );
+
+    return $country;
+}
+
+/**
+ * Currency indicator, resolved from the visitor's geolocated country.
+ * Falls back to USD for any country not in the map.
+ */
 function shortcode_currency() {
-    return '£';
+    $map = array(
+        'GB' => '£',  // United Kingdom
+        'US' => '$',  // United States
+        'AU' => 'A$', // Australia
+        'CA' => 'C$', // Canada
+    );
+
+    $country = dd_geolocate_country_code();
+
+    return isset($map[$country]) ? $map[$country] : '$';
 }
 add_shortcode('currency', 'shortcode_currency');
