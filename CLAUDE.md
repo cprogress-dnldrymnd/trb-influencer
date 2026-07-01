@@ -299,3 +299,10 @@ the PHP check in sync — the PHP check is the real boundary.
   site key from the enqueued `recaptcha/api.js?render=…`, fetches a fresh token via
   `grecaptcha.execute()`, then submits — failing open (never blocks) if reCAPTCHA is unavailable.
 - There is a stray `gitignore` file (no leading dot) alongside the real `.gitignore`.
+- **Geo-IP currency shortcode:** `[currency]` (`shortcode_currency()` in `includes/core/shortcodes.php`)
+  resolves the visitor's country via `dd_geolocate_country_code()` — client IP from
+  `dd_get_client_ip()` (checks `CF-Connecting-IP`/`X-Forwarded-For`/`X-Real-IP` before
+  `REMOTE_ADDR`), looked up against the free `ipapi.co` API and cached per-IP in a transient
+  (a week on success, an hour on failure/rate-limit so an outage doesn't wedge lookups for a
+  week). Only `GB`/`US`/`AU`/`CA` are mapped; everything else (including local/private IPs) falls
+  back to the `$` symbol.
