@@ -287,6 +287,11 @@ the PHP check in sync — the PHP check is the real boundary.
   `resolve_chart_post_id()` which tries `get_the_ID()`, `global $post`, then `get_queried_object_id()`
   in order. Use this pattern (or `trb_instagram_history_rows()`) rather than reading `$post->ID`
   directly in chart/shortcode code.
+- **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
+  30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
+  widens the default window to 365 days when the series has ≤3 points (`default_days`), and the
+  front-end JS further widens the *selected* window to all available points if fewer than 2 fall
+  inside it — keep both widenings in sync if you touch this chart.
 - **reCAPTCHA v3 inside Elementor Popups:** the outreach form lives in an Elementor Popup, where
   Elementor's bundled reCAPTCHA v3 handler does not reliably regenerate a token. `DD_Outreach_Manager::inject_recaptcha_popup_fix()` (`wp_footer`) intercepts that single form's submit, reads the
   site key from the enqueued `recaptcha/api.js?render=…`, fetches a fresh token via
