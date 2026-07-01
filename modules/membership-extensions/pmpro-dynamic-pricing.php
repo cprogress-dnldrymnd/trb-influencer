@@ -1112,6 +1112,14 @@ class DD_PMPro_Frontend_Pricing
 				var paymentReason = <?php echo wp_json_encode($payment_reason); ?>;
 				var dynamicStartDate = <?php echo wp_json_encode($start_date_str); ?>;
 
+				// TEMP DEBUG — remove once the monthly trial source is identified.
+				console.log('DD_CHECKOUT_JS', {
+					dynamicPayingNow: dynamicPayingNow,
+					paymentReason: paymentReason,
+					dynamicStartDate: dynamicStartDate,
+					gateway: (document.querySelector('input[name=gateway]:checked') || {}).value
+				});
+
 				// Endpoint + nonce used to re-derive the "Starting" date after a discount code
 				// is applied via AJAX (the trial only exists once PMPro applies the code).
 				var ddAjaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
@@ -1395,6 +1403,7 @@ class DD_PMPro_Frontend_Pricing
 						function ddMaybeRefresh() {
 							if (!ddSyncEnabled) return;
 							var code = ddGetAppliedDiscountCode();
+							if (code !== ddSyncedCode) console.log('DD_CHECKOUT_JS applied discount code =', JSON.stringify(code)); // TEMP DEBUG
 							if (code === ddSyncedCode) return; // UI already shows the right date
 							ddRefreshStartDate(code);
 						}
