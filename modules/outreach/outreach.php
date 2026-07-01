@@ -192,6 +192,14 @@ class DD_Outreach_Manager
             }
         }
 
+        // Elementor prints select/radio/checkbox option labels verbatim and does
+        // not run shortcodes, so expand any (e.g. the [currency] shortcode used in
+        // the budget-range options) ourselves before the field is rendered. The
+        // submitted value then carries the resolved symbol into the outreach post.
+        if (!empty($item['field_options']) && is_string($item['field_options']) && strpos($item['field_options'], '[') !== false) {
+            $item['field_options'] = do_shortcode($item['field_options']);
+        }
+
         return $item;
     }
 
