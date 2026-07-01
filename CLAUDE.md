@@ -82,6 +82,7 @@ module is a **singleton class instantiated at the bottom of its own file**:
 | `modules/frontend-utilities/charts.php` | `DD_Follower_Growth_Chart` | Follower analytics charts (ApexCharts) via shortcodes; time-filter tabs + no-data fallback |
 | `modules/frontend-utilities/feeds.php` | `CreatorDB_Instagram_Feed` | Instagram-style content feeds |
 | `modules/email-manager/email-template-manager.php` | `DD_Global_Email_Manager` | Global transactional email layout |
+| `modules/mycred-components/mycred-frontend-log.php` | `Custom_MyCred_Frontend_Log` | AJAX-paginated myCred points history table (`[custom_mycred_log]`) |
 
 A module's constructor registers its `wp_ajax_*` handlers, `add_shortcode` calls, and enqueues.
 
