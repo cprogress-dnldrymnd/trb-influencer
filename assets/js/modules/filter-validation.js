@@ -52,7 +52,7 @@
             // Prevent form submission if validation fails
             if (!isValid) {
                 e.preventDefault();
-                window.ddAlert('Please populate all required filters (e.g., Niche) before generating matches.');
+                window.ddAlert('Please populate all required filters (e.g., Location) before generating matches.');
             }
         });
 

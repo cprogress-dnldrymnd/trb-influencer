@@ -1835,17 +1835,17 @@ class Influencer_Search
                     <input type="hidden" value="true" name="search_active">
 
                     <div class="influencer-search-item-row influencer-search-item-wrapper filtered-search <?= ! $is_brief_active ? 'active' : '' ?>">
-                        <div class="influencer-search-item">
-                            <div class="influencer-search-item-title">Location</div>
+                        <div class="influencer-search-item required-on-search">
+                            <div class="influencer-search-item-title">Location<span class="field-required" aria-hidden="true">*</span></div>
                             <?= self::select_filter('country', false, 'Location', $influencer_search_fields['country'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title">Language</div>
                             <?= self::select_filter('lang', false, 'Language', $influencer_search_fields['lang'] ?? '', 'checkbox', true) ?>
                         </div>
-                        <div class="influencer-search-item required-on-search">
-                            <div class="influencer-search-item-title">Niche<span class="field-required" aria-hidden="true">*</span></div>
-                            <?= self::select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
+                        <div class="influencer-search-item">
+                            <div class="influencer-search-item-title">Hashtags Used</div>
+                            <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
                         </div>
                         <div class="influencer-search-item">
                             <div class="influencer-search-item-title">Follower Count</div>
@@ -1864,8 +1864,8 @@ class Influencer_Search
                                     <?= self::select_filter('gender', false, 'Select Gender', $influencer_search_fields['gender'] ?? '', 'checkbox', true) ?>
                                 </div>
                                 <div class="influencer-search-item">
-                                    <div class="influencer-search-item-title">Hashtags Used</div>
-                                    <?= self::select_filter('content_tag', false, 'Search hashtags...', $influencer_search_fields['content_tag'] ?? '', 'checkbox', true) ?>
+                                    <div class="influencer-search-item-title">Niche</div>
+                                    <?= self::select_filter('niche', false, 'Niche', $influencer_search_fields['niche'] ?? '', 'checkbox', true) ?>
                                 </div>
                             </div>
                             <div class="influencer-search-item checkbox-row filtered-search-checkboxes">
