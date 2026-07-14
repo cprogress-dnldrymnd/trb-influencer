@@ -282,11 +282,13 @@ class Influencer_Search
         $selected = array_map('sanitize_title', $selected);
         $selected_map = array_fill_keys($selected, true);
 
+        // Fetch a wider candidate set before ranking by relevance. Limiting the
+        // alphabetically sorted query directly can omit the most useful match.
         $terms = get_terms([
             'taxonomy'   => 'content_tag',
             'hide_empty' => false,
             'name__like' => $query,
-            'number'     => $limit,
+            'number'     => 100,
             'orderby'    => 'name',
             'order'      => 'ASC',
             'fields'     => 'all',
@@ -295,6 +297,42 @@ class Influencer_Search
         if (is_wp_error($terms) || !is_array($terms)) {
             wp_send_json_success(['items' => []]);
         }
+
+        // Guarantee that an exact term is considered even when more than 100
+        // alphabetically earlier substring matches exist.
+        $exact_term = get_term_by('name', ltrim($query, '#'), 'content_tag');
+        if ($exact_term && !is_wp_error($exact_term)) {
+            $terms_by_id = [];
+            foreach (array_merge([$exact_term], $terms) as $term) {
+                if (is_object($term) && isset($term->term_id)) {
+                    $terms_by_id[(int) $term->term_id] = $term;
+                }
+            }
+            $terms = array_values($terms_by_id);
+        }
+
+        $normalized_query = strtolower(ltrim($query, '#'));
+        usort($terms, static function ($a, $b) use ($normalized_query) {
+            $rank = static function ($term) use ($normalized_query) {
+                $name = strtolower(ltrim((string) $term->name, '#'));
+                $position = strpos($name, $normalized_query);
+
+                if ($name === $normalized_query) {
+                    return [0, 0, $name];
+                }
+                if ($position === 0) {
+                    return [1, strlen($name), $name];
+                }
+                if (preg_match('/(?:^|[^a-z0-9])' . preg_quote($normalized_query, '/') . '/i', $name)) {
+                    return [2, $position, $name];
+                }
+
+                return [3, $position === false ? PHP_INT_MAX : $position, $name];
+            };
+
+            return $rank($a) <=> $rank($b);
+        });
+        $terms = array_slice($terms, 0, $limit);
 
         $items = [];
         foreach ($terms as $term) {
