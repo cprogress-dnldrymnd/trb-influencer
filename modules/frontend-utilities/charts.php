@@ -398,13 +398,26 @@ class DD_Follower_Growth_Chart
 
         wp_localize_script('apexcharts', 'ddChartPayload', $unified_payload);
 
+        // Current-snapshot stat values (followers, engagement, etc.) for every existing
+        // [influencer_followers]-style shortcode on the page — those wrap their output in a
+        // .platform-stat[data-metric] span (see includes/core/shortcodes.php) that the controller
+        // below rewrites from this map on each platform switch.
+        if (function_exists('trb_build_platform_stats_map')) {
+            $stats_payload = [];
+            foreach ($available_platforms as $platform) {
+                $stats_payload[$platform] = trb_build_platform_stats_map($post_id, $platform);
+            }
+            wp_localize_script('apexcharts', 'ddPlatformStats', $stats_payload);
+        }
+
         $default_platform = in_array('instagram', $available_platforms, true)
             ? 'instagram'
             : $available_platforms[0];
 
         // Single global controller: every chart registers a re-render callback via
         // ddPlatformSwitcher.register(); [platform_switcher] buttons call .set(platform)
-        // to fan that out and toggle .dd-platform-panel blocks in one shot.
+        // to fan that out, rewrite every .platform-stat[data-metric] span, and toggle
+        // .dd-platform-panel blocks in one shot.
         $controller_js = "window.ddPlatformSwitcher = (function () {\n"
             . "    var listeners = [];\n"
             . "    var active = null;\n"
@@ -412,6 +425,15 @@ class DD_Follower_Growth_Chart
             . "        if (typeof ddChartPayload === 'undefined' || !platform || !ddChartPayload[platform]) return;\n"
             . "        active = platform;\n"
             . "        listeners.forEach(function (fn) { fn(platform); });\n"
+            . "        if (typeof ddPlatformStats !== 'undefined' && ddPlatformStats[platform]) {\n"
+            . "            var stats = ddPlatformStats[platform];\n"
+            . "            document.querySelectorAll('.platform-stat[data-metric]').forEach(function (el) {\n"
+            . "                var metric = el.getAttribute('data-metric');\n"
+            . "                if (stats[metric] !== undefined && stats[metric] !== null) {\n"
+            . "                    el.textContent = stats[metric];\n"
+            . "                }\n"
+            . "            });\n"
+            . "        }\n"
             . "        document.querySelectorAll('.dd-platform-panel[data-platform]').forEach(function (panel) {\n"
             . "            panel.style.display = (panel.getAttribute('data-platform') === platform) ? '' : 'none';\n"
             . "        });\n"

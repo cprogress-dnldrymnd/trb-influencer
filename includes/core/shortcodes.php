@@ -168,15 +168,63 @@ function trb_platform_stat_meta_key($platform, $flat_key, array $platform_keys)
     return $flat_key;
 }
 
+/**
+ * Single source of truth for the snapshot stat metrics: each metric's flat/primary-platform
+ * meta key, its per-platform key overrides, and how to format the raw meta value. Both the
+ * stat shortcodes below and trb_build_platform_stats_map() (modules/frontend-utilities/charts.php
+ * consumer) read this map, so a shortcode's static output and its live-switched value can never
+ * drift apart.
+ */
+function trb_platform_stat_metric_map()
+{
+    return [
+        'followers' => [
+            'flat'     => 'followers',
+            'platform' => ['youtube' => 'youtube_subscribers', 'tiktok' => 'tiktok_followers'],
+            'format'   => 'number',
+        ],
+        'engagerate' => [
+            'flat'     => 'engagerate',
+            'platform' => ['youtube' => 'youtube_engagement_rate', 'tiktok' => 'tiktok_engagement_rate'],
+            'format'   => 'percent',
+        ],
+        'avglikes' => [
+            'flat'     => 'avglikes',
+            'platform' => [],
+            'format'   => 'number',
+        ],
+        'avgcomments' => [
+            'flat'     => 'avgcomments',
+            'platform' => [],
+            'format'   => 'number',
+        ],
+        'posts' => [
+            'flat'     => 'posts',
+            'platform' => [],
+            'format'   => 'number',
+        ],
+    ];
+}
+
+/**
+ * Wraps a stat shortcode's rendered value in the reactive span the platform switcher
+ * rewrites on click (see ddPlatformSwitcher.set() in modules/frontend-utilities/charts.php).
+ * Inert wherever no switcher is present on the page (search cards, group rows, etc.).
+ */
+function trb_wrap_platform_stat($value, $metric)
+{
+    return '<span class="platform-stat" data-metric="' . esc_attr($metric) . '">' . $value . '</span>';
+}
+
 function shortcode_influencer_followers($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_followers');
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'followers', [
-        'youtube' => 'youtube_subscribers',
-        'tiktok'  => 'tiktok_followers',
-    ]);
+    $config = trb_platform_stat_metric_map()['followers'];
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
 
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+
+    return trb_wrap_platform_stat($value, 'followers');
 }
 
 add_shortcode('influencer_followers', 'shortcode_influencer_followers');
@@ -184,9 +232,12 @@ add_shortcode('influencer_followers', 'shortcode_influencer_followers');
 function shortcode_influencer_avglikes($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avglikes');
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'avglikes', []);
+    $config = trb_platform_stat_metric_map()['avglikes'];
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
 
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+
+    return trb_wrap_platform_stat($value, 'avglikes');
 }
 
 add_shortcode('influencer_avglikes', 'shortcode_influencer_avglikes');
@@ -194,9 +245,12 @@ add_shortcode('influencer_avglikes', 'shortcode_influencer_avglikes');
 function shortcode_influencer_avgcomments($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avgcomments');
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'avgcomments', []);
+    $config = trb_platform_stat_metric_map()['avgcomments'];
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
 
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+
+    return trb_wrap_platform_stat($value, 'avgcomments');
 }
 
 add_shortcode('influencer_avgcomments', 'shortcode_influencer_avgcomments');
@@ -204,9 +258,12 @@ add_shortcode('influencer_avgcomments', 'shortcode_influencer_avgcomments');
 function shortcode_influencer_posts($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_posts');
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'posts', []);
+    $config = trb_platform_stat_metric_map()['posts'];
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
 
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+
+    return trb_wrap_platform_stat($value, 'posts');
 }
 
 add_shortcode('influencer_posts', 'shortcode_influencer_posts');
@@ -214,14 +271,14 @@ add_shortcode('influencer_posts', 'shortcode_influencer_posts');
 function shortcode_influencer_engagerate($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_engagerate');
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'engagerate', [
-        'youtube' => 'youtube_engagement_rate',
-        'tiktok'  => 'tiktok_engagement_rate',
-    ]);
+    $config = trb_platform_stat_metric_map()['engagerate'];
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
 
     $engagerate = get_post_meta(get_the_ID(), $meta_key, true);
     $engagerate = $engagerate ? $engagerate : 0;
-    return convertDecimalToPercentage(floatval($engagerate));
+    $value = convertDecimalToPercentage(floatval($engagerate));
+
+    return trb_wrap_platform_stat($value, 'engagerate');
 }
 
 add_shortcode('influencer_engagerate', 'shortcode_influencer_engagerate');
@@ -1407,33 +1464,20 @@ add_shortcode('influencer_hashtags', 'shortcode_influencer_hashtags');
 
 
 /**
- * Calculates and outputs the follower growth from the latest 2 months.
+ * Computes the follower/subscriber growth from the latest 2 months of a platform's history,
+ * shared by shortcode_influencer_follower_growth() and trb_build_platform_stats_map() so the
+ * static and live-switched values can never drift apart.
  *
- * Usage: [creatordb_follower_growth] (Uses current post ID)
- * Usage: [creatordb_follower_growth post_id="123"] (Uses specific post ID)
- *
- * @param array $atts Shortcode attributes.
- * @return string The formatted HTML output displaying raw growth and percentage, or N/A if data is unavailable.
+ * @return array{formatted:string,latest_date:?string,past_date:?string}|null Null when growth
+ *         cannot be determined (insufficient history and no IC fallback available).
  */
-function shortcode_influencer_follower_growth($atts)
+function trb_platform_follower_growth_display($post_id, $platform = 'instagram')
 {
-    // Define a consistent fallback output for missing data to maintain DOM structure.
-    $na_output = '<span class="creatordb-follower-growth">N/A</span>';
-
-    // Extract shortcode attributes with sensible defaults.
-    $args = shortcode_atts(
-        array(
-            'post_id'  => get_the_ID(),
-            'platform' => 'instagram',
-        ),
-        $atts
-    );
-
-    $post_id = intval($args['post_id']);
-    $platform = in_array($args['platform'], ['instagram', 'youtube', 'tiktok'], true) ? $args['platform'] : 'instagram';
+    $post_id = intval($post_id);
+    $platform = in_array($platform, ['instagram', 'youtube', 'tiktok'], true) ? $platform : 'instagram';
 
     if (empty($post_id)) {
-        return $na_output;
+        return null;
     }
 
     $history = function_exists('trb_platform_history_rows')
@@ -1447,14 +1491,11 @@ function shortcode_influencer_follower_growth($atts)
                 $growth_percent = (float) $club_growth;
                 $formatted_percent = ($growth_percent > 0 ? '+' : '') . number_format($growth_percent, 2) . '%';
 
-                return sprintf(
-                    '<span class="creatordb-follower-growth">%s</span>',
-                    esc_html($formatted_percent)
-                );
+                return ['formatted' => $formatted_percent, 'latest_date' => null, 'past_date' => null];
             }
         }
 
-        return $na_output;
+        return null;
     }
 
     // Sort the array by timestamp_ms in descending order to ensure index 0 is always the latest.
@@ -1473,7 +1514,7 @@ function shortcode_influencer_follower_growth($atts)
         $target_date->modify('-1 month'); // Modified to target a 1-month delta
         $target_timestamp = $target_date->getTimestamp();
     } catch (Exception $e) {
-        return $na_output;
+        return null;
     }
 
     // Initialize variables to find the closest historical entry to our target date.
@@ -1500,7 +1541,7 @@ function shortcode_influencer_follower_growth($atts)
     }
 
     if (null === $closest_entry) {
-        return $na_output;
+        return null;
     }
 
     // Calculate the actual metrics.
@@ -1513,15 +1554,109 @@ function shortcode_influencer_follower_growth($atts)
     // Prefix with a '+' for positive growth, then append the percentage string returned by the helper.
     $formatted_percent = ($raw_decimal_growth > 0 ? '+' : '') . convertDecimalToPercentage($raw_decimal_growth);
 
+    return [
+        'formatted'   => $formatted_percent,
+        'latest_date' => $latest_entry['date'],
+        'past_date'   => $closest_entry['date'],
+    ];
+}
+
+/**
+ * Calculates and outputs the follower growth from the latest 2 months.
+ *
+ * Usage: [creatordb_follower_growth] (Uses current post ID)
+ * Usage: [creatordb_follower_growth post_id="123"] (Uses specific post ID)
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string The formatted HTML output displaying raw growth and percentage, or N/A if data is unavailable.
+ */
+function shortcode_influencer_follower_growth($atts)
+{
+    // Define a consistent fallback output for missing data to maintain DOM structure.
+    // Carries the same platform-stat/data-metric hooks as the success case so a subsequent
+    // platform switch can still populate it once that platform has growth data.
+    $na_output = '<span class="platform-stat creatordb-follower-growth" data-metric="follower_growth">N/A</span>';
+
+    // Extract shortcode attributes with sensible defaults.
+    $args = shortcode_atts(
+        array(
+            'post_id'  => get_the_ID(),
+            'platform' => 'instagram',
+        ),
+        $atts
+    );
+
+    $post_id = intval($args['post_id']);
+    $platform = in_array($args['platform'], ['instagram', 'youtube', 'tiktok'], true) ? $args['platform'] : 'instagram';
+
+    if (empty($post_id)) {
+        return $na_output;
+    }
+
+    $growth = trb_platform_follower_growth_display($post_id, $platform);
+
+    if ($growth === null) {
+        return $na_output;
+    }
+
+    $date_attrs = '';
+    if (!empty($growth['latest_date'])) {
+        $date_attrs .= ' data-latest-date="' . esc_attr($growth['latest_date']) . '"';
+    }
+    if (!empty($growth['past_date'])) {
+        $date_attrs .= ' data-past-date="' . esc_attr($growth['past_date']) . '"';
+    }
+
     // Output wrapped in a span for easy front-end styling, returning exclusively the percentage string.
     return sprintf(
-        '<span class="creatordb-follower-growth" data-latest-date="%s" data-past-date="%s">%s</span>',
-        esc_attr($latest_entry['date']),
-        esc_attr($closest_entry['date']),
-        esc_html($formatted_percent)
+        '<span class="platform-stat creatordb-follower-growth" data-metric="follower_growth"%s>%s</span>',
+        $date_attrs,
+        esc_html($growth['formatted'])
     );
 }
 add_shortcode('influencer_follower_growth', 'shortcode_influencer_follower_growth');
+
+/**
+ * Builds the current formatted stat values for one platform, keyed the same as
+ * trb_platform_stat_metric_map() plus 'follower_growth'. Consumed by
+ * DD_Follower_Growth_Chart::enqueue_scripts() (modules/frontend-utilities/charts.php) to localize
+ * ddPlatformStats, which ddPlatformSwitcher.set() uses to rewrite every .platform-stat[data-metric]
+ * element on the page when a platform button is clicked. Each value is resolved through the exact
+ * same metric map + formatters as the stat shortcodes above, so a switched value always equals what
+ * the equivalent shortcode would render with platform="$platform".
+ *
+ * @return array<string,string> metric => formatted value (metrics with no usable data are omitted,
+ *         so the JS leaves the corresponding span untouched rather than blanking it).
+ */
+function trb_build_platform_stats_map($post_id, $platform = 'instagram')
+{
+    $post_id = (int) $post_id;
+    $platform = in_array($platform, ['instagram', 'youtube', 'tiktok'], true) ? $platform : 'instagram';
+
+    $stats = [];
+
+    foreach (trb_platform_stat_metric_map() as $metric => $config) {
+        $meta_key = trb_platform_stat_meta_key($platform, $config['flat'], $config['platform']);
+        $raw = get_post_meta($post_id, $meta_key, true);
+
+        if ($raw === '' || $raw === null || $raw === false) {
+            continue;
+        }
+
+        if ($config['format'] === 'percent') {
+            $stats[$metric] = convertDecimalToPercentage(floatval($raw));
+        } else {
+            $stats[$metric] = wp_custom_number_format_short($raw);
+        }
+    }
+
+    $growth = trb_platform_follower_growth_display($post_id, $platform);
+    if ($growth !== null) {
+        $stats['follower_growth'] = $growth['formatted'];
+    }
+
+    return $stats;
+}
 
 /**
  * Calculate Platform Score for an influencer (0-100).

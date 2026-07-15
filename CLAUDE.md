@@ -342,6 +342,20 @@ the PHP check in sync — the PHP check is the real boundary.
   the *initial* platform shown before a switcher click (each Elementor widget wrapper exposes this
   as a "Platform" select control), and `[platform_switcher platforms="instagram,youtube"]` can
   restrict which buttons render.
+- **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
+  (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
+  `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
+  wrap their rendered value in `<span class="platform-stat" data-metric="…">value</span>` via
+  `trb_wrap_platform_stat()`. `enqueue_scripts()` localizes a parallel `ddPlatformStats[platform][metric]`
+  map (built by `trb_build_platform_stats_map()`) alongside `ddChartPayload`; `ddPlatformSwitcher.set()`
+  rewrites every `.platform-stat[data-metric]` span's text from that map on each click — so existing
+  shortcode placements become reactive automatically, no new shortcode and no per-platform duplication
+  in Elementor. `trb_platform_stat_metric_map()` is the single source of truth mapping each metric to
+  its flat/per-platform meta key and number/percent format; both the shortcodes and the stats-map
+  builder read it, so a switched value always equals the static `platform="youtube"` render. A metric
+  with no data for the target platform is simply omitted from the map, which leaves that span's current
+  text untouched rather than blanking it. The wrapper is inert wherever no switcher exists (search
+  cards, group rows) — it never gets rewritten there.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the
