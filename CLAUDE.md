@@ -31,10 +31,25 @@ production** and the in-theme code is the fallback. Keep the two behaviourally c
 `grep -rn "function_exists('creatordb" .` lists every integration seam.
 
 A second companion plugin, **ICDH** (Influencers Club Data Handler), exposes `icdh_*` functions.
-Instagram metrics history is now read through theme helpers (`trb_instagram_history_rows()`,
-etc. — see `includes/core/helpers.php`) that prefer `icdh_instagram_history_display_rows()` when
-available, then fall back to the `creatordb_history` post meta. Touch points:
-`grep -rn "function_exists('icdh" .`
+Metrics history for **Instagram, YouTube, and TikTok** is read through the theme helper
+`trb_platform_history_rows($post_id, $platform)` (`includes/core/helpers.php`), which prefers the
+platform-aware bridge `icdh_platform_history_display_rows($id, $platform)`, then the legacy
+Instagram-only `icdh_instagram_history_display_rows($id)`, then the per-platform meta
+(`{platform}_metrics_history`), then — Instagram only — the legacy `creatordb_history` post meta.
+`trb_instagram_history_rows($id)` is a back-compat alias for the `instagram` platform. Touch
+points: `grep -rn "function_exists('icdh" .`
+
+Data comes from **two providers** — CreatorDB (`creatordb_*`) and Influencers.Club (`icdh_*`,
+IC) — normalized by the plugin into the same namespaced keys/history-row shape regardless of
+source (history rows carry a `provider` field). The one place provider matters in theme code is
+availability: `trb_platform_has_data($post_id, $platform)` checks signals from **both** providers
+(history rows, current-metric keys, provider-specific id/link keys) to decide whether an
+influencer "has" a platform at all.
+
+> `frontend-platform-metrics-handoff.md` (repo root) is a task-oriented reference for building
+> Elementor blocks/shortcodes/graphs against YouTube/TikTok metrics — meta keys, history row
+> shape, and shortcode attrs in table form. This file (CLAUDE.md) covers the same ground
+> architecturally; consult the handoff doc for lookup-table detail.
 
 ## Build / test / lint
 
@@ -79,7 +94,7 @@ module is a **singleton class instantiated at the bottom of its own file**:
 | `modules/frontend-utilities/search.php` | `Influencer_Search` | Search form, AJAX loop filter, brief parser |
 | `modules/saves/saves-manager.php` | `Saves_Manager` | Saved/viewed influencers, saved searches, groups, group Export PDF; registers the activity CPTs |
 | `modules/outreach/outreach.php` | `DD_Outreach_Manager` | Outreach submissions, master-detail dashboard, HTML email builder |
-| `modules/frontend-utilities/charts.php` | `DD_Follower_Growth_Chart` | Follower analytics charts (ApexCharts) via shortcodes; time-filter tabs + no-data fallback |
+| `modules/frontend-utilities/charts.php` | `DD_Follower_Growth_Chart` | Multi-platform follower analytics charts (ApexCharts) via shortcodes + the `[platform_switcher]`/`[platform_panel]` shortcodes; time-filter tabs + no-data fallback |
 | `modules/frontend-utilities/feeds.php` | `CreatorDB_Instagram_Feed` | Instagram-style content feeds |
 | `modules/email-manager/email-template-manager.php` | `DD_Global_Email_Manager` | Global transactional email layout |
 | `modules/mycred-components/mycred-frontend-log.php` | `Custom_MyCred_Frontend_Log` | AJAX-paginated myCred points history table (`[custom_mycred_log]`) |
@@ -147,6 +162,19 @@ country-name→alpha-2 maps for flags and matching. Filter dropdown option lists
 (countries/languages/genders) are built by direct `$wpdb` queries and **cached in transients**
 that are flushed on `save_post`/`delete_post` of an influencer.
 
+On the **filtered search** form (`filtered-search` block in `search.php`), Location is the
+required field (`required-on-search` class + JS validation in `filter-validation.js`) and
+Hashtags Used sits in the main filter row; Niche has been moved into Advanced filters. Keep
+the markup, the `required-on-search`/`field-required` classes, and the validation message text
+in sync if this layout changes again.
+
+The hashtag (`content_tag`) typeahead AJAX handler over-fetches 100 candidates by name
+(`name__like`) rather than querying only `$limit`, then re-ranks them client-independent in PHP —
+exact match first, then starts-with, then word-boundary substring, then any substring — before
+slicing to `$limit`. An exact-match term is force-merged into the candidate set even if it would
+otherwise fall outside the first 100 alphabetically. Do this ranking in the AJAX handler, not by
+changing the `get_terms()` `orderby`, since plain alphabetical order can't express relevance.
+
 ### Frontend JS (`assets/js/`)
 
 - All client code attaches to a single global namespace: **`window.InfluencerApp`**.
@@ -171,10 +199,16 @@ that are flushed on `save_post`/`delete_post` of an influencer.
 
 - **Influencer attributes** live in post meta: `followers`, `engagerate`, `avglikes`,
   `avgcomments`, `posts`, `country` (alpha-3), `lang`, `gender`, `isverified`, `is_expert`,
-  `creatordb_last_updated`, etc. — plus taxonomies `niche` / `topic` / `content_tag` / `platform`.
-  Instagram metrics history is accessed via `trb_instagram_history_rows($post_id)` (prefers ICDH
-  canonical data, falls back to `creatordb_history` meta). Use `trb_instagram_history_sort_asc()`
-  to sort rows — do not inline `usort` on the raw history array.
+  `creatordb_last_updated`, etc. (Instagram/primary-platform) — plus taxonomies `niche` / `topic` /
+  `content_tag` / `platform`. YouTube adds `youtube_subscribers`, `youtube_engagement_rate`,
+  `youtubeid`/`youtube_id`, `youtubename`, `ic_youtube_link`; TikTok adds `tiktok_followers`,
+  `tiktok_engagement_rate`, `tiktokid`/`tiktok_username`, `ic_tiktok_link` — these are
+  **current-snapshot** fields, read via `platform=` on the stat shortcodes (`[influencer_followers
+  platform="youtube"]`, etc. — no `platform=` = today's flat/Instagram behaviour, unchanged).
+  Multi-platform history is accessed via `trb_platform_history_rows($post_id, $platform)` (see
+  above); **YouTube subscriber counts are stored under the `followers` history key** — label them
+  "Subscribers" in the UI via `trb_platform_metric_noun('youtube')`. Use
+  `trb_instagram_history_sort_asc()` to sort rows — do not inline `usort` on the raw history array.
 - **User activity** is modelled as custom post types, **registered by `Saves_Manager`**:
   `saved-influencer`, `viewed-influencer`, `saved-search` (the `outreach` CPT is provided
   externally). These store an `influencer_id` meta linking back to the influencer; helpers in
@@ -268,7 +302,8 @@ the PHP check in sync — the PHP check is the real boundary.
 ## Conventions & gotchas
 
 - **Prefixes:** `dd_` (Digitally Disruptive) for this theme's PHP functions/options/hooks;
-  `trb_` for theme-defined helper wrappers (e.g. `trb_instagram_history_rows`);
+  `trb_` for theme-defined helper wrappers (e.g. `trb_platform_history_rows`, `trb_platform_has_data`,
+  `trb_instagram_history_rows` as its Instagram-only alias);
   `creatordb_` for CreatorDB companion-plugin functions; `icdh_` for ICDH companion-plugin
   functions; `influencer_*` shortcode names; `inf-*` JS enqueue handles; `InfluencerApp.*` JS methods.
 - **Rendering style:** PHP render functions use output buffering (`ob_start()` … `return
@@ -287,8 +322,26 @@ the PHP check in sync — the PHP check is the real boundary.
 - **Chart post ID in Elementor context:** Elementor may not set `global $post` when rendering a
   widget outside the main query. `DD_Follower_Growth_Chart` resolves the post ID via
   `resolve_chart_post_id()` which tries `get_the_ID()`, `global $post`, then `get_queried_object_id()`
-  in order. Use this pattern (or `trb_instagram_history_rows()`) rather than reading `$post->ID`
+  in order. Use this pattern (or `trb_platform_history_rows()`) rather than reading `$post->ID`
   directly in chart/shortcode code.
+- **Platform switcher drives the whole page, not just charts:** `enqueue_scripts()` localizes
+  `ddChartPayload` **keyed by platform** (only platforms `trb_platform_has_data()` confirms) plus a
+  global `window.ddPlatformSwitcher` controller (`register(fn)` / `set(platform)` / `get()`) onto
+  the `apexcharts` handle. Each of the four chart shortcodes registers a re-render callback that
+  destroys and recreates its ApexCharts instance from `ddChartPayload[platform]` — never
+  `updateSeries()` in place, since datasets can differ in shape across platforms. The
+  `[platform_switcher]` widget/shortcode (profile header) renders one button per available platform
+  and calls `ddPlatformSwitcher.set(platform)` on click, which also toggles every
+  `.dd-platform-panel[data-platform="…"]` block on the page (wrap platform-specific stat cards,
+  feeds, or brand blocks in one via `[platform_panel platform="youtube"]…[/platform_panel]` or the
+  `dd-platform-panel` CSS class + `data-platform` attribute in Elementor). Keep chart, switcher, and
+  panel logic reading the same `trb_platform_has_data()` availability signal so they never disagree
+  about which platforms exist for an influencer. All four chart shortcodes and `[platform_switcher]`
+  accept `id="123"` to target a specific influencer post instead of `resolve_chart_post_id()`'s
+  current-post inference; the chart shortcodes also take `platform="youtube|tiktok|instagram"` as
+  the *initial* platform shown before a switcher click (each Elementor widget wrapper exposes this
+  as a "Platform" select control), and `[platform_switcher platforms="instagram,youtube"]` can
+  restrict which buttons render.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the
@@ -304,5 +357,11 @@ the PHP check in sync — the PHP check is the real boundary.
   `dd_get_client_ip()` (checks `CF-Connecting-IP`/`X-Forwarded-For`/`X-Real-IP` before
   `REMOTE_ADDR`), looked up against the free `ipapi.co` API and cached per-IP in a transient
   (a week on success, an hour on failure/rate-limit so an outage doesn't wedge lookups for a
-  week). Only `GB`/`US`/`AU`/`CA` are mapped; everything else (including local/private IPs) falls
-  back to the `$` symbol.
+  week). `GB`/`US`/`AU`/`CA` map to their ISO currency code (`GBP`/`USD`/`AUD`/`CAD`), and eurozone
+  members plus euro-using microstates (e.g. `DE`, `FR`, `IE`, `ES`, `AD`, `MC`, `SM`, `VA`, `ME`, `XK`)
+  map to `EUR`; everything else (including local/private IPs) falls back to `USD`. In `modules/outreach/outreach.php`,
+  the outreach budget field runs `do_shortcode()` over the submitted `budget` value (dashboard
+  detail view, HTML email builder, and `{budget}` email-template token) so a brand's `[currency]`
+  placeholder resolves wherever the budget is displayed; the outreach form's select/radio/checkbox
+  `field_options` (e.g. budget-range choices) are also expanded via `do_shortcode()` before
+  rendering, since Elementor prints those option labels verbatim without running shortcodes.

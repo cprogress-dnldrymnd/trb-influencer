@@ -17,12 +17,24 @@ class Widget_Follower_Timeline_Chart extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [follower_timeline_chart]. Displays a line chart of follower counts over time for the current influencer.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [follower_timeline_chart]. Displays a line chart of follower counts over time for the current influencer. Switches with the page platform switcher; this control sets the initial platform.', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'platform', [
+            'label'   => esc_html__( 'Platform', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::SELECT,
+            'default' => 'instagram',
+            'options' => [
+                'instagram' => esc_html__( 'Instagram', 'trb-influencer' ),
+                'youtube'   => esc_html__( 'YouTube', 'trb-influencer' ),
+                'tiktok'    => esc_html__( 'TikTok', 'trb-influencer' ),
+            ],
         ] );
         $this->end_controls_section();
     }
 
     protected function render() {
-        echo do_shortcode( '[follower_timeline_chart]' );
+        $settings = $this->get_settings_for_display();
+        $platform = $settings['platform'] ?? 'instagram';
+        echo do_shortcode( '[follower_timeline_chart platform="' . esc_attr( $platform ) . '"]' );
     }
 }

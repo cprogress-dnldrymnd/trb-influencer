@@ -1,29 +1,153 @@
 <?php
 
 /**
- * Instagram metrics history for theme charts and scores.
+ * Multi-platform metrics history for theme charts and scores.
  *
- * Prefers ICDH canonical `instagram_metrics_history` (IC + migrated CDB), then legacy `creatordb_history`.
+ * Prefers the ICDH platform-aware bridge (`icdh_platform_history_display_rows`), then the legacy
+ * Instagram-only bridge (`icdh_instagram_history_display_rows`) for back-compat, then the
+ * per-platform history meta (`{platform}_metrics_history`), then — for Instagram only — the
+ * legacy `creatordb_history` meta.
  *
  * @return array<int,array<string,mixed>>
  */
-function trb_instagram_history_rows($post_id)
+function trb_platform_history_rows($post_id, $platform = 'instagram')
 {
     $post_id = (int) $post_id;
     if ($post_id <= 0) {
         return [];
     }
 
-    if (function_exists('icdh_instagram_history_display_rows')) {
+    $platform = in_array($platform, ['instagram', 'youtube', 'tiktok'], true) ? $platform : 'instagram';
+
+    if (function_exists('icdh_platform_history_display_rows')) {
+        $rows = icdh_platform_history_display_rows($post_id, $platform);
+        if (is_array($rows) && $rows !== []) {
+            return $rows;
+        }
+    }
+
+    if ($platform === 'instagram' && function_exists('icdh_instagram_history_display_rows')) {
         $rows = icdh_instagram_history_display_rows($post_id);
         if (is_array($rows) && $rows !== []) {
             return $rows;
         }
     }
 
-    $legacy = get_post_meta($post_id, 'creatordb_history', true);
+    $rows = get_post_meta($post_id, "{$platform}_metrics_history", true);
+    if (is_array($rows) && $rows !== []) {
+        return $rows;
+    }
 
-    return is_array($legacy) ? $legacy : [];
+    if ($platform === 'instagram') {
+        $legacy = get_post_meta($post_id, 'creatordb_history', true);
+
+        return is_array($legacy) ? $legacy : [];
+    }
+
+    return [];
+}
+
+/**
+ * Instagram metrics history for theme charts and scores. Alias of `trb_platform_history_rows()`
+ * for the `instagram` platform — kept for existing callers.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function trb_instagram_history_rows($post_id)
+{
+    return trb_platform_history_rows($post_id, 'instagram');
+}
+
+/**
+ * Last-updated timestamp for a platform's metrics history, when available.
+ *
+ * @return int|null Unix timestamp (seconds), or null when unknown.
+ */
+function trb_platform_history_updated_ts($post_id, $platform = 'instagram')
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0) {
+        return null;
+    }
+
+    $platform = in_array($platform, ['instagram', 'youtube', 'tiktok'], true) ? $platform : 'instagram';
+
+    if (function_exists('icdh_platform_history_updated_ts')) {
+        $ts = icdh_platform_history_updated_ts($post_id, $platform);
+        if (is_numeric($ts) && (int) $ts > 0) {
+            return (int) $ts;
+        }
+    }
+
+    $meta = get_post_meta($post_id, "{$platform}_metrics_history_updated", true);
+
+    return is_numeric($meta) && (int) $meta > 0 ? (int) $meta : null;
+}
+
+/**
+ * The metric noun for a platform's primary count (YouTube subscribers are stored under the
+ * `followers` history/meta key, but must read as "Subscribers" in the UI).
+ *
+ * @return array{0:string,1:string} [lowercase noun, capitalized noun]
+ */
+function trb_platform_metric_noun($platform)
+{
+    if ($platform === 'youtube') {
+        return ['subscribers', 'Subscribers'];
+    }
+
+    return ['followers', 'Followers'];
+}
+
+/**
+ * Whether an influencer has usable data for a platform, checked across both data providers
+ * (CreatorDB and Influencers.Club normalize into the same namespaced keys, so this reads those
+ * normalized keys rather than provider-specific internals). Drives which platform-switcher
+ * buttons are shown and which platforms get a localized chart payload.
+ */
+function trb_platform_has_data($post_id, $platform)
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0) {
+        return false;
+    }
+
+    if ($platform === 'instagram') {
+        if (trb_platform_history_rows($post_id, 'instagram') !== []) {
+            return true;
+        }
+
+        return (int) get_post_meta($post_id, 'followers', true) > 0;
+    }
+
+    if (trb_platform_history_rows($post_id, $platform) !== []) {
+        return true;
+    }
+
+    $current_metric_keys = [
+        'youtube' => ['youtube_subscribers', 'youtube_engagement_rate'],
+        'tiktok'  => ['tiktok_followers', 'tiktok_engagement_rate'],
+    ];
+    $identity_keys = [
+        'youtube' => ['youtubeid', 'youtube_id', 'youtubename', 'ic_youtube_link'],
+        'tiktok'  => ['tiktokid', 'tiktok_username', 'ic_tiktok_link'],
+    ];
+
+    foreach (($current_metric_keys[$platform] ?? []) as $key) {
+        $value = get_post_meta($post_id, $key, true);
+        if (is_numeric($value) && (float) $value > 0) {
+            return true;
+        }
+    }
+
+    foreach (($identity_keys[$platform] ?? []) as $key) {
+        $value = get_post_meta($post_id, $key, true);
+        if ($value !== '' && $value !== null && $value !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**

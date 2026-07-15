@@ -154,37 +154,72 @@ function shortcode_influencer_niche()
 }
 add_shortcode('influencer_niche', 'shortcode_influencer_niche');
 
-function shortcode_influencer_followers()
+/**
+ * Maps a platform= shortcode attr to the namespaced current-metric meta key for that
+ * platform, falling back to the flat/primary-platform key when no namespaced key exists
+ * for that metric (avglikes/avgcomments/posts have no per-platform equivalent yet).
+ */
+function trb_platform_stat_meta_key($platform, $flat_key, array $platform_keys)
 {
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'followers', true));
+    if (isset($platform_keys[$platform])) {
+        return $platform_keys[$platform];
+    }
+
+    return $flat_key;
+}
+
+function shortcode_influencer_followers($atts = [])
+{
+    $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_followers');
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'followers', [
+        'youtube' => 'youtube_subscribers',
+        'tiktok'  => 'tiktok_followers',
+    ]);
+
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
 }
 
 add_shortcode('influencer_followers', 'shortcode_influencer_followers');
 
-function shortcode_influencer_avglikes()
+function shortcode_influencer_avglikes($atts = [])
 {
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'avglikes', true));
+    $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avglikes');
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'avglikes', []);
+
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
 }
 
 add_shortcode('influencer_avglikes', 'shortcode_influencer_avglikes');
 
-function shortcode_influencer_avgcomments()
+function shortcode_influencer_avgcomments($atts = [])
 {
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'avgcomments', true));
+    $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avgcomments');
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'avgcomments', []);
+
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
 }
 
 add_shortcode('influencer_avgcomments', 'shortcode_influencer_avgcomments');
 
-function shortcode_influencer_posts()
+function shortcode_influencer_posts($atts = [])
 {
-    return wp_custom_number_format_short(get_post_meta(get_the_ID(), 'posts', true));
+    $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_posts');
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'posts', []);
+
+    return wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
 }
 
 add_shortcode('influencer_posts', 'shortcode_influencer_posts');
 
-function shortcode_influencer_engagerate()
+function shortcode_influencer_engagerate($atts = [])
 {
-    $engagerate = get_post_meta(get_the_ID(), 'engagerate', true);
+    $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_engagerate');
+    $meta_key = trb_platform_stat_meta_key($atts['platform'], 'engagerate', [
+        'youtube' => 'youtube_engagement_rate',
+        'tiktok'  => 'tiktok_engagement_rate',
+    ]);
+
+    $engagerate = get_post_meta(get_the_ID(), $meta_key, true);
     $engagerate = $engagerate ? $engagerate : 0;
     return convertDecimalToPercentage(floatval($engagerate));
 }
@@ -1388,23 +1423,25 @@ function shortcode_influencer_follower_growth($atts)
     // Extract shortcode attributes with sensible defaults.
     $args = shortcode_atts(
         array(
-            'post_id' => get_the_ID(),
+            'post_id'  => get_the_ID(),
+            'platform' => 'instagram',
         ),
         $atts
     );
 
     $post_id = intval($args['post_id']);
+    $platform = in_array($args['platform'], ['instagram', 'youtube', 'tiktok'], true) ? $args['platform'] : 'instagram';
 
     if (empty($post_id)) {
         return $na_output;
     }
 
-    $history = function_exists('trb_instagram_history_rows')
-        ? trb_instagram_history_rows($post_id)
+    $history = function_exists('trb_platform_history_rows')
+        ? trb_platform_history_rows($post_id, $platform)
         : get_post_meta($post_id, 'creatordb_history', true);
 
     if (empty($history) || ! is_array($history) || count($history) < 2) {
-        if (get_post_meta($post_id, 'source_provider', true) === 'influencers_club') {
+        if ($platform === 'instagram' && get_post_meta($post_id, 'source_provider', true) === 'influencers_club') {
             $club_growth = get_post_meta($post_id, 'instagram_creator_follower_growth_3_months_ago', true);
             if ($club_growth !== '' && $club_growth !== null && is_numeric($club_growth)) {
                 $growth_percent = (float) $club_growth;

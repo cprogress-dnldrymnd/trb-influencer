@@ -33,6 +33,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     require_once $dir . 'class-widget-follower-timeline-chart.php';
     require_once $dir . 'class-widget-follower-growth-rate-chart.php';
     require_once $dir . 'class-widget-follower-like-range-chart.php';
+    require_once $dir . 'class-widget-platform-switcher.php';
     require_once $dir . 'class-widget-creatordb-feed.php';
     require_once $dir . 'class-widget-outreach-list.php';
     require_once $dir . 'class-widget-outreach-view.php';
@@ -62,6 +63,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     $wm->register( new Widget_Follower_Timeline_Chart() );
     $wm->register( new Widget_Follower_Growth_Rate_Chart() );
     $wm->register( new Widget_Follower_Like_Range_Chart() );
+    $wm->register( new Widget_Platform_Switcher() );
     $wm->register( new Widget_Creatordb_Feed() );
     $wm->register( new Widget_Outreach_List() );
     $wm->register( new Widget_Outreach_View() );
