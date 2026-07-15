@@ -155,9 +155,11 @@ function influencers_meta()
 {
     ob_start();
 ?>
-    <pre>
+    <div style="overflow: visible; ">
+        <pre>
     <?php var_dump(get_post_meta(get_the_ID())); ?>
 </pre>
+    </div>
 <?php
     return ob_get_clean();
 }
@@ -177,3 +179,4 @@ add_shortcode('influencers_meta', 'influencers_meta');
 add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
+
