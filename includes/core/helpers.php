@@ -259,14 +259,25 @@ function trb_platform_label($platform)
 }
 
 /**
- * Inline monochrome SVG glyph for a platform slug. Uses fill="currentColor" and a 1em intrinsic
- * size so it inherits the surrounding text's color and font-size (override with an explicit
- * width/height in CSS where a fixed pixel size is needed, e.g. the switcher buttons). Single
- * source of truth shared by [platform_switcher], [platform_text], [platform_icon], and the
+ * Inline monochrome SVG glyph for a platform slug, or a custom uploaded <img> if the admin has
+ * set one (Settings → Influencer Theme → Platform Icons, option `dd_platform_icon_{platform}`,
+ * stored as an attachment ID). The built-in SVGs use fill="currentColor" and a 1em intrinsic size
+ * so they inherit the surrounding text's color and font-size (override with an explicit
+ * width/height in CSS where a fixed pixel size is needed, e.g. the switcher buttons) — a custom
+ * image sizes identically via CSS (`.dd-platform-icon img`) but does not recolor with currentColor.
+ * Single source of truth shared by [platform_switcher], [platform_text], [platform_icon], and the
  * ddPlatformMeta map that the switcher controller swaps in live.
  */
 function trb_platform_icon_svg($platform)
 {
+    $custom_id = (int) get_option('dd_platform_icon_' . $platform, 0);
+    if ($custom_id > 0) {
+        $url = wp_get_attachment_image_url($custom_id, 'full');
+        if ($url) {
+            return '<img src="' . esc_url($url) . '" alt="" loading="lazy" />';
+        }
+    }
+
     $icons = [
         'instagram' => '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.9.07 1.2.06 2.2.28 3 .6.8.32 1.4.75 2 1.35.6.6 1 1.2 1.35 2 .3.8.53 1.8.6 3C23.9 10.4 24 10.8 24 14s-.07 3.6-.13 4.9c-.06 1.2-.28 2.2-.6 3-.32.8-.75 1.4-1.35 2-.6.6-1.2 1-2 1.35-.8.3-1.8.53-3 .6-1.27.06-1.67.07-4.9.07s-3.6 0-4.9-.07c-1.2-.06-2.2-.28-3-.6-.8-.32-1.4-.75-2-1.35-.6-.6-1-1.2-1.35-2-.3-.8-.53-1.8-.6-3C.07 17.6 0 17.2 0 14s.07-3.6.13-4.9c.06-1.2.28-2.2.6-3 .32-.8.75-1.4 1.35-2 .6-.6 1.2-1 2-1.35.8-.3 1.8-.53 3-.6C8.4 2.2 8.8 2.2 12 2.2Z" transform="translate(0 -2)"/><circle cx="12" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.1"/></svg>',
         'youtube'   => '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M23 7.2s-.23-1.6-.94-2.32c-.9-.94-1.9-.94-2.36-1C16.4 3.6 12 3.6 12 3.6h-.01s-4.4 0-7.7.28c-.46.06-1.46.06-2.36 1C1.23 5.6 1 7.2 1 7.2S.77 9.06.77 10.9v1.9c0 1.85.23 3.7.23 3.7s.23 1.6.94 2.32c.9.94 2.08.9 2.6 1 1.9.18 8.06.28 8.06.28s4.4-.01 7.7-.28c.46-.06 1.46-.06 2.36-1 .71-.72.94-2.32.94-2.32s.23-1.85.23-3.7v-1.9c0-1.85-.23-3.7-.23-3.7ZM9.7 14.9V8.9l6.2 3-6.2 3Z"/></svg>',

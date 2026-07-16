@@ -132,6 +132,14 @@ gates the group **Export PDF** action (see the saves module below). When adding 
 toggle, register it on the `dd-theme-settings-functionality` page / `dd_functionality_section` and
 read it via `get_option()`.
 
+A **"Platform Icons" tab** lets admins override the built-in Instagram/YouTube/TikTok SVG glyphs
+with an uploaded image via `wp.media` (`dd_render_platform_icon_picker()`), stored as an attachment
+ID in `dd_platform_icon_{instagram,youtube,tiktok}`. `trb_platform_icon_svg()`
+(`includes/core/helpers.php`) checks this option first and returns an `<img>` instead of the inline
+SVG when set — everywhere that reads through this helper (switcher, `[platform_text]`,
+`[platform_icon]`) picks up the override automatically, but a custom image does **not** recolor via
+`currentColor` the way the built-in SVGs do.
+
 > Caveat: integration files still contain **environment-specific magic page/level IDs** tied to
 > the production site (e.g. `is_page(1551)` checkout, `4191` buy-credits, free PMPro level `15`;
 > `influencer_style_pmpro_checkout()` also hides `.checkout-sidebar` specifically for level `9`).
@@ -344,7 +352,12 @@ the PHP check in sync — the PHP check is the real boundary.
   $candidates)` (validated against `trb_platform_has_data()`), and `trb_platform_default($post_id)`
   (Instagram if available, else first available, else `''`) in `includes/core/helpers.php` are the
   single source of truth all of the above reads from — keep chart, switcher, panel, text, and icon
-  logic on these same helpers so they never disagree about which platforms exist.
+  logic on these same helpers so they never disagree about which platforms exist. Icon/text sizing
+  is CSS-custom-property driven rather than hardcoded: `[platform_switcher icon_size=".." text_size=".."]`
+  and `[platform_text icon_size=".." text_size=".."]` set `--dd-sw-icon-size`/`--dd-sw-text-size` and
+  `--dd-pt-icon-size`/`--dd-pt-text-size` inline (falling back to the existing hardcoded defaults),
+  and their Elementor widgets expose the same via Style-tab `SLIDER` controls — follow this pattern
+  (attr → CSS var with a default fallback) rather than branching PHP on the value.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)

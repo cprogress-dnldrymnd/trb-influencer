@@ -87,6 +87,27 @@ function dd_render_post_search_select($name, $current_id, $type, $description)
     <?php
 }
 
+/**
+ * Renders a WP media-library image picker for a custom platform icon override.
+ *
+ * @param string $name          The option name (also used as the hidden input's name).
+ * @param int    $attachment_id Currently-stored attachment ID, or 0 if unset.
+ * @param string $label         Platform display name, used in the helper text.
+ */
+function dd_render_platform_icon_picker($name, $attachment_id, $label)
+{
+    $preview_url = $attachment_id > 0 ? wp_get_attachment_image_url($attachment_id, 'thumbnail') : '';
+?>
+    <div class="dd-media-field">
+        <img class="dd-media-preview" src="<?php echo esc_url($preview_url); ?>" <?php echo $preview_url ? '' : 'hidden'; ?> alt="">
+        <input type="hidden" name="<?php echo esc_attr($name); ?>" class="dd-media-input" value="<?php echo esc_attr($attachment_id ?: 0); ?>">
+        <button type="button" class="button dd-media-select">Select Image</button>
+        <button type="button" class="button dd-media-remove" <?php echo $attachment_id > 0 ? '' : 'hidden'; ?>>Remove</button>
+        <p class="description">Overrides the built-in <?php echo esc_html($label); ?> icon everywhere it appears (platform switcher, Platform Text, Platform Icon). Leave empty to use the default icon.</p>
+    </div>
+<?php
+}
+
 // ---------------------------------------------------------------------------
 // AJAX search handler (admin-only)
 // ---------------------------------------------------------------------------
@@ -157,9 +178,18 @@ add_action('admin_init', function () {
         'default'           => [],
     ]);
 
+    foreach (['instagram', 'youtube', 'tiktok'] as $platform_icon_slug) {
+        register_setting('dd_theme_page_ids', 'dd_platform_icon_' . $platform_icon_slug, [
+            'type'              => 'integer',
+            'sanitize_callback' => 'absint',
+            'default'           => 0,
+        ]);
+    }
+
     add_settings_section('dd_page_ids_section',     '', '__return_false', 'dd-theme-settings');
     add_settings_section('dd_template_ids_section', '', '__return_false', 'dd-theme-settings-templates');
     add_settings_section('dd_functionality_section', '', '__return_false', 'dd-theme-settings-functionality');
+    add_settings_section('dd_platform_icons_section', '', '__return_false', 'dd-theme-settings-platform-icons');
 
     $page_fields = [
         'dd_search_results_page_id' => ['Search Results Page',   1949, 'Where influencer search results are displayed.'],
@@ -196,6 +226,17 @@ add_action('admin_init', function () {
             'Only members with the selected membership levels can export saved lists to PDF. Leave all unchecked to disable the feature for everyone.'
         );
     }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    $platform_icon_fields = [
+        'dd_platform_icon_instagram' => 'Instagram',
+        'dd_platform_icon_youtube'   => 'YouTube',
+        'dd_platform_icon_tiktok'    => 'TikTok',
+    ];
+    foreach ($platform_icon_fields as $key => $label) {
+        add_settings_field($key, $label, function () use ($key, $label) {
+            dd_render_platform_icon_picker($key, (int) get_option($key, 0), $label);
+        }, 'dd-theme-settings-platform-icons', 'dd_platform_icons_section');
+    }
 });
 
 // ---------------------------------------------------------------------------
@@ -219,6 +260,7 @@ add_action('admin_menu', function () {
                 <button type="button" class="dd-tab-btn dd-tab-active" data-panel="pages">Page Assignments</button>
                 <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
                 <button type="button" class="dd-tab-btn" data-panel="functionality">Functionality</button>
+                <button type="button" class="dd-tab-btn" data-panel="platform-icons">Platform Icons</button>
             </div>
 
             <div class="dd-tab-body">
@@ -243,6 +285,13 @@ add_action('admin_menu', function () {
                         <p class="dd-tab-desc">Toggles and access restrictions for individual platform features.</p>
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings-functionality', 'dd_functionality_section'); ?>
+                        </table>
+                    </div>
+
+                    <div class="dd-panel" id="dd-panel-platform-icons" hidden>
+                        <p class="dd-tab-desc">Upload custom icons to replace the built-in Instagram/YouTube/TikTok glyphs used by the platform switcher and related widgets.</p>
+                        <table class="form-table" role="presentation">
+                            <?php do_settings_fields('dd-theme-settings-platform-icons', 'dd_platform_icons_section'); ?>
                         </table>
                     </div>
 
@@ -372,6 +421,16 @@ add_action('wp_before_admin_bar_render', function () {
         }
     </style>
 <?php
+});
+
+// ---------------------------------------------------------------------------
+// Media library uploader (Platform Icons tab only)
+// ---------------------------------------------------------------------------
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'settings_page_dd-theme-settings') {
+        return;
+    }
+    wp_enqueue_media();
 });
 
 // ---------------------------------------------------------------------------
@@ -565,6 +624,24 @@ add_action('admin_footer', function () {
                 transform: rotate(360deg);
             }
         }
+
+        /* ── Platform icon media picker ── */
+        .dd-media-field {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .dd-media-preview {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border: 1px solid #dcdcde;
+            border-radius: 4px;
+            background: #f6f7f7;
+            padding: 4px;
+        }
     </style>
     <script>
         jQuery(function($) {
@@ -658,6 +735,38 @@ add_action('admin_footer', function () {
                 var $wrap = $(this).closest('.dd-ajax-select');
                 $wrap.find('.dd-ajax-search').val('').trigger('focus');
                 $wrap.find('input[type="hidden"]').val('0');
+                $(this).prop('hidden', true);
+            });
+
+            /* ── Platform icon media picker ── */
+            var mediaFrame;
+
+            $(document).on('click', '.dd-media-select', function(e) {
+                e.preventDefault();
+                var $field = $(this).closest('.dd-media-field');
+
+                mediaFrame = wp.media({
+                    title: 'Select Icon',
+                    button: { text: 'Use this image' },
+                    multiple: false
+                });
+
+                mediaFrame.on('select', function() {
+                    var attachment = mediaFrame.state().get('selection').first().toJSON();
+                    var url = (attachment.sizes && attachment.sizes.thumbnail) ? attachment.sizes.thumbnail.url : attachment.url;
+                    $field.find('.dd-media-input').val(attachment.id);
+                    $field.find('.dd-media-preview').attr('src', url).prop('hidden', false);
+                    $field.find('.dd-media-remove').prop('hidden', false);
+                });
+
+                mediaFrame.open();
+            });
+
+            $(document).on('click', '.dd-media-remove', function(e) {
+                e.preventDefault();
+                var $field = $(this).closest('.dd-media-field');
+                $field.find('.dd-media-input').val('0');
+                $field.find('.dd-media-preview').prop('hidden', true).attr('src', '');
                 $(this).prop('hidden', true);
             });
         });

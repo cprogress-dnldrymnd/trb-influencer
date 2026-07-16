@@ -19,11 +19,17 @@ class Widget_Platform_Icon extends \Elementor\Widget_Base {
             'type' => \Elementor\Controls_Manager::RAW_HTML,
             'raw'  => esc_html__( 'Renders [platform_icon]. Shows the current platform logo for the influencer and swaps it live when the page platform switcher changes. Color inherits from the surrounding text color.', 'trb-influencer' ),
         ] );
-        $this->add_control( 'size', [
-            'label'       => esc_html__( 'Icon Size (px)', 'trb-influencer' ),
-            'type'        => \Elementor\Controls_Manager::NUMBER,
-            'min'         => 8,
-            'max'         => 200,
+        $this->end_controls_section();
+
+        $this->start_controls_section( 'style_section', [
+            'label' => esc_html__( 'Style', 'trb-influencer' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+        ] );
+        $this->add_control( 'icon_size', [
+            'label'       => esc_html__( 'Icon Size', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::SLIDER,
+            'size_units'  => [ 'px' ],
+            'range'       => [ 'px' => [ 'min' => 8, 'max' => 200 ] ],
             'description' => esc_html__( 'Leave empty to inherit the surrounding font size.', 'trb-influencer' ),
         ] );
         $this->end_controls_section();
@@ -31,7 +37,7 @@ class Widget_Platform_Icon extends \Elementor\Widget_Base {
 
     protected function render() {
         $settings = $this->get_settings_for_display();
-        $size     = isset( $settings['size'] ) ? (int) $settings['size'] : 0;
+        $size     = isset( $settings['icon_size']['size'] ) ? (int) $settings['icon_size']['size'] : 0;
         $attr     = $size > 0 ? ' size="' . $size . '"' : '';
         echo do_shortcode( '[platform_icon' . $attr . ']' );
     }

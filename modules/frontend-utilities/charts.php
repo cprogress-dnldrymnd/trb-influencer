@@ -1238,7 +1238,11 @@ class DD_Follower_Growth_Chart
      */
     public function render_platform_switcher_shortcode($atts = []): string
     {
-        $atts = shortcode_atts(['id' => 0, 'platforms' => ''], (array) $atts, 'platform_switcher');
+        $atts = shortcode_atts(
+            ['id' => 0, 'platforms' => '', 'icon_size' => '', 'text_size' => ''],
+            (array) $atts,
+            'platform_switcher'
+        );
         $post_id = (int) $atts['id'] > 0 ? (int) $atts['id'] : $this->resolve_chart_post_id();
 
         if ($post_id <= 0) {
@@ -1271,9 +1275,18 @@ class DD_Follower_Growth_Chart
             );
         }
 
+        $container_vars = [];
+        if ((int) $atts['icon_size'] > 0) {
+            $container_vars[] = '--dd-sw-icon-size:' . (int) $atts['icon_size'] . 'px';
+        }
+        if ((int) $atts['text_size'] > 0) {
+            $container_vars[] = '--dd-sw-text-size:' . (int) $atts['text_size'] . 'px';
+        }
+        $container_style = $container_vars !== [] ? ' style="' . esc_attr(implode(';', $container_vars)) . '"' : '';
+
         ob_start();
 ?>
-        <div class="dd-platform-switcher"><?php echo $buttons; ?></div>
+        <div class="dd-platform-switcher"<?php echo $container_style; ?>><?php echo $buttons; ?></div>
         <style>
             .dd-platform-switcher {
                 display: inline-flex;
@@ -1289,7 +1302,7 @@ class DD_Follower_Growth_Chart
                 border: 1px solid transparent;
                 border-radius: 5px;
                 background: transparent;
-                font-size: 13px;
+                font-size: var(--dd-sw-text-size, 13px);
                 font-family: inherit;
                 cursor: pointer;
                 transition: background-color .15s ease, color .15s ease, border-color .15s ease;
@@ -1306,10 +1319,12 @@ class DD_Follower_Growth_Chart
                 color: #fff;
             }
 
-            .dd-platform-switcher .dd-platform-btn svg {
+            .dd-platform-switcher .dd-platform-btn svg,
+            .dd-platform-switcher .dd-platform-btn img {
                 flex: 0 0 auto;
-                width: 16px;
-                height: 16px;
+                width: var(--dd-sw-icon-size, 16px);
+                height: var(--dd-sw-icon-size, 16px);
+                object-fit: contain;
             }
         </style>
 <?php
@@ -1344,7 +1359,7 @@ class DD_Follower_Growth_Chart
     public function render_platform_text_shortcode($atts = []): string
     {
         $atts = shortcode_atts(
-            ['id' => 0, 'prefix' => '', 'suffix' => 'Overview', 'icon' => 'yes'],
+            ['id' => 0, 'prefix' => '', 'suffix' => 'Overview', 'icon' => 'yes', 'text_size' => '', 'icon_size' => ''],
             (array) $atts,
             'platform_text'
         );
@@ -1365,8 +1380,18 @@ class DD_Follower_Growth_Chart
             ? '<span class="dd-platform-icon">' . trb_platform_icon_svg($platform) . '</span>'
             : '';
 
+        $wrap_vars = [];
+        if ((int) $atts['text_size'] > 0) {
+            $wrap_vars[] = '--dd-pt-text-size:' . (int) $atts['text_size'] . 'px';
+        }
+        if ((int) $atts['icon_size'] > 0) {
+            $wrap_vars[] = '--dd-pt-icon-size:' . (int) $atts['icon_size'] . 'px';
+        }
+        $wrap_style = $wrap_vars !== [] ? ' style="' . esc_attr(implode(';', $wrap_vars)) . '"' : '';
+
         return $this->platform_element_styles() . sprintf(
-            '<span class="dd-platform-text">%s<span class="dd-platform-text-label">%s<span class="dd-platform-name">%s</span>%s</span></span>',
+            '<span class="dd-platform-text"%s>%s<span class="dd-platform-text-label">%s<span class="dd-platform-name">%s</span>%s</span></span>',
+            $wrap_style,
             $icon_html,
             $prefix,
             esc_html(trb_platform_label($platform)),
@@ -1416,8 +1441,9 @@ class DD_Follower_Growth_Chart
 
         return '<style>'
             . '.dd-platform-icon{display:inline-flex;align-items:center;line-height:0}'
-            . '.dd-platform-icon svg{width:1em;height:1em;fill:currentColor}'
-            . '.dd-platform-text{display:inline-flex;align-items:center;gap:8px}'
+            . '.dd-platform-icon svg,.dd-platform-icon img{width:1em;height:1em;fill:currentColor;object-fit:contain}'
+            . '.dd-platform-text{display:inline-flex;align-items:center;gap:8px;font-size:var(--dd-pt-text-size,inherit)}'
+            . '.dd-platform-text .dd-platform-icon{font-size:var(--dd-pt-icon-size,1em)}'
             . '</style>';
     }
 }
