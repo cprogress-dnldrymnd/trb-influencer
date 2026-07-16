@@ -50,6 +50,12 @@ class DD_Follower_Growth_Chart
 
         // Wraps arbitrary content so the platform switcher can show/hide it per platform
         add_shortcode('platform_panel', [$this, 'render_platform_panel_shortcode']);
+
+        // Reactive platform label (e.g. "Instagram Overview") — logo + name swap on switch
+        add_shortcode('platform_text', [$this, 'render_platform_text_shortcode']);
+
+        // Standalone platform logo that swaps on switch
+        add_shortcode('platform_icon', [$this, 'render_platform_icon_shortcode']);
     }
 
     /**
@@ -410,6 +416,19 @@ class DD_Follower_Growth_Chart
             wp_localize_script('apexcharts', 'ddPlatformStats', $stats_payload);
         }
 
+        // Per-platform label + logo for the reactive [platform_text]/[platform_icon] elements —
+        // the controller below rewrites every .dd-platform-name / .dd-platform-icon on each switch.
+        if (function_exists('trb_platform_label') && function_exists('trb_platform_icon_svg')) {
+            $meta_payload = [];
+            foreach ($available_platforms as $platform) {
+                $meta_payload[$platform] = [
+                    'label' => trb_platform_label($platform),
+                    'icon'  => trb_platform_icon_svg($platform),
+                ];
+            }
+            wp_localize_script('apexcharts', 'ddPlatformMeta', $meta_payload);
+        }
+
         $default_platform = in_array('instagram', $available_platforms, true)
             ? 'instagram'
             : $available_platforms[0];
@@ -440,6 +459,11 @@ class DD_Follower_Growth_Chart
             . "        document.querySelectorAll('.dd-platform-btn[data-platform]').forEach(function (btn) {\n"
             . "            btn.classList.toggle('active', btn.getAttribute('data-platform') === platform);\n"
             . "        });\n"
+            . "        if (typeof ddPlatformMeta !== 'undefined' && ddPlatformMeta[platform]) {\n"
+            . "            var meta = ddPlatformMeta[platform];\n"
+            . "            document.querySelectorAll('.dd-platform-name').forEach(function (el) { el.textContent = meta.label; });\n"
+            . "            document.querySelectorAll('.dd-platform-icon').forEach(function (el) { el.innerHTML = meta.icon; });\n"
+            . "        }\n"
             . "    }\n"
             . "    function register(fn) {\n"
             . "        listeners.push(fn);\n"
@@ -1224,27 +1248,9 @@ class DD_Follower_Growth_Chart
         $requested = array_filter(array_map('trim', explode(',', (string) $atts['platforms'])));
         $candidates = $requested !== [] ? $requested : ['instagram', 'youtube', 'tiktok'];
 
-        $labels = [
-            'instagram' => 'Instagram',
-            'youtube'   => 'YouTube',
-            'tiktok'    => 'TikTok',
-        ];
-        $icons = [
-            'instagram' => '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.9.07 1.2.06 2.2.28 3 .6.8.32 1.4.75 2 1.35.6.6 1 1.2 1.35 2 .3.8.53 1.8.6 3C23.9 10.4 24 10.8 24 14s-.07 3.6-.13 4.9c-.06 1.2-.28 2.2-.6 3-.32.8-.75 1.4-1.35 2-.6.6-1.2 1-2 1.35-.8.3-1.8.53-3 .6-1.27.06-1.67.07-4.9.07s-3.6 0-4.9-.07c-1.2-.06-2.2-.28-3-.6-.8-.32-1.4-.75-2-1.35-.6-.6-1-1.2-1.35-2-.3-.8-.53-1.8-.6-3C.07 17.6 0 17.2 0 14s.07-3.6.13-4.9c.06-1.2.28-2.2.6-3 .32-.8.75-1.4 1.35-2 .6-.6 1.2-1 2-1.35.8-.3 1.8-.53 3-.6C8.4 2.2 8.8 2.2 12 2.2Z" transform="translate(0 -2)"/><circle cx="12" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.1"/></svg>',
-            'youtube'   => '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M23 7.2s-.23-1.6-.94-2.32c-.9-.94-1.9-.94-2.36-1C16.4 3.6 12 3.6 12 3.6h-.01s-4.4 0-7.7.28c-.46.06-1.46.06-2.36 1C1.23 5.6 1 7.2 1 7.2S.77 9.06.77 10.9v1.9c0 1.85.23 3.7.23 3.7s.23 1.6.94 2.32c.9.94 2.08.9 2.6 1 1.9.18 8.06.28 8.06.28s4.4-.01 7.7-.28c.46-.06 1.46-.06 2.36-1 .71-.72.94-2.32.94-2.32s.23-1.85.23-3.7v-1.9c0-1.85-.23-3.7-.23-3.7ZM9.7 14.9V8.9l6.2 3-6.2 3Z"/></svg>',
-            'tiktok'    => '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M16.6 2h-3.2v13.9c0 1.5-1.2 2.7-2.7 2.7-1.5 0-2.7-1.2-2.7-2.7 0-1.5 1.2-2.7 2.7-2.7.3 0 .6.05.9.14V9.9c-.3-.04-.6-.06-.9-.06-3.2 0-5.8 2.6-5.8 5.8S7.5 21.4 10.7 21.4s5.8-2.6 5.8-5.8V8.6c1.2.9 2.7 1.4 4.3 1.4V6.8c-2.3 0-4.2-1.9-4.2-4.2V2Z"/></svg>',
-        ];
-
-        $available = [];
-        foreach ($candidates as $platform) {
-            if (!isset($labels[$platform])) {
-                continue;
-            }
-            if (!function_exists('trb_platform_has_data') || !trb_platform_has_data($post_id, $platform)) {
-                continue;
-            }
-            $available[] = $platform;
-        }
+        $available = function_exists('trb_platforms_available')
+            ? trb_platforms_available($post_id, $candidates)
+            : [];
 
         if (empty($available)) {
             return '';
@@ -1260,8 +1266,8 @@ class DD_Follower_Growth_Chart
                 '<button type="button" class="dd-platform-btn%s" data-platform="%s" onclick="if(window.ddPlatformSwitcher){ddPlatformSwitcher.set(this.dataset.platform);}">%s<span>%s</span></button>',
                 esc_attr($is_active),
                 esc_attr($platform),
-                $icons[$platform],
-                esc_html($labels[$platform])
+                trb_platform_icon_svg($platform),
+                esc_html(trb_platform_label($platform))
             );
         }
 
@@ -1271,8 +1277,12 @@ class DD_Follower_Growth_Chart
         <style>
             .dd-platform-switcher {
                 display: inline-flex;
-                gap: 6px;
+                gap: 4px;
                 flex-wrap: wrap;
+                padding: 4px;
+                border: 1px solid #E0E0E0;
+                border-radius: 12px;
+                background: #fff;
             }
 
             .dd-platform-switcher .dd-platform-btn {
@@ -1280,9 +1290,9 @@ class DD_Follower_Growth_Chart
                 align-items: center;
                 gap: 6px;
                 padding: 8px 14px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid transparent;
                 border-radius: 8px;
-                background: #F5F5F5;
+                background: transparent;
                 color: #555;
                 font-size: 13px;
                 font-family: inherit;
@@ -1291,17 +1301,19 @@ class DD_Follower_Growth_Chart
             }
 
             .dd-platform-switcher .dd-platform-btn:hover {
-                background: #EDEDED;
+                background: #F2F2F2;
             }
 
             .dd-platform-switcher .dd-platform-btn.active {
-                background: #FF7347;
-                border-color: #FF7347;
+                background: var(--e-global-color-primary, #034146);
+                border-color: var(--e-global-color-primary, #034146);
                 color: #fff;
             }
 
             .dd-platform-switcher .dd-platform-btn svg {
                 flex: 0 0 auto;
+                width: 16px;
+                height: 16px;
             }
         </style>
 <?php
@@ -1325,6 +1337,92 @@ class DD_Follower_Growth_Chart
             $style,
             do_shortcode((string) $content)
         );
+    }
+
+    /**
+     * [platform_text prefix="" suffix="Overview" icon="yes" id="0"] — a platform label that reads
+     * e.g. "Instagram Overview". The logo (.dd-platform-icon) and the platform name
+     * (.dd-platform-name) swap live when the switcher changes; the prefix/suffix stay put. Inert
+     * (renders the default platform, never changes) on pages with no [platform_switcher].
+     */
+    public function render_platform_text_shortcode($atts = []): string
+    {
+        $atts = shortcode_atts(
+            ['id' => 0, 'prefix' => '', 'suffix' => 'Overview', 'icon' => 'yes'],
+            (array) $atts,
+            'platform_text'
+        );
+        $post_id = (int) $atts['id'] > 0 ? (int) $atts['id'] : $this->resolve_chart_post_id();
+        if ($post_id <= 0) {
+            return '';
+        }
+
+        $platform = function_exists('trb_platform_default') ? trb_platform_default($post_id) : 'instagram';
+        if ($platform === '') {
+            return '';
+        }
+
+        $show_icon = !in_array(strtolower((string) $atts['icon']), ['no', 'false', '0', ''], true);
+        $prefix    = $atts['prefix'] !== '' ? esc_html($atts['prefix']) . ' ' : '';
+        $suffix    = $atts['suffix'] !== '' ? ' ' . esc_html($atts['suffix']) : '';
+        $icon_html = $show_icon
+            ? '<span class="dd-platform-icon">' . trb_platform_icon_svg($platform) . '</span>'
+            : '';
+
+        return $this->platform_element_styles() . sprintf(
+            '<span class="dd-platform-text">%s<span class="dd-platform-text-label">%s<span class="dd-platform-name">%s</span>%s</span></span>',
+            $icon_html,
+            $prefix,
+            esc_html(trb_platform_label($platform)),
+            $suffix
+        );
+    }
+
+    /**
+     * [platform_icon size="24" id="0"] — a standalone platform logo that swaps live on switch.
+     * Size follows the `size` attr (px) or, unset, the inherited font-size; color inherits via
+     * currentColor. Inert on pages with no [platform_switcher].
+     */
+    public function render_platform_icon_shortcode($atts = []): string
+    {
+        $atts = shortcode_atts(['id' => 0, 'size' => ''], (array) $atts, 'platform_icon');
+        $post_id = (int) $atts['id'] > 0 ? (int) $atts['id'] : $this->resolve_chart_post_id();
+        if ($post_id <= 0) {
+            return '';
+        }
+
+        $platform = function_exists('trb_platform_default') ? trb_platform_default($post_id) : 'instagram';
+        if ($platform === '') {
+            return '';
+        }
+
+        $size  = (int) $atts['size'];
+        $style = $size > 0 ? ' style="font-size:' . $size . 'px;"' : '';
+
+        return $this->platform_element_styles() . sprintf(
+            '<span class="dd-platform-icon"%s>%s</span>',
+            $style,
+            trb_platform_icon_svg($platform)
+        );
+    }
+
+    /**
+     * Shared base CSS for [platform_text]/[platform_icon], returned once per request (subsequent
+     * calls return ''), following the module's inline-<style> convention.
+     */
+    private function platform_element_styles(): string
+    {
+        static $printed = false;
+        if ($printed) {
+            return '';
+        }
+        $printed = true;
+
+        return '<style>'
+            . '.dd-platform-icon{display:inline-flex;align-items:center;line-height:0}'
+            . '.dd-platform-icon svg{width:1em;height:1em;fill:currentColor}'
+            . '.dd-platform-text{display:inline-flex;align-items:center;gap:8px}'
+            . '</style>';
     }
 }
 

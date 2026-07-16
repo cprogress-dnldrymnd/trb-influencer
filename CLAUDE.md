@@ -341,7 +341,24 @@ the PHP check in sync — the PHP check is the real boundary.
   current-post inference; the chart shortcodes also take `platform="youtube|tiktok|instagram"` as
   the *initial* platform shown before a switcher click (each Elementor widget wrapper exposes this
   as a "Platform" select control), and `[platform_switcher platforms="instagram,youtube"]` can
-  restrict which buttons render.
+  restrict which buttons render. The per-platform label (`trb_platform_label()`) and inline SVG
+  logo (`trb_platform_icon_svg()`) are centralized in `includes/core/helpers.php`, along with
+  `trb_platforms_available($post_id, $candidates)` (candidate slugs filtered/validated against
+  `trb_platform_has_data()`, order preserved) and `trb_platform_default($post_id)` (Instagram if
+  available, else the first available platform, else `''`) — these back `[platform_switcher]` and
+  are also the source of truth for `[platform_text]`/`[platform_icon]` below.
+- **`[platform_text]`/`[platform_icon]` — reactive label/logo outside the switcher itself:**
+  `[platform_text prefix="" suffix="Overview" icon="yes" id="0"]` renders e.g. "Instagram
+  Overview" (logo in a `.dd-platform-icon` span, name in `.dd-platform-name`, prefix/suffix static
+  text around them); `[platform_icon size="24" id="0"]` renders just the logo. Both wrap
+  `DD_Follower_Growth_Chart::render_platform_text_shortcode()` /
+  `render_platform_icon_shortcode()` (`modules/frontend-utilities/charts.php`), have thin Elementor
+  wrappers (`Widget_Platform_Text` / `Widget_Platform_Icon`), and render the influencer's
+  `trb_platform_default()` platform on first paint. `enqueue_scripts()` localizes
+  `ddPlatformMeta[platform] = {label, icon}` onto the `apexcharts` handle; `ddPlatformSwitcher.set()`
+  rewrites every `.dd-platform-name`/`.dd-platform-icon` on the page from that map on each switch —
+  same reactive-without-Elementor-changes pattern as the stat shortcodes below. Inert (renders once,
+  never updates) on pages with no `[platform_switcher]`.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
