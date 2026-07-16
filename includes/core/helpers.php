@@ -1,12 +1,63 @@
 <?php
 
 /**
+ * Normalizes a single history row into the canonical shape the theme's chart/growth/stat code
+ * expects (timestamp_ms, date, avglikes, avgcomments, engagerate, videoviews, avgvideoviews,
+ * likes, comments), regardless of which schema it arrived in.
+ *
+ * The per-platform `{platform}_metrics_history` meta (ICDH's newer canonical shape) uses
+ * different field names than the legacy `creatordb_history` shape — `captured_at` (seconds,
+ * not `timestamp_ms` ms), `observation_date` (not `date`), `avg_likes`/`avg_comments` (not
+ * `avglikes`/`avgcomments`), `engagement_rate` (not `engagerate`), `video_views`/
+ * `avg_video_views`/`likes_total`/`comments_total` (not `videoviews`/`avgvideoviews`/`likes`/
+ * `comments`). `followers`/`following`/`posts` are unchanged in both shapes. Without this
+ * bridge, every raw-meta-sourced row silently loses its date (charts collapse every point to
+ * "now") and its likes/comments/engagement (read as 0/empty) whenever
+ * `icdh_platform_history_display_rows()` isn't available to do this translation itself.
+ *
+ * @return array<string,mixed>
+ */
+function trb_normalize_history_row(array $row)
+{
+    if (!isset($row['timestamp_ms']) && isset($row['captured_at']) && is_numeric($row['captured_at'])) {
+        $row['timestamp_ms'] = ((int) $row['captured_at']) * 1000;
+    }
+    if (!isset($row['date']) && isset($row['observation_date'])) {
+        $row['date'] = $row['observation_date'];
+    }
+    if (!isset($row['avglikes']) && isset($row['avg_likes'])) {
+        $row['avglikes'] = $row['avg_likes'];
+    }
+    if (!isset($row['avgcomments']) && isset($row['avg_comments'])) {
+        $row['avgcomments'] = $row['avg_comments'];
+    }
+    if (!isset($row['engagerate']) && isset($row['engagement_rate'])) {
+        $row['engagerate'] = $row['engagement_rate'];
+    }
+    if (!isset($row['videoviews']) && isset($row['video_views'])) {
+        $row['videoviews'] = $row['video_views'];
+    }
+    if (!isset($row['avgvideoviews']) && isset($row['avg_video_views'])) {
+        $row['avgvideoviews'] = $row['avg_video_views'];
+    }
+    if (!isset($row['likes']) && isset($row['likes_total'])) {
+        $row['likes'] = $row['likes_total'];
+    }
+    if (!isset($row['comments']) && isset($row['comments_total'])) {
+        $row['comments'] = $row['comments_total'];
+    }
+
+    return $row;
+}
+
+/**
  * Multi-platform metrics history for theme charts and scores.
  *
  * Prefers the ICDH platform-aware bridge (`icdh_platform_history_display_rows`), then the legacy
  * Instagram-only bridge (`icdh_instagram_history_display_rows`) for back-compat, then the
- * per-platform history meta (`{platform}_metrics_history`), then — for Instagram only — the
- * legacy `creatordb_history` meta.
+ * per-platform history meta (`{platform}_metrics_history`, normalized to the canonical row shape
+ * via `trb_normalize_history_row()`), then — for Instagram only — the legacy `creatordb_history`
+ * meta (already in the canonical shape).
  *
  * @return array<int,array<string,mixed>>
  */
@@ -35,7 +86,7 @@ function trb_platform_history_rows($post_id, $platform = 'instagram')
 
     $rows = get_post_meta($post_id, "{$platform}_metrics_history", true);
     if (is_array($rows) && $rows !== []) {
-        return $rows;
+        return array_map('trb_normalize_history_row', $rows);
     }
 
     if ($platform === 'instagram') {
@@ -45,6 +96,49 @@ function trb_platform_history_rows($post_id, $platform = 'instagram')
     }
 
     return [];
+}
+
+/**
+ * Resolves the current-snapshot value for a stat metric ('followers', 'engagerate', 'avglikes',
+ * 'avgcomments', 'posts') on a platform, from the latest (chronologically sorted) row of that
+ * platform's own history. Preferred over the flat/namespaced current-metric meta keys
+ * (`youtube_subscribers`, `tiktok_engagement_rate`, etc.) because: (a) CreatorDB-sourced
+ * influencers frequently never populate those namespaced keys at all — only the history arrays —
+ * and (b) the flat `followers`/`engagerate`/... fields reflect whichever platform is that
+ * influencer's `primary_platform` (not necessarily Instagram), so they're not a safe per-platform
+ * source even when present.
+ *
+ * @return int|float|string|null Raw value from the latest row, or null when the platform has no
+ *         history (or the latest row doesn't have that field) — callers should fall back to the
+ *         meta-key lookup in that case.
+ */
+function trb_platform_current_metric_from_history($post_id, $platform, $metric)
+{
+    $history_field = [
+        'followers'   => 'followers',
+        'engagerate'  => 'engagerate',
+        'avglikes'    => 'avglikes',
+        'avgcomments' => 'avgcomments',
+        'posts'       => 'posts',
+    ][$metric] ?? null;
+
+    if ($history_field === null) {
+        return null;
+    }
+
+    $rows = trb_platform_history_rows($post_id, $platform);
+    if ($rows === []) {
+        return null;
+    }
+
+    $rows = trb_instagram_history_sort_asc($rows);
+    $latest = end($rows);
+
+    if (!isset($latest[$history_field]) || $latest[$history_field] === '' || $latest[$history_field] === null) {
+        return null;
+    }
+
+    return $latest[$history_field];
 }
 
 /**

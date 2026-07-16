@@ -216,13 +216,41 @@ function trb_wrap_platform_stat($value, $metric)
     return '<span class="platform-stat" data-metric="' . esc_attr($metric) . '">' . $value . '</span>';
 }
 
+/**
+ * Resolves the raw (unformatted) value for one metric on a platform.
+ *
+ * When an explicit platform is given, prefers the latest row of that platform's own history
+ * (`trb_platform_current_metric_from_history()`) over the flat/namespaced current-metric meta —
+ * CreatorDB-sourced influencers often never populate `youtube_subscribers`/`tiktok_followers`/
+ * `*_engagement_rate` at all, and the flat fields aren't reliably platform-scoped anyway (they
+ * track whichever platform is that influencer's `primary_platform`). Falls back to the meta-key
+ * lookup when no history value is available.
+ *
+ * When no platform is given (bare `[influencer_followers]` etc., used site-wide on search cards,
+ * group rows, etc.), behaves exactly as before — flat meta key only, no history involved — so
+ * non-switcher pages are unaffected.
+ */
+function trb_resolve_platform_stat_raw($post_id, $platform, $metric)
+{
+    if ($platform !== '' && function_exists('trb_platform_current_metric_from_history')) {
+        $raw = trb_platform_current_metric_from_history($post_id, $platform, $metric);
+        if ($raw !== null) {
+            return $raw;
+        }
+    }
+
+    $config = trb_platform_stat_metric_map()[$metric];
+    $meta_key = trb_platform_stat_meta_key($platform, $config['flat'], $config['platform']);
+
+    return get_post_meta($post_id, $meta_key, true);
+}
+
 function shortcode_influencer_followers($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_followers');
-    $config = trb_platform_stat_metric_map()['followers'];
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
+    $raw = trb_resolve_platform_stat_raw(get_the_ID(), $atts['platform'], 'followers');
 
-    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short($raw);
 
     return trb_wrap_platform_stat($value, 'followers');
 }
@@ -232,10 +260,9 @@ add_shortcode('influencer_followers', 'shortcode_influencer_followers');
 function shortcode_influencer_avglikes($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avglikes');
-    $config = trb_platform_stat_metric_map()['avglikes'];
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
+    $raw = trb_resolve_platform_stat_raw(get_the_ID(), $atts['platform'], 'avglikes');
 
-    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short($raw);
 
     return trb_wrap_platform_stat($value, 'avglikes');
 }
@@ -245,10 +272,9 @@ add_shortcode('influencer_avglikes', 'shortcode_influencer_avglikes');
 function shortcode_influencer_avgcomments($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_avgcomments');
-    $config = trb_platform_stat_metric_map()['avgcomments'];
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
+    $raw = trb_resolve_platform_stat_raw(get_the_ID(), $atts['platform'], 'avgcomments');
 
-    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short($raw);
 
     return trb_wrap_platform_stat($value, 'avgcomments');
 }
@@ -258,10 +284,9 @@ add_shortcode('influencer_avgcomments', 'shortcode_influencer_avgcomments');
 function shortcode_influencer_posts($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_posts');
-    $config = trb_platform_stat_metric_map()['posts'];
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
+    $raw = trb_resolve_platform_stat_raw(get_the_ID(), $atts['platform'], 'posts');
 
-    $value = wp_custom_number_format_short(get_post_meta(get_the_ID(), $meta_key, true));
+    $value = wp_custom_number_format_short($raw);
 
     return trb_wrap_platform_stat($value, 'posts');
 }
@@ -271,10 +296,7 @@ add_shortcode('influencer_posts', 'shortcode_influencer_posts');
 function shortcode_influencer_engagerate($atts = [])
 {
     $atts = shortcode_atts(['platform' => ''], (array) $atts, 'influencer_engagerate');
-    $config = trb_platform_stat_metric_map()['engagerate'];
-    $meta_key = trb_platform_stat_meta_key($atts['platform'], $config['flat'], $config['platform']);
-
-    $engagerate = get_post_meta(get_the_ID(), $meta_key, true);
+    $engagerate = trb_resolve_platform_stat_raw(get_the_ID(), $atts['platform'], 'engagerate');
     $engagerate = $engagerate ? $engagerate : 0;
     $value = convertDecimalToPercentage(floatval($engagerate));
 
@@ -1636,8 +1658,7 @@ function trb_build_platform_stats_map($post_id, $platform = 'instagram')
     $stats = [];
 
     foreach (trb_platform_stat_metric_map() as $metric => $config) {
-        $meta_key = trb_platform_stat_meta_key($platform, $config['flat'], $config['platform']);
-        $raw = get_post_meta($post_id, $meta_key, true);
+        $raw = trb_resolve_platform_stat_raw($post_id, $platform, $metric);
 
         if ($raw === '' || $raw === null || $raw === false) {
             continue;

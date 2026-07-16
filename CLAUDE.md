@@ -360,6 +360,26 @@ the PHP check in sync — the PHP check is the real boundary.
   data for the target platform is simply omitted from the map, which leaves that span's current text
   untouched rather than blanking it. The wrapper is inert wherever no switcher exists (search cards,
   group rows) — it never gets rewritten there.
+  > Gotcha: the flat/namespaced current-metric meta keys (`youtube_subscribers`, `tiktok_followers`,
+  > `youtube_engagement_rate`, `tiktok_engagement_rate`) are **not reliable** — CreatorDB-sourced
+  > influencers often never populate them at all (only the `{platform}_metrics_history` arrays), and
+  > neither provider reliably populates the two `*_engagement_rate` keys. The flat `followers`/
+  > `engagerate`/`avglikes`/`avgcomments` fields are also not safely "Instagram" — they track
+  > whichever platform is that influencer's `primary_platform`. So whenever an **explicit** platform
+  > is requested (a `platform=` shortcode attr, or `trb_build_platform_stats_map()`, which always
+  > passes one), `trb_resolve_platform_stat_raw()` (`includes/core/shortcodes.php`) prefers the
+  > **latest row of that platform's own history** via `trb_platform_current_metric_from_history()`
+  > (`includes/core/helpers.php`), falling back to the meta-key lookup only when that platform has no
+  > history. Bare shortcode calls with no `platform=` attr (site-wide usage — search cards, group
+  > rows) are untouched and keep reading the flat meta key only, so non-switcher pages never change.
+  > This also means `trb_platform_history_rows()` normalizes rows read from the raw
+  > `{platform}_metrics_history` meta (via `trb_normalize_history_row()`) into the older
+  > `creatordb_history` field shape (`timestamp_ms`/`date`/`avglikes`/`avgcomments`/`engagerate`
+  > instead of `captured_at`(seconds)/`observation_date`/`avg_likes`/`avg_comments`/
+  > `engagement_rate`) — without it, every chart/growth calculation sourced from that meta directly
+  > (i.e. whenever `icdh_platform_history_display_rows()` isn't installed) silently collapsed every
+  > point's date to "now" and read likes/comments as 0. Keep any new history consumer reading through
+  > `trb_platform_history_rows()` rather than the raw postmeta, or it'll hit the un-normalized shape.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the
