@@ -305,6 +305,118 @@ function shortcode_influencer_engagerate($atts = [])
 
 add_shortcode('influencer_engagerate', 'shortcode_influencer_engagerate');
 
+/**
+ * Resolves the post ID for the combined-platform stat shortcodes below: an explicit `id`
+ * attribute when > 0, otherwise the current post. Mirrors the per-platform stat shortcodes,
+ * which read get_the_ID(), while allowing an override for parity with the platform shortcodes.
+ */
+function trb_combined_stat_post_id($atts_id)
+{
+    $id = intval($atts_id);
+
+    return $id > 0 ? $id : get_the_ID();
+}
+
+/**
+ * Wraps a combined cross-platform stat value. Unlike trb_wrap_platform_stat(), this uses a
+ * distinct `combined-stat` class and a `data-metric` key that is deliberately absent from
+ * trb_build_platform_stats_map(), so ddPlatformSwitcher.set() never rewrites it — combined totals
+ * are platform-independent and must stay constant when the switcher is clicked.
+ */
+function trb_wrap_combined_stat($value, $metric)
+{
+    return '<span class="combined-stat" data-metric="' . esc_attr($metric) . '">' . $value . '</span>';
+}
+
+/**
+ * [influencer_total_followers] — sum of followers/subscribers across every platform the influencer
+ * actually has data for (Instagram + YouTube + TikTok). Non-reactive to the platform switcher.
+ *
+ * Usage: [influencer_total_followers] or [influencer_total_followers id="123"]
+ */
+function shortcode_influencer_total_followers($atts = [])
+{
+    $atts = shortcode_atts(['id' => 0], (array) $atts, 'influencer_total_followers');
+    $post_id = trb_combined_stat_post_id($atts['id']);
+
+    $total = 0.0;
+    foreach (trb_platforms_available($post_id) as $platform) {
+        $total += (float) trb_resolve_platform_stat_raw($post_id, $platform, 'followers');
+    }
+
+    return trb_wrap_combined_stat(wp_custom_number_format_short($total), 'total_followers');
+}
+add_shortcode('influencer_total_followers', 'shortcode_influencer_total_followers');
+
+/**
+ * [influencer_combined_engagerate] — engagement rate across all available platforms, weighted by
+ * each platform's follower/subscriber count (a large-audience platform counts proportionally more).
+ * Platforms with no followers or no engagement data are excluded from both weight and total.
+ * Non-reactive to the platform switcher.
+ *
+ * Usage: [influencer_combined_engagerate] or [influencer_combined_engagerate id="123"]
+ */
+function shortcode_influencer_combined_engagerate($atts = [])
+{
+    $atts = shortcode_atts(['id' => 0], (array) $atts, 'influencer_combined_engagerate');
+    $post_id = trb_combined_stat_post_id($atts['id']);
+
+    $weighted_sum = 0.0;
+    $weight_total = 0.0;
+    foreach (trb_platforms_available($post_id) as $platform) {
+        $followers = (float) trb_resolve_platform_stat_raw($post_id, $platform, 'followers');
+        $rate      = (float) trb_resolve_platform_stat_raw($post_id, $platform, 'engagerate');
+        if ($followers <= 0 || $rate <= 0) {
+            continue;
+        }
+        $weighted_sum += $rate * $followers;
+        $weight_total += $followers;
+    }
+
+    $combined = $weight_total > 0 ? $weighted_sum / $weight_total : 0.0;
+
+    return trb_wrap_combined_stat(convertDecimalToPercentage($combined), 'combined_engagerate');
+}
+add_shortcode('influencer_combined_engagerate', 'shortcode_influencer_combined_engagerate');
+
+/**
+ * [influencer_combined_follower_growth] — one blended ~1-month follower-growth percentage across
+ * all available platforms: (sum of current followers - sum of ~1-month-ago followers) / sum of
+ * ~1-month-ago followers. Reuses trb_platform_follower_growth_display()'s per-platform date matching
+ * (which now returns raw latest/past follower counts); platforms whose growth can't be determined
+ * (insufficient history, IC percent-only fallback) are skipped. Non-reactive to the platform switcher.
+ *
+ * Usage: [influencer_combined_follower_growth] or [influencer_combined_follower_growth id="123"]
+ */
+function shortcode_influencer_combined_follower_growth($atts = [])
+{
+    $atts = shortcode_atts(['id' => 0], (array) $atts, 'influencer_combined_follower_growth');
+    $post_id = trb_combined_stat_post_id($atts['id']);
+
+    $sum_latest = 0;
+    $sum_past   = 0;
+    $have_data  = false;
+    foreach (trb_platforms_available($post_id) as $platform) {
+        $growth = trb_platform_follower_growth_display($post_id, $platform);
+        if ($growth === null || !isset($growth['latest_followers'], $growth['past_followers'])) {
+            continue;
+        }
+        $sum_latest += (int) $growth['latest_followers'];
+        $sum_past   += (int) $growth['past_followers'];
+        $have_data   = true;
+    }
+
+    if (!$have_data || $sum_past <= 0) {
+        return trb_wrap_combined_stat('N/A', 'combined_follower_growth');
+    }
+
+    $decimal   = ($sum_latest - $sum_past) / $sum_past;
+    $formatted = ($decimal > 0 ? '+' : '') . convertDecimalToPercentage($decimal);
+
+    return trb_wrap_combined_stat(esc_html($formatted), 'combined_follower_growth');
+}
+add_shortcode('influencer_combined_follower_growth', 'shortcode_influencer_combined_follower_growth');
+
 function shortcode_influence_isverified()
 {
     $is_verified = get_post_meta(get_the_ID(), 'isverified', true);
@@ -1577,9 +1689,11 @@ function trb_platform_follower_growth_display($post_id, $platform = 'instagram')
     $formatted_percent = ($raw_decimal_growth > 0 ? '+' : '') . convertDecimalToPercentage($raw_decimal_growth);
 
     return [
-        'formatted'   => $formatted_percent,
-        'latest_date' => $latest_entry['date'],
-        'past_date'   => $closest_entry['date'],
+        'formatted'        => $formatted_percent,
+        'latest_date'      => $latest_entry['date'],
+        'past_date'        => $closest_entry['date'],
+        'latest_followers' => $latest_followers,
+        'past_followers'   => $past_followers,
     ];
 }
 

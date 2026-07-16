@@ -325,78 +325,64 @@ the PHP check in sync — the PHP check is the real boundary.
   in order. Use this pattern (or `trb_platform_history_rows()`) rather than reading `$post->ID`
   directly in chart/shortcode code.
 - **Platform switcher drives the whole page, not just charts:** `enqueue_scripts()` localizes
-  `ddChartPayload` **keyed by platform** (only platforms `trb_platform_has_data()` confirms) plus a
+  `ddChartPayload` (keyed by platform, only platforms `trb_platform_has_data()` confirms) plus a
   global `window.ddPlatformSwitcher` controller (`register(fn)` / `set(platform)` / `get()`) onto
-  the `apexcharts` handle. Each of the four chart shortcodes registers a re-render callback that
-  destroys and recreates its ApexCharts instance from `ddChartPayload[platform]` — never
-  `updateSeries()` in place, since datasets can differ in shape across platforms. The
-  `[platform_switcher]` widget/shortcode (profile header) renders one button per available platform
-  and calls `ddPlatformSwitcher.set(platform)` on click, which also toggles every
-  `.dd-platform-panel[data-platform="…"]` block on the page (wrap platform-specific stat cards,
-  feeds, or brand blocks in one via `[platform_panel platform="youtube"]…[/platform_panel]` or the
-  `dd-platform-panel` CSS class + `data-platform` attribute in Elementor). Keep chart, switcher, and
-  panel logic reading the same `trb_platform_has_data()` availability signal so they never disagree
-  about which platforms exist for an influencer. All four chart shortcodes and `[platform_switcher]`
-  accept `id="123"` to target a specific influencer post instead of `resolve_chart_post_id()`'s
-  current-post inference; the chart shortcodes also take `platform="youtube|tiktok|instagram"` as
-  the *initial* platform shown before a switcher click (each Elementor widget wrapper exposes this
-  as a "Platform" select control), and `[platform_switcher platforms="instagram,youtube"]` can
-  restrict which buttons render. The per-platform label (`trb_platform_label()`) and inline SVG
-  logo (`trb_platform_icon_svg()`) are centralized in `includes/core/helpers.php`, along with
-  `trb_platforms_available($post_id, $candidates)` (candidate slugs filtered/validated against
-  `trb_platform_has_data()`, order preserved) and `trb_platform_default($post_id)` (Instagram if
-  available, else the first available platform, else `''`) — these back `[platform_switcher]` and
-  are also the source of truth for `[platform_text]`/`[platform_icon]` below.
-- **`[platform_text]`/`[platform_icon]` — reactive label/logo outside the switcher itself:**
-  `[platform_text prefix="" suffix="Overview" icon="yes" id="0"]` renders e.g. "Instagram
-  Overview" (logo in a `.dd-platform-icon` span, name in `.dd-platform-name`, prefix/suffix static
-  text around them); `[platform_icon size="24" id="0"]` renders just the logo. Both wrap
-  `DD_Follower_Growth_Chart::render_platform_text_shortcode()` /
-  `render_platform_icon_shortcode()` (`modules/frontend-utilities/charts.php`), have thin Elementor
-  wrappers (`Widget_Platform_Text` / `Widget_Platform_Icon`), and render the influencer's
-  `trb_platform_default()` platform on first paint. `enqueue_scripts()` localizes
-  `ddPlatformMeta[platform] = {label, icon}` onto the `apexcharts` handle; `ddPlatformSwitcher.set()`
-  rewrites every `.dd-platform-name`/`.dd-platform-icon` on the page from that map on each switch —
-  same reactive-without-Elementor-changes pattern as the stat shortcodes below. Inert (renders once,
-  never updates) on pages with no `[platform_switcher]`.
+  the `apexcharts` handle. Each chart shortcode registers a callback that destroys/recreates its
+  ApexCharts instance from `ddChartPayload[platform]` — never `updateSeries()` in place, since
+  dataset shape differs across platforms. `[platform_switcher]` renders one button per available
+  platform and calls `ddPlatformSwitcher.set(platform)` on click, which toggles every
+  `.dd-platform-panel[data-platform="…"]` block (wrap platform-specific content in
+  `[platform_panel platform="youtube"]…[/platform_panel]`) and, via `ddPlatformMeta[platform] =
+  {label, icon}`, rewrites every `.dd-platform-name`/`.dd-platform-icon` span on the page (used by
+  the `[platform_text]`/`[platform_icon]` shortcodes — thin wrappers around
+  `render_platform_text_shortcode()`/`render_platform_icon_shortcode()` in charts.php, reactive
+  only on pages that also have a switcher). All chart shortcodes, `[platform_switcher]`,
+  `[platform_text]`, `[platform_icon]` accept `id="123"` to target a specific post instead of
+  `resolve_chart_post_id()`'s current-post inference; chart shortcodes also take an initial
+  `platform=` attr, and `[platform_switcher platforms="instagram,youtube"]` restricts which buttons
+  render. `trb_platform_label()`, `trb_platform_icon_svg()`, `trb_platforms_available($post_id,
+  $candidates)` (validated against `trb_platform_has_data()`), and `trb_platform_default($post_id)`
+  (Instagram if available, else first available, else `''`) in `includes/core/helpers.php` are the
+  single source of truth all of the above reads from — keep chart, switcher, panel, text, and icon
+  logic on these same helpers so they never disagree about which platforms exist.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
-  wrap their rendered value in `<span class="platform-stat" data-metric="…">value</span>` via
-  `trb_wrap_platform_stat()`. `enqueue_scripts()` (`modules/frontend-utilities/charts.php`) localizes a
-  parallel `ddPlatformStats[platform][metric]` map (built by `trb_build_platform_stats_map()`) alongside
-  `ddChartPayload`; `ddPlatformSwitcher.set()` rewrites every `.platform-stat[data-metric]` span's text
-  from that map on each click — so existing shortcode placements become reactive automatically, no new
-  shortcode and no per-platform duplication in Elementor. `trb_platform_stat_metric_map()` is the single
-  source of truth for the five snapshot metrics (`followers`/`engagerate`/`avglikes`/`avgcomments`/`posts`)
-  — flat/per-platform meta key plus number/percent format — read by both the shortcodes and the stats-map
-  builder, so a switched value always equals the static `platform="youtube"` render.
-  `follower_growth` isn't in that map (it's a computed 2-month delta, not a meta key); instead
-  `trb_platform_follower_growth_display($post_id, $platform)` centralizes that calculation and is called
-  by both `shortcode_influencer_follower_growth()` and `trb_build_platform_stats_map()`. A metric with no
-  data for the target platform is simply omitted from the map, which leaves that span's current text
-  untouched rather than blanking it. The wrapper is inert wherever no switcher exists (search cards,
-  group rows) — it never gets rewritten there.
+  wrap their value in `<span class="platform-stat" data-metric="…">` via `trb_wrap_platform_stat()`.
+  `enqueue_scripts()` localizes a parallel `ddPlatformStats[platform][metric]` map (built by
+  `trb_build_platform_stats_map()`) alongside `ddChartPayload`; `ddPlatformSwitcher.set()` rewrites
+  every `.platform-stat[data-metric]` span's text from it on each click. `trb_platform_stat_metric_map()`
+  is the source of truth for the five snapshot metrics; `follower_growth` is computed separately via
+  `trb_platform_follower_growth_display($post_id, $platform)` (shared by the shortcode and the map
+  builder). A metric missing for the target platform is simply omitted, leaving that span's current
+  text untouched. Inert wherever no switcher exists (search cards, group rows).
   > Gotcha: the flat/namespaced current-metric meta keys (`youtube_subscribers`, `tiktok_followers`,
   > `youtube_engagement_rate`, `tiktok_engagement_rate`) are **not reliable** — CreatorDB-sourced
-  > influencers often never populate them at all (only the `{platform}_metrics_history` arrays), and
-  > neither provider reliably populates the two `*_engagement_rate` keys. The flat `followers`/
-  > `engagerate`/`avglikes`/`avgcomments` fields are also not safely "Instagram" — they track
-  > whichever platform is that influencer's `primary_platform`. So whenever an **explicit** platform
-  > is requested (a `platform=` shortcode attr, or `trb_build_platform_stats_map()`, which always
-  > passes one), `trb_resolve_platform_stat_raw()` (`includes/core/shortcodes.php`) prefers the
-  > **latest row of that platform's own history** via `trb_platform_current_metric_from_history()`
-  > (`includes/core/helpers.php`), falling back to the meta-key lookup only when that platform has no
-  > history. Bare shortcode calls with no `platform=` attr (site-wide usage — search cards, group
-  > rows) are untouched and keep reading the flat meta key only, so non-switcher pages never change.
-  > This also means `trb_platform_history_rows()` normalizes rows read from the raw
-  > `{platform}_metrics_history` meta (via `trb_normalize_history_row()`) into the older
-  > `creatordb_history` field shape (`timestamp_ms`/`date`/`avglikes`/`avgcomments`/`engagerate`
-  > instead of `captured_at`(seconds)/`observation_date`/`avg_likes`/`avg_comments`/
-  > `engagement_rate`) — without it, every chart/growth calculation sourced from that meta directly
-  > (i.e. whenever `icdh_platform_history_display_rows()` isn't installed) silently collapsed every
-  > point's date to "now" and read likes/comments as 0. Keep any new history consumer reading through
-  > `trb_platform_history_rows()` rather than the raw postmeta, or it'll hit the un-normalized shape.
+  > influencers often never populate them (only `{platform}_metrics_history` arrays), and neither
+  > provider reliably populates the two `*_engagement_rate` keys. The flat `followers`/`engagerate`/
+  > `avglikes`/`avgcomments` fields also aren't safely "Instagram" — they track whichever platform is
+  > that influencer's `primary_platform`. So whenever an **explicit** platform is requested (a
+  > `platform=` attr, or `trb_build_platform_stats_map()`, which always passes one),
+  > `trb_resolve_platform_stat_raw()` (`includes/core/shortcodes.php`) prefers the latest row of that
+  > platform's own history via `trb_platform_current_metric_from_history()`, falling back to the
+  > meta-key lookup only when that platform has no history. Bare shortcode calls with no `platform=`
+  > attr are untouched. This is also why `trb_platform_history_rows()` normalizes rows read from raw
+  > `{platform}_metrics_history` meta into the older `creatordb_history` shape (`timestamp_ms`/`date`/
+  > `avglikes`/`avgcomments`/`engagerate`) — without it, history sourced directly from that meta (i.e.
+  > whenever `icdh_platform_history_display_rows()` isn't installed) collapsed every point's date to
+  > "now" and read likes/comments as 0. Keep new history consumers reading through
+  > `trb_platform_history_rows()` rather than raw postmeta.
+- **Combined cross-platform stat shortcodes are deliberately non-reactive:** `[influencer_total_followers]`,
+  `[influencer_combined_engagerate]`, and `[influencer_combined_follower_growth]` (`includes/core/shortcodes.php`,
+  all accept `id="123"`) sum/blend a metric across every platform `trb_platforms_available()` returns for the
+  influencer — total followers, a follower-weighted engagement rate, and a blended ~1-month growth percentage
+  (`trb_platform_follower_growth_display()` now also returns raw `latest_followers`/`past_followers` so this
+  shortcode can sum them across platforms before computing one ratio, rather than averaging per-platform
+  percentages). They wrap output in `trb_wrap_combined_stat()` (`<span class="combined-stat" data-metric="…">`),
+  a distinct class/attribute from `trb_wrap_platform_stat()`'s `.platform-stat` — `data-metric` values here
+  (`total_followers`, `combined_engagerate`, `combined_follower_growth`) are intentionally absent from
+  `ddPlatformStats`, so `ddPlatformSwitcher.set()` never touches them; a platform switcher click must not change
+  a total that spans all platforms. No Elementor widget wrappers exist for these yet — shortcode-only.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the

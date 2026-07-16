@@ -1277,27 +1277,23 @@ class DD_Follower_Growth_Chart
         <style>
             .dd-platform-switcher {
                 display: inline-flex;
-                gap: 4px;
+                gap: 10px;
                 flex-wrap: wrap;
-                padding: 4px;
-                border: 1px solid #E0E0E0;
-                border-radius: 12px;
-                background: #fff;
             }
 
             .dd-platform-switcher .dd-platform-btn {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                padding: 8px 14px;
+                padding: 14px 14px;
                 border: 1px solid transparent;
-                border-radius: 8px;
+                border-radius: 5px;
                 background: transparent;
-                color: #555;
                 font-size: 13px;
                 font-family: inherit;
                 cursor: pointer;
                 transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+                border: 1px solid #BCBCBC;
             }
 
             .dd-platform-switcher .dd-platform-btn:hover {
