@@ -1313,10 +1313,7 @@ class DD_Follower_Growth_Chart
                 border: 1px solid #BCBCBC;
             }
 
-            .dd-platform-switcher .dd-platform-btn:hover {
-                background: #F2F2F2;
-            }
-
+            .dd-platform-switcher .dd-platform-btn:hover,
             .dd-platform-switcher .dd-platform-btn.active {
                 background: var(--e-global-color-primary, #034146);
                 border-color: var(--e-global-color-primary, #034146);
