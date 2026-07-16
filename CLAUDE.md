@@ -36,8 +36,11 @@ Metrics history for **Instagram, YouTube, and TikTok** is read through the theme
 platform-aware bridge `icdh_platform_history_display_rows($id, $platform)`, then the legacy
 Instagram-only `icdh_instagram_history_display_rows($id)`, then the per-platform meta
 (`{platform}_metrics_history`), then — Instagram only — the legacy `creatordb_history` post meta.
-`trb_instagram_history_rows($id)` is a back-compat alias for the `instagram` platform. Touch
-points: `grep -rn "function_exists('icdh" .`
+`trb_instagram_history_rows($id)` is a back-compat alias for the `instagram` platform.
+Recent media (posts/videos) is read the same way through `trb_platform_recent_media($post_id, $platform)`,
+which prefers `icdh_platform_recent_media($id, $platform)`, then the per-platform meta
+(`youtube_recent_videos` / `tiktok_recent_posts`), then — Instagram only — the legacy `recentposts`
+meta. Touch points: `grep -rn "function_exists('icdh" .`
 
 Data comes from **two providers** — CreatorDB (`creatordb_*`) and Influencers.Club (`icdh_*`,
 IC) — normalized by the plugin into the same namespaced keys/history-row shape regardless of
@@ -95,7 +98,7 @@ module is a **singleton class instantiated at the bottom of its own file**:
 | `modules/saves/saves-manager.php` | `Saves_Manager` | Saved/viewed influencers, saved searches, groups, group Export PDF; registers the activity CPTs |
 | `modules/outreach/outreach.php` | `DD_Outreach_Manager` | Outreach submissions, master-detail dashboard, HTML email builder |
 | `modules/frontend-utilities/charts.php` | `DD_Follower_Growth_Chart` | Multi-platform follower analytics charts (ApexCharts) via shortcodes + the `[platform_switcher]`/`[platform_panel]` shortcodes; time-filter tabs + no-data fallback |
-| `modules/frontend-utilities/feeds.php` | `CreatorDB_Instagram_Feed` | Instagram-style content feeds |
+| `modules/frontend-utilities/feeds.php` | `DD_Recent_Media_Feed` | Per-platform Recent Content feed (`[platform_recent_media]`) |
 | `modules/email-manager/email-template-manager.php` | `DD_Global_Email_Manager` | Global transactional email layout |
 | `modules/mycred-components/mycred-frontend-log.php` | `Custom_MyCred_Frontend_Log` | AJAX-paginated myCred points history table (`[custom_mycred_log]`) |
 
@@ -499,13 +502,32 @@ the PHP check in sync — the PHP check is the real boundary.
   (`charts.php`) after every platform switch, so a block that's empty on Instagram but populated on
   YouTube reappears without a page reload. `.influencer-data-parent` is an Elementor-side wrapper class,
   not defined in theme code — add it in the template around any stat block that should collapse when empty.
-- **Temporary shim: Recent Content hidden on non-Instagram platforms** (`includes/temp/hide-recent-posts-non-instagram.php`,
-  required near the end of `functions.php`'s module list) — the Recent Content feed
-  (`CreatorDB_Instagram_Feed`) is Instagram-only because the ICDH content/posts endpoint is still
-  gated for YouTube/TikTok. This shim registers a `ddPlatformSwitcher` callback that hides
-  `#content-recent-posts` (`display:none`) whenever the active platform isn't `instagram`. It is
-  explicitly marked temporary in its own docblock — **delete the file and its `require` once ICDH
-  un-gates that endpoint**; don't build further logic on top of it.
+- **Recent Content feed is panel-reactive, not payload-reactive** (`modules/frontend-utilities/feeds.php`,
+  `DD_Recent_Media_Feed`, shortcode `[platform_recent_media platform="" id="0"]`, widget
+  `sc_platform_recent_media` / **"Influencer Recent Content"**). Unlike the charts and stat spans — which
+  re-render in JS from a localized payload — the feed server-renders **one `.dd-platform-panel[data-platform]`
+  per available platform** (same markup contract as `[platform_panel]`) and lets `ddPlatformSwitcher.set()`'s
+  existing panel loop toggle them. That keeps card markup in PHP with no JS duplicate to drift; it costs
+  rendering every platform up front. An explicit `platform=` attr pins one platform and opts out of the
+  switcher. Rows are read **only** through `trb_platform_recent_media()` — never raw meta, never `icdh_*`
+  directly — and normalized by `trb_normalize_media_row()` into the plugin's own row shape
+  (`id`/`url`/`title`/`likes`/`comments`/`views`/`engageRate`/`updateDate`/`isShorts`/`hashtags`).
+  ICDH already emits that shape identically for **both** providers, so only Instagram's legacy `recentposts`
+  needs mapping (`shortcode`→`id` + composed `/p/{shortcode}/` url, `isReels`→`isShorts`, `videoViews`→`views`).
+  > **Gotchas, all load-bearing:** (1) **Never trust a YouTube row's `id`** — CreatorDB stores the real
+  > 11-char video ID, IC stores a 32-char MD5 hash of its own; only `url` carries a usable ID on both, which
+  > is why `trb_youtube_video_id_from_row()` parses the URL and treats `id` as a last resort. (2) **IC rows
+  > carry `engageRate: 0` and `updateDate: null`**, so the third footer stat is *views* on YT/TT (an ER column
+  > would read "0.00%" on every IC card) and the date line is dropped entirely rather than formatted into
+  > "1970 Jan 1st". (3) **Available ≠ has media** — `trb_platform_has_data()` counts a bare `youtubeid`/
+  > `tiktokid` as "has the platform", and CreatorDB influencers have **no** `tiktok_recent_posts` at all, so
+  > every panel must handle empty independently (it renders `dd_tpl_no_data_fallback`, memoized per request).
+  Each platform gets the only embed its data supports: Instagram and TikTok as native `embed.js` blockquotes
+  (the normalized rows have no thumbnail field, and raw IC media URLs are expiring CDN links), YouTube as an
+  `i.ytimg.com` thumbnail card (an iframe per card is far too heavy). **Gotcha:** TikTok's embed.js exposes
+  no public re-scan API (unlike `window.instgrm.Embeds.process()`), so Load More re-injects the script tag to
+  pick up appended blockquotes. Both embed scripts are enqueued only on `influencer` singles and only for
+  platforms `trb_platforms_available()` confirms.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the

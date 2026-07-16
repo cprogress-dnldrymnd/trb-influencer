@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.2');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.3');
 
 /**
  * Load child theme scripts & styles.
@@ -150,10 +150,6 @@ require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';
 require $dir . '/modules/saves/saves-manager.php';
-
-// TEMPORARY — delete this require and includes/temp/ once the ICDH content/posts
-// endpoint is un-gated for YouTube/TikTok.
-require $dir . '/includes/temp/hide-recent-posts-non-instagram.php';
 
 
 function influencers_meta()

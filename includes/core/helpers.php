@@ -179,6 +179,126 @@ function trb_platform_history_updated_ts($post_id, $platform = 'instagram')
 }
 
 /**
+ * Normalizes a single recent-media row into the canonical shape the feed renders from:
+ * `id`, `url`, `title`, `likes`, `comments`, `views`, `engageRate`, `updateDate`, `isShorts`,
+ * `hashtags`.
+ *
+ * ICDH already normalizes YouTube/TikTok into this shape for *both* providers (CreatorDB's
+ * `recentVideos` and Influencers.Club's `enrich/raw` → `post_data` land on identical keys), so
+ * those rows only need defensive defaults. Instagram is the odd one out: its legacy `recentposts`
+ * meta predates that shape and uses `shortcode` (no `url` at all), `isReels`, and `videoViews`.
+ *
+ * @param array<string,mixed> $row
+ * @return array<string,mixed>
+ */
+function trb_normalize_media_row(array $row, $platform = 'instagram')
+{
+    if ($platform === 'instagram') {
+        $shortcode = trim((string) ($row['shortcode'] ?? ''));
+
+        $row['id']     = $shortcode;
+        $row['url']    = $shortcode !== '' ? 'https://www.instagram.com/p/' . $shortcode . '/' : '';
+        $row['views']  = $row['videoViews'] ?? 0;
+        $row['isShorts'] = !empty($row['isReels']);
+    }
+
+    return [
+        'id'         => trim((string) ($row['id'] ?? '')),
+        'url'        => trim((string) ($row['url'] ?? '')),
+        'title'      => (string) ($row['title'] ?? ''),
+        'likes'      => (int) ($row['likes'] ?? 0),
+        'comments'   => (int) ($row['comments'] ?? 0),
+        'views'      => (int) ($row['views'] ?? 0),
+        // IC-sourced rows carry engageRate 0 / updateDate null — keep them falsy rather than
+        // coercing, so the feed can decide to omit those bits of chrome instead of rendering
+        // "0.00%" or a 1970 date.
+        'engageRate' => (float) ($row['engageRate'] ?? 0),
+        'updateDate' => isset($row['updateDate']) && is_numeric($row['updateDate']) ? (int) $row['updateDate'] : 0,
+        'isShorts'   => !empty($row['isShorts']),
+        'hashtags'   => is_array($row['hashtags'] ?? null) ? $row['hashtags'] : [],
+    ];
+}
+
+/**
+ * Multi-platform recent media (posts / videos) for the Recent Content feed.
+ *
+ * Prefers the ICDH bridge (`icdh_platform_recent_media`), then the per-platform meta its live
+ * enrich + Settings backfill write (`youtube_recent_videos` / `tiktok_recent_posts`), then — for
+ * Instagram only — the legacy CreatorDB `recentposts` meta. Every row comes back in the canonical
+ * shape via `trb_normalize_media_row()`.
+ *
+ * Returns [] for a platform the influencer has no media for, which is a routine case, not an
+ * error: `trb_platform_has_data()` counts a bare `youtubeid`/`tiktokid` as "has the platform", and
+ * CreatorDB-sourced influencers have no `tiktok_recent_posts` at all. Callers must render an empty
+ * state rather than assume rows exist.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function trb_platform_recent_media($post_id, $platform = 'instagram')
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0) {
+        return [];
+    }
+
+    $platform = in_array($platform, ['instagram', 'youtube', 'tiktok'], true) ? $platform : 'instagram';
+
+    $normalize = static function (array $rows) use ($platform) {
+        $out = [];
+        foreach ($rows as $row) {
+            if (is_array($row)) {
+                $out[] = trb_normalize_media_row($row, $platform);
+            }
+        }
+
+        return $out;
+    };
+
+    if (function_exists('icdh_platform_recent_media')) {
+        $rows = icdh_platform_recent_media($post_id, $platform);
+        if (is_array($rows) && $rows !== []) {
+            return $normalize($rows);
+        }
+    }
+
+    $meta_key = [
+        'youtube'   => 'youtube_recent_videos',
+        'tiktok'    => 'tiktok_recent_posts',
+        'instagram' => 'recentposts',
+    ][$platform];
+
+    $rows = get_post_meta($post_id, $meta_key, true);
+
+    return is_array($rows) ? $normalize($rows) : [];
+}
+
+/**
+ * The YouTube video ID for a recent-media row, parsed from its watch URL.
+ *
+ * Deliberately does NOT trust the row's `id`: CreatorDB stores the real 11-char video ID there,
+ * but Influencers.Club stores a 32-char MD5 hash of its own. `url` is the only field that carries
+ * a usable video ID on both providers.
+ *
+ * @return string '' when no ID can be parsed (caller should skip the row).
+ */
+function trb_youtube_video_id_from_row(array $row)
+{
+    $url = (string) ($row['url'] ?? '');
+
+    if (preg_match('#[?&]v=([A-Za-z0-9_-]{11})#', $url, $m)) {
+        return $m[1];
+    }
+    // youtu.be/XXXX and /shorts/XXXX and /embed/XXXX forms, for safety.
+    if (preg_match('#(?:youtu\.be/|/shorts/|/embed/)([A-Za-z0-9_-]{11})#', $url, $m)) {
+        return $m[1];
+    }
+
+    $id = (string) ($row['id'] ?? '');
+
+    return preg_match('#^[A-Za-z0-9_-]{11}$#', $id) ? $id : '';
+}
+
+/**
  * The metric noun for a platform's primary count (YouTube subscribers are stored under the
  * `followers` history/meta key, but must read as "Subscribers" in the UI).
  *
