@@ -367,20 +367,38 @@ function trb_platform_social_link($post_id, $platform)
     }
 
     if ($platform === 'youtube') {
-        $handle = $clean_handle(get_post_meta($post_id, 'youtube_custom_url', true));
-        if ($handle === '') {
-            $handle = $clean_handle(get_post_meta($post_id, 'youtubedisplayid', true));
-        }
-        if ($handle === '') {
-            return null;
-        }
-
-        $url = $valid_url(get_post_meta($post_id, 'ic_youtube_link', true));
-        if ($url === '') {
-            $url = 'https://www.youtube.com/@' . rawurlencode($handle);
+        // A real @handle is the IC-sourced fields (youtube_custom_url/youtubedisplayid). CreatorDB
+        // typically only populates youtubeid/youtube_id (channel ID) + youtubename (display name),
+        // with no true handle — fall back to the channel name/ID rather than dropping the row.
+        $slug = $clean_handle(get_post_meta($post_id, 'youtube_custom_url', true));
+        if ($slug === '') {
+            $slug = $clean_handle(get_post_meta($post_id, 'youtubedisplayid', true));
         }
 
-        return ['url' => $url, 'handle' => '@' . $handle];
+        $ic_url = $valid_url(get_post_meta($post_id, 'ic_youtube_link', true));
+
+        if ($slug !== '') {
+            $url = $ic_url !== '' ? $ic_url : 'https://www.youtube.com/@' . rawurlencode($slug);
+            return ['url' => $url, 'handle' => '@' . $slug];
+        }
+
+        $channel_id = trim((string) get_post_meta($post_id, 'youtubeid', true));
+        if ($channel_id === '') {
+            $channel_id = trim((string) get_post_meta($post_id, 'youtube_id', true));
+        }
+        $name = trim((string) get_post_meta($post_id, 'youtubename', true));
+
+        if ($ic_url !== '') {
+            return ['url' => $ic_url, 'handle' => $name !== '' ? $name : trb_platform_label('youtube')];
+        }
+        if ($channel_id !== '') {
+            return [
+                'url'    => 'https://www.youtube.com/channel/' . rawurlencode($channel_id),
+                'handle' => $name !== '' ? $name : $channel_id,
+            ];
+        }
+
+        return null;
     }
 
     if ($platform === 'tiktok') {

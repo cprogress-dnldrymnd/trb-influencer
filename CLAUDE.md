@@ -372,17 +372,23 @@ the PHP check in sync — the PHP check is the real boundary.
   Typography rule targets the more specific inner label element and simply wins over the inherited
   CSS-var value when an admin has actually set it.
 - **`[platform_social_links]`** (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`) renders one
-  clickable row (icon + `@handle`, linking out in a new tab) per available platform, all at once — like the
+  clickable row (icon + handle, linking out in a new tab) per available platform, all at once — like the
   combined cross-platform stat shortcodes, it deliberately does **not** react to `[platform_switcher]`. The
   per-platform URL/handle resolution lives in `trb_platform_social_link($post_id, $platform)`
-  (`includes/core/helpers.php`): prefers a stored IC profile link (`ic_youtube_link`/`ic_tiktok_link`) when
-  present, else composes the canonical profile URL from the platform's handle/username meta
-  (`instagramid`, `youtube_custom_url`/`youtubedisplayid`, `tiktok_username`/`tiktokid`); returns `null`
-  (row skipped) when no handle can be resolved. Accepts `id=`, `platforms=`, `icon_size=` attrs, same
-  pattern as the other platform shortcodes. **Gotcha:** each row's glyph wrapper uses a distinct
-  `.dd-social-icon` class rather than the reactive `.dd-platform-icon` — the switcher controller
-  rewrites *every* `.dd-platform-icon` on the page to the active platform's icon (even on first
-  paint, via its default `set()` call in `enqueue_scripts()`), so sharing that class would collapse
+  (`includes/core/helpers.php`). Instagram (`instagramid`) and TikTok (`tiktok_username`/`tiktokid`) read the
+  same identity meta `trb_platform_has_data()` already checks, so "available" always yields a link. **YouTube
+  does not** — `trb_platform_has_data()` treats `youtubeid`/`youtube_id`/`youtubename` as sufficient identity
+  signal, but those are typically all CreatorDB populates, with no true `@handle` (`youtube_custom_url`/
+  `youtubedisplayid` are IC-sourced and often empty on CreatorDB influencers). So YouTube resolves in tiers:
+  a real handle (`youtube_custom_url`/`youtubedisplayid`) → `@handle`, linking to `ic_youtube_link` or
+  `youtube.com/@handle`; else a stored `ic_youtube_link` labeled with `youtubename`; else the channel ID
+  (`youtubeid`/`youtube_id`) linking to `youtube.com/channel/{id}`, labeled with `youtubename` or the raw ID.
+  Only the first tier gets an `@`-prefixed label — the others display a channel name/ID as-is rather than
+  fabricate a handle. Returns `null` (row skipped) only when none of that resolves. Accepts `id=`,
+  `platforms=`, `icon_size=` attrs, same pattern as the other platform shortcodes. **Gotcha:** each row's
+  glyph wrapper uses a distinct `.dd-social-icon` class rather than the reactive `.dd-platform-icon` — the
+  switcher controller rewrites *every* `.dd-platform-icon` on the page to the active platform's icon (even
+  on first paint, via its default `set()` call in `enqueue_scripts()`), so sharing that class would collapse
   every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
