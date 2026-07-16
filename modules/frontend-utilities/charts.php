@@ -1445,6 +1445,9 @@ class DD_Follower_Growth_Chart
                     gap: 5px;
                     width: 100%;
                 }
+                .dd-platform-switcher .dd-platform-btn{
+                    flex-grow: 1;
+                }
             }
         </style>
 <?php
