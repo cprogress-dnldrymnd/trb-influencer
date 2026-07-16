@@ -370,7 +370,18 @@ the PHP check in sync — the PHP check is the real boundary.
   accept a `text_size=".."` attr (→ `--dd-sw-text-size`/`--dd-pt-text-size`, same CSS-var/fallback
   pattern as icons) for non-Elementor callers; the two mechanisms don't conflict because the
   Typography rule targets the more specific inner label element and simply wins over the inherited
-  CSS-var value when an admin has actually set it.
+  CSS-var value when an admin has actually set it. `class-widget-platform-switcher.php`'s Style tab
+  also has the same Border Radius / Text Color / Background Color / `Group_Control_Border`
+  (Normal+Hover) controls as the Social Links widget below, targeting `.dd-platform-btn`. **Gotcha:**
+  unlike Social Links, `render_platform_switcher_shortcode()`'s own `<style>` block hardcodes the
+  button look with a 2-class selector (`.dd-platform-switcher .dd-platform-btn`) — the same
+  specificity Elementor's `{{WRAPPER}} .dd-platform-btn` would generate, so source order (not
+  specificity) would decide the winner. The widget's selectors therefore include the extra
+  `.dd-platform-switcher` ancestor class (`{{WRAPPER}} .dd-platform-switcher .dd-platform-btn`) to
+  reliably outrank the shortcode's own CSS regardless of print order — keep that 3-class form for any
+  new Style-tab control here rather than copying the shorter 2-class pattern used elsewhere. These
+  controls do not touch the button's `.active` (currently-selected) state, which stays hardcoded to
+  the theme's primary color — a deliberate scope limit, not an oversight.
 - **`[platform_social_links]`** (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`) renders one
   clickable row (icon + handle, linking out in a new tab) per available platform, all at once — like the
   combined cross-platform stat shortcodes, it deliberately does **not** react to `[platform_switcher]`. The

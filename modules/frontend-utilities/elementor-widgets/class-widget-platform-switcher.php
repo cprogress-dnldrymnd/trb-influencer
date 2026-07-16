@@ -40,6 +40,71 @@ class Widget_Platform_Switcher extends \Elementor\Widget_Base {
                 'selector' => '{{WRAPPER}} .dd-platform-btn .dd-platform-label',
             ]
         );
+
+        $this->add_control( 'colors_heading', [
+            'label'     => esc_html__( 'Colors & Border', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_responsive_control( 'border_radius', [
+            'label'      => esc_html__( 'Border Radius', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%' ],
+            // Extra .dd-platform-switcher ancestor selector outweighs the shortcode's own
+            // hardcoded <style> block (same 2-class specificity) regardless of source order.
+            'selectors'  => [
+                '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
+
+        $this->start_controls_tabs( 'colors_tabs' );
+
+        $this->start_controls_tab( 'colors_tab_normal', [
+            'label' => esc_html__( 'Normal', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'text_color', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'bg_color', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'border',
+                'selector' => '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn',
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->start_controls_tab( 'colors_tab_hover', [
+            'label' => esc_html__( 'Hover', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'text_color_hover', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn:hover' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'bg_color_hover', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn:hover' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'border_hover',
+                'selector' => '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn:hover',
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
         $this->end_controls_section();
     }
 
