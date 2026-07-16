@@ -54,6 +54,14 @@ class Widget_Social_Links extends \Elementor\Widget_Base {
             'type'      => \Elementor\Controls_Manager::HEADING,
             'separator' => 'before',
         ] );
+        $this->add_responsive_control( 'border_radius', [
+            'label'      => esc_html__( 'Border Radius', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%' ],
+            'selectors'  => [
+                '{{WRAPPER}} .dd-social-link' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
 
         $this->start_controls_tabs( 'colors_tabs' );
 
