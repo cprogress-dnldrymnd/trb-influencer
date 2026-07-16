@@ -322,11 +322,23 @@ the PHP check in sync — the PHP check is the real boundary.
   layout lives in Elementor templates referenced by the `dd_tpl_*` options. To change a card or
   page, you usually edit the Elementor template (deep-linked from the admin-bar "Theme Editor"
   menu), not PHP.
-- **Charts no-data fallback:** every `DD_Follower_Growth_Chart` render path returns
-  `render_no_data_fallback()` (which injects the `dd_tpl_no_data_fallback` Elementor template, with
-  a hardcoded inline-`<div>` fallback if that template is empty) instead of an empty chart card when
-  follower history is missing/unusable. The `.dd-time-filters` time-range tabs are shared chart
-  chrome — keep their markup/CSS unified rather than re-inlining per chart.
+- **Charts no-data fallback:** if a chart shortcode's post has *no* platform data at all
+  (`get_available_platforms()` empty), the shortcode returns `render_no_data_fallback()` outright —
+  the full-page fallback (injects the `dd_tpl_no_data_fallback` Elementor template, with a hardcoded
+  inline-`<div>` fallback if that template is empty) instead of a chart card. The rendered HTML is
+  memoized per-request (`get_no_data_fallback_html()`) since a single influencer page embeds this
+  same markup as the empty state for every platform's chart card. When the post has *some* platform
+  data but the currently-selected platform's payload turns out to be empty (missing, too few points,
+  or an all-zero/all-synthetic series — each chart defines its own "empty" check, e.g. the growth-rate
+  chart requires ≥2 points since the first is always a synthetic 0%), every chart instead renders both
+  states up front inside a `.dd-chart-shell#dd{Monthly,Timeline,GrowthRate,LikeRange}Shell` wrapper —
+  a `.dd-chart-body` (the live chart markup) and a `.dd-chart-fallback` (the same
+  `get_no_data_fallback_html()` markup, `display:none` initially) — and a per-shortcode
+  `ddToggleFallback(shellId, isEmpty)` JS helper flips which one is visible from inside the chart's
+  `ddChartPayload`-render callback. This lets the fallback react to `[platform_switcher]` clicks
+  without a page reload, unlike the server-side full-page fallback above. The `.dd-time-filters`
+  time-range tabs are shared chart chrome — keep their markup/CSS unified rather than re-inlining per
+  chart.
 - **Chart post ID in Elementor context:** Elementor may not set `global $post` when rendering a
   widget outside the main query. `DD_Follower_Growth_Chart` resolves the post ID via
   `resolve_chart_post_id()` which tries `get_the_ID()`, `global $post`, then `get_queried_object_id()`
@@ -337,7 +349,11 @@ the PHP check in sync — the PHP check is the real boundary.
   global `window.ddPlatformSwitcher` controller (`register(fn)` / `set(platform)` / `get()`) onto
   the `apexcharts` handle. Each chart shortcode registers a callback that destroys/recreates its
   ApexCharts instance from `ddChartPayload[platform]` — never `updateSeries()` in place, since
-  dataset shape differs across platforms. `[platform_switcher]` renders one button per available
+  dataset shape differs across platforms. **`set(platform)` itself does not bail when
+  `ddChartPayload[platform]` is missing** (only when `platform` is falsy) — it still switches
+  `active` and fires every listener, so each chart callback must null-check its own payload entry
+  and show the no-data fallback rather than assuming the switcher already filtered it out; otherwise
+  the previous platform's chart is left on screen. `[platform_switcher]` renders one button per available
   platform and calls `ddPlatformSwitcher.set(platform)` on click, which toggles every
   `.dd-platform-panel[data-platform="…"]` block (wrap platform-specific content in
   `[platform_panel platform="youtube"]…[/platform_panel]`) and, via `ddPlatformMeta[platform] =

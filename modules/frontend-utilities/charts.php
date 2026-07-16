@@ -345,13 +345,27 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * Renders the fallback Elementor template when no analytical data is present.
+     * Rendered HTML of the no-data Elementor template, memoized for the request.
+     *
+     * @var string|null
+     */
+    private $no_data_fallback_html = null;
+
+    /**
+     * Returns the fallback Elementor template HTML used when no analytical data is present.
      * Utilizes WordPress's do_shortcode for robust fallback handling without direct Elementor class dependencies.
+     *
+     * Memoized because every chart card embeds a copy of this markup as its per-platform
+     * empty state, so an influencer page would otherwise render the same template four times.
      *
      * @return string The rendered HTML of the designated Elementor template.
      */
-    private function render_no_data_fallback(): string
+    private function get_no_data_fallback_html(): string
     {
+        if ($this->no_data_fallback_html !== null) {
+            return $this->no_data_fallback_html;
+        }
+
         // dd_get_template_id() returns the stored option, which may be 0 if the
         // admin "No Data Fallback" field was saved empty. id="0" renders nothing,
         // so guard against it and fall back to the known-good default template.
@@ -374,7 +388,19 @@ class DD_Follower_Growth_Chart
                 . '</div>';
         }
 
-        return $html;
+        $this->no_data_fallback_html = $html;
+
+        return $this->no_data_fallback_html;
+    }
+
+    /**
+     * Renders the fallback Elementor template when no analytical data is present.
+     *
+     * @return string The rendered HTML of the designated Elementor template.
+     */
+    private function render_no_data_fallback(): string
+    {
+        return $this->get_no_data_fallback_html();
     }
 
     /**
@@ -444,7 +470,10 @@ class DD_Follower_Growth_Chart
             . "    var listeners = [];\n"
             . "    var active = null;\n"
             . "    function set(platform) {\n"
-            . "        if (typeof ddChartPayload === 'undefined' || !platform || !ddChartPayload[platform]) return;\n"
+            // A platform with no ddChartPayload entry must still switch: every chart
+            // callback null-checks its own payload and shows the no-data fallback, so
+            // bailing here would leave the previous platform's charts on screen.
+            . "        if (typeof ddChartPayload === 'undefined' || !platform) return;\n"
             . "        active = platform;\n"
             . "        listeners.forEach(function (fn) { fn(platform); });\n"
             . "        if (typeof ddPlatformStats !== 'undefined' && ddPlatformStats[platform]) {\n"
@@ -500,21 +529,37 @@ class DD_Follower_Growth_Chart
 
         ob_start();
 ?>
-        <div class="dd-chart-card">
-            <div id="ddMonthlyChart"></div>
-            <div class="dd-chart-footer">
-                <div>
-                    In the last 12 months, <?php echo esc_html(get_the_title($post_id)); ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
+        <div class="dd-chart-shell" id="ddMonthlyShell">
+            <div class="dd-chart-body">
+                <div class="dd-chart-card">
+                    <div id="ddMonthlyChart"></div>
+                    <div class="dd-chart-footer">
+                        <div>
+                            In the last 12 months, <?php echo esc_html(get_the_title($post_id)); ?> <span class="chip" id="ddSummaryBadge">Loading...</span>
+                        </div>
+                        <div id="ddMonthlyLastUpdated">
+                            Last updated: Loading...
+                        </div>
+                    </div>
                 </div>
-                <div id="ddMonthlyLastUpdated">
-                    Last updated: Loading...
-                </div>
+            </div>
+            <div class="dd-chart-fallback" style="display:none;">
+                <?php echo $this->get_no_data_fallback_html(); ?>
             </div>
         </div>
 
         <script>
             (function() {
                 var ddMonthlyChartInstance = null;
+
+                function ddToggleFallback(shellId, isEmpty) {
+                    const shell = document.getElementById(shellId);
+                    if (!shell) return;
+                    const body = shell.querySelector('.dd-chart-body');
+                    const fallback = shell.querySelector('.dd-chart-fallback');
+                    if (body) body.style.display = isEmpty ? 'none' : '';
+                    if (fallback) fallback.style.display = isEmpty ? '' : 'none';
+                }
 
                 function ddFormatToK(value) {
                     const num = Number(value);
@@ -543,18 +588,22 @@ class DD_Follower_Growth_Chart
                     const noun = (payload && payload.meta && payload.meta.noun) ? payload.meta.noun : 'followers';
                     const nounCap = (payload && payload.meta && payload.meta.noun_cap) ? payload.meta.noun_cap : 'Followers';
 
-                    if (!payloadMonthly || !payloadMonthly.labels || payloadMonthly.labels.length === 0) {
-                        container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No ' + noun + ' data available for this creator.</p>';
-                        const badge = document.getElementById('ddSummaryBadge');
-                        if (badge) badge.innerText = 'No Data';
-                        document.querySelectorAll('.dd-chart-footer').forEach(el => el.style.display = 'none');
-                        const updated = document.getElementById('ddMonthlyLastUpdated');
-                        if (updated) updated.innerText = 'Last updated: N/A';
+                    // Months are synthesized for any non-empty history, so an all-zero
+                    // set of totals is a platform with no real data rather than a chart.
+                    const ddMonthlyEmpty = !payloadMonthly
+                        || !payloadMonthly.labels
+                        || payloadMonthly.labels.length === 0
+                        || !payloadMonthly.totals
+                        || payloadMonthly.totals.every(v => Number(v) === 0);
+
+                    if (ddMonthlyEmpty) {
+                        container.innerHTML = '';
+                        ddToggleFallback('ddMonthlyShell', true);
                         return;
                     }
 
+                    ddToggleFallback('ddMonthlyShell', false);
                     container.innerHTML = '';
-                    document.querySelectorAll('.dd-chart-footer').forEach(el => el.style.display = '');
 
                     const badge = document.getElementById('ddSummaryBadge');
                     badge.classList.remove('Lost', 'Gained');
@@ -718,16 +767,32 @@ class DD_Follower_Growth_Chart
 
         ob_start();
 ?>
-        <div class="dd-chart-card">
-            <div id="ddTimelineChart"></div>
-            <div class="dd-timeline-footer">
-                <div id="ddTimelineLastUpdated">Last updated: Loading...</div>
+        <div class="dd-chart-shell" id="ddTimelineShell">
+            <div class="dd-chart-body">
+                <div class="dd-chart-card">
+                    <div id="ddTimelineChart"></div>
+                    <div class="dd-timeline-footer">
+                        <div id="ddTimelineLastUpdated">Last updated: Loading...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dd-chart-fallback" style="display:none;">
+                <?php echo $this->get_no_data_fallback_html(); ?>
             </div>
         </div>
 
         <script>
             (function() {
                 var ddTimelineChartInstance = null;
+
+                function ddToggleFallback(shellId, isEmpty) {
+                    const shell = document.getElementById(shellId);
+                    if (!shell) return;
+                    const body = shell.querySelector('.dd-chart-body');
+                    const fallback = shell.querySelector('.dd-chart-fallback');
+                    if (body) body.style.display = isEmpty ? 'none' : '';
+                    if (fallback) fallback.style.display = isEmpty ? '' : 'none';
+                }
 
                 function ddFormatToK(value) {
                     const num = Number(value);
@@ -756,13 +821,18 @@ class DD_Follower_Growth_Chart
                     const payloadMonthly = payload ? payload.monthly : null;
                     const nounCap = (payload && payload.meta && payload.meta.noun_cap) ? payload.meta.noun_cap : 'Followers';
 
-                    if (!payloadTimeline || !payloadTimeline.series_data || payloadTimeline.series_data.length === 0) {
-                        container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No timeline data available.</p>';
-                        const updated = document.getElementById('ddTimelineLastUpdated');
-                        if (updated) updated.innerText = 'Last updated: N/A';
+                    const ddTimelineEmpty = !payloadTimeline
+                        || !payloadTimeline.series_data
+                        || payloadTimeline.series_data.length === 0
+                        || payloadTimeline.series_data.every(point => Number(point[1]) === 0);
+
+                    if (ddTimelineEmpty) {
+                        container.innerHTML = '';
+                        ddToggleFallback('ddTimelineShell', true);
                         return;
                     }
 
+                    ddToggleFallback('ddTimelineShell', false);
                     container.innerHTML = '';
                     document.getElementById('ddTimelineLastUpdated').innerText = 'Last updated: ' + (payloadMonthly ? payloadMonthly.last_updated : 'N/A');
 
@@ -880,20 +950,27 @@ class DD_Follower_Growth_Chart
 
         ob_start();
     ?>
-        <div class="dd-growth-rate-card">
+        <div class="dd-chart-shell" id="ddGrowthRateShell">
+            <div class="dd-chart-body">
+                <div class="dd-growth-rate-card">
 
-            <div class="dd-growth-rate-header">
-                <div class="dd-time-filters">
-                    <button class="dd-time-btn active" data-days="30">Last 30 days</button>
-                    <button class="dd-time-btn" data-days="90">Last 90 days</button>
-                    <button class="dd-time-btn" data-days="365">Last 12 months</button>
+                    <div class="dd-growth-rate-header">
+                        <div class="dd-time-filters">
+                            <button class="dd-time-btn active" data-days="30">Last 30 days</button>
+                            <button class="dd-time-btn" data-days="90">Last 90 days</button>
+                            <button class="dd-time-btn" data-days="365">Last 12 months</button>
+                        </div>
+                    </div>
+
+                    <div id="ddGrowthRateChart"></div>
+
+                    <div class="dd-growth-rate-footer">
+                        <div id="ddGrowthRateLastUpdated">Last updated: Loading...</div>
+                    </div>
                 </div>
             </div>
-
-            <div id="ddGrowthRateChart"></div>
-
-            <div class="dd-growth-rate-footer">
-                <div id="ddGrowthRateLastUpdated">Last updated: Loading...</div>
+            <div class="dd-chart-fallback" style="display:none;">
+                <?php echo $this->get_no_data_fallback_html(); ?>
             </div>
         </div>
 
@@ -901,6 +978,15 @@ class DD_Follower_Growth_Chart
             (function() {
                 var ddGrowthRateChartInstance = null;
                 var ddGrowthRateSeries = [];
+
+                function ddToggleFallback(shellId, isEmpty) {
+                    const shell = document.getElementById(shellId);
+                    if (!shell) return;
+                    const body = shell.querySelector('.dd-chart-body');
+                    const fallback = shell.querySelector('.dd-chart-fallback');
+                    if (body) body.style.display = isEmpty ? 'none' : '';
+                    if (fallback) fallback.style.display = isEmpty ? '' : 'none';
+                }
 
                 function ddApplyGrowthRateFilter(days) {
                     if (!ddGrowthRateChartInstance || ddGrowthRateSeries.length === 0) return;
@@ -931,13 +1017,20 @@ class DD_Follower_Growth_Chart
                     const payloadGrowthRate = payload ? payload.growth_rate : null;
                     const payloadMonthly = payload ? payload.monthly : null;
 
-                    if (!payloadGrowthRate || !payloadGrowthRate.series_data || payloadGrowthRate.series_data.length === 0) {
-                        container.innerHTML = '<p style="text-align:center; padding: 20px; color:#555;">No growth rate data available.</p>';
-                        const updated = document.getElementById('ddGrowthRateLastUpdated');
-                        if (updated) updated.innerText = 'Last updated: N/A';
+                    // The first point is always a synthetic 0%, so a single point — or a
+                    // series that never moves off zero — carries no growth information.
+                    const ddGrowthRateEmpty = !payloadGrowthRate
+                        || !payloadGrowthRate.series_data
+                        || payloadGrowthRate.series_data.length < 2
+                        || payloadGrowthRate.series_data.every(point => Number(point[1]) === 0);
+
+                    if (ddGrowthRateEmpty) {
+                        container.innerHTML = '';
+                        ddToggleFallback('ddGrowthRateShell', true);
                         return;
                     }
 
+                    ddToggleFallback('ddGrowthRateShell', false);
                     container.innerHTML = '';
                     document.getElementById('ddGrowthRateLastUpdated').innerText = 'Last updated: ' + (payloadMonthly ? payloadMonthly.last_updated : 'N/A');
                     ddGrowthRateSeries = payloadGrowthRate.series_data;
@@ -1091,40 +1184,52 @@ class DD_Follower_Growth_Chart
 
         ob_start();
     ?>
-        <div class="dd-range-card" id="ddLikeRangeWrapper">
-            <div class="dd-range-header">
-                <div class="dd-time-filters">
-                    <button class="dd-time-btn active" data-days="30">Last 30 days</button>
-                    <button class="dd-time-btn" data-days="90">Last 90 days</button>
-                    <button class="dd-time-btn" data-days="365">Last 12 months</button>
+        <div class="dd-chart-shell" id="ddLikeRangeShell">
+            <div class="dd-chart-body">
+                <div class="dd-range-card" id="ddLikeRangeWrapper">
+                    <div class="dd-range-header">
+                        <div class="dd-time-filters">
+                            <button class="dd-time-btn active" data-days="30">Last 30 days</button>
+                            <button class="dd-time-btn" data-days="90">Last 90 days</button>
+                            <button class="dd-time-btn" data-days="365">Last 12 months</button>
+                        </div>
+                    </div>
+
+                    <div id="ddLikeRangeContent">
+                        <div class="dd-range-stats">
+                            <div class="dd-stat-block">
+                                <div class="dd-stat-value val-min">0</div>
+                                <div class="dd-stat-label">Minimum</div>
+                            </div>
+                            <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
+                                <div class="dd-stat-value val-max">0</div>
+                                <div class="dd-stat-label">Maximum</div>
+                            </div>
+                        </div>
+
+                        <div class="dd-gradient-track">
+                            <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div id="ddLikeRangeContent">
-                <div class="dd-range-stats">
-                    <div class="dd-stat-block">
-                        <div class="dd-stat-value val-min">0</div>
-                        <div class="dd-stat-label">Minimum</div>
-                    </div>
-                    <div class="dd-stat-block" style="text-align:right; justify-content:flex-end;">
-                        <div class="dd-stat-value val-max">0</div>
-                        <div class="dd-stat-label">Maximum</div>
-                    </div>
-                </div>
-
-                <div class="dd-gradient-track">
-                    <div class="dd-gradient-marker range-marker" data-value="0" style="left: 0%;"></div>
-                </div>
-            </div>
-
-            <div id="ddLikeRangeEmpty" style="display: none; text-align: center; padding: 40px 20px; color: #888; font-size: 14px;">
-                No like range data available.
+            <div class="dd-chart-fallback" style="display:none;">
+                <?php echo $this->get_no_data_fallback_html(); ?>
             </div>
         </div>
 
         <script>
             (function() {
                 var ddLikeRangeData = [];
+
+                function ddToggleFallback(shellId, isEmpty) {
+                    const shell = document.getElementById(shellId);
+                    if (!shell) return;
+                    const body = shell.querySelector('.dd-chart-body');
+                    const fallback = shell.querySelector('.dd-chart-fallback');
+                    if (body) body.style.display = isEmpty ? 'none' : '';
+                    if (fallback) fallback.style.display = isEmpty ? '' : 'none';
+                }
 
                 function ddFormatToK(value) {
                     const num = Number(value);
@@ -1140,9 +1245,6 @@ class DD_Follower_Growth_Chart
                 function ddUpdateLikeRangeUI(container, days) {
                     if (!ddLikeRangeData.length) return;
 
-                    const contentDiv = container.querySelector('#ddLikeRangeContent');
-                    const emptyDiv = container.querySelector('#ddLikeRangeEmpty');
-
                     const latestTs = ddLikeRangeData[ddLikeRangeData.length - 1].ts;
                     const cutoffTs = latestTs - (days * 24 * 60 * 60 * 1000);
 
@@ -1153,14 +1255,12 @@ class DD_Follower_Growth_Chart
                         filteredLikes = ddLikeRangeData.map(d => d.likes);
                     }
 
-                    if (filteredLikes.length < 2) {
-                        contentDiv.style.display = 'none';
-                        emptyDiv.style.display = 'block';
+                    if (filteredLikes.length < 2 || filteredLikes.every(v => Number(v) === 0)) {
+                        ddToggleFallback('ddLikeRangeShell', true);
                         return;
                     }
 
-                    contentDiv.style.display = 'block';
-                    emptyDiv.style.display = 'none';
+                    ddToggleFallback('ddLikeRangeShell', false);
 
                     const min = Math.min(...filteredLikes);
                     const max = Math.max(...filteredLikes);
@@ -1182,15 +1282,19 @@ class DD_Follower_Growth_Chart
                     const container = document.getElementById('ddLikeRangeWrapper');
                     if (!container) return;
 
-                    const contentDiv = container.querySelector('#ddLikeRangeContent');
-                    const emptyDiv = container.querySelector('#ddLikeRangeEmpty');
                     const payload = ddChartPayload[platform];
                     const payloadLikeRange = payload ? payload.like_range : null;
 
-                    if (!payloadLikeRange || !payloadLikeRange.series_data || payloadLikeRange.series_data.length === 0) {
+                    // History rows default missing likes to 0, so an all-zero series is a
+                    // platform without like data rather than a creator with zero likes.
+                    const ddLikeRangeEmpty = !payloadLikeRange
+                        || !payloadLikeRange.series_data
+                        || payloadLikeRange.series_data.length === 0
+                        || payloadLikeRange.series_data.every(d => Number(d.likes) === 0);
+
+                    if (ddLikeRangeEmpty) {
                         ddLikeRangeData = [];
-                        contentDiv.style.display = 'none';
-                        emptyDiv.style.display = 'block';
+                        ddToggleFallback('ddLikeRangeShell', true);
                         return;
                     }
 
