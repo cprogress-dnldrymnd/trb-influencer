@@ -51,6 +51,7 @@
         InfluencerApp.mobile_nav();
         InfluencerApp.share_profile();
         InfluencerApp.dashboardLogoHeightVar();
+        InfluencerApp.hideEmptyData();
 
         // Fire initial search only on the designated results page
         if (ajax_vars.search_results_page_id == ajax_vars.page_id) {

@@ -4691,3 +4691,6 @@ button.inf-bulk-remove-btn:disabled {
     border: none;
   }
 }
+.dd-empty-hidden {
+  display: none !important;
+}

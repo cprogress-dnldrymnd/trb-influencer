@@ -445,6 +445,14 @@ the PHP check in sync — the PHP check is the real boundary.
   (`total_followers`, `combined_engagerate`, `combined_follower_growth`) are intentionally absent from
   `ddPlatformStats`, so `ddPlatformSwitcher.set()` never touches them; a platform switcher click must not change
   a total that spans all platforms. No Elementor widget wrappers exist for these yet — shortcode-only.
+- **Hiding empty-data blocks:** `InfluencerApp.hideEmptyData()` (`assets/js/modules/hide-empty-data.js`,
+  enqueued as `inf-hide-empty-data` with no module deps) toggles a `.dd-empty-hidden` (`display:none
+  !important`) class on any `.influencer-data-parent` wrapper whose `.platform-stat`/`.combined-stat`
+  descendants are *all* empty (blank, `-`, `N/A`, or numerically zero, incl. a leading `+`/`-` sign or
+  trailing `%`). It runs once from `main.js`'s init chain and again from `ddPlatformSwitcher.set()`
+  (`charts.php`) after every platform switch, so a block that's empty on Instagram but populated on
+  YouTube reappears without a page reload. `.influencer-data-parent` is an Elementor-side wrapper class,
+  not defined in theme code — add it in the template around any stat block that should collapse when empty.
 - **Sparse like-range history:** ICDH's `import_seed` backfill is only ~1 month deep, so the
   30-day default window can leave the like-range chart with 0–1 points. `prepare_like_range_data()`
   widens the default window to 365 days when the series has ≤3 points (`default_days`), and the

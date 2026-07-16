@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.1');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.2');
 
 /**
  * Load child theme scripts & styles.
@@ -53,6 +53,7 @@ function hello_elementor_child_scripts_styles()
         'inf-brief-quality'    => 'modules/brief-quality.js',      // pre-submit brief quality gate
         'inf-filter-dropdowns' => 'modules/filter-dropdowns.js',   // uses sync_follower_min_max_states (self-contained)
         'inf-search-fetch'     => 'modules/search-fetch.js',       // uses prioritize_active_tags → needs tag-prioritizer
+        'inf-hide-empty-data'  => 'modules/hide-empty-data.js',    // no deps on other modules
     ];
 
     $prev_handle = 'jquery'; // first handle in the dependency chain

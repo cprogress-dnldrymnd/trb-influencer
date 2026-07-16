@@ -467,6 +467,7 @@ class DD_Follower_Growth_Chart
             . "            document.querySelectorAll('.dd-platform-name').forEach(function (el) { el.textContent = meta.label; });\n"
             . "            document.querySelectorAll('.dd-platform-icon').forEach(function (el) { el.innerHTML = meta.icon; });\n"
             . "        }\n"
+            . "        if (window.InfluencerApp && InfluencerApp.hideEmptyData) { InfluencerApp.hideEmptyData(); }\n"
             . "    }\n"
             . "    function register(fn) {\n"
             . "        listeners.push(fn);\n"
