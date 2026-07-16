@@ -381,8 +381,13 @@ the PHP check in sync — the PHP check is the real boundary.
   `.dd-platform-switcher` ancestor class (`{{WRAPPER}} .dd-platform-switcher .dd-platform-btn`) to
   reliably outrank the shortcode's own CSS regardless of print order — keep that 3-class form for any
   new Style-tab control here rather than copying the shorter 2-class pattern used elsewhere. These
-  controls do not touch the button's `.active` (currently-selected) state, which stays hardcoded to
-  the theme's primary color — a deliberate scope limit, not an oversight.
+  controls apply to Normal/Hover tabs and (via the 3-class selector) still outrank the shortcode's
+  own CSS when an admin sets them. Left unset, the shortcode's **default hover now matches `.active`**
+  (both `background`/`border-color: var(--e-global-color-primary, #034146)`, via a shared
+  `.dd-platform-btn:hover, .dd-platform-btn.active` rule) rather than the old light-gray hover. The
+  widget's second tab is now labeled **"Hover / Active"** and its three controls (Text Color, Background
+  Color, Border) target `:hover, .active` together via a combined selector — so setting them in Elementor
+  styles the active button too, not just hover; there is no separate Style-tab state for `.active` alone.
 - **`[platform_social_links]`** (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`) renders one
   clickable row (icon + handle, linking out in a new tab) per available platform, all at once — like the
   combined cross-platform stat shortcodes, it deliberately does **not** react to `[platform_switcher]`. The
