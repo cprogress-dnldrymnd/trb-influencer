@@ -1267,7 +1267,7 @@ class DD_Follower_Growth_Chart
         foreach ($available as $platform) {
             $is_active = $platform === $default_platform ? ' active' : '';
             $buttons .= sprintf(
-                '<button type="button" class="dd-platform-btn%s" data-platform="%s" onclick="if(window.ddPlatformSwitcher){ddPlatformSwitcher.set(this.dataset.platform);}">%s<span>%s</span></button>',
+                '<button type="button" class="dd-platform-btn%s" data-platform="%s" onclick="if(window.ddPlatformSwitcher){ddPlatformSwitcher.set(this.dataset.platform);}">%s<span class="dd-platform-label">%s</span></button>',
                 esc_attr($is_active),
                 esc_attr($platform),
                 trb_platform_icon_svg($platform),

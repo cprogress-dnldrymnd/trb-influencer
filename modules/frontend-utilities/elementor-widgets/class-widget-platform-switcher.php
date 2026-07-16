@@ -32,27 +32,24 @@ class Widget_Platform_Switcher extends \Elementor\Widget_Base {
             'range'      => [ 'px' => [ 'min' => 8, 'max' => 60 ] ],
             'description' => esc_html__( 'Leave empty to use the default size.', 'trb-influencer' ),
         ] );
-        $this->add_control( 'text_size', [
-            'label'      => esc_html__( 'Text Size', 'trb-influencer' ),
-            'type'       => \Elementor\Controls_Manager::SLIDER,
-            'size_units' => [ 'px' ],
-            'range'      => [ 'px' => [ 'min' => 8, 'max' => 40 ] ],
-            'description' => esc_html__( 'Leave empty to use the default size.', 'trb-influencer' ),
-        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'label_typography',
+                'label'    => esc_html__( 'Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-platform-btn .dd-platform-label',
+            ]
+        );
         $this->end_controls_section();
     }
 
     protected function render() {
         $settings  = $this->get_settings_for_display();
         $icon_size = isset( $settings['icon_size']['size'] ) ? (int) $settings['icon_size']['size'] : 0;
-        $text_size = isset( $settings['text_size']['size'] ) ? (int) $settings['text_size']['size'] : 0;
 
         $attrs = '';
         if ( $icon_size > 0 ) {
             $attrs .= ' icon_size="' . $icon_size . '"';
-        }
-        if ( $text_size > 0 ) {
-            $attrs .= ' text_size="' . $text_size . '"';
         }
 
         echo do_shortcode( '[platform_switcher' . $attrs . ']' );

@@ -352,16 +352,25 @@ the PHP check in sync — the PHP check is the real boundary.
   $candidates)` (validated against `trb_platform_has_data()`), and `trb_platform_default($post_id)`
   (Instagram if available, else first available, else `''`) in `includes/core/helpers.php` are the
   single source of truth all of the above reads from — keep chart, switcher, panel, text, and icon
-  logic on these same helpers so they never disagree about which platforms exist. Icon/text sizing
-  is CSS-custom-property driven rather than hardcoded: `[platform_switcher icon_size=".." text_size=".."]`
-  and `[platform_text icon_size=".." text_size=".."]` set `--dd-sw-icon-size`/`--dd-sw-text-size` and
-  `--dd-pt-icon-size`/`--dd-pt-text-size` inline (falling back to the existing hardcoded defaults),
-  and their Elementor widgets expose the same via Style-tab `SLIDER` controls — follow this pattern
-  (attr → CSS var with a default fallback) rather than branching PHP on the value. `[platform_icon
-  size=".."]` (note: `size`, not `icon_size`) is the exception — it's a standalone glyph with no
-  paired text, so it sets inline `font-size` directly (the SVG/`<img>` is `1em` square) rather than
-  going through a CSS var; its widget likewise exposes one Style-tab `icon_size` `SLIDER` control
-  that maps to the shortcode's `size` attr.
+  logic on these same helpers so they never disagree about which platforms exist. Icon sizing is
+  CSS-custom-property driven rather than hardcoded: `[platform_switcher icon_size=".."]` and
+  `[platform_text icon_size=".."]` set `--dd-sw-icon-size`/`--dd-pt-icon-size` inline (falling back
+  to the existing hardcoded defaults), and their Elementor widgets expose the same via a Style-tab
+  `icon_size` `SLIDER` control — follow this pattern (attr → CSS var with a default fallback) rather
+  than branching PHP on the value. `[platform_icon size=".."]` (note: `size`, not `icon_size`) is
+  the exception — it's a standalone glyph with no paired text, so it sets inline `font-size` directly
+  (the SVG/`<img>` is `1em` square) rather than going through a CSS var; its widget likewise exposes
+  one Style-tab `icon_size` `SLIDER` control that maps to the shortcode's `size` attr. **Text
+  sizing/typography is real Elementor typography, not a slider:** both widgets
+  (`class-widget-platform-switcher.php`, `class-widget-platform-text.php`) register a
+  `\Elementor\Group_Control_Typography` Style-tab control (font family/size/weight/style/decoration/
+  transform/line-height/letter-spacing) targeting `{{WRAPPER}} .dd-platform-btn .dd-platform-label`
+  and `{{WRAPPER}} .dd-platform-text-label` respectively — Elementor emits the CSS itself, so the
+  widget's `render()` never reads or forwards a text-size value. The underlying shortcodes still
+  accept a `text_size=".."` attr (→ `--dd-sw-text-size`/`--dd-pt-text-size`, same CSS-var/fallback
+  pattern as icons) for non-Elementor callers; the two mechanisms don't conflict because the
+  Typography rule targets the more specific inner label element and simply wins over the inherited
+  CSS-var value when an admin has actually set it.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
