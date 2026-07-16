@@ -56,6 +56,9 @@ class DD_Follower_Growth_Chart
 
         // Standalone platform logo that swaps on switch
         add_shortcode('platform_icon', [$this, 'render_platform_icon_shortcode']);
+
+        // Clickable social-profile rows (icon + @handle) for every available platform
+        add_shortcode('platform_social_links', [$this, 'render_platform_social_links_shortcode']);
     }
 
     /**
@@ -1425,6 +1428,83 @@ class DD_Follower_Growth_Chart
             $style,
             trb_platform_icon_svg($platform)
         );
+    }
+
+    /**
+     * [platform_social_links id="0" platforms="" icon_size=""] — one clickable row per available
+     * platform (icon + @handle), linking out to the influencer's profile on that platform. Lists
+     * every available platform at once, so — like the combined cross-platform stat shortcodes —
+     * it deliberately does not react to [platform_switcher].
+     */
+    public function render_platform_social_links_shortcode($atts = []): string
+    {
+        $atts = shortcode_atts(['id' => 0, 'platforms' => '', 'icon_size' => ''], (array) $atts, 'platform_social_links');
+        $post_id = (int) $atts['id'] > 0 ? (int) $atts['id'] : $this->resolve_chart_post_id();
+        if ($post_id <= 0) {
+            return '';
+        }
+
+        $candidates = ['instagram', 'youtube', 'tiktok'];
+        if (trim((string) $atts['platforms']) !== '') {
+            $candidates = array_map('trim', explode(',', (string) $atts['platforms']));
+        }
+
+        $platforms = function_exists('trb_platforms_available') ? trb_platforms_available($post_id, $candidates) : [];
+        if ($platforms === []) {
+            return '';
+        }
+
+        $rows = [];
+        foreach ($platforms as $platform) {
+            $link = function_exists('trb_platform_social_link') ? trb_platform_social_link($post_id, $platform) : null;
+            if ($link === null) {
+                continue;
+            }
+            $rows[] = sprintf(
+                '<a class="dd-social-link" href="%s" target="_blank" rel="noopener noreferrer nofollow" title="%s">'
+                    . '<span class="dd-platform-icon">%s</span>'
+                    . '<span class="dd-social-link-label">%s</span>'
+                    . '</a>',
+                esc_url($link['url']),
+                esc_attr(trb_platform_label($platform)),
+                trb_platform_icon_svg($platform),
+                esc_html($link['handle'])
+            );
+        }
+
+        if ($rows === []) {
+            return '';
+        }
+
+        $wrap_style = '';
+        if ((int) $atts['icon_size'] > 0) {
+            $wrap_style = ' style="--dd-sl-icon-size:' . (int) $atts['icon_size'] . 'px"';
+        }
+
+        return $this->platform_social_links_styles()
+            . sprintf('<div class="dd-social-links"%s>%s</div>', $wrap_style, implode('', $rows));
+    }
+
+    /**
+     * Shared base CSS for [platform_social_links], returned once per request (subsequent calls
+     * return ''), following the module's inline-<style> convention.
+     */
+    private function platform_social_links_styles(): string
+    {
+        static $printed = false;
+        if ($printed) {
+            return '';
+        }
+        $printed = true;
+
+        return '<style>'
+            . '.dd-social-links{display:flex;flex-direction:column;gap:8px}'
+            . '.dd-social-link{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;'
+            . 'background:rgba(0,0,0,.04);color:inherit;text-decoration:none}'
+            . '.dd-social-link .dd-platform-icon{font-size:var(--dd-sl-icon-size,1.25em)}'
+            . '.dd-social-link .dd-platform-icon svg,.dd-social-link .dd-platform-icon img{width:1em;height:1em;fill:currentColor;object-fit:contain}'
+            . '.dd-social-link-label{font-size:inherit}'
+            . '</style>';
     }
 
     /**

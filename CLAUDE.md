@@ -371,6 +371,15 @@ the PHP check in sync — the PHP check is the real boundary.
   pattern as icons) for non-Elementor callers; the two mechanisms don't conflict because the
   Typography rule targets the more specific inner label element and simply wins over the inherited
   CSS-var value when an admin has actually set it.
+- **`[platform_social_links]`** (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`) renders one
+  clickable row (icon + `@handle`, linking out in a new tab) per available platform, all at once — like the
+  combined cross-platform stat shortcodes, it deliberately does **not** react to `[platform_switcher]`. The
+  per-platform URL/handle resolution lives in `trb_platform_social_link($post_id, $platform)`
+  (`includes/core/helpers.php`): prefers a stored IC profile link (`ic_youtube_link`/`ic_tiktok_link`) when
+  present, else composes the canonical profile URL from the platform's handle/username meta
+  (`instagramid`, `youtube_custom_url`/`youtubedisplayid`, `tiktok_username`/`tiktokid`); returns `null`
+  (row skipped) when no handle can be resolved. Accepts `id=`, `platforms=`, `icon_size=` attrs, same
+  pattern as the other platform shortcodes.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)

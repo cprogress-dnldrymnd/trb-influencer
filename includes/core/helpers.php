@@ -329,6 +329,81 @@ function trb_platform_default($post_id)
 }
 
 /**
+ * The profile URL + display handle for a platform, or null when no handle can be resolved
+ * (callers should skip the row in that case). Single source of truth for [platform_social_links]
+ * and its widget wrapper — prefers a stored Influencers.Club profile link when present, otherwise
+ * composes the canonical profile URL from the platform's handle/username meta.
+ *
+ * @return array{url:string,handle:string}|null
+ */
+function trb_platform_social_link($post_id, $platform)
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0) {
+        return null;
+    }
+
+    $clean_handle = static function ($value) {
+        $value = trim((string) $value);
+        $value = preg_replace('#^https?://[^/]+/#i', '', $value);
+        return ltrim($value, '@/');
+    };
+
+    $valid_url = static function ($value) {
+        $value = trim((string) $value);
+        return $value !== '' && filter_var($value, FILTER_VALIDATE_URL) ? $value : '';
+    };
+
+    if ($platform === 'instagram') {
+        $handle = $clean_handle(get_post_meta($post_id, 'instagramid', true));
+        if ($handle === '') {
+            $handle = $clean_handle(get_post_meta($post_id, 'instagramId', true));
+        }
+        if ($handle === '') {
+            return null;
+        }
+
+        return ['url' => 'https://www.instagram.com/' . rawurlencode($handle) . '/', 'handle' => '@' . $handle];
+    }
+
+    if ($platform === 'youtube') {
+        $handle = $clean_handle(get_post_meta($post_id, 'youtube_custom_url', true));
+        if ($handle === '') {
+            $handle = $clean_handle(get_post_meta($post_id, 'youtubedisplayid', true));
+        }
+        if ($handle === '') {
+            return null;
+        }
+
+        $url = $valid_url(get_post_meta($post_id, 'ic_youtube_link', true));
+        if ($url === '') {
+            $url = 'https://www.youtube.com/@' . rawurlencode($handle);
+        }
+
+        return ['url' => $url, 'handle' => '@' . $handle];
+    }
+
+    if ($platform === 'tiktok') {
+        $handle = $clean_handle(get_post_meta($post_id, 'tiktok_username', true));
+        if ($handle === '') {
+            $handle = $clean_handle(get_post_meta($post_id, 'tiktokid', true));
+        }
+        if ($handle === '') {
+            return null;
+        }
+
+        $url = $valid_url(get_post_meta($post_id, 'ic_tiktok_link', true));
+        if ($url === '') {
+            $url = 'https://www.tiktok.com/@' . rawurlencode($handle);
+        }
+
+        return ['url' => $url, 'handle' => '@' . $handle];
+    }
+
+    return null;
+}
+
+/**
  * @param array<int,array<string,mixed>> $rows
  * @return array<int,array<string,mixed>>
  */

@@ -36,6 +36,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     require_once $dir . 'class-widget-platform-switcher.php';
     require_once $dir . 'class-widget-platform-text.php';
     require_once $dir . 'class-widget-platform-icon.php';
+    require_once $dir . 'class-widget-social-links.php';
     require_once $dir . 'class-widget-creatordb-feed.php';
     require_once $dir . 'class-widget-outreach-list.php';
     require_once $dir . 'class-widget-outreach-view.php';
@@ -68,6 +69,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     $wm->register( new Widget_Platform_Switcher() );
     $wm->register( new Widget_Platform_Text() );
     $wm->register( new Widget_Platform_Icon() );
+    $wm->register( new Widget_Social_Links() );
     $wm->register( new Widget_Creatordb_Feed() );
     $wm->register( new Widget_Outreach_List() );
     $wm->register( new Widget_Outreach_View() );
