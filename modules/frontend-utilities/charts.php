@@ -1440,6 +1440,12 @@ class DD_Follower_Growth_Chart
                 height: var(--dd-sw-icon-size, 16px);
                 object-fit: contain;
             }
+            @media(max-width: 575px) {
+                .dd-platform-switcher {
+                    gap: 5px;
+                    width: 100%;
+                }
+            }
         </style>
 <?php
         return ob_get_clean();
