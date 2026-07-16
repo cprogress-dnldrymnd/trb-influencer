@@ -40,6 +40,16 @@ class Widget_Platform_Switcher extends \Elementor\Widget_Base {
                 'selector' => '{{WRAPPER}} .dd-platform-btn .dd-platform-label',
             ]
         );
+        $this->add_responsive_control( 'button_padding', [
+            'label'      => esc_html__( 'Button Padding', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%' ],
+            // Extra .dd-platform-switcher ancestor selector, same reasoning as the other
+            // Style-tab controls below — outranks the shortcode's own hardcoded padding.
+            'selectors'  => [
+                '{{WRAPPER}} .dd-platform-switcher .dd-platform-btn' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
 
         $this->add_control( 'colors_heading', [
             'label'     => esc_html__( 'Colors & Border', 'trb-influencer' ),

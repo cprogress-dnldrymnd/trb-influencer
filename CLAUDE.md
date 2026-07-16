@@ -371,8 +371,9 @@ the PHP check in sync — the PHP check is the real boundary.
   pattern as icons) for non-Elementor callers; the two mechanisms don't conflict because the
   Typography rule targets the more specific inner label element and simply wins over the inherited
   CSS-var value when an admin has actually set it. `class-widget-platform-switcher.php`'s Style tab
-  also has the same Border Radius / Text Color / Background Color / `Group_Control_Border`
-  (Normal+Hover) controls as the Social Links widget below, targeting `.dd-platform-btn`. **Gotcha:**
+  also has the same Button Padding / Border Radius / Text Color / Background Color /
+  `Group_Control_Border` (Normal+Hover) controls as the Social Links widget below, targeting
+  `.dd-platform-btn`. **Gotcha:**
   unlike Social Links, `render_platform_switcher_shortcode()`'s own `<style>` block hardcodes the
   button look with a 2-class selector (`.dd-platform-switcher .dd-platform-btn`) — the same
   specificity Elementor's `{{WRAPPER}} .dd-platform-btn` would generate, so source order (not
