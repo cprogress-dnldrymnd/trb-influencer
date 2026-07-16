@@ -357,7 +357,11 @@ the PHP check in sync — the PHP check is the real boundary.
   and `[platform_text icon_size=".." text_size=".."]` set `--dd-sw-icon-size`/`--dd-sw-text-size` and
   `--dd-pt-icon-size`/`--dd-pt-text-size` inline (falling back to the existing hardcoded defaults),
   and their Elementor widgets expose the same via Style-tab `SLIDER` controls — follow this pattern
-  (attr → CSS var with a default fallback) rather than branching PHP on the value.
+  (attr → CSS var with a default fallback) rather than branching PHP on the value. `[platform_icon
+  size=".."]` (note: `size`, not `icon_size`) is the exception — it's a standalone glyph with no
+  paired text, so it sets inline `font-size` directly (the SVG/`<img>` is `1em` square) rather than
+  going through a CSS var; its widget likewise exposes one Style-tab `icon_size` `SLIDER` control
+  that maps to the shortcode's `size` attr.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
