@@ -328,10 +328,18 @@ the PHP check in sync — the PHP check is the real boundary.
   inline-`<div>` fallback if that template is empty) instead of a chart card. The rendered HTML is
   memoized per-request (`get_no_data_fallback_html()`) since a single influencer page embeds this
   same markup as the empty state for every platform's chart card. When the post has *some* platform
-  data but the currently-selected platform's payload turns out to be empty (missing, too few points,
-  or an all-zero/all-synthetic series — each chart defines its own "empty" check, e.g. the growth-rate
-  chart requires ≥2 points since the first is always a synthetic 0%), every chart instead renders both
-  states up front inside a `.dd-chart-shell#dd{Monthly,Timeline,GrowthRate,LikeRange}Shell` wrapper —
+  data but the currently-selected platform's series carries no real information — fewer than 2 real
+  points, or no variation among them (a flat line, a single non-zero total, min==max, etc.) — each
+  `prepare_*_chart_data()` function (`prepare_timeline_chart_data()`, `prepare_growth_rate_chart_data()`,
+  `prepare_monthly_chart_data()`, `prepare_like_range_data()`) computes this itself and returns it as a
+  `has_data` boolean in its payload; the JS render callback for each chart just checks
+  `payload.has_data` rather than re-deriving emptiness from the series shape. Keep new sufficiency
+  rules there, not in JS — the JS only decides what to do with the flag. Specifics: monthly requires
+  snapshots landing in ≥2 distinct months *inside* the rendered 12-month window (older snapshots only
+  seed the carried-forward starting total, so don't count) with a non-zero gain somewhere; growth rate
+  requires ≥2 points with at least one non-zero rate (the first point is always a synthetic 0%);
+  timeline and like-range require ≥2 points that aren't all identical. Every chart instead renders
+  both states up front inside a `.dd-chart-shell#dd{Monthly,Timeline,GrowthRate,LikeRange}Shell` wrapper —
   a `.dd-chart-body` (the live chart markup) and a `.dd-chart-fallback` (the same
   `get_no_data_fallback_html()` markup, `display:none` initially) — and a per-shortcode
   `ddToggleFallback(shellId, isEmpty)` JS helper flips which one is visible from inside the chart's

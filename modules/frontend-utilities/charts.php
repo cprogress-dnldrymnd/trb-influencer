@@ -67,7 +67,7 @@ class DD_Follower_Growth_Chart
     private function prepare_timeline_chart_data(array $raw_data): array
     {
         if (empty($raw_data)) {
-            return ['series_data' => []];
+            return ['series_data' => [], 'has_data' => false];
         }
 
         usort($raw_data, function ($a, $b) {
@@ -83,8 +83,13 @@ class DD_Follower_Growth_Chart
             $series_data[] = [$ts_ms, (int)$entry['followers']];
         }
 
+        // A flat line (or a single point) carries no timeline information.
+        $distinct_values = array_unique(array_column($series_data, 1));
+        $has_data = count($series_data) >= 2 && count($distinct_values) >= 2;
+
         return [
-            'series_data' => $series_data
+            'series_data' => $series_data,
+            'has_data'    => $has_data,
         ];
     }
 
@@ -94,7 +99,7 @@ class DD_Follower_Growth_Chart
     private function prepare_growth_rate_chart_data(array $raw_data): array
     {
         if (empty($raw_data)) {
-            return ['series_data' => []];
+            return ['series_data' => [], 'has_data' => false];
         }
 
         usort($raw_data, function ($a, $b) {
@@ -121,8 +126,20 @@ class DD_Follower_Growth_Chart
             $previous_followers = $current_followers;
         }
 
+        // The first point is always a synthetic 0, so at least one later point must
+        // actually move for the series to carry any growth information.
+        $has_movement = false;
+        foreach ($series_data as $point) {
+            if ((float) $point[1] !== 0.0) {
+                $has_movement = true;
+                break;
+            }
+        }
+        $has_data = count($series_data) >= 2 && $has_movement;
+
         return [
-            'series_data' => $series_data
+            'series_data' => $series_data,
+            'has_data'    => $has_data,
         ];
     }
 
@@ -132,7 +149,7 @@ class DD_Follower_Growth_Chart
     private function prepare_monthly_chart_data(array $raw_data): array
     {
         if (empty($raw_data)) {
-            return ['labels' => [], 'totals' => [], 'gains' => [], 'last_updated' => 'N/A'];
+            return ['labels' => [], 'totals' => [], 'gains' => [], 'last_updated' => 'N/A', 'has_data' => false];
         }
 
         $latest_ts = 0;
@@ -197,11 +214,24 @@ class DD_Follower_Growth_Chart
             }
         }
 
+        // Snapshots inside the rendered 12-month window (older snapshots only seed
+        // $last_known_total above and don't count as a real month of history here).
+        $months_with_snapshots = array_intersect_key($monthly_snapshots, $months);
+        $has_movement = false;
+        foreach ($months as $item) {
+            if ((int) $item['gain'] !== 0) {
+                $has_movement = true;
+                break;
+            }
+        }
+        $has_data = count($months_with_snapshots) >= 2 && $has_movement;
+
         $chart_payload = [
             'labels'       => [],
             'totals'       => [],
             'gains'        => [],
-            'last_updated' => date('M d, Y', $latest_ts)
+            'last_updated' => date('M d, Y', $latest_ts),
+            'has_data'     => $has_data,
         ];
 
         foreach ($months as $key => $item) {
@@ -223,6 +253,7 @@ class DD_Follower_Growth_Chart
                 'series_data'  => [],
                 'point_count'  => 0,
                 'default_days' => 30,
+                'has_data'     => false,
             ];
         }
 
@@ -244,11 +275,16 @@ class DD_Follower_Growth_Chart
 
         $point_count = count($series_data);
 
+        // A range with no spread (min == max) means nothing, same as too few points.
+        $distinct_likes = array_unique(array_column($series_data, 'likes'));
+        $has_data = $point_count >= 2 && count($distinct_likes) >= 2;
+
         return [
             'series_data'  => $series_data,
             'point_count'  => $point_count,
             // IC import_seed is ~1 month ago; default wider window when the series is sparse.
             'default_days' => $point_count > 0 && $point_count <= 3 ? 365 : 30,
+            'has_data'     => $has_data,
         ];
     }
 
@@ -588,15 +624,7 @@ class DD_Follower_Growth_Chart
                     const noun = (payload && payload.meta && payload.meta.noun) ? payload.meta.noun : 'followers';
                     const nounCap = (payload && payload.meta && payload.meta.noun_cap) ? payload.meta.noun_cap : 'Followers';
 
-                    // Months are synthesized for any non-empty history, so an all-zero
-                    // set of totals is a platform with no real data rather than a chart.
-                    const ddMonthlyEmpty = !payloadMonthly
-                        || !payloadMonthly.labels
-                        || payloadMonthly.labels.length === 0
-                        || !payloadMonthly.totals
-                        || payloadMonthly.totals.every(v => Number(v) === 0);
-
-                    if (ddMonthlyEmpty) {
+                    if (!payloadMonthly || !payloadMonthly.has_data) {
                         container.innerHTML = '';
                         ddToggleFallback('ddMonthlyShell', true);
                         return;
@@ -821,12 +849,7 @@ class DD_Follower_Growth_Chart
                     const payloadMonthly = payload ? payload.monthly : null;
                     const nounCap = (payload && payload.meta && payload.meta.noun_cap) ? payload.meta.noun_cap : 'Followers';
 
-                    const ddTimelineEmpty = !payloadTimeline
-                        || !payloadTimeline.series_data
-                        || payloadTimeline.series_data.length === 0
-                        || payloadTimeline.series_data.every(point => Number(point[1]) === 0);
-
-                    if (ddTimelineEmpty) {
+                    if (!payloadTimeline || !payloadTimeline.has_data) {
                         container.innerHTML = '';
                         ddToggleFallback('ddTimelineShell', true);
                         return;
@@ -1017,14 +1040,7 @@ class DD_Follower_Growth_Chart
                     const payloadGrowthRate = payload ? payload.growth_rate : null;
                     const payloadMonthly = payload ? payload.monthly : null;
 
-                    // The first point is always a synthetic 0%, so a single point — or a
-                    // series that never moves off zero — carries no growth information.
-                    const ddGrowthRateEmpty = !payloadGrowthRate
-                        || !payloadGrowthRate.series_data
-                        || payloadGrowthRate.series_data.length < 2
-                        || payloadGrowthRate.series_data.every(point => Number(point[1]) === 0);
-
-                    if (ddGrowthRateEmpty) {
+                    if (!payloadGrowthRate || !payloadGrowthRate.has_data) {
                         container.innerHTML = '';
                         ddToggleFallback('ddGrowthRateShell', true);
                         return;
@@ -1255,7 +1271,7 @@ class DD_Follower_Growth_Chart
                         filteredLikes = ddLikeRangeData.map(d => d.likes);
                     }
 
-                    if (filteredLikes.length < 2 || filteredLikes.every(v => Number(v) === 0)) {
+                    if (filteredLikes.length < 2) {
                         ddToggleFallback('ddLikeRangeShell', true);
                         return;
                     }
@@ -1285,14 +1301,7 @@ class DD_Follower_Growth_Chart
                     const payload = ddChartPayload[platform];
                     const payloadLikeRange = payload ? payload.like_range : null;
 
-                    // History rows default missing likes to 0, so an all-zero series is a
-                    // platform without like data rather than a creator with zero likes.
-                    const ddLikeRangeEmpty = !payloadLikeRange
-                        || !payloadLikeRange.series_data
-                        || payloadLikeRange.series_data.length === 0
-                        || payloadLikeRange.series_data.every(d => Number(d.likes) === 0);
-
-                    if (ddLikeRangeEmpty) {
+                    if (!payloadLikeRange || !payloadLikeRange.has_data) {
                         ddLikeRangeData = [];
                         ddToggleFallback('ddLikeRangeShell', true);
                         return;
