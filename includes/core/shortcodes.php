@@ -1807,6 +1807,11 @@ function trb_build_platform_stats_map($post_id, $platform = 'instagram')
     $growth = trb_platform_follower_growth_display($post_id, $platform);
     if ($growth !== null) {
         $stats['follower_growth'] = $growth['formatted'];
+    } elseif ($platform !== 'instagram') {
+        // Mirror the other metrics' non-Instagram behavior: blank the span rather than leaving it
+        // untouched, so a stale value from the previous platform doesn't persist and
+        // hideEmptyData() can collapse the .influencer-data-parent wrapper.
+        $stats['follower_growth'] = '';
     }
 
     return $stats;

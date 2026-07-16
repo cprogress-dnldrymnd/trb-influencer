@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Widget_Social_Links extends \Elementor\Widget_Base {
 
     public function get_name()       { return 'sc_social_links'; }
-    public function get_title()      { return esc_html__( 'Social Links', 'trb-influencer' ); }
+    public function get_title()      { return esc_html__( 'Influencer Social Platforms', 'trb-influencer' ); }
     public function get_icon()       { return 'eicon-social-icons'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
@@ -31,6 +31,32 @@ class Widget_Social_Links extends \Elementor\Widget_Base {
             'size_units'  => [ 'px' ],
             'range'       => [ 'px' => [ 'min' => 10, 'max' => 80 ] ],
             'description' => esc_html__( 'Leave empty for the default size.', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'show_label', [
+            'label'        => esc_html__( 'Show Handle', 'trb-influencer' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'label_on'     => esc_html__( 'Show', 'trb-influencer' ),
+            'label_off'    => esc_html__( 'Hide', 'trb-influencer' ),
+            'return_value' => 'yes',
+            'default'      => 'yes',
+            'description'  => esc_html__( 'Turn off to show icons only.', 'trb-influencer' ),
+        ] );
+        $this->add_responsive_control( 'layout', [
+            'label'   => esc_html__( 'Layout', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::CHOOSE,
+            'options' => [
+                'column' => [
+                    'title' => esc_html__( 'Vertical', 'trb-influencer' ),
+                    'icon'  => 'eicon-editor-list-ul',
+                ],
+                'row' => [
+                    'title' => esc_html__( 'Horizontal', 'trb-influencer' ),
+                    'icon'  => 'eicon-ellipsis-h',
+                ],
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .dd-social-links' => 'flex-direction: {{VALUE}};',
+            ],
         ] );
         $this->add_responsive_control( 'box_padding', [
             'label'      => esc_html__( 'Box Padding', 'trb-influencer' ),
@@ -121,6 +147,9 @@ class Widget_Social_Links extends \Elementor\Widget_Base {
         $attrs = '';
         if ( $icon_size > 0 ) {
             $attrs .= ' icon_size="' . $icon_size . '"';
+        }
+        if ( isset( $settings['show_label'] ) && 'yes' !== $settings['show_label'] ) {
+            $attrs .= ' show_label="no"';
         }
 
         echo do_shortcode( '[platform_social_links' . $attrs . ']' );

@@ -412,26 +412,34 @@ the PHP check in sync — the PHP check is the real boundary.
   widget's second tab is now labeled **"Hover / Active"** and its three controls (Text Color, Background
   Color, Border) target `:hover, .active` together via a combined selector — so setting them in Elementor
   styles the active button too, not just hover; there is no separate Style-tab state for `.active` alone.
-- **`[platform_social_links]`** (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`) renders one
-  clickable row (icon + handle, linking out in a new tab) per available platform, all at once — like the
-  combined cross-platform stat shortcodes, it deliberately does **not** react to `[platform_switcher]`. The
-  per-platform URL/handle resolution lives in `trb_platform_social_link($post_id, $platform)`
-  (`includes/core/helpers.php`). Instagram (`instagramid`) and TikTok (`tiktok_username`/`tiktokid`) read the
-  same identity meta `trb_platform_has_data()` already checks, so "available" always yields a link. **YouTube
-  does not** — `trb_platform_has_data()` treats `youtubeid`/`youtube_id`/`youtubename` as sufficient identity
+- **`[platform_social_links id="0" platforms="" icon_size="" show_label="yes" layout="vertical"]`**
+  (`charts.php`, widget `Widget_Social_Links`/`sc_social_links`, titled **"Influencer Social Platforms"**
+  in Elementor) renders one clickable row (icon + handle, linking out in a new tab) per available
+  platform, all at once — like the combined cross-platform stat shortcodes, it deliberately does
+  **not** react to `[platform_switcher]`. The per-platform URL/handle resolution lives in
+  `trb_platform_social_link($post_id, $platform)` (`includes/core/helpers.php`). Instagram
+  (`instagramid`) and TikTok (`tiktok_username`/`tiktokid`) read the same identity meta
+  `trb_platform_has_data()` already checks, so "available" always yields a link. **YouTube does not**
+  — `trb_platform_has_data()` treats `youtubeid`/`youtube_id`/`youtubename` as sufficient identity
   signal, but those are typically all CreatorDB populates, with no true `@handle` (`youtube_custom_url`/
   `youtubedisplayid` are IC-sourced and often empty on CreatorDB influencers). So YouTube resolves in tiers:
   a real handle (`youtube_custom_url`/`youtubedisplayid`) → `@handle`, linking to `ic_youtube_link` or
   `youtube.com/@handle`; else a stored `ic_youtube_link` labeled with `youtubename`; else the channel ID
   (`youtubeid`/`youtube_id`) linking to `youtube.com/channel/{id}`, labeled with `youtubename` or the raw ID.
   Only the first tier gets an `@`-prefixed label — the others display a channel name/ID as-is rather than
-  fabricate a handle. Returns `null` (row skipped) only when none of that resolves. Accepts `id=`,
-  `platforms=`, `icon_size=` attrs, same pattern as the other platform shortcodes. **Gotcha:** each row's
+  fabricate a handle. Returns `null` (row skipped) only when none of that resolves. **Gotcha:** each row's
   glyph wrapper uses a distinct `.dd-social-icon` class rather than the reactive `.dd-platform-icon` — the
   switcher controller rewrites *every* `.dd-platform-icon` on the page to the active platform's icon (even
   on first paint, via its default `set()` call in `enqueue_scripts()`), so sharing that class would collapse
-  every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above. The widget's Style
-  tab adds a responsive Border Radius control (shared across states) plus Text Color / Background Color /
+  every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above. `show_label="no"`
+  drops the handle `<span>` from the DOM entirely (not just CSS-hidden) for an icons-only row, adding an
+  `aria-label` to the anchor so it keeps an accessible name; the widget exposes this as a Style-tab
+  "Show Handle" `SWITCHER` control. `layout="horizontal"` sets `--dd-sl-direction:row` on the
+  `.dd-social-links` wrapper (default `column`), same attr→CSS-var-with-fallback pattern as icon/text
+  sizing elsewhere; the widget exposes this as a responsive `CHOOSE` control (`Vertical`/`Horizontal`)
+  whose selector sets `flex-direction` directly rather than going through the CSS var, so Elementor's
+  choice always wins over the shortcode default regardless of source order. The widget's Style tab adds
+  a responsive Border Radius control (shared across states) plus Text Color / Background Color /
   `Group_Control_Border` under Normal/Hover tabs (`{{WRAPPER}} .dd-social-link` / `:hover`) — pure
   Elementor-emitted CSS like Typography/Box Padding, no `render()` changes needed. A `.dd-social-link` base
   CSS transition (`platform_social_links_styles()`)

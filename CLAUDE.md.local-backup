@@ -1,0 +1,132 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What This Is
+
+A WordPress **child theme** of [Hello Elementor](https://wordpress.org/themes/hello-elementor/), built for an influencer discovery and outreach platform. It is not a standalone plugin — it must live in `wp-content/themes/` alongside the `hello-elementor` parent theme.
+
+There is no build step, no package manager, and no test suite. PHP files are loaded directly by WordPress.
+
+## Required Plugins
+
+The theme is tightly coupled to these plugins — functions are guarded with `function_exists()` / `class_exists()` checks, but core features will be broken without them:
+
+| Plugin | Purpose |
+|---|---|
+| **Elementor Pro** | Page builder; forms; widget registration |
+| **Advanced Custom Fields (ACF)** | Custom field reads (`get_field()`) for per-page header colours and access control |
+| **Paid Memberships Pro (PMPro)** | Membership tiers, user avatars, trial/access gating |
+| **myCred** | Points/credits economy (awarded for membership, spent on outreach unlocks) |
+| **CreatorDB** (optional) | External influencer data source; the theme provides its own fallback implementations of `creatordb_calculate_match_score` etc. |
+
+## Architecture
+
+### Load Order (`functions.php`)
+
+```
+functions.php
+├── includes/core/helpers.php          — pure utility functions (number formatting, ISO country code conversion, initials)
+├── includes/core/custom-functions.php — user-specific helpers (recently viewed, niche rankings, saved influencers)
+├── includes/core/hooks.php            — wp_head CSS injection, access restriction, login redirect, admin bar suppression
+├── includes/core/shortcodes.php       — all [shortcode] registrations
+├── includes/integrations/acf.php      — Elementor global colour helpers
+├── includes/integrations/dompdf.php   — PDF generation bridge
+├── includes/integrations/elementor.php
+├── includes/integrations/mycred.php
+├── includes/integrations/pmpro.php
+├── modules/email-manager/             — HTML email template builder
+├── modules/frontend-utilities/
+│   ├── charts.php                     — Chart.js wrappers
+│   ├── feeds.php                      — social feed helpers
+│   ├── search.php                     — Influencer_Search class (AJAX search, WP_Query, Elementor widget registration)
+│   └── widgets/                       — four Elementor widgets (match score, search form, results, summary)
+├── modules/outreach/outreach.php      — DD_Outreach_Manager class
+├── modules/membership-extensions/    — PMPro sign-up flow, dynamic pricing, PMPro↔myCred rewards, trial protection
+├── modules/mycred-components/        — frontend myCred transaction log
+└── modules/saves/saves-manager.php   — Saves_Manager class (saved influencers, searches, view tracking)
+```
+
+### Key Classes
+
+- **`Influencer_Search`** (`modules/frontend-utilities/search.php`) — handles the AJAX search (`my_custom_loop_filter` action), natural-language brief parsing, dropdown option endpoints, and registers Elementor widgets. Instantiated once at file-include time.
+- **`DD_Outreach_Manager`** (`modules/outreach/outreach.php`) — intercepts Elementor Pro form submissions, dispatches multi-recipient HTML emails, stores outreach records in user meta, and provides a master-detail dashboard via shortcodes.
+- **`Saves_Manager`** (`modules/saves/saves-manager.php`) — registers `saved-influencer`, `saved-search`, and `viewed-influencer` custom post types; handles AJAX save/group/unlock flows; tracks influencer profile views via `template_redirect`.
+- **`DD_PMPro_Rewards_Manager`** (`modules/membership-extensions/pmpro-mycred-rewards-manager.php`) — awards myCred points on PMPro registration and monthly loyalty via a custom admin dashboard and cron jobs.
+
+### JavaScript (`assets/js/`)
+
+Modules attach helpers to the global `window.InfluencerApp` object. `main.js` is the orchestrator that calls them after DOM ready. Load order is enforced via chained `wp_enqueue_script` dependencies in `functions.php`.
+
+```
+modules/tag-prioritizer.js    — sorts active filter tags to the front
+modules/ui-utils.js           — shared DOM helpers
+modules/search-toggle.js      — brief ↔ filtered search mode toggle
+modules/filter-chips.js       — active filter chip rendering
+modules/filter-validation.js  — required field validation before search
+modules/filter-dropdowns.js   — follower range sync, AJAX-powered dropdowns
+modules/search-fetch.js       — wp-ajax fetch, URL state management, results rendering
+main.js                       — boots all modules; fires initial search on results page
+```
+
+AJAX vars are localised onto `influencer-js` as `ajax_vars` (keys: `ajax_url`, `page_id`, `search_results_page_id`, `save_search_nonce`, `save_influencer_nonce`).
+
+### Hardcoded Page IDs
+
+Several page IDs are hardcoded as globals set in `hooks.php` (`dd_set_global_pmpro_variable`) and referenced throughout:
+
+| Global | ID | Purpose |
+|---|---|---|
+| `$search_results_page_id` | 1949 | Influencer discovery results |
+| `$search_page_id` | 2149 | Search form page |
+| `$dashboard_page_id` | 1565 | User dashboard / post-login redirect |
+
+Access restriction for non-logged-in users redirects to page ID **4144**.
+
+### Influencer Post Meta Keys
+
+The `influencer` custom post type (registered elsewhere, consumed here) stores data in post meta:
+
+`followers`, `avglikes`, `avgcomments`, `posts`, `engagerate`, `isverified`, `country`, `lang`, `instagramid`, `instagramId`, `creatordb_last_updated`, `creatordb_history` (array of `{date, timestamp_ms, followers, avglikes, avgcomments, posts}`), `followersgrowth`, `recentposts`, `recentreels`
+
+### Taxonomies Used
+
+`niche`, `topic`, `content_tag`, `platform` — registered elsewhere (CreatorDB or a separate plugin), consumed here for search filtering, match scoring, and shortcode output.
+
+### Match Score Algorithm (`includes/core/helpers.php`)
+
+`calculate_match_score()` scores 50–100 across: content terms (40%), country (30%), platform (15%), followers range (10%), engagement/verified filters (5% each). Falls back gracefully if `creatordb_calculate_match_score()` exists.
+
+### Email Templates
+
+`email-template.html`, `outreach-email.html`, `outreach-user.html` are HTML email layouts consumed by the Email Template Manager and Outreach Manager. They use inline styles for mail-client compatibility.
+
+## Shortcodes Reference
+
+Registered in `includes/core/shortcodes.php` and individual module files:
+
+| Shortcode | Description |
+|---|---|
+| `[influencer_country_with_flag]` | Flag SVG + ISO code from `country` meta |
+| `[influencer_language]` | Language name via PHP Intl from `lang` meta |
+| `[influencer_niche]` | Niche terms (max 3 visible + toggle) |
+| `[influencer_niches]` / `[influencer_topics]` | Chip lists for niche/topic taxonomies |
+| `[influencer_followers]` / `[influencer_avglikes]` / `[influencer_avgcomments]` | Formatted numbers |
+| `[influencer_engagerate]` | Engagement rate as percentage |
+| `[influencer_isverified]` | Returns CSS class string `is-verified` |
+| `[influencer_hashtags limit="10"]` | Hashtag cloud from `content_tag` taxonomy |
+| `[influencer_follower_growth]` | Month-over-month growth % from history meta |
+| `[influencer_platform_score]` | Composite score (engagement 40%, growth 30%, consistency 15%, audience 15%) |
+| `[influencer_avatar]` | Featured image or initials fallback |
+| `[user_avatar]` | Logged-in user avatar (PMPro) or initials |
+| `[avatar_dropdown ids="1,2,3"]` | Avatar with dropdown menu |
+| `[breadcrumbs]` | Context-aware breadcrumb nav |
+| `[roi_calculator]` | Self-contained campaign ROI calculator widget |
+| `[saved_influencer_count]` / `[viewed_influencer_count]` / `[outreach_count]` / `[saved_search_count]` | User activity counts (accept `this_month_only="true"`) |
+| `[most_engage_niches]` / `[most_engage_niches_graph]` | Niche engagement summary / donut chart |
+| `[current_membership_level]` | PMPro membership level name |
+| `[mycred_circle_progress max="1000"]` | SVG circular myCred balance widget |
+| `[dd_outreach_list]` / `[dd_outreach_view]` | Outreach dashboard master/detail |
+| `[outreach_button]` / `[outreach_message]` | Conditional outreach UI on influencer profiles |
+| `[raw_post_content]` | Bypasses `the_content` filters to render raw content |
+| `[influencers_meta]` | Debug: dumps all post meta (remove from production use) |

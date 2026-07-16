@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" status)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" log --oneline -5)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" diff)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" add assets/js/main.js assets/js/modules/filter-dropdowns.js assets/js/modules/search-fetch.js assets/js/modules/ui-utils.js functions.php includes/core/custom-functions.php includes/core/shortcodes.php modules/frontend-utilities/search.php modules/saves/saves-manager.php)",
+      "Bash(git -C 'c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer' commit -m ' *)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" push origin main)",
+      "Bash(git -C \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" add modules/frontend-utilities/search.php)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\donra\\\\Documents\\\\Claude\\\\trb-influencer\" -Recurse -Directory | Where-Object { $_.Name -match 'widget|elementor' } | Select-Object FullName)",
+      "Bash(powershell -Command ' *)",
+      "Bash(awk '{ match\\($0, /^ */\\); print RLENGTH }')",
+      "Read(//c/Users/donra/.claude/projects/c--Users-donra-Documents-Claude-trb-influencer/memory/**)"
+    ]
+  }
+}

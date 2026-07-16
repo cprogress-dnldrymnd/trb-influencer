@@ -1542,18 +1542,30 @@ class DD_Follower_Growth_Chart
     }
 
     /**
-     * [platform_social_links id="0" platforms="" icon_size=""] — one clickable row per available
-     * platform (icon + @handle), linking out to the influencer's profile on that platform. Lists
-     * every available platform at once, so — like the combined cross-platform stat shortcodes —
-     * it deliberately does not react to [platform_switcher]. For that reason each row's glyph
-     * wrapper uses a distinct `.dd-social-icon` class rather than `.dd-platform-icon`: the
-     * switcher controller rewrites every `.dd-platform-icon` on the *whole page* to the active
-     * platform's icon (even on initial load, via its default `set()` call) — sharing that class
-     * would silently collapse every row here to one icon.
+     * [platform_social_links id="0" platforms="" icon_size="" show_label="yes" layout="vertical"]
+     * — one clickable row per available platform (icon + @handle), linking out to the influencer's
+     * profile on that platform. Lists every available platform at once, so — like the combined
+     * cross-platform stat shortcodes — it deliberately does not react to [platform_switcher]. For
+     * that reason each row's glyph wrapper uses a distinct `.dd-social-icon` class rather than
+     * `.dd-platform-icon`: the switcher controller rewrites every `.dd-platform-icon` on the
+     * *whole page* to the active platform's icon (even on initial load, via its default `set()`
+     * call) — sharing that class would silently collapse every row here to one icon.
+     *
+     * `show_label="no"` omits the handle `<span>` from the DOM entirely (rather than hiding it
+     * with CSS) for an icons-only row, adding `aria-label` to the anchor so it keeps an accessible
+     * name. `layout="horizontal"` sets `--dd-sl-direction:row` on the wrapper alongside
+     * `--dd-sl-icon-size`, same attr-to-CSS-var-with-fallback pattern as the other platform
+     * shortcodes.
      */
     public function render_platform_social_links_shortcode($atts = []): string
     {
-        $atts = shortcode_atts(['id' => 0, 'platforms' => '', 'icon_size' => ''], (array) $atts, 'platform_social_links');
+        $atts = shortcode_atts([
+            'id' => 0,
+            'platforms' => '',
+            'icon_size' => '',
+            'show_label' => 'yes',
+            'layout' => 'vertical',
+        ], (array) $atts, 'platform_social_links');
         $post_id = (int) $atts['id'] > 0 ? (int) $atts['id'] : $this->resolve_chart_post_id();
         if ($post_id <= 0) {
             return '';
@@ -1569,6 +1581,8 @@ class DD_Follower_Growth_Chart
             return '';
         }
 
+        $show_label = !in_array(strtolower((string) $atts['show_label']), ['no', 'false', '0', ''], true);
+
         $rows = [];
         foreach ($platforms as $platform) {
             $link = function_exists('trb_platform_social_link') ? trb_platform_social_link($post_id, $platform) : null;
@@ -1576,14 +1590,15 @@ class DD_Follower_Growth_Chart
                 continue;
             }
             $rows[] = sprintf(
-                '<a class="dd-social-link" href="%s" target="_blank" rel="noopener noreferrer nofollow" title="%s">'
+                '<a class="dd-social-link" href="%s" target="_blank" rel="noopener noreferrer nofollow" title="%s"%s>'
                     . '<span class="dd-social-icon">%s</span>'
-                    . '<span class="dd-social-link-label">%s</span>'
+                    . '%s'
                     . '</a>',
                 esc_url($link['url']),
                 esc_attr(trb_platform_label($platform)),
+                $show_label ? '' : ' aria-label="' . esc_attr($link['handle']) . '"',
                 trb_platform_icon_svg($platform),
-                esc_html($link['handle'])
+                $show_label ? '<span class="dd-social-link-label">' . esc_html($link['handle']) . '</span>' : ''
             );
         }
 
@@ -1591,10 +1606,14 @@ class DD_Follower_Growth_Chart
             return '';
         }
 
-        $wrap_style = '';
+        $css_vars = [];
         if ((int) $atts['icon_size'] > 0) {
-            $wrap_style = ' style="--dd-sl-icon-size:' . (int) $atts['icon_size'] . 'px"';
+            $css_vars[] = '--dd-sl-icon-size:' . (int) $atts['icon_size'] . 'px';
         }
+        if (strtolower((string) $atts['layout']) === 'horizontal') {
+            $css_vars[] = '--dd-sl-direction:row';
+        }
+        $wrap_style = $css_vars === [] ? '' : ' style="' . implode(';', $css_vars) . '"';
 
         return $this->platform_social_links_styles()
             . sprintf('<div class="dd-social-links"%s>%s</div>', $wrap_style, implode('', $rows));
@@ -1613,7 +1632,7 @@ class DD_Follower_Growth_Chart
         $printed = true;
 
         return '<style>'
-            . '.dd-social-links{display:flex;flex-direction:column;gap:8px}'
+            . '.dd-social-links{display:flex;flex-direction:var(--dd-sl-direction,column);flex-wrap:wrap;gap:8px}'
             . '.dd-social-link{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;'
             . 'background:rgba(0,0,0,.04);color:inherit;text-decoration:none;'
             . 'transition:background-color .15s ease,color .15s ease,border-color .15s ease}'
