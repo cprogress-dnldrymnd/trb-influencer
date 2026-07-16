@@ -416,8 +416,17 @@ the PHP check in sync — the PHP check is the real boundary.
   every `.platform-stat[data-metric]` span's text from it on each click. `trb_platform_stat_metric_map()`
   is the source of truth for the five snapshot metrics; `follower_growth` is computed separately via
   `trb_platform_follower_growth_display($post_id, $platform)` (shared by the shortcode and the map
-  builder). A metric missing for the target platform is simply omitted, leaving that span's current
-  text untouched. Inert wherever no switcher exists (search cards, group rows).
+  builder). On the **Instagram** entry, a metric missing for the target platform is simply omitted,
+  leaving that span's current text untouched (unchanged default behavior). For **any other platform**,
+  `trb_build_platform_stats_map()` instead emits an explicit `''` for a missing metric, so
+  `ddPlatformSwitcher.set()` blanks the span rather than leaving a stale Instagram value showing, and
+  `hideEmptyData()` can then collapse its `.influencer-data-parent` wrapper. Inert wherever no switcher
+  exists (search cards, group rows).
+  > Gotcha: `trb_resolve_platform_stat_raw()` also returns `''` outright for an **explicit non-Instagram
+  > platform** whose metric has no platform-specific meta key and no matching history field — `posts` is
+  > the case that matters, since there's no `{platform}_posts` key and no post-count field in
+  > YouTube/TikTok history. Without this guard the flat `posts` meta (which tracks the influencer's
+  > primary platform) would leak through and display as if it were that platform's count.
   > Gotcha: the flat/namespaced current-metric meta keys (`youtube_subscribers`, `tiktok_followers`,
   > `youtube_engagement_rate`, `tiktok_engagement_rate`) are **not reliable** — CreatorDB-sourced
   > influencers often never populate them (only `{platform}_metrics_history` arrays), and neither

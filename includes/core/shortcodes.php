@@ -240,6 +240,17 @@ function trb_resolve_platform_stat_raw($post_id, $platform, $metric)
     }
 
     $config = trb_platform_stat_metric_map()[$metric];
+
+    // For an explicit non-Instagram platform whose metric has no platform-specific key, the only
+    // remaining source is the flat meta — but that holds Instagram/primary-platform data, not this
+    // platform's. `posts` is the case that matters: no `{platform}_posts` key and no `posts` field
+    // in YouTube/TikTok history, so without this guard YouTube/TikTok would show the Instagram post
+    // count. Report "no data" instead so the switcher can clear the span and hideEmptyData() can
+    // collapse the stat's .influencer-data-parent wrapper.
+    if ($platform !== '' && $platform !== 'instagram' && empty($config['platform'][$platform])) {
+        return '';
+    }
+
     $meta_key = trb_platform_stat_meta_key($platform, $config['flat'], $config['platform']);
 
     return get_post_meta($post_id, $meta_key, true);
@@ -1775,6 +1786,14 @@ function trb_build_platform_stats_map($post_id, $platform = 'instagram')
         $raw = trb_resolve_platform_stat_raw($post_id, $platform, $metric);
 
         if ($raw === '' || $raw === null || $raw === false) {
+            // On a non-Instagram platform, emit an explicit empty value rather than omitting the
+            // metric: ddPlatformSwitcher.set() leaves an omitted metric's span untouched (which is
+            // why a stale Instagram value used to persist), but blanks it when the map carries ''.
+            // hideEmptyData() then collapses the stat's .influencer-data-parent wrapper. Instagram
+            // keeps the original skip behavior, so the default server-rendered view is unchanged.
+            if ($platform !== 'instagram') {
+                $stats[$metric] = '';
+            }
             continue;
         }
 
