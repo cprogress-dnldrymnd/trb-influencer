@@ -48,6 +48,61 @@ class Widget_Social_Links extends \Elementor\Widget_Base {
                 'selector' => '{{WRAPPER}} .dd-social-link-label',
             ]
         );
+
+        $this->add_control( 'colors_heading', [
+            'label'     => esc_html__( 'Colors & Border', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+
+        $this->start_controls_tabs( 'colors_tabs' );
+
+        $this->start_controls_tab( 'colors_tab_normal', [
+            'label' => esc_html__( 'Normal', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'text_color', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-social-link' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'bg_color', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-social-link' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'border',
+                'selector' => '{{WRAPPER}} .dd-social-link',
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->start_controls_tab( 'colors_tab_hover', [
+            'label' => esc_html__( 'Hover', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'text_color_hover', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-social-link:hover' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'bg_color_hover', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-social-link:hover' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'border_hover',
+                'selector' => '{{WRAPPER}} .dd-social-link:hover',
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
         $this->end_controls_section();
     }
 

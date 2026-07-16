@@ -389,7 +389,11 @@ the PHP check in sync — the PHP check is the real boundary.
   glyph wrapper uses a distinct `.dd-social-icon` class rather than the reactive `.dd-platform-icon` — the
   switcher controller rewrites *every* `.dd-platform-icon` on the page to the active platform's icon (even
   on first paint, via its default `set()` call in `enqueue_scripts()`), so sharing that class would collapse
-  every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above.
+  every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above. The widget's Style
+  tab adds Text Color / Background Color / `Group_Control_Border` under Normal/Hover tabs
+  (`{{WRAPPER}} .dd-social-link` / `:hover`) — pure Elementor-emitted CSS like Typography/Box Padding, no
+  `render()` changes needed. A `.dd-social-link` base CSS transition (`platform_social_links_styles()`)
+  smooths the hover state regardless of which colors an admin sets.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
