@@ -1434,7 +1434,11 @@ class DD_Follower_Growth_Chart
      * [platform_social_links id="0" platforms="" icon_size=""] — one clickable row per available
      * platform (icon + @handle), linking out to the influencer's profile on that platform. Lists
      * every available platform at once, so — like the combined cross-platform stat shortcodes —
-     * it deliberately does not react to [platform_switcher].
+     * it deliberately does not react to [platform_switcher]. For that reason each row's glyph
+     * wrapper uses a distinct `.dd-social-icon` class rather than `.dd-platform-icon`: the
+     * switcher controller rewrites every `.dd-platform-icon` on the *whole page* to the active
+     * platform's icon (even on initial load, via its default `set()` call) — sharing that class
+     * would silently collapse every row here to one icon.
      */
     public function render_platform_social_links_shortcode($atts = []): string
     {
@@ -1462,7 +1466,7 @@ class DD_Follower_Growth_Chart
             }
             $rows[] = sprintf(
                 '<a class="dd-social-link" href="%s" target="_blank" rel="noopener noreferrer nofollow" title="%s">'
-                    . '<span class="dd-platform-icon">%s</span>'
+                    . '<span class="dd-social-icon">%s</span>'
                     . '<span class="dd-social-link-label">%s</span>'
                     . '</a>',
                 esc_url($link['url']),
@@ -1501,8 +1505,8 @@ class DD_Follower_Growth_Chart
             . '.dd-social-links{display:flex;flex-direction:column;gap:8px}'
             . '.dd-social-link{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;'
             . 'background:rgba(0,0,0,.04);color:inherit;text-decoration:none}'
-            . '.dd-social-link .dd-platform-icon{font-size:var(--dd-sl-icon-size,1.25em)}'
-            . '.dd-social-link .dd-platform-icon svg,.dd-social-link .dd-platform-icon img{width:1em;height:1em;fill:currentColor;object-fit:contain}'
+            . '.dd-social-icon{display:inline-flex;align-items:center;line-height:0;font-size:var(--dd-sl-icon-size,1.25em)}'
+            . '.dd-social-icon svg,.dd-social-icon img{width:1em;height:1em;fill:currentColor;object-fit:contain}'
             . '.dd-social-link-label{font-size:inherit}'
             . '</style>';
     }

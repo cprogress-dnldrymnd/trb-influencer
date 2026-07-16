@@ -379,7 +379,11 @@ the PHP check in sync — the PHP check is the real boundary.
   present, else composes the canonical profile URL from the platform's handle/username meta
   (`instagramid`, `youtube_custom_url`/`youtubedisplayid`, `tiktok_username`/`tiktokid`); returns `null`
   (row skipped) when no handle can be resolved. Accepts `id=`, `platforms=`, `icon_size=` attrs, same
-  pattern as the other platform shortcodes.
+  pattern as the other platform shortcodes. **Gotcha:** each row's glyph wrapper uses a distinct
+  `.dd-social-icon` class rather than the reactive `.dd-platform-icon` — the switcher controller
+  rewrites *every* `.dd-platform-icon` on the page to the active platform's icon (even on first
+  paint, via its default `set()` call in `enqueue_scripts()`), so sharing that class would collapse
+  every row to the same icon. Same reasoning as `.combined-stat` vs `.platform-stat` above.
 - **Stat shortcodes switch live too, with no Elementor changes:** the snapshot shortcodes
   (`[influencer_followers]`, `[influencer_avglikes]`, `[influencer_avgcomments]`, `[influencer_posts]`,
   `[influencer_engagerate]`, `[influencer_follower_growth]` — all in `includes/core/shortcodes.php`)
