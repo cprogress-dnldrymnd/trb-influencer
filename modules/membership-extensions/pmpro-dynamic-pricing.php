@@ -25,7 +25,7 @@ class DD_PMPro_Frontend_Pricing
 	public function __construct()
 	{
 		add_action('init', [$this, 'register_pricing_shortcode']);
-		add_action('admin_menu', [$this, 'register_admin_menu']);
+		add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
 		add_action('admin_init', [$this, 'register_plugin_settings']);
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
@@ -1513,23 +1513,24 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Registers the backend submenu page under the PMPro Dashboard.
-	 * @return void
+	 * Appends this module's settings UI as a tab on the Influencer Theme
+	 * settings hub instead of registering a standalone admin page. Only
+	 * available when PMPro is active, preserving the previous guard.
+	 * @param array $tabs
+	 * @return array
 	 */
-	public function register_admin_menu()
+	public function register_settings_tab($tabs)
 	{
 		if (! defined('PMPRO_VERSION')) {
-			return;
+			return $tabs;
 		}
 
-		add_submenu_page(
-			'pmpro-dashboard',
-			'Pricing Table Settings',
-			'Pricing Settings',
-			'manage_options',
-			'dd-pricing-settings',
-			[$this, 'render_settings_page']
-		);
+		$tabs[] = [
+			'id'     => 'pricing',
+			'label'  => 'Pricing Settings',
+			'render' => [$this, 'render_tab_panel'],
+		];
+		return $tabs;
 	}
 
 	/**
@@ -1616,25 +1617,23 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Renders the HTML wrapper for the backend settings page.
+	 * Renders this module's settings UI as a self-contained tab panel on the
+	 * Influencer Theme settings hub.
 	 * @return void
 	 */
-	public function render_settings_page()
+	public function render_tab_panel()
 	{
 		if (! current_user_can('manage_options')) {
 			return;
 		}
 	?>
-		<div class="wrap">
-			<h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields('dd_pricing_settings_group');
 				do_settings_sections('dd-pricing-settings');
-				submit_button('Save Pricing Table Settings');
+				submit_button('Save Pricing Table Settings', 'primary', 'dd_pricing_submit');
 				?>
 			</form>
-		</div>
 	<?php
 	}
 

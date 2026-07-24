@@ -355,9 +355,16 @@ add_action('admin_init', function () {
 
 // ---------------------------------------------------------------------------
 // Admin menu page — both panels rendered; JS handles tab switching
+//
+// Other modules can append their own settings page as an extra tab here
+// instead of registering a standalone admin page, via the
+// `dd_theme_settings_tabs` filter. Each entry: ['id' => 'slug',
+// 'label' => 'Tab Label', 'render' => callable]. `render` should print its
+// own self-contained <form action="options.php">…</form> (its own
+// settings_fields() group) — do not wrap it in <div class="wrap">/<h1>.
 // ---------------------------------------------------------------------------
 add_action('admin_menu', function () {
-    add_options_page(
+    add_menu_page(
         'Influencer Theme Settings',
         'Influencer Theme',
         'manage_options',
@@ -366,6 +373,7 @@ add_action('admin_menu', function () {
             if (! current_user_can('manage_options')) {
                 return;
             }
+            $extra_tabs = apply_filters('dd_theme_settings_tabs', []);
     ?>
         <div class="wrap dd-settings-wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
@@ -375,6 +383,9 @@ add_action('admin_menu', function () {
                 <button type="button" class="dd-tab-btn" data-panel="templates">Elementor Templates</button>
                 <button type="button" class="dd-tab-btn" data-panel="functionality">Functionality</button>
                 <button type="button" class="dd-tab-btn" data-panel="platform-icons">Platform Icons</button>
+                <?php foreach ($extra_tabs as $tab): ?>
+                    <button type="button" class="dd-tab-btn" data-panel="<?php echo esc_attr($tab['id']); ?>"><?php echo esc_html($tab['label']); ?></button>
+                <?php endforeach; ?>
             </div>
 
             <div class="dd-tab-body">
@@ -411,10 +422,18 @@ add_action('admin_menu', function () {
 
                     <?php submit_button('Save Settings'); ?>
                 </form>
+
+                <?php foreach ($extra_tabs as $tab): ?>
+                    <div class="dd-panel" id="dd-panel-<?php echo esc_attr($tab['id']); ?>" hidden>
+                        <?php call_user_func($tab['render']); ?>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
     <?php
-        }
+        },
+        'dashicons-groups',
+        '2'
     );
 });
 
@@ -441,7 +460,7 @@ add_action('admin_bar_menu', function ($wp_admin_bar) {
     $wp_admin_bar->add_node([
         'id'    => 'dd-theme-editor',
         'title' => $icon_html . 'Theme Editor',
-        'href'  => admin_url('options-general.php?page=dd-theme-settings'),
+        'href'  => admin_url('admin.php?page=dd-theme-settings'),
     ]);
 
     $page_keys = [
@@ -541,7 +560,7 @@ add_action('wp_before_admin_bar_render', function () {
 // Media library uploader (Platform Icons tab only)
 // ---------------------------------------------------------------------------
 add_action('admin_enqueue_scripts', function ($hook) {
-    if ($hook !== 'settings_page_dd-theme-settings') {
+    if ($hook !== 'toplevel_page_dd-theme-settings') {
         return;
     }
     wp_enqueue_media();
@@ -552,7 +571,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
 // ---------------------------------------------------------------------------
 add_action('admin_footer', function () {
     $screen = get_current_screen();
-    if (! $screen || $screen->id !== 'settings_page_dd-theme-settings') {
+    if (! $screen || $screen->id !== 'toplevel_page_dd-theme-settings') {
         return;
     }
     $nonce = wp_create_nonce('dd_admin_search');

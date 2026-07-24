@@ -27,7 +27,7 @@ class DD_Global_Email_Manager
     public function __construct()
     {
         // Backend Admin Menu & Settings
-        add_action('admin_menu', [$this, 'register_admin_menu']);
+        add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_scripts']);
 
@@ -39,20 +39,20 @@ class DD_Global_Email_Manager
     }
 
     /**
-     * Registers the plugin settings submenu page under options.
-     * Utilizes a logically partitioned tabbed interface.
+     * Appends this module's settings UI as a tab on the Influencer Theme
+     * settings hub instead of registering a standalone admin page.
      *
-     * @return void
+     * @param array $tabs
+     * @return array
      */
-    public function register_admin_menu()
+    public function register_settings_tab($tabs)
     {
-        add_options_page(
-            'Global Email Templates',
-            'Global Email Templates',
-            'manage_options',
-            'dd-global-email-settings',
-            [$this, 'render_settings_page']
-        );
+        $tabs[] = [
+            'id'     => 'email-templates',
+            'label'  => 'Email Templates',
+            'render' => [$this, 'render_tab_panel'],
+        ];
+        return $tabs;
     }
 
     /**
@@ -114,7 +114,7 @@ class DD_Global_Email_Manager
      */
     public function enqueue_admin_scripts($hook)
     {
-        if (strpos($hook, 'dd-global-email-settings') === false) {
+        if ($hook !== 'toplevel_page_dd-theme-settings') {
             return;
         }
 
@@ -122,15 +122,18 @@ class DD_Global_Email_Manager
 
         $custom_js = "
         jQuery(document).ready(function($) {
-            
-            // --- 1. Tab Switcher Logic ---
-            $('.nav-tab').on('click', function(e) {
+            var \$scope = $('#dd-panel-email-templates');
+
+            // --- 1. Tab Switcher Logic (scoped to this module's own panel so it
+            //        doesn't clobber the active/visible state of other modules'
+            //        nested tabs sharing the consolidated Influencer Theme page) ---
+            \$scope.find('.nav-tab').on('click', function(e) {
                 e.preventDefault();
-                $('.nav-tab').removeClass('nav-tab-active');
+                \$scope.find('.nav-tab').removeClass('nav-tab-active');
                 $(this).addClass('nav-tab-active');
-                $('.dd-tab-content').hide();
+                \$scope.find('.dd-tab-content').hide();
                 var target = $(this).attr('href');
-                $(target).show();
+                \$scope.find(target).show();
             });
 
             // --- 2. Merge Tag Injection & Editor Tracking ---
@@ -334,24 +337,22 @@ class DD_Global_Email_Manager
     }
 
     /**
-     * Renders the Backend Settings Page HTML via a logical tabbed component view.
+     * Renders this module's settings UI as a self-contained tab panel on the
+     * Influencer Theme settings hub via a logical tabbed component view.
      *
      * @return void
      */
-    public function render_settings_page()
+    public function render_tab_panel()
     {
         $header_html = get_option('dd_global_header', $this->get_default_header());
         $footer_html = get_option('dd_global_footer', $this->get_default_footer());
 ?>
-        <div class="wrap">
-            <h1>Global Email Templates</h1>
-
             <h2 class="nav-tab-wrapper">
-                <a href="#tab-email-builder" class="nav-tab nav-tab-active">Email Builder</a>
-                <a href="#tab-settings" class="nav-tab">Integration Context</a>
+                <a href="#dd-email-tab-builder" class="nav-tab nav-tab-active">Email Builder</a>
+                <a href="#dd-email-tab-integration" class="nav-tab">Integration Context</a>
             </h2>
 
-            <div id="tab-email-builder" class="dd-tab-content" style="margin-top:20px;">
+            <div id="dd-email-tab-builder" class="dd-tab-content" style="margin-top:20px;">
                 <form method="post" action="options.php">
                     <?php settings_fields('dd_global_email_group'); ?>
 
@@ -376,7 +377,7 @@ class DD_Global_Email_Manager
                             </div>
 
                             <hr style="margin: 20px 0;">
-                            <?php submit_button('Save Template Settings', 'primary', 'submit', false); ?>
+                            <?php submit_button('Save Template Settings', 'primary', 'dd_email_submit', false); ?>
                         </div>
 
                         <div style="flex: 1; min-width: 400px; position: sticky; top: 40px;">
@@ -390,7 +391,7 @@ class DD_Global_Email_Manager
                 </form>
             </div>
 
-            <div id="tab-settings" class="dd-tab-content" style="display:none; margin-top:20px;">
+            <div id="dd-email-tab-integration" class="dd-tab-content" style="display:none; margin-top:20px;">
                 <div style="background: #fff; padding: 20px; border: 1px solid #ccc; border-radius: 4px; max-width: 800px;">
                     <h3>System Scope & Integrity</h3>
                     <p>This extension dynamically monitors the WordPress <code>wp_mail</code> stack trace at execution. To enforce layout isolation and prevent dependency collisions, wrappers are <strong>only compiled</strong> for targeted modules:</p>
@@ -403,7 +404,6 @@ class DD_Global_Email_Manager
                     <p style="color: #d63638;"><strong>Constraint Acknowledgement:</strong> Notifications specifically initiated by the standalone <em>DD Outreach Manager</em> plugin are programmatically excluded from these global settings ensuring isolated framework compliance.</p>
                 </div>
             </div>
-        </div>
     <?php
     }
 }

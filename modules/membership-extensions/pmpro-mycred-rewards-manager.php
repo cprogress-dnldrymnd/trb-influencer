@@ -42,7 +42,7 @@ class DD_PMPro_Rewards_Manager
     public function __construct()
     {
         // Admin setup
-        add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_filter('dd_theme_settings_tabs', array($this, 'register_settings_tab'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('admin_init', array($this, 'register_settings'));
 
@@ -156,12 +156,19 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * Registers the backend options page.
-     * @return void
+     * Appends this module's settings UI as a tab on the Influencer Theme
+     * settings hub instead of registering a standalone admin page.
+     * @param array $tabs
+     * @return array
      */
-    public function add_admin_menu()
+    public function register_settings_tab($tabs)
     {
-        add_options_page('PMPro Rewards', 'PMPro Rewards', 'manage_options', 'dd-pmpro-rewards', array($this, 'render_admin_page'));
+        $tabs[] = array(
+            'id'     => 'rewards',
+            'label'  => 'Rewards',
+            'render' => array($this, 'render_tab_panel'),
+        );
+        return $tabs;
     }
 
     /**
@@ -181,7 +188,7 @@ class DD_PMPro_Rewards_Manager
      */
     public function enqueue_admin_scripts($hook)
     {
-        if ('settings_page_dd-pmpro-rewards' !== $hook) return;
+        if ('toplevel_page_dd-theme-settings' !== $hook) return;
 
         wp_enqueue_script('jquery-ui-sortable');
         wp_enqueue_script('jquery-ui-autocomplete');
@@ -550,11 +557,12 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
-     * UI: Render Admin Page
-     * Compiles the HTML for the backend settings page utilizing a tabbed interface.
+     * UI: Render Tab Panel
+     * Compiles the HTML for this module's tab on the Influencer Theme settings
+     * hub, utilizing its own nested tabbed interface.
      * @return void
      */
-    public function render_admin_page()
+    public function render_tab_panel()
     {
         $rewards          = $this->get_rewards_config();
         $general_settings = get_option($this->general_option, array());
@@ -576,20 +584,17 @@ class DD_PMPro_Rewards_Manager
         $live_logs = get_option('dd_pmpro_logs_live', array());
         $test_logs = get_option('dd_pmpro_logs_test', array());
 ?>
-        <div class="wrap">
-            <h1>PMPro myCred Rewards Manager</h1>
-
             <h2 class="nav-tab-wrapper">
-                <a href="#tab-builder" class="nav-tab nav-tab-active">Reward Builder</a>
-                <a href="#tab-settings" class="nav-tab">Settings</a>
-                <a href="#tab-logs-live" class="nav-tab">Live Logs</a>
-                <a href="#tab-logs-test" class="nav-tab">Test Logs</a>
+                <a href="#dd-rewards-tab-builder" class="nav-tab nav-tab-active">Reward Builder</a>
+                <a href="#dd-rewards-tab-settings" class="nav-tab">Settings</a>
+                <a href="#dd-rewards-tab-logs-live" class="nav-tab">Live Logs</a>
+                <a href="#dd-rewards-tab-logs-test" class="nav-tab">Test Logs</a>
             </h2>
 
             <form method="post" action="options.php">
                 <?php settings_fields('dd_pmpro_rewards_group'); ?>
 
-                <div id="tab-builder" class="dd-tab-content active">
+                <div id="dd-rewards-tab-builder" class="dd-tab-content active">
                     <p class="description">Define points for specific membership levels. Points are awarded to: <strong><?php echo esc_html($this->point_type); ?></strong></p>
 
                     <div id="dd-repeater-container">
@@ -611,7 +616,7 @@ class DD_PMPro_Rewards_Manager
                     </div>
                 </div>
 
-                <div id="tab-settings" class="dd-tab-content" style="display:none;">
+                <div id="dd-rewards-tab-settings" class="dd-tab-content" style="display:none;">
 
                     <h3>Environment Configuration</h3>
                     <table class="form-table">
@@ -658,10 +663,10 @@ class DD_PMPro_Rewards_Manager
                     </table>
                 </div>
 
-                <?php submit_button(); ?>
+                <?php submit_button('Save Changes', 'primary', 'dd_rewards_submit'); ?>
             </form>
 
-            <div id="tab-logs-live" class="dd-tab-content" style="display:none;">
+            <div id="dd-rewards-tab-logs-live" class="dd-tab-content" style="display:none;">
                 <div class="dd-log-header">
                     <h3>Live Environment Logs</h3>
                     <button type="button" class="button dd-clear-log-btn" data-type="live">Clear Live Logs</button>
@@ -678,7 +683,7 @@ class DD_PMPro_Rewards_Manager
                 </div>
             </div>
 
-            <div id="tab-logs-test" class="dd-tab-content" style="display:none;">
+            <div id="dd-rewards-tab-logs-test" class="dd-tab-content" style="display:none;">
                 <div class="dd-log-header">
                     <h3>Test Environment Logs</h3>
                     <button type="button" class="button dd-clear-log-btn" data-type="test">Clear Test Logs</button>
@@ -694,8 +699,6 @@ class DD_PMPro_Rewards_Manager
                     <?php endif; ?>
                 </div>
             </div>
-
-        </div>
 
         <style>
             .dd-repeater-row {
@@ -817,21 +820,26 @@ class DD_PMPro_Rewards_Manager
 
         <script>
             jQuery(document).ready(function($) {
+                // Scoped to this module's own panel so it doesn't clobber the
+                // active/visible state of other modules' nested tabs sharing
+                // the consolidated Influencer Theme page.
+                var $scope = $('#dd-panel-rewards');
+
                 // Tab Logic
-                $('.nav-tab').click(function(e) {
+                $scope.find('.nav-tab').click(function(e) {
                     e.preventDefault();
-                    $('.nav-tab').removeClass('nav-tab-active');
+                    $scope.find('.nav-tab').removeClass('nav-tab-active');
                     $(this).addClass('nav-tab-active');
-                    $('.dd-tab-content').hide();
+                    $scope.find('.dd-tab-content').hide();
 
                     var targetId = $(this).attr('href');
-                    $(targetId).show();
+                    $scope.find(targetId).show();
 
                     // Hide the main form save button when on log tabs
-                    if (targetId === '#tab-logs-live' || targetId === '#tab-logs-test') {
-                        $('#submit').hide();
+                    if (targetId === '#dd-rewards-tab-logs-live' || targetId === '#dd-rewards-tab-logs-test') {
+                        $('#dd_rewards_submit').hide();
                     } else {
-                        $('#submit').show();
+                        $('#dd_rewards_submit').show();
                     }
                 });
 

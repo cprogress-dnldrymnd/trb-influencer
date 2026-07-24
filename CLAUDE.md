@@ -186,7 +186,13 @@ treating it as a retryable/no-results error or touching the results container. A
 response also carries `searches_remaining`/`searches_remaining_label` (via `dd_searches_remaining()`),
 which `search-fetch.js` uses to live-update every `.dd-searches-remaining-value`/`.dd-searches-remaining-label`
 span on the page — the Searches Remaining widget (see below) otherwise only reflects the count as of
-page load. Logged-out
+page load. `search-fetch.js` also caches this count client-side (`known_searches_remaining()`, lazily
+seeded from `ajax_vars.searches_remaining` — localized via `dd_searches_remaining()` in
+`functions.php`'s `hello_elementor_child_scripts_styles()` — then kept fresh from each response) so
+`influencer_search_trigger()` can pop the same limit dialog (`show_search_limit_popup()`, falling back
+to `ajax_vars.search_limit_message`/`search_upgrade_url`) the instant a search button is clicked at 0
+remaining, skipping the loading animation and AJAX round-trip entirely; the server-side
+`limit_reached` check remains the authoritative fallback for a stale/unknown client-side count. Logged-out
 users and any level with no configured limit (`dd_search_limits` empty/blank for that level) are
 unrestricted (`dd_user_search_limit()` fails **open**, unlike the other capability checks below).
 `Influencer_Search::enforce_search_page_limit()` (`template_redirect`) mirrors this same check on
