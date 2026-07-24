@@ -165,7 +165,7 @@ class DD_Outreach_Manager
 
         ob_start();
 ?>
-        <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" style="background:#fdfdfd; padding:15px; border:1px solid #000; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
+        <div id="dd-outreach-message-preview" class="dd-message-content" data-template="<?php echo esc_attr($json_encoded_template); ?>" data-can-edit="<?php echo dd_user_can('custom_outreach_message') ? '1' : '0'; ?>" style="background:#fdfdfd; padding:15px; border:1px solid #000; border-radius:5px; margin-top:10px; font-size: 15px; line-height: 1.6; color: #000;">
             Loading message preview...
         </div>
     <?php
@@ -861,29 +861,23 @@ class DD_Outreach_Manager
     {
     ?>
         <style>
-            <?php if (is_user_logged_in() && !dd_user_can('custom_outreach_message')) : ?>
-            /* Custom outreach messages are Growth-only — visually lock the message field for
-               everyone else. Scoped to .dd-custom-message-locked (applied only to the outreach
-               form's message field by JS below) rather than the bare .elementor-field-group-message
-               class, since other Elementor forms on the site also use a "message" field ID and
-               would otherwise be caught by an unscoped selector. The server independently discards
-               any edited value regardless (process_elementor_form_response); this is a UX cue, not
-               the enforcement boundary. */
-            .dd-custom-message-locked textarea,
-            .dd-custom-message-locked input {
-                pointer-events: none !important;
-                opacity: .6;
-                background: #f5f5f5 !important;
+            /* Custom outreach messages are Growth-only. The [outreach_message] preview only
+               renders .dd-editable spans (see updateMessagePreview() in outreach.js) for users
+               whose plan grants custom_outreach_message, so this is purely a visual affordance —
+               the real enforcement boundary is server-side in process_elementor_form_response(). */
+            .dd-editable {
+                display: inline-block;
+                min-width: 40px;
+                border-radius: 3px;
+                outline: 1px dashed #0f766e;
+                background: rgba(209, 250, 229, .35);
+                padding: 0 2px;
             }
 
-            .dd-custom-message-locked::after {
-                content: "Upgrade to Growth to write your own message";
-                display: block;
-                font-size: 12px;
-                color: #a00;
-                margin-top: 4px;
+            .dd-editable:focus {
+                outline: 2px solid #034146;
+                background: rgba(209, 250, 229, .6);
             }
-            <?php endif; ?>
 
             /* --- Original Elementor Form Summary Styles --- */
             .dd-message-overview {
@@ -1571,35 +1565,6 @@ class DD_Outreach_Manager
                 }
             }
         </style>
-        <?php if (is_user_logged_in() && !dd_user_can('custom_outreach_message')) : ?>
-        <script>
-            (function() {
-                'use strict';
-
-                // Tags only the outreach form's message field with the lock class defined
-                // above — other Elementor forms on the site also use a "message" field ID
-                // and must not be affected. Mirrors the form_id === 'outreach_form' lookup
-                // used by inject_recaptcha_popup_fix() below.
-                function lockOutreachMessageField() {
-                    var idFields = document.querySelectorAll('input[name="form_id"]');
-                    for (var i = 0; i < idFields.length; i++) {
-                        if (idFields[i].value !== 'outreach_form') continue;
-                        var form = idFields[i].closest('form');
-                        if (!form) continue;
-                        var group = form.querySelector('.elementor-field-group-message');
-                        if (group) group.classList.add('dd-custom-message-locked');
-                    }
-                }
-
-                document.addEventListener('DOMContentLoaded', lockOutreachMessageField);
-                // The outreach form lives in an Elementor Popup and may not exist in the DOM yet
-                // at DOMContentLoaded — re-apply once the popup actually renders its content.
-                if (window.jQuery) {
-                    window.jQuery(document).on('elementor/popup/show', lockOutreachMessageField);
-                }
-            })();
-        </script>
-        <?php endif; ?>
     <?php
     }
 
@@ -1646,6 +1611,33 @@ class DD_Outreach_Manager
 
         $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
 
+        // Custom outreach message (Growth-only): the client sends only the plain-text content
+        // of each <!--customise-->...<!--end-customise--> region (base64-encoded JSON array,
+        // ordered to match their position in the template). Everything else — intro/sign-off
+        // chrome and {{fields}} below — always comes from this trusted server-side template,
+        // never from client input, so a tampered hidden field can only affect these slots.
+        $user_regions = [];
+        if (dd_user_can('custom_outreach_message', $current_user_id) && $raw_custom_message !== '') {
+            $decoded = json_decode(base64_decode($raw_custom_message, true), true);
+            if (is_array($decoded)) {
+                $user_regions = array_values($decoded);
+            }
+        }
+        $region_index = 0;
+        $message_template = preg_replace_callback(
+            '/<!--customise-->([\s\S]*?)<!--end-customise-->/',
+            function ($matches) use (&$region_index, $user_regions) {
+                $replacement = array_key_exists($region_index, $user_regions)
+                    ? sanitize_textarea_field((string) $user_regions[$region_index])
+                    : $matches[1];
+                $region_index++;
+                return $replacement;
+            },
+            $message_template
+        );
+        // Strip any stray/unmatched markers (shouldn't normally happen).
+        $message_template = preg_replace('/<!--(?:end-)?customise-->/', '', $message_template);
+
         // We build the tags HTML dynamically as it was requested to be inside {{fields}}
         $tag_style = 'background-color: #d1fae5; border: 1px solid #0f766e; color: #034146; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-block !important; margin: 2px;';
 
@@ -1670,13 +1662,6 @@ class DD_Outreach_Manager
 
         // Replace all placeholders and format into HTML
         $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
-
-        // Growth-only: honor the sender's own freeform message instead of the composed
-        // default template. Everyone else always gets the standard template (unchanged
-        // behaviour) regardless of what they typed into the message field.
-        if (dd_user_can('custom_outreach_message', $current_user_id) && trim(wp_strip_all_tags($raw_custom_message)) !== '') {
-            $final_message = $raw_custom_message;
-        }
 
         // Finalize standard line break parsing
         $data['message'] = nl2br($final_message);

@@ -311,6 +311,48 @@
         });
 
         // --- 5. Dynamic Message Preview Logic (Elementor Popup Safe) ---
+
+        // Base64-encodes a UTF-8 string safely (btoa alone chokes on non-Latin1 chars).
+        function utf8ToBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        // Flattens a contenteditable region back to plain text with real newlines.
+        // Browsers disagree on how Enter is represented inside contenteditable
+        // (Chrome/Safari insert <div> per line, Firefox inserts <br>), so normalize
+        // both before falling back to textContent for the rest.
+        function editableRegionText(el) {
+            var html = el.innerHTML || '';
+            html = html.replace(/<div><br\s*\/?><\/div>/gi, '\n\n');
+            html = html.replace(/<\/div>\s*<div>/gi, '\n');
+            html = html.replace(/<br\s*\/?>/gi, '\n');
+            html = html.replace(/<\/?div>/gi, '');
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || '';
+        }
+
+        // Reads the ordered plain-text content of each editable customise region and
+        // writes it, base64-encoded, into the hidden 'message' field the form submits.
+        // Only meaningful when the preview is editable; otherwise the field stays blank
+        // and the server always falls back to its own stored template.
+        function syncHiddenMessageField(previewDiv) {
+            var hiddenField = $('[name="form_fields[message]"]');
+            if (!hiddenField.length) return;
+
+            if (previewDiv.attr('data-can-edit') !== '1') {
+                hiddenField.val('');
+                return;
+            }
+
+            var regions = [];
+            previewDiv.find('.dd-editable').each(function () {
+                regions.push(editableRegionText(this));
+            });
+
+            hiddenField.val(utf8ToBase64(JSON.stringify(regions)));
+        }
+
         function updateMessagePreview() {
             var previewDiv = $('#dd-outreach-message-preview');
             if (!previewDiv.length) return;
@@ -324,6 +366,15 @@
             } catch (e) {
                 return;
             }
+
+            var canEdit = previewDiv.attr('data-can-edit') === '1';
+
+            // Snapshot any in-progress edits before we rebuild the DOM below, so a
+            // dropdown/field change elsewhere in the form doesn't wipe out typing.
+            var editedRegions = [];
+            previewDiv.find('.dd-editable').each(function () {
+                editedRegions.push(editableRegionText(this));
+            });
 
             var projectType   = $('[name="form_fields[project_type]"]').val() || 'N/A';
             var projectLength = $('[name="form_fields[project_length]"]').val() || 'N/A';
@@ -343,11 +394,27 @@
             compiled = compiled.replace(/\{project_type\}/g, projectType);
             compiled = compiled.replace(/(?:\r\n|\r|\n)/g, '<br>');
 
+            var regionIndex = 0;
+            compiled = compiled.replace(/<!--customise-->([\s\S]*?)<!--end-customise-->/g, function (match, inner) {
+                if (!canEdit) return inner;
+                var idx = regionIndex++;
+                var text = editedRegions[idx] !== undefined ? editedRegions[idx] : inner.replace(/<br\s*\/?>/g, '\n');
+                var escaped = $('<div>').text(text).html().replace(/\n/g, '<br>');
+                return '<span class="dd-editable" contenteditable="true" data-idx="' + idx + '">' + escaped + '</span>';
+            });
+            // Strip any stray markers left outside matched pairs (shouldn't normally happen).
+            compiled = compiled.replace(/<!--(?:end-)?customise-->/g, '');
+
             previewDiv.html(compiled);
+            syncHiddenMessageField(previewDiv);
         }
 
         $(document).on('change input', 'form.elementor-form select, form.elementor-form input', function () {
             updateMessagePreview();
+        });
+
+        $(document).on('input', '.dd-editable', function () {
+            syncHiddenMessageField($('#dd-outreach-message-preview'));
         });
 
         $(document).on('elementor/popup/show', function () {
