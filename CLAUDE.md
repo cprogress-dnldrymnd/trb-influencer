@@ -265,11 +265,14 @@ is the shared "upgrade your plan" CTA destination used wherever a gate blocks a 
 `dd_searches_remaining($user_id = null)` builds on it for display purposes — `dd_user_search_limit()` minus
 the `number_of_searches` counter, floored at 0 — and returns `null` for unlimited plans or logged-out users
 so callers render nothing rather than a bogus number. The `[searches_remaining template_id="…"]` shortcode
-(`shortcode_searches_remaining()`, `includes/core/shortcodes.php`) wraps it: normal case prints "N search(es)
-remaining" (pluralized), and once remaining hits 0 it swaps in the given Elementor template instead (e.g. an
-upgrade nudge) if a `template_id` was supplied, otherwise still prints "0 searches remaining". Wrapper widget
+(`shortcode_searches_remaining()`, `includes/core/shortcodes.php`) wraps it: normal case renders the count and
+the pluralized "search(es) remaining" text in separate `<span class="dd-searches-remaining-value">`/
+`<span class="dd-searches-remaining-label">` tags (so each half can be styled independently), and once
+remaining hits 0 it swaps in the given Elementor template instead (e.g. an upgrade nudge) if a `template_id`
+was supplied, otherwise still renders the same two-span "0 searches remaining" markup. Wrapper widget
 `Widget_Searches_Remaining` (`sc_searches_remaining` / "Searches Remaining") exposes the same `template_id`
-as a template-picker Content control.
+as a template-picker Content control, plus a Style tab with separate `Group_Control_Typography` controls for
+the value and label spans (targeting the two classes above).
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
 - **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —
