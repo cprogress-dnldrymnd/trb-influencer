@@ -29,6 +29,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
 
     // Module shortcode wrapper widgets
     require_once $dir . 'class-widget-custom-mycred-log.php';
+    require_once $dir . 'class-widget-searches-remaining.php';
     require_once $dir . 'class-widget-follower-growth-chart.php';
     require_once $dir . 'class-widget-follower-timeline-chart.php';
     require_once $dir . 'class-widget-follower-growth-rate-chart.php';
@@ -62,6 +63,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
 
     // ── Register module shortcode wrapper widgets ─────────────────────────────
     $wm->register( new Widget_Custom_Mycred_Log() );
+    $wm->register( new Widget_Searches_Remaining() );
     $wm->register( new Widget_Follower_Growth_Chart() );
     $wm->register( new Widget_Follower_Timeline_Chart() );
     $wm->register( new Widget_Follower_Growth_Rate_Chart() );

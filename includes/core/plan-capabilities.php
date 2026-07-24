@@ -103,6 +103,29 @@ function dd_user_search_limit($user_id = null)
 }
 
 /**
+ * Searches remaining for the given (or current) user's PMPro level, or null when unlimited
+ * (or logged out) — callers should render nothing in that case.
+ *
+ * @param int|null $user_id
+ * @return int|null
+ */
+function dd_searches_remaining($user_id = null)
+{
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (! $user_id) {
+        return null;
+    }
+
+    $limit = dd_user_search_limit($user_id);
+    if ($limit < 0) {
+        return null;
+    }
+
+    $used = (int) get_user_meta($user_id, 'number_of_searches', true);
+    return max(0, $limit - $used);
+}
+
+/**
  * Consistent "upgrade your plan" destination for capability-gate CTAs.
  *
  * @return string

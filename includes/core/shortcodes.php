@@ -1033,6 +1033,29 @@ function number_of_searches()
 add_shortcode('number_of_searches', 'number_of_searches');
 
 
+function shortcode_searches_remaining($atts)
+{
+    $atts = shortcode_atts(['template_id' => ''], $atts, 'searches_remaining');
+
+    $remaining = dd_searches_remaining();
+    if ($remaining === null) {
+        return '';
+    }
+
+    if ($remaining <= 0 && ! empty($atts['template_id'])) {
+        return do_shortcode('[elementor-template id="' . absint($atts['template_id']) . '"]');
+    }
+
+    return sprintf(
+        /* translators: %d: number of searches left */
+        esc_html(_n('%d search remaining', '%d searches remaining', $remaining, 'trb-influencer')),
+        $remaining
+    );
+}
+
+add_shortcode('searches_remaining', 'shortcode_searches_remaining');
+
+
 function roi_calculator()
 {
     ob_start();
