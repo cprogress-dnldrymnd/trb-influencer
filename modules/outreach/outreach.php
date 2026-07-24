@@ -863,16 +863,20 @@ class DD_Outreach_Manager
         <style>
             <?php if (is_user_logged_in() && !dd_user_can('custom_outreach_message')) : ?>
             /* Custom outreach messages are Growth-only — visually lock the message field for
-               everyone else. The server independently discards any edited value regardless
-               (process_elementor_form_response); this is a UX cue, not the enforcement boundary. */
-            .elementor-field-group-message textarea,
-            .elementor-field-group-message input {
+               everyone else. Scoped to .dd-custom-message-locked (applied only to the outreach
+               form's message field by JS below) rather than the bare .elementor-field-group-message
+               class, since other Elementor forms on the site also use a "message" field ID and
+               would otherwise be caught by an unscoped selector. The server independently discards
+               any edited value regardless (process_elementor_form_response); this is a UX cue, not
+               the enforcement boundary. */
+            .dd-custom-message-locked textarea,
+            .dd-custom-message-locked input {
                 pointer-events: none !important;
                 opacity: .6;
                 background: #f5f5f5 !important;
             }
 
-            .elementor-field-group-message::after {
+            .dd-custom-message-locked::after {
                 content: "Upgrade to Growth to write your own message";
                 display: block;
                 font-size: 12px;
@@ -1567,6 +1571,35 @@ class DD_Outreach_Manager
                 }
             }
         </style>
+        <?php if (is_user_logged_in() && !dd_user_can('custom_outreach_message')) : ?>
+        <script>
+            (function() {
+                'use strict';
+
+                // Tags only the outreach form's message field with the lock class defined
+                // above — other Elementor forms on the site also use a "message" field ID
+                // and must not be affected. Mirrors the form_id === 'outreach_form' lookup
+                // used by inject_recaptcha_popup_fix() below.
+                function lockOutreachMessageField() {
+                    var idFields = document.querySelectorAll('input[name="form_id"]');
+                    for (var i = 0; i < idFields.length; i++) {
+                        if (idFields[i].value !== 'outreach_form') continue;
+                        var form = idFields[i].closest('form');
+                        if (!form) continue;
+                        var group = form.querySelector('.elementor-field-group-message');
+                        if (group) group.classList.add('dd-custom-message-locked');
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', lockOutreachMessageField);
+                // The outreach form lives in an Elementor Popup and may not exist in the DOM yet
+                // at DOMContentLoaded — re-apply once the popup actually renders its content.
+                if (window.jQuery) {
+                    window.jQuery(document).on('elementor/popup/show', lockOutreachMessageField);
+                }
+            })();
+        </script>
+        <?php endif; ?>
     <?php
     }
 

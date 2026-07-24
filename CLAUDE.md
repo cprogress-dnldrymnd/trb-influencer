@@ -314,10 +314,16 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   `process_elementor_form_response()` independently rejects the AJAX submission server-side if
   `!dd_user_can('outreach', $current_user_id)`, regardless of what the button showed.
 - **Custom outreach message** — non-Growth users get the message textarea visually locked
-  (`pointer-events: none`, dimmed, "Upgrade to Growth…" caption) via inline CSS in the same file; the *real*
-  enforcement is server-side — `process_elementor_form_response()` only substitutes the user's raw typed
-  message for the composed default template when `dd_user_can('custom_outreach_message', $current_user_id)`
-  is true and the field isn't blank, so a bypassed/edited field is silently discarded otherwise.
+  (`pointer-events: none`, dimmed, "Upgrade to Growth…" caption) via inline CSS scoped to a
+  `.dd-custom-message-locked` class, not the bare `.elementor-field-group-message` selector — other
+  Elementor forms on the site reuse that same field ID, so a small inline `<script>` (also in
+  `render_outreach_contact_button()`/wherever the style block lives) finds the `outreach_form` by its
+  `input[name="form_id"]` value (same lookup pattern as `inject_recaptcha_popup_fix()`) and adds the
+  lock class only to that form's message field, re-running on `elementor/popup/show` since the form
+  lives in a popup that may not exist at `DOMContentLoaded`. The *real* enforcement is server-side —
+  `process_elementor_form_response()` only substitutes the user's raw typed message for the composed
+  default template when `dd_user_can('custom_outreach_message', $current_user_id)` is true and the
+  field isn't blank, so a bypassed/edited field is silently discarded otherwise.
 - **Saved lists** (`Saves_Manager`) — `render_save_button()`/equivalent returns a disabled "Upgrade your plan
   to save creators" CTA in place of the normal save-to-list button when `!dd_user_can('saved_lists')`
   (checked *before* the unlock-state branch, so it wins even for already-unlocked creators); the
@@ -425,6 +431,14 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
 
 ## Conventions & gotchas
 
+- **⚠️ Outbound email is currently globally disabled** (`functions.php`, near the bottom): a
+  `pre_wp_mail` filter (`dd_disable_wp_outbound_mail`, priority 99) unconditionally short-circuits
+  every `wp_mail()` call by returning `true` — no mail is actually sent, but callers see a
+  successful dispatch (so PMPro/myCred/outreach/etc. won't log false-positive failures or retry).
+  This was added as a temporary measure ("disable email temporarily") and affects **all** theme
+  and plugin email, not just one module — remove that filter to re-enable mail. If a user reports
+  "I should have gotten an email but didn't," check here first before debugging the specific
+  feature's mail-sending code.
 - **Prefixes:** `dd_` (Digitally Disruptive) for this theme's PHP functions/options/hooks;
   `trb_` for theme-defined helper wrappers (e.g. `trb_platform_history_rows`, `trb_platform_has_data`,
   `trb_instagram_history_rows` as its Instagram-only alias);
