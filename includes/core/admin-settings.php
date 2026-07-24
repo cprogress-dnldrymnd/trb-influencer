@@ -217,6 +217,7 @@ add_action('admin_init', function () {
         'dd_outreach_allowed_levels',
         'dd_saved_lists_allowed_levels',
         'dd_custom_outreach_message_allowed_levels',
+        'dd_saved_search_allowed_levels',
     ];
     foreach ($level_allowlist_keys as $key) {
         register_setting('dd_theme_page_ids', $key, [
@@ -321,6 +322,14 @@ add_action('admin_init', function () {
             'dd_custom_outreach_message_allowed_levels',
             get_option('dd_custom_outreach_message_allowed_levels', []),
             'Only members with the selected membership levels can write their own outreach message. Everyone else sends the standard template.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_saved_search_allowed_levels', 'Saved Search Restriction', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_saved_search_allowed_levels',
+            get_option('dd_saved_search_allowed_levels', []),
+            'Only members with the selected membership levels can save searches. Leave all unchecked to disable the feature for everyone.'
         );
     }, 'dd-theme-settings-functionality', 'dd_functionality_section');
 

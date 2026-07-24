@@ -26,6 +26,7 @@ function dd_plan_feature_option_key($feature)
         'outreach'                => 'dd_outreach_allowed_levels',
         'saved_lists'              => 'dd_saved_lists_allowed_levels',
         'custom_outreach_message' => 'dd_custom_outreach_message_allowed_levels',
+        'saved_search'            => 'dd_saved_search_allowed_levels',
     ];
 
     return isset($map[$feature]) ? $map[$feature] : '';

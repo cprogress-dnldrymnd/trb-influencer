@@ -898,6 +898,13 @@ class Saves_Manager
         check_ajax_referer('save_search_nonce', 'security');
         if (!is_user_logged_in()) wp_send_json_error(['message' => __('Please login to save searches.', 'hello-elementor-child')]);
 
+        if (!dd_user_can('saved_search')) {
+            wp_send_json_error([
+                'message'     => __('Your plan does not include saved searches. Please upgrade to continue.', 'hello-elementor-child'),
+                'upgrade_url' => dd_plan_upgrade_url(),
+            ]);
+        }
+
         $user_id = get_current_user_id();
         $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
         $search_name = isset($_POST['search_name']) ? sanitize_text_field($_POST['search_name']) : '';

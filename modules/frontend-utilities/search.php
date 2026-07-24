@@ -1885,7 +1885,13 @@ class Influencer_Search
                         <div class="reset-btn reset-all-btn" style="display: none">Reset All</div>
                     </div>
                     <div class="save-this-search">
+                        <?php if (dd_user_can('saved_search')) : ?>
                         <span class="save-search-trigger">Save this search</span>
+                        <?php else : ?>
+                        <span class="save-search-trigger save-search-locked"
+                              data-upgrade-url="<?= esc_url(dd_plan_upgrade_url()) ?>"
+                              title="Upgrade your plan to save searches">Save this search</span>
+                        <?php endif; ?>
                     </div>
                 </div>
             </form>

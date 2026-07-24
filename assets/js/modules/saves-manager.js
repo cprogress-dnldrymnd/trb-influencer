@@ -598,6 +598,15 @@ jQuery(document).ready(function($) {
     // Triggers the naming modal instead of immediately saving
     $('.save-search-trigger').on('click', function(e) {
         e.preventDefault();
+
+        if ($(this).hasClass('save-search-locked')) {
+            const upgradeUrl = $(this).attr('data-upgrade-url');
+            window.ddConfirm('Saving searches is not available on your current plan. Upgrade your plan to unlock this feature.', function() {
+                if (upgradeUrl) window.location.href = upgradeUrl;
+            });
+            return;
+        }
+
         $('#inf-save-search-name').val('');
         switchModalView('inf-view-save-search');
     });
@@ -651,6 +660,12 @@ jQuery(document).ready(function($) {
                     let origTriggerText = $trigger.text();
                     $trigger.text('Saved!');
                     setTimeout(() => $trigger.text(origTriggerText), 2000);
+                } else if (res.data && res.data.upgrade_url) {
+                    const upgradeUrl = res.data.upgrade_url;
+                    $('#inf-modal-overlay').hide();
+                    window.ddConfirm(res.data.message, function() {
+                        window.location.href = upgradeUrl;
+                    });
                 } else {
                     window.ddAlert(res.data.message);
                 }

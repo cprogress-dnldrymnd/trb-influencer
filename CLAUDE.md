@@ -256,9 +256,9 @@ A central capability layer generalizes what used to be a one-off Export PDF chec
 $user_id = null)` maps a feature key to its per-level allowed-levels option (via
 `dd_plan_feature_option_key()`) and checks the user's current PMPro level against it — **fail-closed**:
 an unrecognized feature, inactive PMPro, logged-out user, or an empty allowed-levels option (nobody
-checked in the Functionality tab) all resolve to `false`. Four features currently register this way:
-`export_pdf`, `outreach`, `saved_lists`, `custom_outreach_message` (see the settings section above for
-their option names/labels). `dd_plan_upgrade_url()` (→ `pmpro_url('levels')`, falling back to `home_url()`)
+checked in the Functionality tab) all resolve to `false`. Five features currently register this way:
+`export_pdf`, `outreach`, `saved_lists`, `custom_outreach_message`, `saved_search` (see the settings
+section above for their option names/labels). `dd_plan_upgrade_url()` (→ `pmpro_url('levels')`, falling back to `home_url()`)
 is the shared "upgrade your plan" CTA destination used wherever a gate blocks a user. A sibling function,
 `dd_user_search_limit($user_id = null)`, reads the separate `dd_search_limits` per-level numeric option and
 **fails open** (`-1` = unlimited) rather than closed — see the search pipeline section above.
@@ -294,6 +294,13 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   to save creators" CTA in place of the normal save-to-list button when `!dd_user_can('saved_lists')`
   (checked *before* the unlock-state branch, so it wins even for already-unlocked creators); the
   `save_influencer`/group-management AJAX handlers reject with `{message, upgrade_url}` independently.
+- **Saved search** (`dd_saved_search_allowed_levels`, gates the `saved-search` CPT usage) — the
+  "Save this search" trigger in `search.php`'s filtered-search form renders with a
+  `save-search-locked` class + `data-upgrade-url` when `!dd_user_can('saved_search')`; `saves-manager.js`
+  intercepts a click on that class with a `ddConfirm()` upgrade prompt instead of opening the naming
+  modal. `Saves_Manager`'s `wp_ajax_save_search` handler (nonce `save_search_nonce`) independently
+  rejects with `{message, upgrade_url}` before touching `$_POST['search_data']` if the check fails —
+  same `{message, upgrade_url}` shape the JS `else if` branch on the save-search AJAX response expects.
 
 ### Third-party integrations (`includes/integrations/`, `modules/membership-extensions/`)
 
