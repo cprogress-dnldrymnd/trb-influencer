@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.6');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.7');
 
 /**
  * Load child theme scripts & styles.
@@ -84,11 +84,16 @@ function hello_elementor_child_scripts_styles()
     // 3. Localise ajax_vars onto the orchestrator handle so every module
     //    and main.js can reference it via the global ajax_vars object.
     // ------------------------------------------------------------------
+    $searches_remaining = function_exists('dd_searches_remaining') ? dd_searches_remaining() : null;
+
     wp_localize_script('influencer-js', 'ajax_vars', [
         'ajax_url'              => admin_url('admin-ajax.php'),
         'page_id'               => $page_id,
         'search_results_page_id' => $search_results_page_id,
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
+        'searches_remaining'    => is_null($searches_remaining) ? '' : (string) $searches_remaining,
+        'search_upgrade_url'    => function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : '',
+        'search_limit_message'  => __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
         'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),

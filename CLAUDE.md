@@ -180,8 +180,13 @@ Before any of that, a **per-plan creator-search cap** is enforced: only `paged =
 new search, not a "Load More" page) checks `dd_user_search_limit($user_id)` against the
 `number_of_searches` user-meta counter and rejects with `{success:false, limit_reached:true,
 upgrade_url}` if the cap is already met; `paged === 1` is also the only case that increments the
-counter. `search-fetch.js` special-cases `response.data.limit_reached` to render an upgrade CTA in
-place of the results container instead of treating it as a retryable/no-results error. Logged-out
+counter. `search-fetch.js` special-cases `response.data.limit_reached` to show a `ddConfirm()` modal
+(message + "Upgrade your plan"/"Close" buttons, confirming navigates to `upgrade_url`) instead of
+treating it as a retryable/no-results error or touching the results container. A successful search
+response also carries `searches_remaining`/`searches_remaining_label` (via `dd_searches_remaining()`),
+which `search-fetch.js` uses to live-update every `.dd-searches-remaining-value`/`.dd-searches-remaining-label`
+span on the page — the Searches Remaining widget (see below) otherwise only reflects the count as of
+page load. Logged-out
 users and any level with no configured limit (`dd_search_limits` empty/blank for that level) are
 unrestricted (`dd_user_search_limit()` fails **open**, unlike the other capability checks below).
 `Influencer_Search::enforce_search_page_limit()` (`template_redirect`) mirrors this same check on

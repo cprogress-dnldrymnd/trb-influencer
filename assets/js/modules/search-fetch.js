@@ -16,6 +16,39 @@
     var MAX_AUTO_RETRIES = 2;
     var AUTO_RETRY_BASE_DELAY = 800; // ms, multiplied by the attempt number for light backoff
 
+    // Cached creator-search quota, refreshed from each AJAX response. Undefined until first
+    // read (then lazily parsed from ajax_vars, which loads after this module — see
+    // known_searches_remaining()); a number once known, or null for unlimited/unknown.
+    var last_known_remaining;
+
+    /**
+     * Number of searches left for the current user, or null when unlimited/unknown.
+     * Reads ajax_vars lazily (it's localized on a handle that loads after this module).
+     */
+    function known_searches_remaining() {
+        if (typeof last_known_remaining !== 'undefined') return last_known_remaining;
+        var raw = (typeof ajax_vars !== 'undefined') ? ajax_vars.searches_remaining : undefined;
+        if (raw === '' || raw === null || typeof raw === 'undefined') {
+            last_known_remaining = null;
+        } else {
+            var n = parseInt(raw, 10);
+            last_known_remaining = isNaN(n) ? null : n;
+        }
+        return last_known_remaining;
+    }
+
+    /**
+     * Shows the shared "you're out of searches" popup with an upgrade CTA.
+     */
+    function show_search_limit_popup(message, upgrade_url) {
+        message = message || (typeof ajax_vars !== 'undefined' && ajax_vars.search_limit_message)
+            || "You've reached your plan's creator search limit.";
+        upgrade_url = upgrade_url || (typeof ajax_vars !== 'undefined' && ajax_vars.search_upgrade_url) || '#';
+        window.ddConfirm(message, function () {
+            window.location.href = upgrade_url;
+        }, { confirmText: 'Upgrade your plan', cancelText: 'Close' });
+    }
+
     /**
      * Renders the brief-search debug payload into the debug panel (dev only).
      */
@@ -294,11 +327,8 @@
                     hide_button_spinner(button);
                     hide_search_overlay();
                     container.attr('aria-busy', 'false');
-                    var upgrade_url = response.data.upgrade_url || '#';
-                    var message = response.data.message || "You've reached your plan's creator search limit.";
-                    window.ddConfirm(message, function () {
-                        window.location.href = upgrade_url;
-                    }, { confirmText: 'Upgrade your plan', cancelText: 'Close' });
+                    last_known_remaining = 0;
+                    show_search_limit_popup(response.data.message, response.data.upgrade_url);
                     return;
                 }
 
@@ -326,10 +356,16 @@
 
                     // Reflect the just-decremented quota on every "Searches Remaining" widget
                     // instance on the page — the shortcode itself only renders at page load.
-                    if (typeof response.data.searches_remaining !== 'undefined' && response.data.searches_remaining !== null) {
-                        $('.dd-searches-remaining-value').text(response.data.searches_remaining);
-                        if (response.data.searches_remaining_label) {
-                            $('.dd-searches-remaining-label').text(response.data.searches_remaining_label);
+                    // Also refresh the cached count so the NEXT click's pre-check (see
+                    // influencer_search_trigger) can pop the limit dialog immediately, before
+                    // the loading animation, once the user has actually hit 0.
+                    if (typeof response.data.searches_remaining !== 'undefined') {
+                        last_known_remaining = response.data.searches_remaining;
+                        if (response.data.searches_remaining !== null) {
+                            $('.dd-searches-remaining-value').text(response.data.searches_remaining);
+                            if (response.data.searches_remaining_label) {
+                                $('.dd-searches-remaining-label').text(response.data.searches_remaining_label);
+                            }
                         }
                     }
 
@@ -384,6 +420,16 @@
     InfluencerApp.influencer_search_trigger = function () {
         $('.influencer-search-trigger').on('click', function (e) {
             e.preventDefault();
+
+            // Already known to be out of searches — show the popup immediately, skip the
+            // loading animation and AJAX call entirely. The server-side limit_reached check
+            // remains the authoritative fallback for a stale/unknown client-side count.
+            var remaining = known_searches_remaining();
+            if (remaining !== null && remaining <= 0) {
+                show_search_limit_popup();
+                return;
+            }
+
             InfluencerApp.fetch_influencers(false, true);
         });
     };
