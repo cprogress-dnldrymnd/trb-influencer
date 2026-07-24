@@ -167,7 +167,9 @@ class DD_PMPro_Frontend_Pricing
 	/**
 	 * Retrieves every paid PMPro signup level, pairing each with its "Annual" Payment Plan
 	 * extension when one is configured. Levels with no Annual plan are still included — their
-	 * card simply renders monthly-only (see build_pricing_card()).
+	 * card simply renders monthly-only (see build_pricing_card()). Pairs are ordered to match
+	 * the admin's drag-and-drop order on the PMPro Membership Plans settings screen (see
+	 * get_level_group_order()) rather than raw level-ID order.
 	 * @return array Array of dynamically paired level and (possibly null) payment plan data.
 	 */
 	private function get_dynamic_plan_pairs()
@@ -203,7 +205,47 @@ class DD_PMPro_Frontend_Pricing
 			];
 		}
 
+		// Reorder to match the PMPro Membership Plans settings screen (group displayorder, then
+		// level displayorder within the group) instead of raw level-ID order. Any level absent
+		// from the group order (edge case) falls to the end, preserving prior behaviour.
+		$order = $this->get_level_group_order();
+		if (! empty($order)) {
+			$position = array_flip($order);
+			usort($pairs, function ($a, $b) use ($position) {
+				$pa = $position[$a['monthly_id']] ?? PHP_INT_MAX;
+				$pb = $position[$b['monthly_id']] ?? PHP_INT_MAX;
+				return $pa <=> $pb;
+			});
+		}
+
 		return $pairs;
+	}
+
+	/**
+	 * Reads the level display order from PMPro's Level Groups tables — the same order shown
+	 * (and drag-and-drop reordered) on the Membership Plans settings screen: group
+	 * `displayorder` first, then each level's `displayorder` within its group.
+	 *
+	 * @return int[] Level IDs in settings-screen order, or [] if the Level Groups tables/feature
+	 *               are unavailable (PMPro < 3.0, or groups not in use).
+	 */
+	private function get_level_group_order()
+	{
+		global $wpdb;
+
+		$lg_table = $wpdb->prefix . 'pmpro_membership_levels_groups';
+		$g_table  = $wpdb->prefix . 'pmpro_groups';
+
+		if ($wpdb->get_var("SHOW TABLES LIKE '{$lg_table}'") !== $lg_table) {
+			return [];
+		}
+
+		return array_map('intval', (array) $wpdb->get_col("
+			SELECT lg.level
+			FROM {$lg_table} lg
+			LEFT JOIN {$g_table} g ON g.id = lg.`group`
+			ORDER BY g.displayorder ASC, lg.displayorder ASC, lg.level ASC
+		"));
 	}
 
 	/**

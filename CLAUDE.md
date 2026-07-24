@@ -304,9 +304,12 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   auto-pairing each with its "Annual" Payment Plan extension **when one is configured** — a level
   with no Annual plan still gets a card, just monthly-only (`annual_plan` is `false`, and
   `build_pricing_card()` hides the Yearly toggle and leaves the `data-price-annual`/`data-url-annual`
-  attrs empty rather than excluding the level entirely). Cards also disable owned/pending-downgrade
-  plans, and lock plan changes during free trials (both in the UI and via a `template_redirect` URL
-  guard).
+  attrs empty rather than excluding the level entirely). Card order follows the admin's drag-and-drop
+  order on the PMPro **Membership Plans** settings screen (`get_level_group_order()`: PMPro Level
+  Groups `displayorder`, then each level's `displayorder` within its group), not raw level-ID order —
+  falls back to level-ID order if the Level Groups tables don't exist (PMPro < 3.0 / groups unused).
+  Cards also disable owned/pending-downgrade plans, and lock plan changes during free trials (both in
+  the UI and via a `template_redirect` URL guard).
   Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
   `influencer_style_pmpro_checkout`) into the influencer look. The summary card header
   prominently shows the **amount due today** (`dd-due-today-val`), not the recurring price; the
