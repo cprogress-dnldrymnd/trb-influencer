@@ -312,9 +312,13 @@
 
         // --- 5. Dynamic Message Preview Logic (Elementor Popup Safe) ---
 
-        // Base64-encodes a UTF-8 string safely (btoa alone chokes on non-Latin1 chars).
-        function utf8ToBase64(str) {
-            return btoa(unescape(encodeURIComponent(str)));
+        // Base64url-encodes a UTF-8 string safely (btoa alone chokes on non-Latin1 chars;
+        // url-safe alphabet avoids any +/=  form-encoding edge cases in transit).
+        function utf8ToBase64Url(str) {
+            return btoa(unescape(encodeURIComponent(str)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
         }
 
         // Flattens a contenteditable region back to plain text with real newlines.
@@ -332,16 +336,30 @@
             return tmp.textContent || '';
         }
 
-        // Reads the ordered plain-text content of each editable customise region and
-        // writes it, base64-encoded, into the hidden 'message' field the form submits.
-        // Only meaningful when the preview is editable; otherwise the field stays blank
-        // and the server always falls back to its own stored template.
-        function syncHiddenMessageField(previewDiv) {
-            var hiddenField = $('[name="form_fields[message]"]');
-            if (!hiddenField.length) return;
+        // Reads the ordered plain-text content of each editable customise region and writes
+        // it, base64url-encoded, into a hidden input we own and inject ourselves — rather
+        // than an Elementor-managed form field (e.g. 'message'), which may be absent, may
+        // get auto-renamed, or may not have its JS-set value re-serialized on submit. This
+        // guarantees the carrier always exists inside the outreach form. Only meaningful
+        // when the preview is editable; otherwise it's written empty and the server always
+        // falls back to its own stored template.
+        function findOutreachForm() {
+            var idField = $('input[name="form_id"][value="outreach_form"]');
+            return idField.length ? idField.first().closest('form') : $();
+        }
 
-            if (previewDiv.attr('data-can-edit') !== '1') {
-                hiddenField.val('');
+        function syncCustomRegions() {
+            var form = findOutreachForm();
+            if (!form.length) return;
+
+            var carrier = form.find('input[name="dd_custom_regions"]');
+            if (!carrier.length) {
+                carrier = $('<input>', { type: 'hidden', name: 'dd_custom_regions' }).appendTo(form);
+            }
+
+            var previewDiv = $('#dd-outreach-message-preview');
+            if (!previewDiv.length || previewDiv.attr('data-can-edit') !== '1') {
+                carrier.val('');
                 return;
             }
 
@@ -350,7 +368,7 @@
                 regions.push(editableRegionText(this));
             });
 
-            hiddenField.val(utf8ToBase64(JSON.stringify(regions)));
+            carrier.val(utf8ToBase64Url(JSON.stringify(regions)));
         }
 
         function updateMessagePreview() {
@@ -406,7 +424,7 @@
             compiled = compiled.replace(/<!--(?:end-)?customise-->/g, '');
 
             previewDiv.html(compiled);
-            syncHiddenMessageField(previewDiv);
+            syncCustomRegions();
         }
 
         $(document).on('change input', 'form.elementor-form select, form.elementor-form input', function () {
@@ -414,7 +432,13 @@
         });
 
         $(document).on('input', '.dd-editable', function () {
-            syncHiddenMessageField($('#dd-outreach-message-preview'));
+            syncCustomRegions();
+        });
+
+        // Belt-and-suspenders: guarantee freshness at the moment of send, regardless of
+        // whether the per-keystroke/per-change syncs above already ran.
+        $(document).on('submit', 'form.elementor-form', function () {
+            syncCustomRegions();
         });
 
         $(document).on('elementor/popup/show', function () {

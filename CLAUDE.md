@@ -313,17 +313,39 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   contact" CTA (routes to `dd_plan_upgrade_url()`) instead of the generic "unlock first" hint; and
   `process_elementor_form_response()` independently rejects the AJAX submission server-side if
   `!dd_user_can('outreach', $current_user_id)`, regardless of what the button showed.
-- **Custom outreach message** — non-Growth users get the message textarea visually locked
-  (`pointer-events: none`, dimmed, "Upgrade to Growth…" caption) via inline CSS scoped to a
-  `.dd-custom-message-locked` class, not the bare `.elementor-field-group-message` selector — other
-  Elementor forms on the site reuse that same field ID, so a small inline `<script>` (also in
-  `render_outreach_contact_button()`/wherever the style block lives) finds the `outreach_form` by its
-  `input[name="form_id"]` value (same lookup pattern as `inject_recaptcha_popup_fix()`) and adds the
-  lock class only to that form's message field, re-running on `elementor/popup/show` since the form
-  lives in a popup that may not exist at `DOMContentLoaded`. The *real* enforcement is server-side —
-  `process_elementor_form_response()` only substitutes the user's raw typed message for the composed
-  default template when `dd_user_can('custom_outreach_message', $current_user_id)` is true and the
-  field isn't blank, so a bypassed/edited field is silently discarded otherwise.
+- **Custom outreach message** — Growth users edit **inline regions inside the message preview**
+  itself, not a separate textarea. The admin's "Default Outreach Message" template
+  (`dd_outreach_default_message` option, `get_default_outreach_message()`) can contain
+  `<!--customise-->…<!--end-customise-->` marker pairs around any freeform sentence(s); everything
+  outside those markers (intro/sign-off chrome, `{{fields}}`) is always the trusted server template
+  and can never be edited. The `[outreach_message]` preview div (`render_outreach_message_shortcode()`)
+  carries `data-can-edit="1"` only when `dd_user_can('custom_outreach_message')`; `outreach.js`'s
+  `updateMessagePreview()` reads that flag and, only when true, swaps each marked region for a
+  `contenteditable` `<span class="dd-editable">` (visually cued via dashed outline, not disabled/dimmed
+  like the old textarea lock). Non-Growth users still see the same template rendered, just with the
+  markers stripped and no editable spans — same read-only behavior as before, just no visible lock
+  styling since there's no separate field to dim anymore.
+  On every edit/change, `syncCustomRegions()` flattens each `.dd-editable` region's HTML back to
+  plain text (`editableRegionText()` normalizes Chrome/Safari's per-line `<div>`s and Firefox's `<br>`s)
+  and writes the ordered regions as a base64url-encoded JSON array into a hidden
+  `dd_custom_regions` input that the JS itself finds-or-injects directly into the `outreach_form`
+  (`findOutreachForm()`, same `input[name="form_id"][value="outreach_form"]` lookup pattern as
+  `inject_recaptcha_popup_fix()`) — deliberately **not** an Elementor-managed `form_fields[...]`
+  field, since those aren't guaranteed to exist or to round-trip a JS-set value on submit (this was
+  the root cause of an earlier bug where edited regions were silently discarded). The sync runs on
+  every `.dd-editable` `input`, on every tracked form field `change`/`input` (inside
+  `updateMessagePreview()`), and once more on the form's `submit` event as a final guarantee.
+  `editedRegions` snapshotting also runs before every DOM rebuild so an unrelated field change
+  elsewhere in the form doesn't wipe in-progress typing. Server-side,
+  `process_elementor_form_response()` reads `$_POST['dd_custom_regions']` directly (not through
+  `$record->get('fields')`), only trusts it when `dd_user_can('custom_outreach_message',
+  $current_user_id)` is true and it base64url-decodes to an array — it then
+  `preg_replace_callback`s the *server's own* template's `<!--customise-->` regions in order,
+  substituting the matching decoded (and `sanitize_textarea_field()`-sanitized) region or falling
+  back to that region's original template text if the client sent fewer regions than the template
+  defines. A bypassed/tampered carrier can therefore only ever affect content already inside those
+  marked slots — it can no longer replace the whole message the way the old raw-textarea
+  substitution did.
 - **Saved lists** (`Saves_Manager`) — `render_save_button()`/equivalent returns a disabled "Upgrade your plan
   to save creators" CTA in place of the normal save-to-list button when `!dd_user_can('saved_lists')`
   (checked *before* the unlock-state branch, so it wins even for already-unlocked creators); the

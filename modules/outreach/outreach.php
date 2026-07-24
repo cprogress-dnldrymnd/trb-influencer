@@ -1596,10 +1596,6 @@ class DD_Outreach_Manager
             $data[$id] = $field['value'];
         }
 
-        // Capture the user's own freeform message before it's overwritten by the composed
-        // default template below — only honored later if their plan allows custom messages.
-        $raw_custom_message = isset($data['message']) ? (string) $data['message'] : '';
-
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
 
         // Dynamically compile the Message string relying on the server-side default template
@@ -1612,13 +1608,23 @@ class DD_Outreach_Manager
         $message_template = get_option('dd_outreach_default_message', $this->get_default_outreach_message());
 
         // Custom outreach message (Growth-only): the client sends only the plain-text content
-        // of each <!--customise-->...<!--end-customise--> region (base64-encoded JSON array,
-        // ordered to match their position in the template). Everything else — intro/sign-off
-        // chrome and {{fields}} below — always comes from this trusted server-side template,
-        // never from client input, so a tampered hidden field can only affect these slots.
+        // of each <!--customise-->...<!--end-customise--> region (base64url-encoded JSON
+        // array, ordered to match their position in the template). This rides in on our own
+        // 'dd_custom_regions' hidden input (injected by outreach.js directly into the outreach
+        // form), read straight from $_POST rather than through an Elementor-managed field —
+        // Elementor form fields aren't guaranteed to exist/round-trip a JS-set value on submit.
+        // Everything else — intro/sign-off chrome and {{fields}} below — always comes from this
+        // trusted server-side template, never from client input, so a tampered carrier can only
+        // affect these slots.
+        $raw_custom_regions = isset($_POST['dd_custom_regions']) ? (string) wp_unslash($_POST['dd_custom_regions']) : '';
         $user_regions = [];
-        if (dd_user_can('custom_outreach_message', $current_user_id) && $raw_custom_message !== '') {
-            $decoded = json_decode(base64_decode($raw_custom_message, true), true);
+        if (dd_user_can('custom_outreach_message', $current_user_id) && $raw_custom_regions !== '') {
+            $b64 = strtr($raw_custom_regions, '-_', '+/');
+            $pad = strlen($b64) % 4;
+            if ($pad) {
+                $b64 .= str_repeat('=', 4 - $pad);
+            }
+            $decoded = json_decode(base64_decode($b64, true), true);
             if (is_array($decoded)) {
                 $user_regions = array_values($decoded);
             }
