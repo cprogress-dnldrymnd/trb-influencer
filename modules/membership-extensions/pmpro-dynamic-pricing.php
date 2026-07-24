@@ -165,9 +165,10 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Retrieves and pairs PMPro levels dynamically with their corresponding Payment Plans.
-	 * Identifies active levels (Default/Monthly) and extracts the "Annual" payment plan attached to them.
-	 * @return array Array of dynamically paired level and payment plan data.
+	 * Retrieves every paid PMPro signup level, pairing each with its "Annual" Payment Plan
+	 * extension when one is configured. Levels with no Annual plan are still included — their
+	 * card simply renders monthly-only (see build_pricing_card()).
+	 * @return array Array of dynamically paired level and (possibly null) payment plan data.
 	 */
 	private function get_dynamic_plan_pairs()
 	{
@@ -183,20 +184,23 @@ class DD_PMPro_Frontend_Pricing
 				continue;
 			}
 
+			// Exclude free/£0 levels (e.g. the Trial tier) — only paid plans appear here.
+			$base_price = (float) $level->initial_payment > 0 ? (float) $level->initial_payment : (float) $level->billing_amount;
+			if ($base_price <= 0) {
+				continue;
+			}
+
 			$name = trim($level->name);
 
-			// Extract the Annual payment plan extension for this base level
+			// Extract the Annual payment plan extension for this base level, if any.
 			$annual_plan = $this->get_annual_payment_plan($level->id);
 
-			// Only render the toggle if an Annual Payment Plan is actively configured for this level
-			if ($annual_plan) {
-				$pairs[] = [
-					'name'        => $name,
-					'monthly_id'  => $level->id,
-					'annual_plan' => $annual_plan,
-					'option_key'  => 'dd_desc_' . sanitize_key($name),
-				];
-			}
+			$pairs[] = [
+				'name'        => $name,
+				'monthly_id'  => $level->id,
+				'annual_plan' => $annual_plan, // false when no Annual plan is configured
+				'option_key'  => 'dd_desc_' . sanitize_key($name),
+			];
 		}
 
 		return $pairs;
@@ -1618,7 +1622,8 @@ class DD_PMPro_Frontend_Pricing
 	 * @param string $name The level name.
 	 * @param string $description The custom description text.
 	 * @param int $level_id The primary PMPro Level ID (Default/Monthly).
-	 * @param array $annual_plan Array containing the Payment Plan ID, formatted price, and raw price.
+	 * @param array|false $annual_plan Payment Plan ID/formatted price/raw price, or false when the
+	 *                                  level has no "Annual" plan configured (renders monthly-only).
 	 * @param bool $is_on_free_trial Dictates if the user is locked out due to a trial state.
 	 * @return string The generated HTML markup.
 	 */
@@ -1626,15 +1631,17 @@ class DD_PMPro_Frontend_Pricing
 	{
 		$monthly_data = $this->get_level_data($level_id);
 
-		if (! $monthly_data || ! $annual_plan) {
+		if (! $monthly_data) {
 			return '';
 		}
 
-		$annual_data = [
+		// Annual is optional — a level with no configured "Annual" Payment Plan renders a
+		// monthly-only card (Yearly toggle hidden below) instead of being excluded entirely.
+		$annual_data = $annual_plan ? [
 			'price' => $annual_plan['price'],
 			// Use the correct `pmpropp_chosen_plan` parameter required by the Add On
 			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpropp_chosen_plan=' . $annual_plan['id'])
-		];
+		] : null;
 
 		$current_user_id = get_current_user_id();
 		$owns_monthly    = false;
@@ -1643,7 +1650,7 @@ class DD_PMPro_Frontend_Pricing
 		// Fetch the active plan value mapped to this user and translate it to boolean states
 		$owned_plan_value = $this->get_user_active_plan_value($current_user_id, $level_id);
 		if ($owned_plan_value) {
-			if ($owned_plan_value === $annual_plan['id']) {
+			if ($annual_plan && $owned_plan_value === $annual_plan['id']) {
 				$owns_annual = true;
 			} else {
 				$owns_monthly = true;
@@ -1719,8 +1726,8 @@ class DD_PMPro_Frontend_Pricing
 			data-price-monthly="<?php echo esc_attr($monthly_data['price']); ?>"
 			data-url-monthly="<?php echo esc_url($monthly_data['url']); ?>"
 			data-owns-monthly="<?php echo $owns_monthly ? 'true' : 'false'; ?>"
-			data-price-annual="<?php echo esc_attr($annual_data['price']); ?>"
-			data-url-annual="<?php echo esc_url($annual_data['url']); ?>"
+			data-price-annual="<?php echo $annual_data ? esc_attr($annual_data['price']) : ''; ?>"
+			data-url-annual="<?php echo $annual_data ? esc_url($annual_data['url']) : ''; ?>"
 			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
 			data-action-verb="<?php echo esc_attr($action_verb); ?>"
 			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>"
@@ -1730,6 +1737,7 @@ class DD_PMPro_Frontend_Pricing
 			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
 			<div class="dd-price-wrapper"><span class="dd-price-amount"><?php echo wp_kses_post($current_price); ?></span></div>
+			<?php if ($annual_data) : ?>
 			<div class="dd-toggle-wrapper">
 				<label class="dd-switch">
 					<input type="checkbox" class="dd-plan-toggle" <?php echo esc_attr($toggle_checked); ?>>
@@ -1738,6 +1746,7 @@ class DD_PMPro_Frontend_Pricing
 				<span class="dd-toggle-label">Yearly</span>
 				<span class="dd-discount">Save 20%</span>
 			</div>
+			<?php endif; ?>
 			<?php echo wp_kses_post($trial_text_html); ?>
 			<a <?php echo $current_url ? 'href="' . esc_url($current_url) . '"' : ''; ?> class="<?php echo esc_attr($btn_class); ?>"><?php echo esc_html($btn_text); ?></a>
 		</div>
@@ -1966,7 +1975,7 @@ class DD_PMPro_Frontend_Pricing
 			$pairs = $this->get_dynamic_plan_pairs();
 
 			if (empty($pairs)) {
-				echo '<p>No configured Monthly levels with an active Annual payment plan were detected.</p>';
+				echo '<p>No paid membership plans are currently available.</p>';
 			} else {
 				foreach ($pairs as $pair) {
 					$default_desc = 'Discover features included in the ' . esc_html($pair['name']) . ' plan.';

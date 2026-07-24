@@ -131,11 +131,17 @@ The admin page provides an AJAX post/template autocomplete, and an admin-bar men
 configured page/template straight into the Elementor editor.
 
 The settings screen is a **tabbed UI** (`.dd-tab-btn` / `.dd-panel`) — alongside the page/template
-ID panels there is a **"Functionality" tab** for behavioural toggles. Its first such option is
-`dd_export_pdf_allowed_levels` ("Export PDF Restriction"), a multi-select of PMPro level IDs that
-gates the group **Export PDF** action (see the saves module below). When adding a non-ID feature
-toggle, register it on the `dd-theme-settings-functionality` page / `dd_functionality_section` and
-read it via `get_option()`.
+ID panels there is a **"Functionality" tab** for behavioural toggles. Four features are gated by
+per-level checkbox lists rendered with `dd_render_pmpro_levels_checkboxes()` — `dd_export_pdf_allowed_levels`
+("Export PDF Restriction"), `dd_outreach_allowed_levels` ("Contact / Outreach Restriction"),
+`dd_saved_lists_allowed_levels` ("Saved Lists Restriction"), `dd_custom_outreach_message_allowed_levels`
+("Custom Outreach Message Restriction") — plus a numeric-per-level field, `dd_search_limits`
+("Creator Search Limit", rendered by `dd_render_pmpro_search_limits()`, blank/`-1` = unlimited).
+These are all read through the capability layer (`includes/core/plan-capabilities.php`, see below)
+rather than `get_option()` directly. When adding a new plan-gated feature, add it to
+`dd_plan_feature_option_key()`'s map and register its checkbox field here rather than inventing a
+bespoke option; a plain non-plan feature toggle still registers directly on the
+`dd-theme-settings-functionality` page / `dd_functionality_section` and reads via `get_option()`.
 
 A **"Platform Icons" tab** lets admins override the built-in Instagram/YouTube/TikTok SVG glyphs
 with an uploaded image via `wp.media` (`dd_render_platform_icon_picker()`), stored as an attachment
@@ -169,6 +175,15 @@ SVG when set — everywhere that reads through this helper (switcher, `[platform
 6. A `register_shutdown_function` converts any fatal (Elementor's renderer is memory-hungry and
    can OOM on later pages) into a clean `{success:false, recoverable:true}` JSON the front-end
    can silently retry — instead of a bare HTTP 500.
+
+Before any of that, a **per-plan creator-search cap** is enforced: only `paged === 1` (a genuinely
+new search, not a "Load More" page) checks `dd_user_search_limit($user_id)` against the
+`number_of_searches` user-meta counter and rejects with `{success:false, limit_reached:true,
+upgrade_url}` if the cap is already met; `paged === 1` is also the only case that increments the
+counter. `search-fetch.js` special-cases `response.data.limit_reached` to render an upgrade CTA in
+place of the results container instead of treating it as a retryable/no-results error. Logged-out
+users and any level with no configured limit (`dd_search_limits` empty/blank for that level) are
+unrestricted (`dd_user_search_limit()` fails **open**, unlike the other capability checks below).
 
 Country meta is stored as **ISO alpha-3** (e.g. `GBR`); `helpers.php` has alpha-3→alpha-2 and
 country-name→alpha-2 maps for flags and matching. Filter dropdown option lists
@@ -231,15 +246,39 @@ changing the `get_terms()` `orderby`, since plain alphabetical order can't expre
   a `dd_unlocked_influencers` user-meta array — see `is_influencer_unlocked()` /
   `get_user_purchased_post_ids()`.
 
-### Group Export PDF gating (`Saves_Manager`)
+### Plan capability gating (`includes/core/plan-capabilities.php`)
 
-The per-group **Export PDF** button is plan-gated by `Saves_Manager::user_can_export_pdf()`, which
-checks the current user's PMPro level ID against the `dd_export_pdf_allowed_levels` option (set in
-the Functionality settings tab). **Empty option ⇒ no one can export** (fail-closed). Server-side the
-result is passed to the group modal as `data-*` attributes and the button is only rendered (and only
-shown) for **non-empty** groups; the front-end (`saves-manager.js`) routes disallowed users to the
-upgrade URL instead of triggering the `creatordb_export_saved_list_pdf` AJAX. Keep the JS guard and
-the PHP check in sync — the PHP check is the real boundary.
+A central capability layer generalizes what used to be a one-off Export PDF check. `dd_user_can($feature,
+$user_id = null)` maps a feature key to its per-level allowed-levels option (via
+`dd_plan_feature_option_key()`) and checks the user's current PMPro level against it — **fail-closed**:
+an unrecognized feature, inactive PMPro, logged-out user, or an empty allowed-levels option (nobody
+checked in the Functionality tab) all resolve to `false`. Four features currently register this way:
+`export_pdf`, `outreach`, `saved_lists`, `custom_outreach_message` (see the settings section above for
+their option names/labels). `dd_plan_upgrade_url()` (→ `pmpro_url('levels')`, falling back to `home_url()`)
+is the shared "upgrade your plan" CTA destination used wherever a gate blocks a user. A sibling function,
+`dd_user_search_limit($user_id = null)`, reads the separate `dd_search_limits` per-level numeric option and
+**fails open** (`-1` = unlimited) rather than closed — see the search pipeline section above.
+
+Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
+- **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —
+  the result is passed to the group modal as `data-*` attributes; the button is only rendered for non-empty
+  groups, and `saves-manager.js` routes disallowed users to the upgrade URL instead of triggering the
+  `creatordb_export_saved_list_pdf` AJAX. The PHP check remains the real boundary.
+- **Outreach** (`modules/outreach/outreach.php`) — `.outreach-form-trigger` is hidden via inline CSS in
+  `hooks.php`'s `action_wp_head()` when `!dd_user_can('outreach')`; `render_outreach_contact_button()` grew an
+  `$upgrade_locked` param so an *unlocked* creator whose viewer lacks outreach access shows an "Upgrade to
+  contact" CTA (routes to `dd_plan_upgrade_url()`) instead of the generic "unlock first" hint; and
+  `process_elementor_form_response()` independently rejects the AJAX submission server-side if
+  `!dd_user_can('outreach', $current_user_id)`, regardless of what the button showed.
+- **Custom outreach message** — non-Growth users get the message textarea visually locked
+  (`pointer-events: none`, dimmed, "Upgrade to Growth…" caption) via inline CSS in the same file; the *real*
+  enforcement is server-side — `process_elementor_form_response()` only substitutes the user's raw typed
+  message for the composed default template when `dd_user_can('custom_outreach_message', $current_user_id)`
+  is true and the field isn't blank, so a bypassed/edited field is silently discarded otherwise.
+- **Saved lists** (`Saves_Manager`) — `render_save_button()`/equivalent returns a disabled "Upgrade your plan
+  to save creators" CTA in place of the normal save-to-list button when `!dd_user_can('saved_lists')`
+  (checked *before* the unlock-state branch, so it wins even for already-unlocked creators); the
+  `save_influencer`/group-management AJAX handlers reject with `{message, upgrade_url}` independently.
 
 ### Third-party integrations (`includes/integrations/`, `modules/membership-extensions/`)
 
@@ -260,9 +299,14 @@ the PHP check in sync — the PHP check is the real boundary.
   user-meta guard inside that method keeps this idempotent (no double-award on real checkouts where
   both hooks fire); level `0` (cancellation/expiry) is ignored.
 - **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
-  `[dd_pricing_table]` shortcode renders a Monthly/Yearly toggle pricing UI, auto-pairing each base
-  level with its "Annual" Payment Plan extension, disabling owned/pending-downgrade plans, and
-  locking plan changes during free trials (both in the UI and via a `template_redirect` URL guard).
+  `[dd_pricing_table]` shortcode renders a card per paid signup level (`get_dynamic_plan_pairs()`
+  excludes free/£0 levels, e.g. the Trial tier, by checking `initial_payment`/`billing_amount`),
+  auto-pairing each with its "Annual" Payment Plan extension **when one is configured** — a level
+  with no Annual plan still gets a card, just monthly-only (`annual_plan` is `false`, and
+  `build_pricing_card()` hides the Yearly toggle and leaves the `data-price-annual`/`data-url-annual`
+  attrs empty rather than excluding the level entirely). Cards also disable owned/pending-downgrade
+  plans, and lock plan changes during free trials (both in the UI and via a `template_redirect` URL
+  guard).
   Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
   `influencer_style_pmpro_checkout`) into the influencer look. The summary card header
   prominently shows the **amount due today** (`dd-due-today-val`), not the recurring price; the
