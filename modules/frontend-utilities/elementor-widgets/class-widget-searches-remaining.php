@@ -40,6 +40,28 @@ class Widget_Searches_Remaining extends \Elementor\Widget_Base {
         ] );
 
         $this->end_controls_section();
+
+        $this->start_controls_section( 'style_section', [
+            'label' => esc_html__( 'Style', 'trb-influencer' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'value_typography',
+                'label'    => esc_html__( 'Value Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-searches-remaining-value',
+            ]
+        );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'label_typography',
+                'label'    => esc_html__( 'Label Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-searches-remaining-label',
+            ]
+        );
+        $this->end_controls_section();
     }
 
     protected function render() {

@@ -262,6 +262,14 @@ their option names/labels). `dd_plan_upgrade_url()` (→ `pmpro_url('levels')`, 
 is the shared "upgrade your plan" CTA destination used wherever a gate blocks a user. A sibling function,
 `dd_user_search_limit($user_id = null)`, reads the separate `dd_search_limits` per-level numeric option and
 **fails open** (`-1` = unlimited) rather than closed — see the search pipeline section above.
+`dd_searches_remaining($user_id = null)` builds on it for display purposes — `dd_user_search_limit()` minus
+the `number_of_searches` counter, floored at 0 — and returns `null` for unlimited plans or logged-out users
+so callers render nothing rather than a bogus number. The `[searches_remaining template_id="…"]` shortcode
+(`shortcode_searches_remaining()`, `includes/core/shortcodes.php`) wraps it: normal case prints "N search(es)
+remaining" (pluralized), and once remaining hits 0 it swaps in the given Elementor template instead (e.g. an
+upgrade nudge) if a `template_id` was supplied, otherwise still prints "0 searches remaining". Wrapper widget
+`Widget_Searches_Remaining` (`sc_searches_remaining` / "Searches Remaining") exposes the same `template_id`
+as a template-picker Content control.
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
 - **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —

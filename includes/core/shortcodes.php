@@ -1046,11 +1046,10 @@ function shortcode_searches_remaining($atts)
         return do_shortcode('[elementor-template id="' . absint($atts['template_id']) . '"]');
     }
 
-    return sprintf(
-        /* translators: %d: number of searches left */
-        esc_html(_n('%d search remaining', '%d searches remaining', $remaining, 'trb-influencer')),
-        $remaining
-    );
+    return '<span class="dd-searches-remaining-value">' . esc_html($remaining) . '</span> '
+        . '<span class="dd-searches-remaining-label">'
+        . esc_html(_n('search remaining', 'searches remaining', $remaining, 'trb-influencer'))
+        . '</span>';
 }
 
 add_shortcode('searches_remaining', 'shortcode_searches_remaining');
