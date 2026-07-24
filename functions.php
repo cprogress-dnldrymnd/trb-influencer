@@ -187,3 +187,26 @@ add_action('init', function () {
     remove_action('shutdown', 'wp_ob_end_flush_all', 1);
 });
 
+
+
+/**
+ * Short-circuits the WordPress wp_mail() execution sequence.
+ *
+ * This function hooks into 'pre_wp_mail' to halt the mailing process.
+ * By default, 'pre_wp_mail' returns null, which allows wp_mail() to proceed.
+ * Returning a boolean 'true' acts as a short-circuit, stopping execution while 
+ * spoofing a successful dispatch. This prevents false-positive error logs and 
+ * loop retries from third-party plugins that strictly check for a true/false 
+ * response from wp_mail().
+ *
+ * @param null|bool $return The short-circuit return value. Default is null.
+ * @param array     $args   An associative array of wp_mail() arguments (to, subject, message, headers, attachments).
+ * @return bool             Returns true to halt execution and simulate a successful send.
+ */
+function dd_disable_wp_outbound_mail( $return, $args ) {
+    // Override the default null value to short-circuit the wp_mail() function.
+    return true;
+}
+
+// Hook into 'pre_wp_mail' with a late priority (99) to ensure it overrides other potential filters.
+add_filter( 'pre_wp_mail', 'dd_disable_wp_outbound_mail', 99, 2 );
