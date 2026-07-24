@@ -963,6 +963,8 @@ class Influencer_Search
                 $number_of_searches = $current_count;
             }
 
+            $searches_remaining = isset($current_user_id) ? dd_searches_remaining($current_user_id) : null;
+
             if (is_array($debug_payload)) {
                 $debug_payload['returned_post_ids'] = array_map(function ($p) {
                     return (int) $p->ID;
@@ -972,10 +974,14 @@ class Influencer_Search
             }
 
             $success_data = array(
-                'html'               => $html_output,
-                'found_posts'        => $query->found_posts,
-                'max_pages'          => $query->max_num_pages,
-                'number_of_searches' => $number_of_searches,
+                'html'                     => $html_output,
+                'found_posts'              => $query->found_posts,
+                'max_pages'                => $query->max_num_pages,
+                'number_of_searches'       => $number_of_searches,
+                'searches_remaining'       => $searches_remaining,
+                'searches_remaining_label' => is_null($searches_remaining)
+                    ? ''
+                    : _n('search remaining', 'searches remaining', $searches_remaining, 'trb-influencer'),
             );
             if (is_array($debug_payload)) {
                 $success_data['debug'] = $debug_payload;

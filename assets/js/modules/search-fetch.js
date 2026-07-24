@@ -293,16 +293,12 @@
                     hide_loading_animation();
                     hide_button_spinner(button);
                     hide_search_overlay();
+                    container.attr('aria-busy', 'false');
                     var upgrade_url = response.data.upgrade_url || '#';
                     var message = response.data.message || "You've reached your plan's creator search limit.";
-                    container.html(
-                        '<div class="search-limit-reached" style="padding:20px 0;">' +
-                        '<p>' + message + '</p>' +
-                        '<a class="elementor-button" href="' + upgrade_url + '">Upgrade your plan</a>' +
-                        '</div>'
-                    );
-                    button.hide();
-                    container.attr('aria-busy', 'false');
+                    window.ddConfirm(message, function () {
+                        window.location.href = upgrade_url;
+                    }, { confirmText: 'Upgrade your plan', cancelText: 'Close' });
                     return;
                 }
 
@@ -327,6 +323,15 @@
 
                     $('.total-found-influencer').text(response.data.found_posts);
                     $('.current-found-influencer').text($('#my-loop-grid-container .e-loop-item').length);
+
+                    // Reflect the just-decremented quota on every "Searches Remaining" widget
+                    // instance on the page — the shortcode itself only renders at page load.
+                    if (typeof response.data.searches_remaining !== 'undefined' && response.data.searches_remaining !== null) {
+                        $('.dd-searches-remaining-value').text(response.data.searches_remaining);
+                        if (response.data.searches_remaining_label) {
+                            $('.dd-searches-remaining-label').text(response.data.searches_remaining_label);
+                        }
+                    }
 
                     if (current_page < max_pages) {
                         button.show().text('Load More');

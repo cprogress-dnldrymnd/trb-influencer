@@ -27,6 +27,8 @@ window.ddAlert = function (msg) {
  *                                            buttons, switch the confirm label to processingText,
  *                                            and leave closing up to the caller via `close()`.
  * @param {string}   [options.processingText] Label shown on the confirm button while keepOpen is active.
+ * @param {string}   [options.confirmText]    Overrides the default "Confirm" button label.
+ * @param {string}   [options.cancelText]     Overrides the default "Cancel" button label.
  */
 window.ddConfirm = function (msg, onOk, options) {
     options = options || {};
@@ -42,11 +44,11 @@ window.ddConfirm = function (msg, onOk, options) {
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     Object.assign(cancelBtn.style, {background:'#e5e7eb',color:'#333',border:'none',borderRadius:'6px',padding:'10px 20px',fontSize:'14px',cursor:'pointer'});
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = options.cancelText || 'Cancel';
     var okBtn = document.createElement('button');
     okBtn.type = 'button';
     Object.assign(okBtn.style, {background:'#1a1a1a',color:'#fff',border:'none',borderRadius:'6px',padding:'10px 24px',fontSize:'14px',cursor:'pointer'});
-    okBtn.textContent = 'Confirm';
+    okBtn.textContent = options.confirmText || 'Confirm';
     var close = function () {
         if (overlay.parentNode) {
             document.body.removeChild(overlay);
