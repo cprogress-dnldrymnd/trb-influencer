@@ -339,9 +339,10 @@ class DD_PMPro_Rewards_Manager
      * calls only fire `pmpro_after_change_membership_level`. This bridges that gap so
      * manually added members still receive their registration points and allowance bucket.
      *
-     * Reuses award_registration_points(); the `_dd_registration_points_awarded` guard
-     * inside it makes this idempotent and prevents a double-award during a real checkout
-     * (where both hooks fire). Level 0 means cancellation/expiry and is ignored.
+     * Reuses award_registration_points(); the per-level `_dd_registration_points_awarded_levels`
+     * guard inside it makes this idempotent per level and prevents a double-award during a real
+     * checkout (where both hooks fire) without blocking a later upgrade to a different level.
+     * Level 0 means cancellation/expiry and is ignored.
      *
      * @param int      $level_id     The new membership level ID (0 on cancellation).
      * @param int      $user_id      The affected user ID.
@@ -358,9 +359,11 @@ class DD_PMPro_Rewards_Manager
         // Level 0 = membership cancelled/expired; nothing to award.
         if ($level_id <= 0 || $user_id <= 0) return;
 
-        // If registration points were already granted (e.g. via checkout), skip the
-        // pseudo-order path entirely to avoid redundant work and log noise.
-        if (get_user_meta($user_id, '_dd_registration_points_awarded', true)) return;
+        // If registration points were already granted for this exact level (e.g. via checkout),
+        // skip the pseudo-order path entirely to avoid redundant work and log noise. A different
+        // level the user hasn't been awarded for yet is allowed through.
+        $awarded_levels = (array) get_user_meta($user_id, '_dd_registration_points_awarded_levels', true);
+        if (in_array($level_id, $awarded_levels)) return;
 
         // Build a minimal order-like object carrying the level so the shared awarder
         // can resolve the matching reward rule.
@@ -385,12 +388,6 @@ class DD_PMPro_Rewards_Manager
 
         $user_id = intval($user_id);
         update_user_meta($user_id, '_dd_last_monthly_point_date', current_time('timestamp'));
-
-        $already_awarded = get_user_meta($user_id, '_dd_registration_points_awarded', true);
-        if ($already_awarded) {
-            $this->insert_log($user_id, "Registration points blocked (Anti-Farming Protocol Active).");
-            return;
-        }
 
         $level_id = 0;
         $level_name = '';
@@ -425,7 +422,11 @@ class DD_PMPro_Rewards_Manager
                 $reg_points     = intval($row['reg_points']);
                 $monthly_points = intval($row['monthly_points']);
 
-                if ($reg_points > 0) {
+                $awarded_levels = (array) get_user_meta($user_id, '_dd_registration_points_awarded_levels', true);
+
+                if ($reg_points > 0 && in_array($level_id, $awarded_levels)) {
+                    $this->insert_log($user_id, "Registration points blocked for {$level_name} (already awarded — Anti-Farming Protocol Active).");
+                } elseif ($reg_points > 0) {
                     $this->insert_log($user_id, "Awarded {$reg_points} points for joining {$level_name}");
                     mycred_add(
                         'pmpro_registration',
@@ -436,7 +437,8 @@ class DD_PMPro_Rewards_Manager
                         '',
                         $this->point_type
                     );
-                    update_user_meta($user_id, '_dd_registration_points_awarded', 1);
+                    $awarded_levels[] = $level_id;
+                    update_user_meta($user_id, '_dd_registration_points_awarded_levels', $awarded_levels);
                 }
 
                 // Initialize the allowance tracking bucket so points can be properly deducted immediately

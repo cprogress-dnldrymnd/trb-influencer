@@ -349,9 +349,11 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   `DD_PMPro_Rewards_Manager`) — `pmpro_after_checkout` only fires for real front-end checkouts, so
   admin "Add Member"/Edit User level changes and direct `pmpro_changeMembershipLevel()` calls are
   also hooked via `pmpro_after_change_membership_level` → `award_points_on_level_change()`, which
-  builds a pseudo-order and reuses `award_registration_points()`. The `_dd_registration_points_awarded`
-  user-meta guard inside that method keeps this idempotent (no double-award on real checkouts where
-  both hooks fire); level `0` (cancellation/expiry) is ignored.
+  builds a pseudo-order and reuses `award_registration_points()`. The `_dd_registration_points_awarded_levels`
+  user-meta guard inside that method (an array of level IDs, not a single flag) keeps this idempotent
+  **per level** — a real checkout firing both hooks for the same level won't double-award, but a later
+  upgrade to a *different* level still gets its own registration points instead of being silently
+  blocked forever; level `0` (cancellation/expiry) is ignored.
 - **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
   `[dd_pricing_table order="…"]` shortcode renders a card per paid signup level
   (`get_orderable_plans()`, a public static method, excludes free/£0 levels, e.g. the Trial tier,
