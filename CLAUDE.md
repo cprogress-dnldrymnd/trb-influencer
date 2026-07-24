@@ -119,8 +119,9 @@ drag-and-droppable in Elementor.
 
 Page IDs and Elementor template IDs are **not hardcoded throughout the code** — they are stored
 as `wp_options` (keys prefixed `dd_…`, e.g. `dd_search_results_page_id`, `dd_tpl_search_card`)
-with hardcoded integer fallbacks, and edited from **Settings → Influencer Theme**. Always read
-them through the accessors:
+with hardcoded integer fallbacks, and edited from the top-level **"Influencer Theme"** admin menu
+page (`admin.php?page=dd-theme-settings`, `add_menu_page()` — it is **not** under Settings any
+more). Always read them through the accessors:
 
 ```php
 dd_get_page_id('dd_search_results_page_id', 1949);
@@ -131,7 +132,23 @@ The admin page provides an AJAX post/template autocomplete, and an admin-bar men
 configured page/template straight into the Elementor editor.
 
 The settings screen is a **tabbed UI** (`.dd-tab-btn` / `.dd-panel`) — alongside the page/template
-ID panels there is a **"Functionality" tab** for behavioural toggles. Four features are gated by
+ID panels there is a **"Functionality" tab** for behavioural toggles. Other modules that used to
+register their own standalone admin page (`add_options_page`/`add_submenu_page`) now instead
+append a tab here via the `dd_theme_settings_tabs` filter — each entry is
+`['id' => 'slug', 'label' => 'Tab Label', 'render' => callable]`; `render` prints its own
+self-contained `<form action="options.php">…</form>` (its own `settings_fields()` group) into a
+`<div class="dd-panel" id="dd-panel-{id}">` the hub renders for it — do not wrap it in
+`class="wrap"`/`<h1>`, the hub already provides those. Three modules currently register this way:
+`DD_Global_Email_Manager` ("Email Templates" tab), `DD_PMPro_Frontend_Pricing` ("Pricing Settings"
+tab, still guarded on `defined('PMPRO_VERSION')`), and `DD_PMPro_Rewards_Manager` ("Rewards" tab).
+Each of those modules' own admin JS/CSS must scope its selectors to its own
+`#dd-panel-{id}` root (e.g. `$('#dd-panel-rewards').find('.nav-tab')`) rather than querying
+`.nav-tab`/`.dd-tab-content` page-wide, since several modules' nested tab systems now share one
+DOM; each module's `admin_enqueue_scripts`/`admin_footer` hook must also check for the
+`toplevel_page_dd-theme-settings` screen/hook id, not their old page-specific one. When adding a
+new module settings UI, prefer hooking `dd_theme_settings_tabs` over registering a new admin page.
+
+Four features are gated by
 per-level checkbox lists rendered with `dd_render_pmpro_levels_checkboxes()` — `dd_export_pdf_allowed_levels`
 ("Export PDF Restriction"), `dd_outreach_allowed_levels` ("Contact / Outreach Restriction"),
 `dd_saved_lists_allowed_levels` ("Saved Lists Restriction"), `dd_custom_outreach_message_allowed_levels`

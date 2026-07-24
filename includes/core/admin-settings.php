@@ -397,6 +397,7 @@ add_action('admin_menu', function () {
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings', 'dd_page_ids_section'); ?>
                         </table>
+                        <?php submit_button('Save Settings', 'primary', 'dd-submit-pages'); ?>
                     </div>
 
                     <div class="dd-panel" id="dd-panel-templates" hidden>
@@ -404,6 +405,7 @@ add_action('admin_menu', function () {
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings-templates', 'dd_template_ids_section'); ?>
                         </table>
+                        <?php submit_button('Save Settings', 'primary', 'dd-submit-templates'); ?>
                     </div>
 
                     <div class="dd-panel" id="dd-panel-functionality" hidden>
@@ -411,6 +413,7 @@ add_action('admin_menu', function () {
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings-functionality', 'dd_functionality_section'); ?>
                         </table>
+                        <?php submit_button('Save Settings', 'primary', 'dd-submit-functionality'); ?>
                     </div>
 
                     <div class="dd-panel" id="dd-panel-platform-icons" hidden>
@@ -418,9 +421,8 @@ add_action('admin_menu', function () {
                         <table class="form-table" role="presentation">
                             <?php do_settings_fields('dd-theme-settings-platform-icons', 'dd_platform_icons_section'); ?>
                         </table>
+                        <?php submit_button('Save Settings', 'primary', 'dd-submit-platform-icons'); ?>
                     </div>
-
-                    <?php submit_button('Save Settings'); ?>
                 </form>
 
                 <?php foreach ($extra_tabs as $tab): ?>
