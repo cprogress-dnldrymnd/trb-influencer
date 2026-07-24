@@ -82,9 +82,11 @@ brief, merged filters, and `WP_Query` args. Watch `wp-content/debug.log`.
 ### Bootstrap & load order (`functions.php`)
 
 `functions.php` enqueues assets and then `require`s every module in a **deliberate order** that
-must be preserved: core helpers → admin settings → hooks → shortcodes → third-party
-integrations → domain modules. Foundational helpers must load before the integrations and
-modules that call them.
+must be preserved: core helpers → plan capabilities → admin settings → hooks → shortcodes →
+third-party integrations → domain modules. Foundational helpers must load before the
+integrations and modules that call them — `includes/core/plan-capabilities.php` in particular
+must load before `admin-settings.php` (which renders its option fields) and before every module
+that calls `dd_user_can()`.
 
 ### "Modules" are theme code, not installed plugins
 

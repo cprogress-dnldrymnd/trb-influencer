@@ -861,6 +861,26 @@ class DD_Outreach_Manager
     {
     ?>
         <style>
+            <?php if (is_user_logged_in() && !dd_user_can('custom_outreach_message')) : ?>
+            /* Custom outreach messages are Growth-only — visually lock the message field for
+               everyone else. The server independently discards any edited value regardless
+               (process_elementor_form_response); this is a UX cue, not the enforcement boundary. */
+            .elementor-field-group-message textarea,
+            .elementor-field-group-message input {
+                pointer-events: none !important;
+                opacity: .6;
+                background: #f5f5f5 !important;
+            }
+
+            .elementor-field-group-message::after {
+                content: "Upgrade to Growth to write your own message";
+                display: block;
+                font-size: 12px;
+                color: #a00;
+                margin-top: 4px;
+            }
+            <?php endif; ?>
+
             /* --- Original Elementor Form Summary Styles --- */
             .dd-message-overview {
                 display: flex;
@@ -1562,6 +1582,15 @@ class DD_Outreach_Manager
             return;
         }
 
+        $current_user_id = get_current_user_id();
+
+        // The real enforcement boundary: reject the submission server-side even if the
+        // "Upgrade to contact" button (render_outreach_button_shortcode) was somehow bypassed.
+        if (!dd_user_can('outreach', $current_user_id)) {
+            $ajax_handler->add_error_message(__('Your plan does not include contacting creators. Please upgrade to continue.', 'hello-elementor-child'));
+            return;
+        }
+
         $raw_fields = $record->get('fields');
         $data       = [];
 
@@ -1569,7 +1598,10 @@ class DD_Outreach_Manager
             $data[$id] = $field['value'];
         }
 
-        $current_user_id = get_current_user_id();
+        // Capture the user's own freeform message before it's overwritten by the composed
+        // default template below — only honored later if their plan allows custom messages.
+        $raw_custom_message = isset($data['message']) ? (string) $data['message'] : '';
+
         $post_title = !empty($data['subject']) ? sanitize_text_field($data['subject']) : 'Outreach Submission - ' . current_time('Y-m-d H:i:s');
 
         // Dynamically compile the Message string relying on the server-side default template
@@ -1605,6 +1637,13 @@ class DD_Outreach_Manager
 
         // Replace all placeholders and format into HTML
         $final_message = str_replace(array_keys($replacements), array_values($replacements), $message_template);
+
+        // Growth-only: honor the sender's own freeform message instead of the composed
+        // default template. Everyone else always gets the standard template (unchanged
+        // behaviour) regardless of what they typed into the message field.
+        if (dd_user_can('custom_outreach_message', $current_user_id) && trim(wp_strip_all_tags($raw_custom_message)) !== '') {
+            $final_message = $raw_custom_message;
+        }
 
         // Finalize standard line break parsing
         $data['message'] = nl2br($final_message);
@@ -2889,6 +2928,7 @@ class DD_Outreach_Manager
 
         $influencer_id = get_the_ID();
         $is_unlocked   = is_influencer_unlocked($influencer_id);
+        $can_outreach  = dd_user_can('outreach');
 
         ob_start();
     ?>
@@ -2896,12 +2936,12 @@ class DD_Outreach_Manager
             <?php if ($is_unlocked) : ?>
 
                 <?php echo $this->render_outreach_unlocked_badge($atts['unlocked_text'], $atts['unlocked_icon']); ?>
-                <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], true); ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], $can_outreach, !$can_outreach); ?>
 
             <?php else : ?>
 
                 <?php echo $this->render_outreach_unlock_button($influencer_id, $atts['unlock_text'], $atts['unlock_icon']); ?>
-                <?php echo $this->render_outreach_contact_button($atts['contact_locked_text'], $atts['contact_locked_icon'], false); ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_locked_text'], $atts['contact_locked_icon'], false, false); ?>
 
             <?php endif; ?>
         </div>
@@ -2978,13 +3018,17 @@ class DD_Outreach_Manager
     /**
      * Renders the outreach contact CTA button.
      *
-     * @param string $text    Button label.
-     * @param string $icon    Optional custom icon URL (falls back to the bundled padlock SVG).
-     * @param bool   $enabled When true the button opens the outreach popup; otherwise it is shown
-     *                        disabled with a hint that the creator must be unlocked first.
+     * @param string $text            Button label.
+     * @param string $icon            Optional custom icon URL (falls back to the bundled padlock SVG).
+     * @param bool   $enabled         When true the button opens the outreach popup; otherwise it is
+     *                                shown disabled with a hint (unlock-first, or upgrade — see
+     *                                $upgrade_locked).
+     * @param bool   $upgrade_locked  When $enabled is false, true means the influencer IS unlocked
+     *                                but the user's plan doesn't include outreach — routes to the
+     *                                plan upgrade page instead of the generic "unlock first" hint.
      * @return string
      */
-    private function render_outreach_contact_button($text, $icon, $enabled)
+    private function render_outreach_contact_button($text, $icon, $enabled, $upgrade_locked = false)
     {
         $icon_html = $this->render_outreach_button_icon($icon);
 
@@ -2997,6 +3041,15 @@ class DD_Outreach_Manager
                     <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
                 </span>
             </a>
+        <?php elseif ($upgrade_locked) : ?>
+            <span class="dd-tip" data-tooltip="Upgrade your plan to contact creators" style="display:inline-block; width: 100%;">
+                <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button outreach-button outreach-upgrade-link">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                        <span class="elementor-button-text">Upgrade to contact</span>
+                    </span>
+                </a>
+            </span>
         <?php else : ?>
             <span class="dd-tip" data-tooltip="Unlock this creator's full profile first" style="display:inline-block; width: 100%;">
                 <a href="#" class="elementor-button outreach-button"

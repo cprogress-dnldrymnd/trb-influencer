@@ -495,6 +495,28 @@ class Saves_Manager
 
         $user_id = get_current_user_id();
 
+        // --- PLAN CHECK (saved lists) ---
+        // Checked ahead of the unlock state so a plan without saved-lists access always shows
+        // the upgrade CTA, even for creators the user has already unlocked.
+        if (!dd_user_can('saved_lists')) {
+            ob_start();
+        ?>
+            <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button-wrapper add-to-groups dd-tip" data-tooltip="Upgrade your plan to save creators" style="cursor: pointer; text-decoration: none;">
+                <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon">
+                            <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
+                            </svg>
+                        </span>
+                        <span class="elementor-button-text"><?php echo esc_html($locked_text); ?></span>
+                    </span>
+                </button>
+            </a>
+        <?php
+            return ob_get_clean();
+        }
+
         // --- UNLOCKED CHECK ---
         if (!is_influencer_unlocked($influencer_id)) {
             ob_start();
@@ -963,6 +985,13 @@ class Saves_Manager
         check_ajax_referer('save_influencer_nonce', 'security');
         if (!is_user_logged_in()) wp_send_json_error(['message' => __('You must be logged in to save.', 'hello-elementor-child')]);
 
+        if (!dd_user_can('saved_lists')) {
+            wp_send_json_error([
+                'message'     => __('Your plan does not include saved lists. Please upgrade to continue.', 'hello-elementor-child'),
+                'upgrade_url' => dd_plan_upgrade_url(),
+            ]);
+        }
+
         // Convert the ID to a strict integer so myCred recognizes it natively
         $influencer_id = isset($_POST['influencer_id']) ? intval($_POST['influencer_id']) : 0;
         $selected_lists = isset($_POST['lists']) ? array_map('sanitize_text_field', (array)$_POST['lists']) : [];
@@ -1238,6 +1267,13 @@ class Saves_Manager
         check_ajax_referer('save_influencer_nonce', 'security');
         if (!is_user_logged_in()) wp_send_json_error(['message' => __('Unauthorized', 'hello-elementor-child')]);
 
+        if (!dd_user_can('saved_lists')) {
+            wp_send_json_error([
+                'message'     => __('Your plan does not include saved lists. Please upgrade to continue.', 'hello-elementor-child'),
+                'upgrade_url' => dd_plan_upgrade_url(),
+            ]);
+        }
+
         $user_id = get_current_user_id();
         $group_id = isset($_POST['group_id']) ? sanitize_text_field($_POST['group_id']) : '';
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
@@ -1369,23 +1405,14 @@ class Saves_Manager
      * Helper: Is the current user's PMPro membership level allowed to export PDFs?
      *
      * Allowed levels are configured under Settings → Influencer Theme → Functionality.
+     * Delegates to the shared capability helper (includes/core/plan-capabilities.php) so
+     * this check stays consistent with every other plan-gated feature.
      *
      * @return bool
      */
     private function user_can_export_pdf()
     {
-        if (!function_exists('pmpro_getMembershipLevelForUser')) {
-            return false;
-        }
-
-        $allowed_levels = get_option('dd_export_pdf_allowed_levels', []);
-        if (empty($allowed_levels)) {
-            return false;
-        }
-
-        $level = pmpro_getMembershipLevelForUser(get_current_user_id());
-
-        return !empty($level->id) && in_array((int) $level->id, array_map('intval', $allowed_levels), true);
+        return dd_user_can('export_pdf');
     }
 
     /**

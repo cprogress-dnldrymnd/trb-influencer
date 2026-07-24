@@ -569,6 +569,28 @@ class Influencer_Search
             ]);
         });
 
+        // --- Creator-search cap enforcement (e.g. Trial = N searches total, paid = unlimited) ---
+        // Only a genuinely NEW search (page 1) is capped/counted; "Load More" pagination
+        // continues an already-permitted search and must not consume additional quota.
+        $paged = (isset($_POST['paged']) && $_POST['paged']) ? intval($_POST['paged']) : 1;
+
+        if ($paged === 1 && is_user_logged_in()) {
+            $current_user_id = get_current_user_id();
+            $search_limit = dd_user_search_limit($current_user_id);
+
+            if ($search_limit >= 0) {
+                $current_count = (int) get_user_meta($current_user_id, 'number_of_searches', true);
+
+                if ($current_count >= $search_limit) {
+                    wp_send_json_error([
+                        'message'       => __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
+                        'limit_reached' => true,
+                        'upgrade_url'   => dd_plan_upgrade_url(),
+                    ]);
+                }
+            }
+        }
+
         // 1. GATHER INPUTS (explicit form values)
         $explicit = [
             'niche'         => isset($_POST['niche']) ? $_POST['niche'] : [],
@@ -609,9 +631,6 @@ class Influencer_Search
         $filter        = $explicit['filter'];
         $topic         = $explicit['topic'];
         $content_tag   = $explicit['content_tag'];
-
-        // --- FIX 1: Capture the current page number ---
-        $paged = (isset($_POST['paged']) && $_POST['paged']) ? intval($_POST['paged']) : 1;
 
         // 3. BUILD THE QUERY ARGS
         $args = [
@@ -892,12 +911,15 @@ class Influencer_Search
             $number_of_searches = 0;
             if (is_user_logged_in()) {
                 $current_user_id = get_current_user_id();
-                $current_count   = get_user_meta($current_user_id, 'number_of_searches', true);
-                if (empty($current_count)) {
-                    $current_count = 0;
+                $current_count   = (int) get_user_meta($current_user_id, 'number_of_searches', true);
+
+                // Only a genuinely new search (page 1) consumes quota — "Load More" pagination
+                // continues the same search and must not be counted again.
+                if ($paged === 1) {
+                    update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
+                    $current_count++;
                 }
-                update_user_meta($current_user_id, 'number_of_searches', $current_count + 1);
-                $number_of_searches = get_user_meta($current_user_id, 'number_of_searches', true);
+                $number_of_searches = $current_count;
             }
 
             if (is_array($debug_payload)) {

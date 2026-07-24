@@ -50,6 +50,50 @@ function dd_render_pmpro_levels_checkboxes($name, $selected, $description = '')
 <?php
 }
 
+/**
+ * Renders one numeric "search limit" input per PMPro membership level.
+ *
+ * @param string $name        The option name (rendered as `{$name}[{level_id}]`).
+ * @param array  $values      Map of level ID => configured limit.
+ * @param string $description Optional helper text shown below the field.
+ */
+function dd_render_pmpro_search_limits($name, $values, $description = '')
+{
+    $values = is_array($values) ? $values : [];
+
+    if (! function_exists('pmpro_getAllLevels')) {
+        echo '<p class="description">Paid Memberships Pro is not active.</p>';
+        return;
+    }
+
+    $levels = pmpro_getAllLevels(true, true);
+
+    if (empty($levels)) {
+        echo '<p class="description">No membership levels found.</p>';
+        return;
+    }
+?>
+    <fieldset>
+        <?php foreach ($levels as $level): ?>
+            <label style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="display:inline-block;width:160px;"><?php echo esc_html($level->name); ?></span>
+                <input
+                    type="number"
+                    name="<?php echo esc_attr($name); ?>[<?php echo esc_attr($level->id); ?>]"
+                    value="<?php echo esc_attr(isset($values[$level->id]) ? $values[$level->id] : ''); ?>"
+                    style="width:90px;"
+                    min="-1"
+                    step="1"
+                    placeholder="Unlimited">
+            </label>
+        <?php endforeach; ?>
+    </fieldset>
+    <?php if ($description): ?>
+        <p class="description"><?php echo esc_html($description); ?></p>
+    <?php endif; ?>
+<?php
+}
+
 function dd_render_post_search_select($name, $current_id, $type, $description)
 {
     $current_title = '';
@@ -167,13 +211,42 @@ add_action('admin_init', function () {
         ]);
     }
 
-    register_setting('dd_theme_page_ids', 'dd_export_pdf_allowed_levels', [
+    // Per-feature allowed-levels options (checkbox lists) — one per capability gate.
+    $level_allowlist_keys = [
+        'dd_export_pdf_allowed_levels',
+        'dd_outreach_allowed_levels',
+        'dd_saved_lists_allowed_levels',
+        'dd_custom_outreach_message_allowed_levels',
+    ];
+    foreach ($level_allowlist_keys as $key) {
+        register_setting('dd_theme_page_ids', $key, [
+            'type'              => 'array',
+            'sanitize_callback' => function ($value) {
+                if (! is_array($value)) {
+                    return [];
+                }
+                return array_values(array_unique(array_map('absint', $value)));
+            },
+            'default'           => [],
+        ]);
+    }
+
+    // Per-level numeric creator-search cap ("-1"/blank = unlimited).
+    register_setting('dd_theme_page_ids', 'dd_search_limits', [
         'type'              => 'array',
         'sanitize_callback' => function ($value) {
             if (! is_array($value)) {
                 return [];
             }
-            return array_values(array_unique(array_map('absint', $value)));
+            $clean = [];
+            foreach ($value as $level_id => $limit) {
+                $level_id = absint($level_id);
+                if (! $level_id || $limit === '' || $limit === null) {
+                    continue;
+                }
+                $clean[$level_id] = (int) $limit;
+            }
+            return $clean;
         },
         'default'           => [],
     ]);
@@ -224,6 +297,38 @@ add_action('admin_init', function () {
             'dd_export_pdf_allowed_levels',
             get_option('dd_export_pdf_allowed_levels', []),
             'Only members with the selected membership levels can export saved lists to PDF. Leave all unchecked to disable the feature for everyone.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_outreach_allowed_levels', 'Contact / Outreach Restriction', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_outreach_allowed_levels',
+            get_option('dd_outreach_allowed_levels', []),
+            'Only members with the selected membership levels can contact/outreach to creators. Leave all unchecked to disable the feature for everyone.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_saved_lists_allowed_levels', 'Saved Lists Restriction', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_saved_lists_allowed_levels',
+            get_option('dd_saved_lists_allowed_levels', []),
+            'Only members with the selected membership levels can save creators to lists. Leave all unchecked to disable the feature for everyone.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_custom_outreach_message_allowed_levels', 'Custom Outreach Message Restriction', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_custom_outreach_message_allowed_levels',
+            get_option('dd_custom_outreach_message_allowed_levels', []),
+            'Only members with the selected membership levels can write their own outreach message. Everyone else sends the standard template.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_search_limits', 'Creator Search Limit', function () {
+        dd_render_pmpro_search_limits(
+            'dd_search_limits',
+            get_option('dd_search_limits', []),
+            'Total creator searches allowed per membership level. Leave blank for unlimited.'
         );
     }, 'dd-theme-settings-functionality', 'dd_functionality_section');
 

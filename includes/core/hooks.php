@@ -84,6 +84,8 @@ function action_wp_head()
     }
     if ($is_no_membership) {
         echo ".hide-on-free-trial{ display: none; }";
+    }
+    if ($is_no_membership || (function_exists('dd_user_can') && !dd_user_can('outreach'))) {
         echo ".outreach-form-trigger{ display: none !important}";
     }
 

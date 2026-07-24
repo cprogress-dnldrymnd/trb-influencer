@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.3');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.4');
 
 /**
  * Load child theme scripts & styles.
@@ -123,6 +123,7 @@ $dir = get_stylesheet_directory();
 
 // 1. Core Includes (Load foundational dependencies first)
 require $dir . '/includes/core/helpers.php';
+require $dir . '/includes/core/plan-capabilities.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';

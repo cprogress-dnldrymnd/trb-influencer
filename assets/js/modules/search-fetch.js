@@ -287,6 +287,25 @@
                     return;
                 }
 
+                // Plan's creator-search cap reached — show an upgrade prompt instead of the
+                // generic "no results" state; never auto-retry or advance pagination for this.
+                if (!response.success && response.data && response.data.limit_reached) {
+                    hide_loading_animation();
+                    hide_button_spinner(button);
+                    hide_search_overlay();
+                    var upgrade_url = response.data.upgrade_url || '#';
+                    var message = response.data.message || "You've reached your plan's creator search limit.";
+                    container.html(
+                        '<div class="search-limit-reached" style="padding:20px 0;">' +
+                        '<p>' + message + '</p>' +
+                        '<a class="elementor-button" href="' + upgrade_url + '">Upgrade your plan</a>' +
+                        '</div>'
+                    );
+                    button.hide();
+                    container.attr('aria-busy', 'false');
+                    return;
+                }
+
                 if (is_load_more) load_more_failed = false;
 
                 if (response.success) {
