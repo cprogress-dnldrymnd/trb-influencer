@@ -52,7 +52,8 @@
             // Prevent form submission if validation fails
             if (!isValid) {
                 e.preventDefault();
-                window.ddAlert('Please populate all required filters (e.g., Location) before generating matches.');
+                window.ddAlert((typeof dd_messages !== 'undefined' && dd_messages.dd_msg_filter_required)
+                    || 'Please populate all required filters (e.g., Location) before generating matches.');
             }
         });
 

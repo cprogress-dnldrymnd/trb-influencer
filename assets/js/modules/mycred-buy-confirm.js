@@ -10,7 +10,8 @@
 (function () {
     var BUY_BUTTON_SELECTOR = '.mycred-buy-this-content-button';
     var CONFIRMED_FLAG = 'ddBuyConfirmed';
-    var CONFIRM_MESSAGE = "You're about to spend 1 credit to unlock this creator's contact information. Credits are non-refundable once spent — would you like to continue?";
+    var CONFIRM_MESSAGE = (typeof dd_messages !== 'undefined' && dd_messages.dd_msg_unlock_spend_confirm)
+        || "You're about to spend 1 credit to unlock this creator's contact information. Credits are non-refundable once spent — would you like to continue?";
 
     document.addEventListener('click', function (e) {
         var button = e.target.closest && e.target.closest(BUY_BUTTON_SELECTOR);

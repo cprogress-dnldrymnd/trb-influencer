@@ -624,7 +624,7 @@ class Influencer_Search
 
                 if ($current_count >= $search_limit) {
                     wp_send_json_error([
-                        'message'       => __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
+                        'message'       => dd_get_message('dd_msg_search_limit'),
                         'limit_reached' => true,
                         'upgrade_url'   => dd_plan_upgrade_url(),
                     ]);
@@ -1896,7 +1896,7 @@ class Influencer_Search
                         <?php else : ?>
                         <span class="save-search-trigger save-search-locked"
                               data-upgrade-url="<?= esc_url(dd_plan_upgrade_url()) ?>"
-                              title="Upgrade your plan to save searches">Save this search</span>
+                              title="<?= esc_attr(dd_get_message('dd_msg_save_search_upgrade_tooltip')) ?>">Save this search</span>
                         <?php endif; ?>
                     </div>
                 </div>

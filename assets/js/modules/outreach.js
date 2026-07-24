@@ -282,7 +282,9 @@
             var postId = btn.data('post-id');
             var noteId = btn.data('note-id');
 
-            ddConfirm('Are you sure you want to permanently delete this note?', function () {
+            var confirmDeleteNoteMsg = (typeof dd_messages !== 'undefined' && dd_messages.dd_msg_confirm_delete_note)
+                || 'Are you sure you want to permanently delete this note?';
+            ddConfirm(confirmDeleteNoteMsg, function () {
                 btn.text('DELETING...').prop('disabled', true);
 
                 $.ajax({

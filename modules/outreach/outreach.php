@@ -1585,7 +1585,7 @@ class DD_Outreach_Manager
         // The real enforcement boundary: reject the submission server-side even if the
         // "Upgrade to contact" button (render_outreach_button_shortcode) was somehow bypassed.
         if (!dd_user_can('outreach', $current_user_id)) {
-            $ajax_handler->add_error_message(__('Your plan does not include contacting creators. Please upgrade to continue.', 'hello-elementor-child'));
+            $ajax_handler->add_error_message(dd_get_message('dd_msg_outreach_gate'));
             return;
         }
 
@@ -3066,16 +3066,16 @@ class DD_Outreach_Manager
                 </span>
             </a>
         <?php elseif ($upgrade_locked) : ?>
-            <span class="dd-tip" data-tooltip="Upgrade your plan to contact creators" style="display:inline-block; width: 100%;">
+            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_contact_upgrade_tooltip')); ?>" style="display:inline-block; width: 100%;">
                 <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button outreach-button outreach-upgrade-link">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
-                        <span class="elementor-button-text">Upgrade to contact</span>
+                        <span class="elementor-button-text"><?php echo esc_html(dd_get_message('dd_msg_contact_upgrade_btn')); ?></span>
                     </span>
                 </a>
             </span>
         <?php else : ?>
-            <span class="dd-tip" data-tooltip="Unlock this creator's full profile first" style="display:inline-block; width: 100%;">
+            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_locked_hint')); ?>" style="display:inline-block; width: 100%;">
                 <a href="#" class="elementor-button outreach-button"
                     style="opacity: 0.6; cursor: not-allowed;"
                     onclick="event.preventDefault();">

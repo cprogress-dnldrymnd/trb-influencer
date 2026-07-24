@@ -415,6 +415,9 @@ class Saves_Manager
             'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
             'is_single_influencer'  => is_singular('influencer') ? true : false,
         ]);
+
+        // Editable user-facing notices/confirmations (Influencer Theme → Messages tab).
+        wp_localize_script('theme-saves-js', 'dd_messages', function_exists('dd_js_messages') ? dd_js_messages() : []);
     }
 
     /**
@@ -501,7 +504,7 @@ class Saves_Manager
         if (!dd_user_can('saved_lists')) {
             ob_start();
         ?>
-            <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button-wrapper add-to-groups dd-tip" data-tooltip="Upgrade your plan to save creators" style="cursor: pointer; text-decoration: none;">
+            <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button-wrapper add-to-groups dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_save_upgrade_tooltip')); ?>" style="cursor: pointer; text-decoration: none;">
                 <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
@@ -521,7 +524,7 @@ class Saves_Manager
         if (!is_influencer_unlocked($influencer_id)) {
             ob_start();
 ?>
-            <div class="elementor-button-wrapper add-to-groups dd-tip" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" data-tooltip="Unlock this creator's full profile first">
+            <div class="elementor-button-wrapper add-to-groups dd-tip" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_locked_hint')); ?>">
                 <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
@@ -900,7 +903,7 @@ class Saves_Manager
 
         if (!dd_user_can('saved_search')) {
             wp_send_json_error([
-                'message'     => __('Your plan does not include saved searches. Please upgrade to continue.', 'hello-elementor-child'),
+                'message'     => dd_get_message('dd_msg_saved_search_gate'),
                 'upgrade_url' => dd_plan_upgrade_url(),
             ]);
         }
@@ -994,7 +997,7 @@ class Saves_Manager
 
         if (!dd_user_can('saved_lists')) {
             wp_send_json_error([
-                'message'     => __('Your plan does not include saved lists. Please upgrade to continue.', 'hello-elementor-child'),
+                'message'     => dd_get_message('dd_msg_saved_lists_gate'),
                 'upgrade_url' => dd_plan_upgrade_url(),
             ]);
         }
@@ -1022,7 +1025,7 @@ class Saves_Manager
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message' => __('Unsaved successfully!', 'hello-elementor-child'),
+                'message' => dd_get_message('dd_msg_unsaved_success'),
                 'notice_html' => $message,
                 'status'      => 'unsaved',
                 'count'       => 0
@@ -1056,7 +1059,7 @@ class Saves_Manager
 
             // Removed 'is_newly_unlocked' and 'new_balance' from the success array.
             wp_send_json_success([
-                'message' => __('Saved successfully!', 'hello-elementor-child'),
+                'message' => dd_get_message('dd_msg_saved_success'),
                 'notice_html' => $message,
                 'status'      => 'saved',
                 'count'       => count($selected_lists)
@@ -1096,7 +1099,7 @@ class Saves_Manager
                     delete_post_meta($post_id, '_in_group_' . sanitize_key($group_id));
                 }
 
-                wp_send_json_success(['message' => __('Creator removed successfully.', 'hello-elementor-child')]);
+                wp_send_json_success(['message' => dd_get_message('dd_msg_creator_removed')]);
             }
         }
 
@@ -1252,10 +1255,11 @@ class Saves_Manager
         // Construct custom notice to return to JS
         $custom_notice = sprintf(
             '<div class="my-cred-notice-text">
-                <h4>Creator Unlocked</h4>
-                <p>1 credit deducted. New balance: <strong>%s</strong>.</p>
+                <h4>%s</h4>
+                <p>%s</p>
              </div>',
-            esc_html($new_balance)
+            esc_html(dd_get_message('dd_msg_creator_unlocked_heading')),
+            dd_get_message('dd_msg_creator_unlocked_body', [esc_html($new_balance)])
         );
 
         wp_send_json_success([
@@ -1276,7 +1280,7 @@ class Saves_Manager
 
         if (!dd_user_can('saved_lists')) {
             wp_send_json_error([
-                'message'     => __('Your plan does not include saved lists. Please upgrade to continue.', 'hello-elementor-child'),
+                'message'     => dd_get_message('dd_msg_saved_lists_gate'),
                 'upgrade_url' => dd_plan_upgrade_url(),
             ]);
         }
@@ -1286,7 +1290,7 @@ class Saves_Manager
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
         $desc = isset($_POST['desc']) ? sanitize_textarea_field($_POST['desc']) : '';
 
-        if (empty($name)) wp_send_json_error(['message' => __('Group name is required.', 'hello-elementor-child')]);
+        if (empty($name)) wp_send_json_error(['message' => dd_get_message('dd_msg_group_name_required')]);
 
         $user_lists = $this->get_normalized_groups($user_id);
 
@@ -1352,7 +1356,7 @@ class Saves_Manager
             }
         }
 
-        wp_send_json_success(['message' => __('Group deleted.', 'hello-elementor-child')]);
+        wp_send_json_success(['message' => dd_get_message('dd_msg_group_deleted')]);
     }
 
     /**
@@ -1513,7 +1517,7 @@ class Saves_Manager
                     </button>
                 </div>
                 <div style="padding: 10px 0 20px; font-size: 15px; color: #444; line-height: 1.5; font-family: 'Work Sans', sans-serif;">
-                    Unlocking this creator will deduct <strong>1 credit</strong> from your balance and automatically add them to your <strong>"Unlocked Influencers"</strong> saved list.
+                    <?php echo dd_get_message('dd_msg_unlock_modal_body'); ?>
                 </div>
                 <div class="inf-modal-actions">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>

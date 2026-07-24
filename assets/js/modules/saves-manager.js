@@ -1,5 +1,11 @@
 jQuery(document).ready(function($) {
 
+    // Editable user-facing notices (Influencer Theme → Messages tab); falls
+    // back to the original hardcoded copy when dd_messages hasn't localized.
+    function msg(key, fallback) {
+        return (typeof dd_messages !== 'undefined' && dd_messages[key]) || fallback;
+    }
+
     function display_mycred_notice(html) {
         var $n = $('<div class="notice-wrap"><div class="notice-item-wrapper"><div class="notice-item succes">' + html + '</div></div></div>');
         $('body').append($n);
@@ -189,7 +195,7 @@ jQuery(document).ready(function($) {
         let name = $('#inf-edit-name').val().trim();
         let desc = $('#inf-edit-desc').val().trim();
         if (!name) {
-            window.ddAlert("Group name is required.");
+            window.ddAlert(msg('dd_msg_group_name_required', "Group name is required."));
             return;
         }
         let $btn = $(this);
@@ -405,7 +411,7 @@ jQuery(document).ready(function($) {
         const $btn = $(this);
         if ($btn.attr('data-pdf-allowed') !== '1') {
             const upgradeUrl = $btn.attr('data-upgrade-url');
-            window.ddConfirm('Exporting saved lists to PDF is not available on your current plan. Upgrade your plan to unlock this feature.', function() {
+            window.ddConfirm(msg('dd_msg_export_pdf_gate', 'Exporting saved lists to PDF is not available on your current plan. Upgrade your plan to unlock this feature.'), function() {
                 if (upgradeUrl) window.location.href = upgradeUrl;
             });
             return;
@@ -452,7 +458,7 @@ jQuery(document).ready(function($) {
         $('.inf-dropdown-wrapper').removeClass('active');
         var id = $(this).attr('data-id');
         var $card = $('#card-' + id);
-        window.ddConfirm("Are you sure you want to delete this group? This will remove the group from all saved creators.", function() {
+        window.ddConfirm(msg('dd_msg_confirm_delete_group', "Are you sure you want to delete this group? This will remove the group from all saved creators."), function() {
             $card.css('opacity', '0.5');
             $.ajax({
                 url: ajax_vars.ajax_url,
@@ -487,7 +493,7 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        window.ddConfirm("Are you sure you want to remove this creator from the current group?", function() {
+        window.ddConfirm(msg('dd_msg_confirm_remove_creator', "Are you sure you want to remove this creator from the current group?"), function() {
             var $btnText = $btnWrapper.find('.elementor-button-text');
             var ogText = $btnText.text();
             $btnText.text('Removing...');
@@ -601,7 +607,7 @@ jQuery(document).ready(function($) {
 
         if ($(this).hasClass('save-search-locked')) {
             const upgradeUrl = $(this).attr('data-upgrade-url');
-            window.ddConfirm('Saving searches is not available on your current plan. Upgrade your plan to unlock this feature.', function() {
+            window.ddConfirm(msg('dd_msg_save_search_gate', 'Saving searches is not available on your current plan. Upgrade your plan to unlock this feature.'), function() {
                 if (upgradeUrl) window.location.href = upgradeUrl;
             });
             return;
@@ -615,7 +621,7 @@ jQuery(document).ready(function($) {
     $('#inf-modal-confirm-save-search').on('click', function() {
         let searchName = $('#inf-save-search-name').val().trim();
         if (!searchName) {
-            window.ddAlert("Please enter a name for your search.");
+            window.ddAlert(msg('dd_msg_search_name_required', "Please enter a name for your search."));
             return;
         }
 
@@ -654,7 +660,7 @@ jQuery(document).ready(function($) {
             success: function(res) {
                 if (res.success) {
                     $('#inf-modal-overlay').hide();
-                    display_mycred_notice('<div class="my-cred-notice-text"><h4>Search Saved</h4><p>Your custom search has been successfully saved.</p></div>');
+                    display_mycred_notice('<div class="my-cred-notice-text"><h4>' + msg('dd_msg_search_saved_heading', 'Search Saved') + '</h4><p>' + msg('dd_msg_search_saved_body', 'Your custom search has been successfully saved.') + '</p></div>');
 
                     let $trigger = $('.save-search-trigger');
                     let origTriggerText = $trigger.text();
@@ -725,7 +731,7 @@ jQuery(document).ready(function($) {
         e.stopPropagation();
         $('.inf-dropdown-wrapper').removeClass('active');
         var $trigger = $(this);
-        window.ddConfirm("Are you sure you want to permanently delete this saved search?", function() {
+        window.ddConfirm(msg('dd_msg_confirm_delete_saved_search', "Are you sure you want to permanently delete this saved search?"), function() {
             var id = $trigger.attr('data-id');
             var $card = $('#search-card-' + id);
             $card.css('opacity', '0.5');

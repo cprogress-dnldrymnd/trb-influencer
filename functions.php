@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.3.9');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.4.0');
 
 /**
  * Load child theme scripts & styles.
@@ -93,7 +93,7 @@ function hello_elementor_child_scripts_styles()
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
         'searches_remaining'    => is_null($searches_remaining) ? '' : (string) $searches_remaining,
         'search_upgrade_url'    => function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : '',
-        'search_limit_message'  => __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
+        'search_limit_message'  => function_exists('dd_get_message') ? dd_get_message('dd_msg_search_limit') : __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
         'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
@@ -108,6 +108,9 @@ function hello_elementor_child_scripts_styles()
         'brief_quality_icon_url'     => get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice.svg',
         'brief_quality_icon_red_url' => get_stylesheet_directory_uri() . '/assets/images/lightbulb-notice-red.svg',
     ]);
+
+    // Editable user-facing notices/confirmations (Influencer Theme → Messages tab).
+    wp_localize_script('influencer-js', 'dd_messages', function_exists('dd_js_messages') ? dd_js_messages() : []);
 }
 add_action('wp_enqueue_scripts', 'hello_elementor_child_scripts_styles', 20);
 
@@ -130,6 +133,7 @@ $dir = get_stylesheet_directory();
 require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/plan-capabilities.php';
 require $dir . '/includes/core/admin-settings.php';
+require $dir . '/includes/core/messages-settings.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';
 // 2. Third-Party Integrations (Base handshakes and bridges)
