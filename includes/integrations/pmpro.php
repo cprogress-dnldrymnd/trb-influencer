@@ -541,10 +541,14 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 5, 1);
 
 /**
- * Intercepts frontend page loads to handle two specific free-tier redirections:
- * 1. Redirects users completing checkout for the Free Level (15) directly to the pricing page.
- * 2. Forcefully redirects Free members to the pricing page if they access the dashboard template,
- *    while explicitly exempting core PMPro functional pages to prevent lockouts.
+ * Intercepts frontend page loads to redirect users completing checkout for the Free
+ * Level (15) directly to the pricing page.
+ *
+ * Note: this used to also force Free members off every Dashboard-template page (search,
+ * unlocked-influencers, dashboard, etc.) back to the pricing page. That blanket lockout was
+ * removed — free-trial members may now use those pages; access is capped instead by the
+ * per-level creator-search limit, enforced on page load by
+ * Influencer_Search::enforce_search_page_limit() (modules/frontend-utilities/search.php).
  *
  * @return void
  */
@@ -560,10 +564,9 @@ function dd_force_free_members_to_upgrade()
         return;
     }
 
-    global $post, $pmpro_pages;
+    global $pmpro_pages;
 
-    // 3. NEW LOGIC: Intercept Free Level (15) Confirmation Page
-    // We do this BEFORE the exemption check so it catches the free tier immediately.
+    // 3. Intercept Free Level (15) Confirmation Page
     if (! empty($pmpro_pages['confirmation']) && is_page($pmpro_pages['confirmation'])) {
         $level_id = isset($_GET['pmpro_level']) ? intval($_GET['pmpro_level']) : 0;
 
@@ -573,50 +576,6 @@ function dd_force_free_members_to_upgrade()
                 wp_safe_redirect($redirect_url);
                 exit;
             }
-        }
-    }
-
-    // 4. DEFENSE IN DEPTH: Explicitly exempt core PMPro functional pages
-    if (! empty($pmpro_pages)) {
-        // Includes 'account' and 'profile' to the exempt keys
-        $exempt_keys = array('levels', 'checkout', 'billing', 'cancel', 'confirmation', 'account', 'profile');
-        $exempt_page_ids = array();
-
-        foreach ($exempt_keys as $key) {
-            if (! empty($pmpro_pages[$key])) {
-                $exempt_page_ids[] = $pmpro_pages[$key];
-            }
-        }
-
-        // Exemption A: Is this an exact match for a core PMPro page?
-        if (is_page($exempt_page_ids)) {
-            return;
-        }
-
-        // Exemption B: Is this a child page of the Membership Account page? (e.g., /membership-account/your-profile/)
-        if (! empty($pmpro_pages['account']) && isset($post->post_parent) && $post->post_parent == $pmpro_pages['account']) {
-            return;
-        }
-    }
-
-    // 5. Abort if the current page is NOT using the Dashboard template
-    if (! is_page_template('templates/page-dashboard.php')) {
-        return;
-    }
-
-    // 6. Define the exact ID of your Free Membership Level
-    $free_level_ids = array(15);
-
-    // 7. Evaluate if the current user possesses the free level
-    if (pmpro_hasMembershipLevel($free_level_ids)) {
-
-        // Retrieve the dynamic URL for the PMPro Levels/Pricing page
-        $redirect_url = pmpro_url('levels');
-
-        // Execute the redirect
-        if ($redirect_url) {
-            wp_safe_redirect($redirect_url);
-            exit;
         }
     }
 }

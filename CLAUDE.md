@@ -184,6 +184,10 @@ counter. `search-fetch.js` special-cases `response.data.limit_reached` to render
 place of the results container instead of treating it as a retryable/no-results error. Logged-out
 users and any level with no configured limit (`dd_search_limits` empty/blank for that level) are
 unrestricted (`dd_user_search_limit()` fails **open**, unlike the other capability checks below).
+`Influencer_Search::enforce_search_page_limit()` (`template_redirect`) mirrors this same check on
+plain page loads of the search/search-results pages — a logged-in user already at/over their cap
+is redirected to `dd_plan_upgrade_url()` before the page even renders, not just blocked on AJAX
+submit.
 
 Country meta is stored as **ISO alpha-3** (e.g. `GBR`); `helpers.php` has alpha-3→alpha-2 and
 country-name→alpha-2 maps for flags and matching. Filter dropdown option lists
@@ -283,10 +287,14 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
 ### Third-party integrations (`includes/integrations/`, `modules/membership-extensions/`)
 
 - **PMPro** (`pmpro.php`) — membership is the access spine: enforces a single active level,
-  prorates initial payment on plan switches (`pmpro_checkout_level`), forces free-tier (level 15)
-  members to the upgrade page, adds first/last-name checkout fields, restyles the member profile
-  into tabs, and customizes login/logout redirects. A `pmpro-level-{slug}` body class is added for
-  CSS gating (`.hide-on-free-trial`, etc., toggled in `hooks.php`).
+  prorates initial payment on plan switches (`pmpro_checkout_level`), redirects a user completing
+  checkout for the Free Level (15) straight to the pricing page, adds first/last-name checkout
+  fields, restyles the member profile into tabs, and customizes login/logout redirects. A
+  `pmpro-level-{slug}` body class is added for CSS gating (`.hide-on-free-trial`, etc., toggled in
+  `hooks.php`). `dd_force_free_members_to_upgrade()` used to also blanket-redirect Free members off
+  every Dashboard-template page (search, unlocked-influencers, dashboard, etc.); that lockout was
+  removed — Free/trial members may now use those pages, with access capped instead by the per-level
+  creator-search limit (see below).
 - **myCred** (`mycred.php`) — credits/points: deduct/balance helpers, restyles the buy-credits
   checkout (`#buycred-checkout-form`) into the influencer look, a click-confirm gate before
   spending a credit (`mycred-buy-confirm.js`), and bank-transfer pending-notification handling.
@@ -299,17 +307,25 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   user-meta guard inside that method keeps this idempotent (no double-award on real checkouts where
   both hooks fire); level `0` (cancellation/expiry) is ignored.
 - **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
-  `[dd_pricing_table]` shortcode renders a card per paid signup level (`get_dynamic_plan_pairs()`
-  excludes free/£0 levels, e.g. the Trial tier, by checking `initial_payment`/`billing_amount`),
-  auto-pairing each with its "Annual" Payment Plan extension **when one is configured** — a level
-  with no Annual plan still gets a card, just monthly-only (`annual_plan` is `false`, and
-  `build_pricing_card()` hides the Yearly toggle and leaves the `data-price-annual`/`data-url-annual`
-  attrs empty rather than excluding the level entirely). Card order follows the admin's drag-and-drop
-  order on the PMPro **Membership Plans** settings screen (`get_level_group_order()`: PMPro Level
-  Groups `displayorder`, then each level's `displayorder` within its group), not raw level-ID order —
-  falls back to level-ID order if the Level Groups tables don't exist (PMPro < 3.0 / groups unused).
-  Cards also disable owned/pending-downgrade plans, and lock plan changes during free trials (both in
-  the UI and via a `template_redirect` URL guard).
+  `[dd_pricing_table order="…"]` shortcode renders a card per paid signup level
+  (`get_orderable_plans()`, a public static method, excludes free/£0 levels, e.g. the Trial tier,
+  by checking `initial_payment`/`billing_amount`), auto-pairing each with its "Annual" Payment Plan
+  extension **when one is configured** — a level with no Annual plan still gets a card, just
+  monthly-only (`annual_plan` is `false`, and `build_pricing_card()` hides the Yearly toggle and
+  leaves the `data-price-annual`/`data-url-annual` attrs empty rather than excluding the level
+  entirely). Default card order follows the admin's drag-and-drop order on the PMPro **Membership
+  Plans** settings screen (`get_level_group_order()`: PMPro Level Groups `displayorder`, then each
+  level's `displayorder` within its group), not raw level-ID order — falls back to level-ID order
+  if the Level Groups tables don't exist (PMPro < 3.0 / groups unused). The `Widget_Pricing_Table`
+  Elementor widget (`elementor-widgets/class-widget-pricing-table.php`) can override that default
+  via a Content-tab **Plan Order** repeater — seeded from `get_orderable_plans()`, drag-reorderable,
+  one row per plan — which the widget serializes to the shortcode's `order` attr (comma-separated
+  level IDs) as `$preferred_order` into `get_dynamic_plan_pairs($preferred_order)`; any plan absent
+  from that order (e.g. newly added after the widget was last saved) is appended at the end so new
+  plans always render. The widget also exposes a responsive Style-tab **Columns** control
+  (`{{WRAPPER}} .dd-pricing-container` `grid-template-columns`). Cards also disable owned/pending-
+  downgrade plans, and lock plan changes during free trials (both in the UI and via a
+  `template_redirect` URL guard).
   Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
   `influencer_style_pmpro_checkout`) into the influencer look. The summary card header
   prominently shows the **amount due today** (`dd-due-today-val`), not the recurring price; the

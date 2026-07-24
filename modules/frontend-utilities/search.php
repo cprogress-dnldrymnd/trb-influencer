@@ -23,6 +23,9 @@ class Influencer_Search
         // Set up search variables on the 'wp' hook
         add_action('wp', [$this, 'setup_search_variables']);
 
+        // Redirect to the upgrade page if a logged-in user reaches their plan's search cap
+        add_action('template_redirect', [$this, 'enforce_search_page_limit']);
+
         // Flush filter dropdown transients when an influencer post is saved or deleted
         add_action('save_post', [__CLASS__, 'flush_filter_transients']);
         add_action('delete_post', [__CLASS__, 'flush_filter_transients']);
@@ -133,6 +136,44 @@ class Influencer_Search
         set_query_var('influencer_search_fields', $influencer_search_fields);
         set_query_var('influencer_outreach_fields', $influencer_outreach_fields);
         set_query_var('influencer_search_page', $influencer_search_page_id);
+    }
+
+    /**
+     * Redirects a logged-in user to the upgrade page when they load a search page after
+     * already reaching their plan's creator-search cap. Mirrors the AJAX-side check in
+     * my_custom_loop_filter_handler() so arriving at the page and submitting a new search
+     * enforce the same limit — unlimited/unconfigured levels (dd_user_search_limit() < 0)
+     * are never redirected.
+     */
+    public function enforce_search_page_limit()
+    {
+        if (! is_user_logged_in() || is_admin() || wp_doing_ajax() || wp_is_json_request()) {
+            return;
+        }
+
+        $search_page_id         = dd_get_page_id('dd_search_page_id', 2149);
+        $search_results_page_id = dd_get_page_id('dd_search_results_page_id', 1949);
+
+        if (! is_page([$search_page_id, $search_results_page_id])) {
+            return;
+        }
+
+        $current_user_id = get_current_user_id();
+        $search_limit     = dd_user_search_limit($current_user_id);
+
+        if ($search_limit < 0) {
+            return;
+        }
+
+        $current_count = (int) get_user_meta($current_user_id, 'number_of_searches', true);
+
+        if ($current_count >= $search_limit) {
+            $redirect_url = dd_plan_upgrade_url();
+            if ($redirect_url) {
+                wp_safe_redirect($redirect_url);
+                exit;
+            }
+        }
     }
 
     /**
