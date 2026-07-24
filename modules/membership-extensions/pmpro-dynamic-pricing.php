@@ -165,21 +165,22 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Retrieves every paid PMPro signup level, pairing each with its "Annual" Payment Plan
-	 * extension when one is configured. Levels with no Annual plan are still included — their
-	 * card simply renders monthly-only (see build_pricing_card()). Pairs are ordered to match
-	 * the admin's drag-and-drop order on the PMPro Membership Plans settings screen (see
-	 * get_level_group_order()) rather than raw level-ID order.
-	 * @return array Array of dynamically paired level and (possibly null) payment plan data.
+	 * Retrieves every paid, signup-enabled PMPro level (id + name) that can appear on the
+	 * pricing table, in PMPro Membership Plans settings-screen order (Level Groups
+	 * displayorder — see get_level_group_order()). Public/static so the Pricing Table
+	 * Elementor widget can list plans for its sortable order control without needing an
+	 * instance of this class.
+	 *
+	 * @return array<int,array{id:int,name:string}>
 	 */
-	private function get_dynamic_plan_pairs()
+	public static function get_orderable_plans()
 	{
 		if (! function_exists('pmpro_getAllLevels')) {
 			return [];
 		}
 
 		$all_levels = pmpro_getAllLevels(true, true);
-		$pairs = [];
+		$plans = [];
 
 		foreach ($all_levels as $level) {
 			if (! $level->allow_signups) {
@@ -192,25 +193,61 @@ class DD_PMPro_Frontend_Pricing
 				continue;
 			}
 
-			$name = trim($level->name);
+			$plans[] = [
+				'id'   => (int) $level->id,
+				'name' => trim($level->name),
+			];
+		}
+
+		$order = self::get_level_group_order();
+		if (! empty($order)) {
+			$position = array_flip($order);
+			usort($plans, function ($a, $b) use ($position) {
+				$pa = $position[$a['id']] ?? PHP_INT_MAX;
+				$pb = $position[$b['id']] ?? PHP_INT_MAX;
+				return $pa <=> $pb;
+			});
+		}
+
+		return $plans;
+	}
+
+	/**
+	 * Retrieves every paid PMPro signup level, pairing each with its "Annual" Payment Plan
+	 * extension when one is configured. Levels with no Annual plan are still included — their
+	 * card simply renders monthly-only (see build_pricing_card()).
+	 *
+	 * @param int[] $preferred_order Optional level IDs in the desired display order (e.g. from
+	 *                               the Pricing Table widget's sortable list). Any plan not
+	 *                               listed is appended at the end so new plans always render.
+	 *                               When empty, falls back to PMPro Membership Plans settings
+	 *                               order (see get_level_group_order()).
+	 * @return array Array of dynamically paired level and (possibly null) payment plan data.
+	 */
+	private function get_dynamic_plan_pairs($preferred_order = [])
+	{
+		$plans = self::get_orderable_plans();
+		$pairs = [];
+
+		foreach ($plans as $plan) {
+			$name = $plan['name'];
 
 			// Extract the Annual payment plan extension for this base level, if any.
-			$annual_plan = $this->get_annual_payment_plan($level->id);
+			$annual_plan = $this->get_annual_payment_plan($plan['id']);
 
 			$pairs[] = [
 				'name'        => $name,
-				'monthly_id'  => $level->id,
+				'monthly_id'  => $plan['id'],
 				'annual_plan' => $annual_plan, // false when no Annual plan is configured
 				'option_key'  => 'dd_desc_' . sanitize_key($name),
 			];
 		}
 
-		// Reorder to match the PMPro Membership Plans settings screen (group displayorder, then
-		// level displayorder within the group) instead of raw level-ID order. Any level absent
-		// from the group order (edge case) falls to the end, preserving prior behaviour.
-		$order = $this->get_level_group_order();
-		if (! empty($order)) {
-			$position = array_flip($order);
+		// A widget-configured order takes priority over the settings-screen group order that
+		// get_orderable_plans() already applied. Any plan absent from $preferred_order (e.g. a
+		// newly-added plan the widget hasn't been re-saved to include) falls to the end.
+		if (! empty($preferred_order)) {
+			$position = array_flip($preferred_order);
 			usort($pairs, function ($a, $b) use ($position) {
 				$pa = $position[$a['monthly_id']] ?? PHP_INT_MAX;
 				$pb = $position[$b['monthly_id']] ?? PHP_INT_MAX;
@@ -229,7 +266,7 @@ class DD_PMPro_Frontend_Pricing
 	 * @return int[] Level IDs in settings-screen order, or [] if the Level Groups tables/feature
 	 *               are unavailable (PMPro < 3.0, or groups not in use).
 	 */
-	private function get_level_group_order()
+	private static function get_level_group_order()
 	{
 		global $wpdb;
 
@@ -1805,6 +1842,12 @@ class DD_PMPro_Frontend_Pricing
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
 
+		// Optional explicit plan order (comma-separated level IDs), set by the Pricing Table
+		// Elementor widget's sortable list. Falls back to PMPro Membership Plans settings order
+		// when omitted (see get_dynamic_plan_pairs()).
+		$atts = shortcode_atts(['order' => ''], $atts, 'dd_pricing_table');
+		$preferred_order = array_filter(array_map('intval', array_filter(explode(',', $atts['order']))));
+
 		// Calculate global trial state for the active user once
 		$current_user_id = get_current_user_id();
 		$is_on_free_trial = $current_user_id ? $this->is_user_on_free_trial($current_user_id) : false;
@@ -2014,7 +2057,7 @@ class DD_PMPro_Frontend_Pricing
 
 		<div class="dd-pricing-container">
 			<?php
-			$pairs = $this->get_dynamic_plan_pairs();
+			$pairs = $this->get_dynamic_plan_pairs($preferred_order);
 
 			if (empty($pairs)) {
 				echo '<p>No paid membership plans are currently available.</p>';
