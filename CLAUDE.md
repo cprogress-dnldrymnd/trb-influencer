@@ -489,6 +489,15 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   (`.dd-fc-cell:not(.dd-fc-feature)`, i.e. every column's tick/cross/text — separate from the feature-label
   typography), and the "Recommended" banner text (plus a banner `DIMENSIONS` padding control); its
   padding/border-radius `DIMENSIONS` controls include the `custom` unit alongside `px`/`em`/`%`.
+  The head row's reserved top padding (room for the banner, which is `position:absolute`) is not a
+  fixed value — `render_shortcode()` only reserves the larger 30px gap when at least one column is
+  actually marked recommended (`--dd-fc-rec-pad` CSS var, default 14px), and when it does, an inline
+  script measures the rendered banner's live `offsetHeight` (via `ResizeObserver`, falling back to a
+  `resize` listener) and sets `--dd-fc-rec-pad` to `height + 8px` — since the actual height depends on
+  the admin's banner text length and the column width, a fixed padding either wastes space or lets a
+  wrapped two-line banner overlap the plan name below it. Each rendered instance gets a unique
+  `#dd-fc-{n}` wrapper id (`self::$instance_counter`) so the measurement stays scoped if the
+  shortcode/widget appears more than once on a page.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

@@ -20,6 +20,14 @@ class DD_Feature_Comparison_Table
 {
 	const OPTION_KEY = 'dd_feature_comparison_table';
 
+	/**
+	 * Scopes the recommended-banner height measurement (see render_shortcode()) to a specific
+	 * rendered instance, in the unlikely event the shortcode/widget appears more than once on a
+	 * page.
+	 * @var int
+	 */
+	private static $instance_counter = 0;
+
 	public function __construct()
 	{
 		add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
@@ -766,6 +774,15 @@ class DD_Feature_Comparison_Table
 		$rows    = $data['rows'];
 		$col_count = count($columns);
 
+		$has_recommended = false;
+		foreach ($columns as $col) {
+			if (! empty($col['recommended'])) {
+				$has_recommended = true;
+				break;
+			}
+		}
+		$wrap_id = 'dd-fc-' . (++self::$instance_counter);
+
 		ob_start();
 	?>
 		<style>
@@ -800,11 +817,14 @@ class DD_Feature_Comparison_Table
 				text-align: left;
 				font-weight: 500;
 			}
+			.dd-fc-wrap .dd-fc-feature span{
+				border
+			}
 
 			.dd-fc-wrap .dd-fc-head {
 				flex-direction: column;
 				gap: 8px;
-				padding-top: 30px;
+				padding-top: var(--dd-fc-rec-pad, 14px);
 				background: #fafafa;
 				font-weight: 600;
 				position: relative;
@@ -879,7 +899,12 @@ class DD_Feature_Comparison_Table
 				border-bottom: none;
 			}
 		</style>
-		<div class="dd-fc-wrap">
+		<?php if ($has_recommended): ?>
+			<style>
+				#<?php echo esc_attr($wrap_id); ?> { --dd-fc-rec-pad: 30px; }
+			</style>
+		<?php endif; ?>
+		<div class="dd-fc-wrap" id="<?php echo esc_attr($wrap_id); ?>">
 			<div class="dd-fc-table">
 				<div class="dd-fc-row dd-fc-head-row">
 					<div class="dd-fc-cell dd-fc-feature-col"></div>
@@ -901,7 +926,7 @@ class DD_Feature_Comparison_Table
 
 				<?php foreach ($rows as $row): ?>
 					<div class="dd-fc-row">
-						<div class="dd-fc-cell dd-fc-feature"><?php echo esc_html($row['label']); ?></div>
+						<div class="dd-fc-cell dd-fc-feature"><span><?php echo esc_html($row['label']); ?></span></div>
 						<?php foreach ($columns as $col):
 							$cell = (isset($row['cells'][$col['key']])) ? $row['cells'][$col['key']] : ['type' => 'text', 'text' => ''];
 						?>
@@ -919,6 +944,39 @@ class DD_Feature_Comparison_Table
 				<?php endforeach; ?>
 			</div>
 		</div>
+		<?php if ($has_recommended): ?>
+			<script>
+				(function() {
+					var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
+					if (!wrap) return;
+					var banners = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-recommended');
+					if (!banners.length) return;
+
+					// The banner overlays the top of the head cell (position:absolute), so the
+					// reserved top padding must be at least its rendered height (plus a small gap)
+					// or a wrapped two-line banner overlaps the plan name below it. Measured live
+					// since the actual height depends on the admin's text length and column width.
+					function sync() {
+						var max = 0;
+						banners.forEach(function(el) {
+							if (el.offsetHeight > max) max = el.offsetHeight;
+						});
+						wrap.style.setProperty('--dd-fc-rec-pad', (max + 8) + 'px');
+					}
+
+					sync();
+
+					if (window.ResizeObserver) {
+						var ro = new ResizeObserver(sync);
+						banners.forEach(function(el) {
+							ro.observe(el);
+						});
+					} else {
+						window.addEventListener('resize', sync);
+					}
+				})();
+			</script>
+		<?php endif; ?>
 <?php
 		return ob_get_clean();
 	}
