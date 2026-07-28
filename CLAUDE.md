@@ -138,15 +138,35 @@ append a tab here via the `dd_theme_settings_tabs` filter — each entry is
 `['id' => 'slug', 'label' => 'Tab Label', 'render' => callable]`; `render` prints its own
 self-contained `<form action="options.php">…</form>` (its own `settings_fields()` group) into a
 `<div class="dd-panel" id="dd-panel-{id}">` the hub renders for it — do not wrap it in
-`class="wrap"`/`<h1>`, the hub already provides those. Three modules currently register this way:
+`class="wrap"`/`<h1>`, the hub already provides those. Five registrants currently use this way:
 `DD_Global_Email_Manager` ("Email Templates" tab), `DD_PMPro_Frontend_Pricing` ("Pricing Settings"
-tab, still guarded on `defined('PMPRO_VERSION')`), and `DD_PMPro_Rewards_Manager` ("Rewards" tab).
+tab, still guarded on `defined('PMPRO_VERSION')`), `DD_PMPro_Rewards_Manager` ("Rewards" tab),
+`DD_Feature_Comparison_Table` ("Comparison Table" tab — see below), and
+`includes/core/messages-settings.php` ("Messages" tab, a plain file, not a class — see below).
 Each of those modules' own admin JS/CSS must scope its selectors to its own
 `#dd-panel-{id}` root (e.g. `$('#dd-panel-rewards').find('.nav-tab')`) rather than querying
 `.nav-tab`/`.dd-tab-content` page-wide, since several modules' nested tab systems now share one
 DOM; each module's `admin_enqueue_scripts`/`admin_footer` hook must also check for the
 `toplevel_page_dd-theme-settings` screen/hook id, not their old page-specific one. When adding a
 new module settings UI, prefer hooking `dd_theme_settings_tabs` over registering a new admin page.
+
+**Editable user-facing messages** (`includes/core/messages-settings.php`, loaded right after
+`admin-settings.php`) centralize the wording of notices/confirmations/tooltips that used to be
+hardcoded strings scattered across PHP and JS. `dd_message_definitions()` is the single registry —
+each entry has an option key (`dd_msg_*`), label, default text, settings-tab group, and optional
+`js` (also localize to front-end), `multiline` (textarea), `html` (allow `<strong>`/`<em>`/etc. via
+`wp_kses`) flags. Read a message server-side via `dd_get_message($key, $args = [])` (never
+`get_option()` directly) — `$args` is `vsprintf`'d into `%s` tokens (e.g. the unlock-balance notice).
+On the front end, `dd_js_messages()` returns only the `js`-flagged entries, localized as the
+`dd_messages` global onto **both** `influencer-js` (`functions.php`) and `theme-saves-js`
+(`Saves_Manager::enqueue_ajax_variables()`) — the same dual-localization split as `ajax_vars` above,
+so a message needed on non-search pages must stay flagged `js` (it's picked up automatically, no
+extra wiring). JS call sites read it defensively — `(typeof dd_messages !== 'undefined' &&
+dd_messages.dd_msg_x) || 'hardcoded fallback'` — so pages where the handle hasn't localized yet still
+work. Saving a field blank resets it to the registry default rather than persisting an empty string.
+When adding a new user-facing string that a client might want to reword, add it to
+`dd_message_definitions()` and read it through `dd_get_message()`/`dd_messages` rather than inlining
+new copy.
 
 Four features are gated by
 per-level checkbox lists rendered with `dd_render_pmpro_levels_checkboxes()` — `dd_export_pdf_allowed_levels`
@@ -425,6 +445,21 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   > from `{$wpdb->prefix}pmpro_discount_codes_levels` (`get_discounted_level_pricing()`), since
   > `pmpro_getLevelAtCheckout()` can silently drop the trial depending on validation context (use
   > limits, login state); it falls back to `pmpro_getLevelAtCheckout()` then plain `pmpro_getLevel()`.
+- **Feature comparison table** (`pmpro-comparison-table.php`, `DD_Feature_Comparison_Table`) —
+  a Mailchimp-style feature-comparison grid, distinct from the pricing-card layout above: columns
+  (one per plan) and feature rows (each cell a tick/cross/free-text) are authored once on a
+  "Comparison Table" tab it registers via `dd_theme_settings_tabs` (see the settings-tab-indirection
+  section above), then rendered by the `[dd_feature_comparison]` shortcode and its
+  `Widget_Feature_Comparison_Table` wrapper (`class-widget-comparison-table.php` — widget controls
+  are Style-tab only, all content comes from the shortcode). All authored content lives in a single
+  JSON-encoded option (`dd_feature_comparison_table`) built entirely client-side against a hidden
+  `#dd-fc-data-input` field and validated/re-encoded server-side in `sanitize()` (unknown cell types
+  collapse to `text`; a cell referencing a column key that didn't survive column sanitation is
+  dropped). A column can be a **PMPro plan column** (seeded from `DD_PMPro_Frontend_Pricing::get_orderable_plans()`,
+  the same accessor the dynamic pricing table widget uses) or a **custom column** with its own
+  price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
+  at render time (`resolve_column()`) so it never drifts stale — only fields the admin explicitly
+  filled in override the live plan data.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.4.0');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.4.1');
 
 /**
  * Load child theme scripts & styles.
@@ -155,6 +155,7 @@ require $dir . '/modules/outreach/outreach.php';
 
 require $dir . '/modules/membership-extensions/pmpro-sign-up.php';
 require $dir . '/modules/membership-extensions/pmpro-dynamic-pricing.php';
+require $dir . '/modules/membership-extensions/pmpro-comparison-table.php';
 require $dir . '/modules/membership-extensions/pmpro-mycred-rewards-manager.php';
 require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 
