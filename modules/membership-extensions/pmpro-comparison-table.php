@@ -833,20 +833,39 @@ class DD_Feature_Comparison_Table
 		$resolved_columns = [];
 		$has_recommended  = false;
 		$has_annual       = false;
-		foreach ($columns as $col) {
+		$initial_active   = 0; // Default active tab index for mobile
+
+		foreach ($columns as $index => $col) {
 			$resolved_columns[$col['key']] = $this->resolve_column($col);
 			if (! empty($col['recommended'])) {
 				$has_recommended = true;
+				// If a recommended column exists, default to it on mobile initially
+				$initial_active = $index;
 			}
 			if ($resolved_columns[$col['key']]['price'] !== '' && $resolved_columns[$col['key']]['price_annual'] !== '') {
 				$has_annual = true;
 			}
 		}
+		
+		// If no recommended column, fallback to the highlighted one (if any)
+		if (!$has_recommended) {
+			foreach ($columns as $index => $col) {
+				if (! empty($col['highlight'])) {
+					$initial_active = $index;
+					break;
+				}
+			}
+		}
+
 		$wrap_id = 'dd-fc-' . (++self::$instance_counter);
 
 		ob_start();
 	?>
 		<style>
+			.dd-fc-wrap .dd-fc-mobile-tabs {
+				display: none; /* Hidden on desktop */
+			}
+		
 			.dd-fc-wrap .dd-fc-table {
 				display: grid;
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
@@ -1045,94 +1064,179 @@ class DD_Feature_Comparison_Table
 			}
 
 			/* --------------------------------------------------------------------------
-			 * Mobile Layout: Mailchimp-style stacked feature grid
-			 * Instead of horizontal scroll, CSS Grid is recalculated to span feature labels 
-			 * across all plan columns. Headers remain sticky but compact. 
+			 * Mobile Layout: Tabbed interface
+			 * Instead of trying to render all columns side-by-side or stacking them all, 
+			 * we extract the plan names to a sticky tab bar at the top, allowing the user 
+			 * to toggle through the full plan card and feature list one at a time.
 			 * -------------------------------------------------------------------------- */
 			@media (max-width: 768px) {
+				
+				/* 1. Show and style the sticky tab navigation bar */
+				.dd-fc-wrap .dd-fc-mobile-tabs {
+					display: flex;
+					position: sticky;
+					top: var(--dd-fc-sticky-offset, 0px);
+					z-index: 10;
+					background: #fff;
+					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
+					overflow-x: auto;
+					-webkit-overflow-scrolling: touch;
+					scrollbar-width: none; /* Hide scrollbar for Firefox */
+				}
+				.dd-fc-wrap .dd-fc-mobile-tabs::-webkit-scrollbar { 
+					display: none; /* Hide scrollbar for Webkit */
+				}
+
+				.dd-fc-wrap .dd-fc-mobile-tab {
+					flex: 1 0 auto;
+					min-width: max-content;
+					padding: 16px 20px;
+					background: #fafafa;
+					border: 1px solid var(--dd-fc-border-color, #ececec);
+					border-bottom: none;
+					font-weight: 500;
+					color: #50575e;
+					cursor: pointer;
+					text-align: center;
+					font-size: 14px;
+					outline: none;
+				}
+				.dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active {
+					background: #fff;
+					color: #241c15;
+					font-weight: 600;
+					border-bottom: 2px solid var(--e-global-color-primary, #034146);
+					margin-bottom: -1px; /* Overlap bottom border */
+				}
+
+				/* 2. Convert CSS Grid into standard block layout */
 				.dd-fc-wrap .dd-fc-table {
-					/* Render exactly X columns for X plans, stripping the dedicated label column */
-					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
-					border-left: none;
-					border-right: none;
+					display: block;
+					border: none;
 					border-radius: 0;
 					background: transparent;
 				}
-
+				
 				.dd-fc-wrap .dd-fc-feature-col {
 					display: none;
 				}
 
-				.dd-fc-wrap .dd-fc-feature {
-					/* Feature name breaks into its own row spanning all plan columns */
-					grid-column: 1 / -1; 
-					background: #f4f4f4; /* Section divider gray matching Mailchimp */
-					padding: 12px 16px;
+				.dd-fc-wrap .dd-fc-row {
+					display: block;
+					border: 1px solid var(--dd-fc-border-color, #e2e2e2);
+					border-radius: 8px;
+					margin-bottom: 16px;
+					overflow: hidden;
+					background: #fff;
+				}
+				
+				/* Head row doesn't need its own border since the active card has one */
+				.dd-fc-wrap .dd-fc-head-row {
+					border: none;
+					margin-bottom: 0;
+					background: transparent;
+				}
+
+				/* 3. Hide all columns except the active one selected via JS */
+				.dd-fc-wrap .dd-fc-cell[data-col-index] {
+					display: none;
+				}
+				
+				.dd-fc-wrap .dd-fc-cell[data-col-index].dd-fc-mobile-active {
+					display: flex;
+				}
+
+				/* 4. Style the active Plan Card (the original table head) */
+				.dd-fc-wrap .dd-fc-head.dd-fc-mobile-active {
+					padding: 24px 20px;
+					border: 1px solid var(--dd-fc-border-color, #e2e2e2);
+					border-radius: 8px;
+					margin: 16px 0;
+					background: #fafafa;
+					/* Remove absolute padding requirement on mobile to let native flow handle it */
+					padding-top: 24px !important; 
+					position: relative;
+					top: auto;
+				}
+				
+				/* 5. Recommended banner flows cleanly inside the active plan details card */
+				.dd-fc-wrap .dd-fc-head .dd-fc-recommended {
+					position: relative;
+					display: inline-block;
+					/* Pull banner to the very edges of the plan card container */
+					margin: -24px -20px 16px -20px;
+					width: calc(100% + 40px);
+					padding: 10px 0;
+					border-radius: 8px 8px 0 0;
+					font-size: 13px;
 					font-weight: 600;
-					color: #241c15; /* Match typical dark header contrast */
+					background: #c5ebd3; /* Styling derived to match the provided screenshot */
+					color: #034146;
+					border-bottom: 1px solid var(--dd-fc-border-color, #e2e2e2);
+				}
+
+				/* 6. Feature rows stack label and value vertically on mobile */
+				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) {
 					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
-					justify-content: flex-start;
+					border-radius: 0;
+					border: none;
+					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
+					margin-bottom: 0;
+				}
+				
+				.dd-fc-wrap .dd-fc-feature {
+					display: block;
+					padding: 16px 16px 4px 16px;
+					border: none;
+					font-size: 14px;
+					color: #241c15;
+					font-weight: 600;
+					background: transparent;
 				}
 				
 				.dd-fc-wrap .dd-fc-feature span {
 					border-bottom: none;
 				}
-
-				.dd-fc-wrap .dd-fc-head {
-					position: sticky;
-					top: var(--dd-fc-sticky-offset, 0px);
-					z-index: 10;
-					background: #fff;
-					padding: 12px 4px !important; /* Override JS --dd-fc-rec-pad computation */
-					border-bottom: 2px solid #241c15; /* Distinct lower border to visually ground sticky header */
-					box-shadow: 0 4px 10px -4px rgba(0,0,0,0.1);
-				}
-
-				/* Heaviest UI pieces are hidden from the sticky nav on mobile, keeping it strictly to Text Labels */
-				.dd-fc-wrap .dd-fc-price,
-				.dd-fc-wrap .dd-toggle-wrapper,
-				.dd-fc-wrap .dd-fc-cta {
-					display: none !important;
-				}
-
-				.dd-fc-wrap .dd-fc-name {
-					font-size: 13px;
-					text-align: center;
-				}
-
-				.dd-fc-wrap .dd-fc-recommended {
-					position: static; 
-					display: table;
-					margin: 0 auto 6px auto;
-					font-size: 9px;
-					padding: 2px 6px;
-				}
-
-				.dd-fc-wrap .dd-fc-cell {
-					padding: 14px 4px;
-					font-size: 13px;
-					word-break: break-word;
-				}
-
-				.dd-fc-wrap .dd-fc-cell:not(:last-child) {
-					border-right: 1px solid var(--dd-fc-border-color, #ececec);
+				
+				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell[data-col-index].dd-fc-mobile-active {
+					justify-content: flex-start;
+					padding: 4px 16px 16px 16px;
+					border: none;
+					font-size: 14px;
 				}
 			}
 		</style>
 		<?php if ($has_recommended): ?>
 			<style>
-				#<?php echo esc_attr($wrap_id); ?> { --dd-fc-rec-pad: 30px; }
+				@media (min-width: 769px) {
+					#<?php echo esc_attr($wrap_id); ?> { --dd-fc-rec-pad: 30px; }
+				}
 			</style>
 		<?php endif; ?>
 		<div class="dd-fc-wrap" id="<?php echo esc_attr($wrap_id); ?>">
+			
+			<!-- Mobile Sticky Tab Bar -->
+			<div class="dd-fc-mobile-tabs">
+				<?php foreach ($columns as $index => $col): 
+					$resolved = $resolved_columns[$col['key']];
+					$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
+				?>
+					<button type="button" class="dd-fc-mobile-tab<?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>">
+						<?php echo esc_html($resolved['name']); ?>
+					</button>
+				<?php endforeach; ?>
+			</div>
+
 			<div class="dd-fc-table">
 				<div class="dd-fc-row dd-fc-head-row">
 					<div class="dd-fc-cell dd-fc-feature-col"></div>
-					<?php foreach ($columns as $col):
+					<?php foreach ($columns as $index => $col):
 						$resolved = $resolved_columns[$col['key']];
 						$col_has_annual = $resolved['price'] !== '' && $resolved['price_annual'] !== '';
+						$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
 					?>
-						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>"
+						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>"
+							data-col-index="<?php echo (int) $index; ?>"
 							<?php if ($col_has_annual): ?>
 							data-price-monthly="<?php echo esc_attr($resolved['price']); ?>"
 							data-price-annual="<?php echo esc_attr($resolved['price_annual']); ?>"
@@ -1168,10 +1272,11 @@ class DD_Feature_Comparison_Table
 				<?php foreach ($rows as $row): ?>
 					<div class="dd-fc-row">
 						<div class="dd-fc-cell dd-fc-feature"><span><?php echo esc_html($row['label']); ?></span></div>
-						<?php foreach ($columns as $col):
+						<?php foreach ($columns as $index => $col):
 							$cell = (isset($row['cells'][$col['key']])) ? $row['cells'][$col['key']] : ['type' => 'text', 'text' => ''];
+							$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
 						?>
-							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>">
+							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>">
 								<?php if ($cell['type'] === 'tick'): ?>
 									<span class="dd-fc-tick" aria-label="Included">&#10003;</span>
 								<?php elseif ($cell['type'] === 'cross'): ?>
@@ -1185,6 +1290,37 @@ class DD_Feature_Comparison_Table
 				<?php endforeach; ?>
 			</div>
 		</div>
+		
+		<script>
+			// Vanilla JS handler for the mobile tab switching logic
+			(function() {
+				var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
+				if (!wrap) return;
+				
+				var tabs = wrap.querySelectorAll('.dd-fc-mobile-tab');
+				var cells = wrap.querySelectorAll('.dd-fc-cell[data-col-index]');
+				
+				tabs.forEach(function(tab) {
+					tab.addEventListener('click', function() {
+						var targetIndex = this.getAttribute('data-col-index');
+						
+						// Remove active state from all tabs and apply to clicked
+						tabs.forEach(function(t) { t.classList.remove('dd-fc-mobile-active'); });
+						this.classList.add('dd-fc-mobile-active');
+						
+						// Toggle visibility of plan details and feature values
+						cells.forEach(function(cell) {
+							if (cell.getAttribute('data-col-index') === targetIndex) {
+								cell.classList.add('dd-fc-mobile-active');
+							} else {
+								cell.classList.remove('dd-fc-mobile-active');
+							}
+						});
+					});
+				});
+			})();
+		</script>
+
 		<?php if ($has_recommended): ?>
 			<script>
 				(function() {
@@ -1198,6 +1334,7 @@ class DD_Feature_Comparison_Table
 					// or a wrapped two-line banner overlaps the plan name below it. Measured live
 					// since the actual height depends on the admin's text length and column width.
 					function sync() {
+						if (window.innerWidth <= 768) return; // Only needed on Desktop grid layout
 						var max = 0;
 						banners.forEach(function(el) {
 							if (el.offsetHeight > max) max = el.offsetHeight;
