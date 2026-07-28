@@ -537,7 +537,7 @@ class DD_Feature_Comparison_Table
 							$cf.append('<span class="dd-fc-cell-col-label">' + esc(columnLabel(col)) + '</span>');
 							var $select = $('<select data-cell-field="type" data-row-index="' + rIdx + '" data-col-key="' + col.key + '"></select>');
 							['tick', 'cross', 'text'].forEach(function(t) {
-								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Text')));
+								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Cross' : 'Text')));
 							});
 							$select.val(cell.type);
 							$cf.append($select);
@@ -852,11 +852,8 @@ class DD_Feature_Comparison_Table
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
 				border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				border-radius: 8px;
+				overflow: hidden;
 				background: #fff;
-				/* Implements horizontal scrolling on mobile similar to standard SaaS pricing tables */
-				overflow-x: auto;
-				overflow-y: hidden;
-				-webkit-overflow-scrolling: touch;
 			}
 
 			.dd-fc-wrap .dd-fc-row {
@@ -884,18 +881,7 @@ class DD_Feature_Comparison_Table
 				justify-content: flex-start;
 				text-align: left;
 				font-weight: 500;
-				/* Keeps the feature labels locked to the left when users scroll the plans horizontally */
-				position: sticky;
-				left: 0;
-				z-index: 2;
-				background: #fff;
 			}
-			
-			.dd-fc-wrap .dd-fc-feature-col {
-				background: #fafafa; /* Match .dd-fc-head */
-				z-index: 3; /* Elevated z-index to overlay both the normal cells and sticky feature cells */
-			}
-			
 			.dd-fc-wrap .dd-fc-feature span{
 				border-bottom: 1px dashed;
 			}
@@ -942,9 +928,9 @@ class DD_Feature_Comparison_Table
 			/* Yearly-toggle chrome — same classes/markup as the dd_pricing_table shortcode's own
 			   toggle (DD_PMPro_Frontend_Pricing::build_pricing_card()) for a visually identical
 			   switch, scoped under .dd-fc-wrap so it can't collide if both render on one page.
-			   NOTE: never write a bracketed [shortcode_name] anywhere in this file's actual output
+			   NOTE: never write a bracketed shortcode-tag anywhere in this file's actual output
 			   (echoed HTML/CSS/JS, not PHP docblocks) — do_shortcode() blindly regex-replaces any
-			   "[registered_tag]" text wherever it appears, even inside a <script>/<style> comment,
+			   registered-tag text wherever it appears, even inside a <script>/<style> comment,
 			   which previously injected another shortcode's full HTML mid-tag and broke this block. */
 			.dd-fc-wrap .dd-toggle-wrapper {
 				display: flex;
@@ -1056,6 +1042,81 @@ class DD_Feature_Comparison_Table
 
 			.dd-fc-wrap .dd-fc-row:last-child .dd-fc-cell {
 				border-bottom: none;
+			}
+
+			/* --------------------------------------------------------------------------
+			 * Mobile Layout: Mailchimp-style stacked feature grid
+			 * Instead of horizontal scroll, CSS Grid is recalculated to span feature labels 
+			 * across all plan columns. Headers remain sticky but compact. 
+			 * -------------------------------------------------------------------------- */
+			@media (max-width: 768px) {
+				.dd-fc-wrap .dd-fc-table {
+					/* Render exactly X columns for X plans, stripping the dedicated label column */
+					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
+					border-left: none;
+					border-right: none;
+					border-radius: 0;
+					background: transparent;
+				}
+
+				.dd-fc-wrap .dd-fc-feature-col {
+					display: none;
+				}
+
+				.dd-fc-wrap .dd-fc-feature {
+					/* Feature name breaks into its own row spanning all plan columns */
+					grid-column: 1 / -1; 
+					background: #f4f4f4; /* Section divider gray matching Mailchimp */
+					padding: 12px 16px;
+					font-weight: 600;
+					color: #241c15; /* Match typical dark header contrast */
+					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
+					justify-content: flex-start;
+				}
+				
+				.dd-fc-wrap .dd-fc-feature span {
+					border-bottom: none;
+				}
+
+				.dd-fc-wrap .dd-fc-head {
+					position: sticky;
+					top: var(--dd-fc-sticky-offset, 0px);
+					z-index: 10;
+					background: #fff;
+					padding: 12px 4px !important; /* Override JS --dd-fc-rec-pad computation */
+					border-bottom: 2px solid #241c15; /* Distinct lower border to visually ground sticky header */
+					box-shadow: 0 4px 10px -4px rgba(0,0,0,0.1);
+				}
+
+				/* Heaviest UI pieces are hidden from the sticky nav on mobile, keeping it strictly to Text Labels */
+				.dd-fc-wrap .dd-fc-price,
+				.dd-fc-wrap .dd-toggle-wrapper,
+				.dd-fc-wrap .dd-fc-cta {
+					display: none !important;
+				}
+
+				.dd-fc-wrap .dd-fc-name {
+					font-size: 13px;
+					text-align: center;
+				}
+
+				.dd-fc-wrap .dd-fc-recommended {
+					position: static; 
+					display: table;
+					margin: 0 auto 6px auto;
+					font-size: 9px;
+					padding: 2px 6px;
+				}
+
+				.dd-fc-wrap .dd-fc-cell {
+					padding: 14px 4px;
+					font-size: 13px;
+					word-break: break-word;
+				}
+
+				.dd-fc-wrap .dd-fc-cell:not(:last-child) {
+					border-right: 1px solid var(--dd-fc-border-color, #ececec);
+				}
 			}
 		</style>
 		<?php if ($has_recommended): ?>
