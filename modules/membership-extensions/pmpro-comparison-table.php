@@ -925,9 +925,13 @@ class DD_Feature_Comparison_Table
 				margin-left: 2px;
 			}
 
-			/* Yearly-toggle chrome — same classes/markup as [dd_pricing_table]'s own toggle
-			   (DD_PMPro_Frontend_Pricing::build_pricing_card()) for a visually identical switch,
-			   scoped under .dd-fc-wrap so it can't collide if both shortcodes render on one page. */
+			/* Yearly-toggle chrome — same classes/markup as the dd_pricing_table shortcode's own
+			   toggle (DD_PMPro_Frontend_Pricing::build_pricing_card()) for a visually identical
+			   switch, scoped under .dd-fc-wrap so it can't collide if both render on one page.
+			   NOTE: never write a bracketed [shortcode_name] anywhere in this file's actual output
+			   (echoed HTML/CSS/JS, not PHP docblocks) — do_shortcode() blindly regex-replaces any
+			   "[registered_tag]" text wherever it appears, even inside a <script>/<style> comment,
+			   which previously injected another shortcode's full HTML mid-tag and broke this block. */
 			.dd-fc-wrap .dd-toggle-wrapper {
 				display: flex;
 				align-items: center;
@@ -1145,11 +1149,11 @@ class DD_Feature_Comparison_Table
 					var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
 					if (!wrap) return;
 
-					// Deliberately a distinct class from [dd_pricing_table]'s own `.dd-plan-toggle`
-					// (see pmpro-dynamic-pricing.php) — that shortcode's global script queries the
-					// whole document for that class and assumes a `.dd-card`/`.dd-checkout-btn`
-					// ownership/trial structure this table doesn't have, so sharing the class would
-					// throw if both tables ever render on the same page.
+					// Deliberately a distinct class from the dd_pricing_table shortcode's own
+					// `.dd-plan-toggle` (see pmpro-dynamic-pricing.php) — that shortcode's global
+					// script queries the whole document for that class and assumes a
+					// `.dd-card`/`.dd-checkout-btn` ownership/trial structure this table doesn't
+					// have, so sharing the class would throw if both tables ever render on one page.
 					var toggles = wrap.querySelectorAll('.dd-fc-plan-toggle');
 					toggles.forEach(function(toggle) {
 						toggle.addEventListener('change', function() {
