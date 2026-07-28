@@ -818,7 +818,7 @@ class DD_Feature_Comparison_Table
 				font-weight: 500;
 			}
 			.dd-fc-wrap .dd-fc-feature span{
-				border: 1px dashed;
+				border-bottom: 1px dashed;
 			}
 
 			.dd-fc-wrap .dd-fc-head {
