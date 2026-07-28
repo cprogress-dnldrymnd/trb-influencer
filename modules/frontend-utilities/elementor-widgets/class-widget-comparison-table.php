@@ -35,6 +35,14 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .dd-fc-table .dd-fc-head' => 'background-color: {{VALUE}};' ],
         ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'plan_name_typography',
+                'label'    => esc_html__( 'Plan Name Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-fc-table .dd-fc-name',
+            ]
+        );
         $this->add_control( 'header_name_color', [
             'label'     => esc_html__( 'Plan Name Color', 'trb-influencer' ),
             'type'      => \Elementor\Controls_Manager::COLOR,
@@ -69,6 +77,14 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .dd-fc-table .dd-fc-recommended' => 'color: {{VALUE}};' ],
         ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'recommended_banner_typography',
+                'label'    => esc_html__( 'Banner Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-fc-table .dd-fc-recommended',
+            ]
+        );
 
         $this->add_control( 'cta_heading', [
             'label'     => esc_html__( 'CTA Button', 'trb-influencer' ),
@@ -86,7 +102,7 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
         $this->add_responsive_control( 'cta_padding', [
             'label'      => esc_html__( 'CTA Padding', 'trb-influencer' ),
             'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-            'size_units' => [ 'px', 'em', '%' ],
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
             'selectors'  => [
                 '{{WRAPPER}} .dd-fc-table .dd-fc-cta' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
@@ -94,7 +110,7 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
         $this->add_responsive_control( 'cta_border_radius', [
             'label'      => esc_html__( 'CTA Border Radius', 'trb-influencer' ),
             'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-            'size_units' => [ 'px', 'em', '%' ],
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
             'selectors'  => [
                 '{{WRAPPER}} .dd-fc-table .dd-fc-cta' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
@@ -179,7 +195,7 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
         $this->add_responsive_control( 'cell_padding', [
             'label'      => esc_html__( 'Cell Padding', 'trb-influencer' ),
             'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-            'size_units' => [ 'px', 'em', '%' ],
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
             'selectors'  => [
                 '{{WRAPPER}} .dd-fc-table .dd-fc-cell' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
@@ -206,7 +222,7 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
         $this->add_control( 'table_border_radius', [
             'label'      => esc_html__( 'Table Border Radius', 'trb-influencer' ),
             'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-            'size_units' => [ 'px' ],
+            'size_units' => [ 'px', 'custom' ],
             'separator'  => 'before',
             'selectors'  => [
                 '{{WRAPPER}} .dd-fc-table' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; overflow: hidden;',

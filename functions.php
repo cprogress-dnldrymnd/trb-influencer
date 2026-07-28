@@ -93,7 +93,9 @@ function hello_elementor_child_scripts_styles()
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
         'searches_remaining'    => is_null($searches_remaining) ? '' : (string) $searches_remaining,
         'search_upgrade_url'    => function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : '',
-        'search_limit_message'  => function_exists('dd_get_message') ? dd_get_message('dd_msg_search_limit') : __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
+        'search_limit_message'  => function_exists('dd_get_message')
+            ? dd_get_message((function_exists('dd_user_trial_restricted') && dd_user_trial_restricted()) ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit')
+            : __("You've reached your plan's creator search limit.", 'hello-elementor-child'),
         'save_search_nonce'     => wp_create_nonce('save_search_nonce'),
         'save_influencer_nonce' => wp_create_nonce('save_influencer_nonce'),
         'export_pdf_nonce'      => wp_create_nonce('creatordb_export_saved_list_pdf'),
@@ -132,6 +134,7 @@ $dir = get_stylesheet_directory();
 // 1. Core Includes (Load foundational dependencies first)
 require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/plan-capabilities.php';
+require $dir . '/includes/core/company-trial.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/messages-settings.php';
 require $dir . '/includes/core/hooks.php';

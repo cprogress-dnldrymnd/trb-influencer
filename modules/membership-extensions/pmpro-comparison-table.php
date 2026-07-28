@@ -24,7 +24,7 @@ class DD_Feature_Comparison_Table
 	{
 		add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
 		add_action('admin_init', [$this, 'register_setting']);
-		add_action('admin_enqueue_scripts', [$this, 'maybe_enqueue_media']);
+		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 		add_action('admin_footer', [$this, 'render_admin_assets']);
 		add_action('init', [$this, 'register_shortcode']);
 	}
@@ -59,17 +59,19 @@ class DD_Feature_Comparison_Table
 	}
 
 	/**
-	 * wp.media is only needed on the settings screen; other tabs (Platform Icons) already enqueue
-	 * it, but guard independently since module load order isn't guaranteed.
+	 * wp.media and jQuery UI Sortable are only needed on the settings screen; wp.media is also
+	 * enqueued independently by the Platform Icons tab, but this guards itself since module load
+	 * order isn't guaranteed. Sortable powers drag-to-reorder on both the Columns and Rows lists.
 	 * @param string $hook
 	 * @return void
 	 */
-	public function maybe_enqueue_media($hook)
+	public function enqueue_admin_assets($hook)
 	{
 		if ($hook !== 'toplevel_page_dd-theme-settings') {
 			return;
 		}
 		wp_enqueue_media();
+		wp_enqueue_script('jquery-ui-sortable');
 	}
 
 	/**
@@ -207,8 +209,10 @@ class DD_Feature_Comparison_Table
 				<div id="dd-fc-columns-list" class="dd-fc-columns-list"></div>
 
 				<h2>Feature Rows</h2>
-				<button type="button" class="button" id="dd-fc-add-row-btn">Add Row</button>
 				<div id="dd-fc-rows-list" class="dd-fc-rows-list"></div>
+				<div class="dd-fc-add-row-bottom">
+					<button type="button" class="button" id="dd-fc-add-row-btn">Add Row</button>
+				</div>
 			</div>
 
 			<?php submit_button('Save Comparison Table'); ?>
@@ -241,12 +245,45 @@ class DD_Feature_Comparison_Table
 				flex-wrap: wrap;
 			}
 
-			#dd-panel-comparison-table .dd-fc-columns-list,
-			#dd-panel-comparison-table .dd-fc-rows-list {
+			#dd-panel-comparison-table .dd-fc-columns-list {
 				display: flex;
 				flex-direction: column;
 				gap: 12px;
 				margin-bottom: 24px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-rows-list {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+				margin-bottom: 12px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-add-row-bottom {
+				display: flex;
+				justify-content: flex-end;
+				margin-bottom: 24px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-drag {
+				cursor: move;
+				color: #8c8f94;
+				user-select: none;
+				font-size: 16px;
+				line-height: 1;
+				margin-right: 8px;
+				flex-shrink: 0;
+			}
+
+			#dd-panel-comparison-table .ui-sortable-helper {
+				box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+			}
+
+			#dd-panel-comparison-table .ui-sortable-placeholder {
+				border: 1px dashed #8c8f94;
+				border-radius: 4px;
+				background: #f6f7f7;
+				visibility: visible !important;
 			}
 
 			#dd-panel-comparison-table .dd-fc-card {
@@ -266,6 +303,7 @@ class DD_Feature_Comparison_Table
 
 			#dd-panel-comparison-table .dd-fc-card-title {
 				font-weight: 600;
+				flex: 1;
 			}
 
 			#dd-panel-comparison-table .dd-fc-badge {
@@ -404,6 +442,7 @@ class DD_Feature_Comparison_Table
 						var $card = $('<div class="dd-fc-card" data-key="' + col.key + '"></div>');
 
 						var $head = $('<div class="dd-fc-card-head"></div>');
+						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#9783;</span>');
 						$head.append('<span class="dd-fc-card-title">' + esc(columnLabel(col)) + '<span class="dd-fc-badge">' + (col.type === 'pmpro' ? 'PMPro Plan' : 'Custom') + '</span></span>');
 						$head.append('<button type="button" class="dd-fc-remove" data-action="remove-column" data-index="' + idx + '">Remove column</button>');
 						$card.append($head);
@@ -458,6 +497,7 @@ class DD_Feature_Comparison_Table
 						var $card = $('<div class="dd-fc-card dd-fc-row-card" data-row-index="' + rIdx + '"></div>');
 
 						var $head = $('<div class="dd-fc-card-head"></div>');
+						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#9783;</span>');
 						var $labelInput = $('<input type="text" data-row-field="label" data-row-index="' + rIdx + '" style="flex:1;margin-right:10px;" />').val(row.label || '').attr('placeholder', 'Feature label, e.g. Monthly Email Sends');
 						$head.append($labelInput);
 						$head.append('<button type="button" class="dd-fc-remove" data-action="remove-row" data-row-index="' + rIdx + '">Remove row</button>');
@@ -624,6 +664,43 @@ class DD_Feature_Comparison_Table
 				});
 
 				$('#dd-fc-form').on('submit', syncToInput);
+
+				// Drag-to-reorder — the container is bound once; jQuery UI re-scans its `items`
+				// on each drag start, so it keeps working across the empty()+rebuild renderAll()
+				// does on every change. The lists are state-authoritative (not DOM-authoritative
+				// like this theme's other repeaters), so `update` reads the new DOM order back
+				// into `state` and re-renders from it, rather than rewriting input names in place.
+				$('#dd-fc-columns-list').sortable({
+					handle: '.dd-fc-drag',
+					axis: 'y',
+					items: '> .dd-fc-card',
+					update: function() {
+						var keys = $('#dd-fc-columns-list').children('.dd-fc-card').map(function() {
+							return $(this).data('key');
+						}).get();
+						state.columns = keys.map(function(k) {
+							return state.columns.filter(function(c) {
+								return c.key === k;
+							})[0];
+						}).filter(Boolean);
+						renderAll();
+					}
+				});
+
+				$('#dd-fc-rows-list').sortable({
+					handle: '.dd-fc-drag',
+					axis: 'y',
+					items: '> .dd-fc-card',
+					update: function() {
+						var order = $('#dd-fc-rows-list').children('.dd-fc-card').map(function() {
+							return parseInt($(this).data('row-index'), 10);
+						}).get();
+						state.rows = order.map(function(i) {
+							return state.rows[i];
+						}).filter(Boolean);
+						renderAll();
+					}
+				});
 
 				renderAll();
 			});

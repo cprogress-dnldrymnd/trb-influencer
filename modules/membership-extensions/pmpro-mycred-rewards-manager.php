@@ -406,6 +406,13 @@ class DD_PMPro_Rewards_Manager
 
         if (! $level_id) return;
 
+        // One-trial-per-company: a second trial account from a company that already claimed its
+        // trial gets no registration credits and no allowance seed. See includes/core/company-trial.php.
+        if (function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id)) {
+            $this->insert_log($user_id, "Registration points blocked (Company Trial Limit — another account from this company already holds the trial).");
+            return;
+        }
+
         if (empty($level_name) && function_exists('pmpro_getLevel')) {
             $level = pmpro_getLevel($level_id);
             if ($level) {
@@ -508,6 +515,14 @@ class DD_PMPro_Rewards_Manager
                 foreach ($active_users as $user_id) {
 
                     $current_user_id = intval($user_id);
+
+                    // One-trial-per-company: don't let the monthly top-up hand a restricted
+                    // account the allowance the registration-time check already denied it.
+                    if (function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($current_user_id)) {
+                        $this->insert_log($current_user_id, "Monthly top-up skipped (Company Trial Limit).");
+                        continue;
+                    }
+
                     $last_awarded    = get_user_meta($current_user_id, '_dd_last_monthly_point_date', true);
 
                     if (empty($last_awarded)) {

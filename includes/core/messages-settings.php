@@ -30,6 +30,13 @@ function dd_message_definitions()
             'desc'    => 'Shown when a user hits their plan\'s creator search cap (search page redirect, AJAX response, and the client-side popup).',
             'js'      => true,
         ],
+        'dd_msg_company_trial_block' => [
+            'label'   => 'Company Trial Limit',
+            'default' => 'Your company already has a trial account. Upgrade to a paid plan to search for creators.',
+            'group'   => 'plan_gates',
+            'desc'    => 'Shown instead of the normal search-limit notice when a second trial account from the same company email domain tries to search.',
+            'js'      => true,
+        ],
         'dd_msg_export_pdf_gate' => [
             'label'   => 'Export PDF Gate',
             'default' => 'Exporting saved lists to PDF is not available on your current plan. Upgrade your plan to unlock this feature.',

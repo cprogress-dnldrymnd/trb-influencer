@@ -623,8 +623,9 @@ class Influencer_Search
                 $current_count = (int) get_user_meta($current_user_id, 'number_of_searches', true);
 
                 if ($current_count >= $search_limit) {
+                    $is_trial_restricted = function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($current_user_id);
                     wp_send_json_error([
-                        'message'       => dd_get_message('dd_msg_search_limit'),
+                        'message'       => dd_get_message($is_trial_restricted ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit'),
                         'limit_reached' => true,
                         'upgrade_url'   => dd_plan_upgrade_url(),
                     ]);

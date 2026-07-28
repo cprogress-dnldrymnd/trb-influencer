@@ -94,6 +94,29 @@ function dd_render_pmpro_search_limits($name, $values, $description = '')
 <?php
 }
 
+/**
+ * Renders a textarea for the personal-email-domain exemption list, one domain per line.
+ *
+ * @param string $name        The option name.
+ * @param array  $values      Currently-stored domain list (empty = using the built-in defaults).
+ * @param string $description Optional helper text shown below the field.
+ */
+function dd_render_public_email_domains($name, $values, $description = '')
+{
+    $values = is_array($values) ? $values : [];
+    $text   = implode("\n", $values);
+    $placeholder = function_exists('dd_default_public_email_domains')
+        ? implode("\n", dd_default_public_email_domains())
+        : '';
+?>
+    <textarea name="<?php echo esc_attr($name); ?>" rows="8" class="large-text code" placeholder="<?php echo esc_attr($placeholder); ?>"><?php echo esc_textarea($text); ?></textarea>
+    <?php if ($description): ?>
+        <p class="description"><?php echo esc_html($description); ?></p>
+    <?php endif; ?>
+    <p class="description">One domain per line. Leave blank to use the built-in default list (shown as placeholder above).</p>
+<?php
+}
+
 function dd_render_post_search_select($name, $current_id, $type, $description)
 {
     $current_title = '';
@@ -212,12 +235,15 @@ add_action('admin_init', function () {
     }
 
     // Per-feature allowed-levels options (checkbox lists) — one per capability gate.
+    // dd_trial_levels shares the same shape/sanitizer but isn't a dd_user_can() capability gate —
+    // it's a level *classification* consumed by includes/core/company-trial.php.
     $level_allowlist_keys = [
         'dd_export_pdf_allowed_levels',
         'dd_outreach_allowed_levels',
         'dd_saved_lists_allowed_levels',
         'dd_custom_outreach_message_allowed_levels',
         'dd_saved_search_allowed_levels',
+        'dd_trial_levels',
     ];
     foreach ($level_allowlist_keys as $key) {
         register_setting('dd_theme_page_ids', $key, [
@@ -248,6 +274,32 @@ add_action('admin_init', function () {
                 $clean[$level_id] = (int) $limit;
             }
             return $clean;
+        },
+        'default'           => [],
+    ]);
+
+    // Personal-email exemption list for the one-trial-per-company rule — a newline-per-domain
+    // textarea, sanitized into a clean array. Blank means "use the built-in default list" (see
+    // dd_default_public_email_domains() in includes/core/company-trial.php).
+    register_setting('dd_theme_page_ids', 'dd_public_email_domains', [
+        'type'              => 'array',
+        'sanitize_callback' => function ($value) {
+            if (is_array($value)) {
+                $lines = $value;
+            } else {
+                $lines = explode("\n", str_replace("\r", "", (string) $value));
+            }
+
+            $clean = [];
+            foreach ($lines as $line) {
+                $domain = strtolower(trim($line));
+                $domain = ltrim($domain, '@');
+                if ($domain !== '') {
+                    $clean[] = $domain;
+                }
+            }
+
+            return array_values(array_unique($clean));
         },
         'default'           => [],
     ]);
@@ -338,6 +390,22 @@ add_action('admin_init', function () {
             'dd_search_limits',
             get_option('dd_search_limits', []),
             'Total creator searches allowed per membership level. Leave blank for unlimited.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_trial_levels', 'Trial Levels', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_trial_levels',
+            get_option('dd_trial_levels', []),
+            'Membership levels considered a "free trial" for the one-trial-per-company rule. Only the first account from a company (matched by email domain) reaching one of these levels keeps its registration credits and creator searches — later accounts from the same company are blocked from both until they upgrade. Leave all unchecked to disable this rule entirely.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_public_email_domains', 'Personal Email Domains', function () {
+        dd_render_public_email_domains(
+            'dd_public_email_domains',
+            get_option('dd_public_email_domains', []),
+            'Email domains that are never treated as a shared "company" for the one-trial-per-company rule above (so e.g. two separate Gmail signups are never grouped together).'
         );
     }, 'dd-theme-settings-functionality', 'dd_functionality_section');
 

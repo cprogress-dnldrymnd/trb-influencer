@@ -168,17 +168,27 @@ When adding a new user-facing string that a client might want to reword, add it 
 `dd_message_definitions()` and read it through `dd_get_message()`/`dd_messages` rather than inlining
 new copy.
 
-Four features are gated by
+Five features are gated by
 per-level checkbox lists rendered with `dd_render_pmpro_levels_checkboxes()` — `dd_export_pdf_allowed_levels`
 ("Export PDF Restriction"), `dd_outreach_allowed_levels` ("Contact / Outreach Restriction"),
 `dd_saved_lists_allowed_levels` ("Saved Lists Restriction"), `dd_custom_outreach_message_allowed_levels`
-("Custom Outreach Message Restriction") — plus a numeric-per-level field, `dd_search_limits`
+("Custom Outreach Message Restriction"), `dd_saved_search_allowed_levels` ("Saved Search Restriction")
+— plus a numeric-per-level field, `dd_search_limits`
 ("Creator Search Limit", rendered by `dd_render_pmpro_search_limits()`, blank/`-1` = unlimited).
 These are all read through the capability layer (`includes/core/plan-capabilities.php`, see below)
 rather than `get_option()` directly. When adding a new plan-gated feature, add it to
 `dd_plan_feature_option_key()`'s map and register its checkbox field here rather than inventing a
 bespoke option; a plain non-plan feature toggle still registers directly on the
 `dd-theme-settings-functionality` page / `dd_functionality_section` and reads via `get_option()`.
+
+Two further Functionality-tab fields back the **one-trial-per-company rule**
+(`includes/core/company-trial.php`): `dd_trial_levels` ("Trial Levels") is a level-ID checkbox
+list sharing the same shape/sanitizer as the capability gates above but registered separately —
+it's a level *classification*, not a `dd_user_can()` feature, so it is deliberately **not** in
+`dd_plan_feature_option_key()`'s map; and `dd_public_email_domains` ("Personal Email Domains") is a
+newline-per-domain textarea (falls back to a built-in default list when blank) naming domains that
+are never treated as a shared "company". See the third-party integrations section below for the
+rule itself.
 
 A **"Platform Icons" tab** lets admins override the built-in Instagram/YouTube/TikTok SVG glyphs
 with an uploaded image via `wp.media` (`dd_render_platform_icon_picker()`), stored as an attachment
@@ -310,6 +320,11 @@ section above for their option names/labels). `dd_plan_upgrade_url()` (→ `pmpr
 is the shared "upgrade your plan" CTA destination used wherever a gate blocks a user. A sibling function,
 `dd_user_search_limit($user_id = null)`, reads the separate `dd_search_limits` per-level numeric option and
 **fails open** (`-1` = unlimited) rather than closed — see the search pipeline section above.
+One deliberate override of that fail-open posture: if `dd_user_trial_restricted($user_id)`
+(`includes/core/company-trial.php`) is true — a second trial signup from a company that already
+claimed its one trial — `dd_user_search_limit()` returns `0` regardless of the user's level, so the
+existing search-cap enforcement chain (AJAX gate, page-load redirect, `[searches_remaining]`) blocks
+them with no separate code path needed.
 `dd_searches_remaining($user_id = null)` builds on it for display purposes — `dd_user_search_limit()` minus
 the `number_of_searches` counter, floored at 0 — and returns `null` for unlimited plans or logged-out users
 so callers render nothing rather than a bogus number. The `[searches_remaining template_id="…"]` shortcode
@@ -464,6 +479,30 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription
   Delay.
+- **One trial per company** (`includes/core/company-trial.php`) — a complementary, payment-method-
+  independent anti-abuse layer: "company" is derived from the signup email's domain
+  (`dd_user_company_domain()`), exempting an admin-editable personal-provider list
+  (`dd_public_email_domains`, falls back to a built-in default) so e.g. two separate Gmail signups
+  are never grouped together. Which PMPro levels count as a "trial" is admin-configured
+  (`dd_trial_levels`), not hardcoded. Hooked on `pmpro_after_checkout` and
+  `pmpro_after_change_membership_level` (both priority 5, ahead of the rewards manager's 10) via
+  `dd_evaluate_company_trial_status($user_id, $level_id)`: the first account from a company to
+  reach a trial level claims that company's one trial slot (`_dd_company_trial_claimed` user meta —
+  permanent, not released on cancellation/upgrade); any later account from the same company
+  reaching a trial level is flagged `_dd_company_trial_restricted` instead. That flag does two
+  things — forces `dd_user_search_limit()` to `0` (see the plan-capability section above) and blocks
+  `DD_PMPro_Rewards_Manager::award_registration_points()`/`process_monthly_points()` from awarding
+  registration credits or seeding the monthly allowance — and nothing else; outreach, saved lists,
+  export PDF etc. keep following the plan's normal `dd_user_can()` configuration regardless. Moving
+  a restricted account to a non-trial level clears the restriction on the very next
+  checkout/level-change event. A one-time `admin_init` backfill
+  (`dd_company_trial_backfill()`, gated by the `dd_company_trial_backfill_done` option, held back
+  until at least one level is marked trial) stamps existing users' company domains and grants the
+  claim to the earliest-registered trial-level user per domain **without ever restricting** an
+  already-existing account. The Users list in wp-admin gets a read-only "Company Trial" column
+  (`manage_users_columns`/`manage_users_custom_column`) showing claim/restricted status and domain —
+  there is no admin UI to manually clear a restriction, only deleting the user's
+  `_dd_company_trial_restricted` meta.
 - **AJAX signup** (`pmpro-sign-up.php`, `DD_PMPro_Ajax_Signup`) — extends PMPro registration with an
   avatar upload field and a terms-acceptance checkbox.
 - **Elementor** (`elementor.php`) — registers **custom query IDs** consumed by Loop widgets via

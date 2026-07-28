@@ -90,6 +90,13 @@ function dd_user_search_limit($user_id = null)
         return -1;
     }
 
+    // A second trial account from a company that already used its trial gets no searches at
+    // all — deliberately overrides this function's usual fail-open posture. See
+    // includes/core/company-trial.php.
+    if (function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id)) {
+        return 0;
+    }
+
     $level = pmpro_getMembershipLevelForUser($user_id);
     if (empty($level->id)) {
         return -1;
