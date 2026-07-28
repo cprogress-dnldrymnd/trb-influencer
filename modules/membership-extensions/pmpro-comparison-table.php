@@ -790,6 +790,9 @@ class DD_Feature_Comparison_Table
 				justify-content: space-between;
 				text-align: center;
 			}
+			.dd-fc-wrap  .dd-fc-row .dd-fc-cell {
+				justify-content: center;
+			}
 
 			.dd-fc-wrap .dd-fc-feature-col,
 			.dd-fc-wrap .dd-fc-feature {
