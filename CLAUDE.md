@@ -485,9 +485,10 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   `state` object (not the DOM) is authoritative, so a drag's `update` callback reads the new DOM order
   back into `state.columns`/`state.rows` and calls `renderAll()` rather than rewriting input names in
   place — keep new list mutations going through `state` + `renderAll()` for the same reason. The widget's
-  Style tab also exposes `Group_Control_Typography` controls for the plan-name header and the
-  "Recommended" banner text, and its padding/border-radius `DIMENSIONS` controls include the `custom`
-  unit alongside `px`/`em`/`%`.
+  Style tab also exposes `Group_Control_Typography` controls for the plan-name header, the cell values
+  (`.dd-fc-cell:not(.dd-fc-feature)`, i.e. every column's tick/cross/text — separate from the feature-label
+  typography), and the "Recommended" banner text (plus a banner `DIMENSIONS` padding control); its
+  padding/border-radius `DIMENSIONS` controls include the `custom` unit alongside `px`/`em`/`%`.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

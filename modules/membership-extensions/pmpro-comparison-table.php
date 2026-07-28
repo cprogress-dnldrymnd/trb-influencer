@@ -787,7 +787,7 @@ class DD_Feature_Comparison_Table
 				border-bottom: 1px solid #ececec;
 				display: flex;
 				align-items: center;
-				justify-content: center;
+				justify-content: space-between;
 				text-align: center;
 			}
 
@@ -805,6 +805,10 @@ class DD_Feature_Comparison_Table
 				background: #fafafa;
 				font-weight: 600;
 				position: relative;
+			}
+
+			.dd-fc-wrap .dd-fc-head > * {
+				width: 100%;
 			}
 
 			.dd-fc-wrap .dd-fc-recommended {
