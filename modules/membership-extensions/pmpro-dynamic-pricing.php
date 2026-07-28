@@ -288,10 +288,12 @@ class DD_PMPro_Frontend_Pricing
 	/**
 	 * Retrieves the 'Annual' payment plan data for a given PMPro level.
 	 * Scans all level meta to guarantee extraction regardless of the specific meta key used by the add-on.
+	 * Public/static so the Feature Comparison Table (pmpro-comparison-table.php) can reuse the same
+	 * detection for its own yearly-toggle columns, same as it reuses get_orderable_plans().
 	 * @param int $level_id The PMPro Level ID.
 	 * @return array|false Returns an array containing the 'id' (formatted for checkout), 'price' (formatted), and 'raw_price' (float) or false if undetected.
 	 */
-	private function get_annual_payment_plan($level_id)
+	public static function get_annual_payment_plan($level_id)
 	{
 		global $wpdb;
 

@@ -480,7 +480,25 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   the same accessor the dynamic pricing table widget uses) or a **custom column** with its own
   price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
   at render time (`resolve_column()`) so it never drifts stale — only fields the admin explicitly
-  filled in override the live plan data. Both the Columns and Feature Rows lists are drag-to-reorder
+  filled in override the live plan data. `resolve_column()` also resolves an **annual price/CTA URL**
+  pair the same way: a PMPro column with no manually-entered annual price auto-detects the level's
+  "Annual" Payment Plan extension via `DD_PMPro_Frontend_Pricing::get_annual_payment_plan()` (made
+  `public static` specifically so this file can call it, mirroring how it already reuses
+  `get_orderable_plans()`); a custom column, or a PMPro column with no Annual plan configured, only
+  gets an annual price if the admin typed one into the Columns editor's "Annual Price" field, and a
+  filled-in annual price with no explicit annual CTA URL reuses the monthly CTA rather than dead-end.
+  `render_shortcode()` resolves every column once up front into `$resolved_columns` (avoiding a
+  second DB-hitting `resolve_column()` call per column) and sets `$has_annual` when any column ends up
+  with both a monthly and annual price. When `$has_annual` is true, each such column's head cell gets a
+  monthly/yearly toggle switch (`.dd-fc-plan-toggle`, styled as `.dd-switch`/`.dd-slider` — visually
+  identical markup/classes to `[dd_pricing_table]`'s own toggle in `pmpro-dynamic-pricing.php`, but
+  deliberately scoped under `.dd-fc-wrap`/a distinct `.dd-fc-plan-toggle` class rather than reusing
+  `.dd-plan-toggle`, since that shortcode's global toggle script assumes a `.dd-card`/`.dd-checkout-btn`
+  structure this table doesn't have) plus a `data-price-monthly`/`data-price-annual`/`data-period-*`/
+  `data-url-*` attribute set; a small inline script per instance swaps the displayed price, period, and
+  CTA `href` on toggle. Both the Columns editor and this rendering are shortcode-only — the widget
+  wrapper contributes no annual-specific controls, since content stays shortcode-authored.
+  Both the Columns and Feature Rows lists are drag-to-reorder
   (jQuery UI Sortable, enqueued only on the settings screen) via a `.dd-fc-drag` handle; the client-side
   `state` object (not the DOM) is authoritative, so a drag's `update` callback reads the new DOM order
   back into `state.columns`/`state.rows` and calls `renderAll()` rather than rewriting input names in
@@ -488,7 +506,11 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   Style tab also exposes `Group_Control_Typography` controls for the plan-name header, the cell values
   (`.dd-fc-cell:not(.dd-fc-feature)`, i.e. every column's tick/cross/text — separate from the feature-label
   typography), and the "Recommended" banner text (plus a banner `DIMENSIONS` padding control); its
-  padding/border-radius `DIMENSIONS` controls include the `custom` unit alongside `px`/`em`/`%`.
+  padding/border-radius `DIMENSIONS` controls include the `custom` unit alongside `px`/`em`/`%`. A single
+  "Cell Border Color" control sets `--dd-fc-border-color` on `.dd-fc-table`, which the shortcode's own
+  `<style>` (`pmpro-comparison-table.php`) reads for the table's outer border, row dividers, and (via a
+  `.dd-fc-cell:not(:last-child)` rule) column dividers — one control governs all three rather than
+  separate ones per edge.
   The head row's reserved top padding (room for the banner, which is `position:absolute`) is not a
   fixed value — `render_shortcode()` only reserves the larger 30px gap when at least one column is
   actually marked recommended (`--dd-fc-rec-pad` CSS var, default 14px), and when it does, an inline

@@ -203,10 +203,11 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
             'type'      => \Elementor\Controls_Manager::COLOR,
             'selectors' => [ '{{WRAPPER}} .dd-fc-table .dd-fc-cross' => 'color: {{VALUE}};' ],
         ] );
-        $this->add_control( 'divider_color', [
-            'label'     => esc_html__( 'Row Divider Color', 'trb-influencer' ),
-            'type'      => \Elementor\Controls_Manager::COLOR,
-            'selectors' => [ '{{WRAPPER}} .dd-fc-table .dd-fc-cell' => 'border-bottom-color: {{VALUE}};' ],
+        $this->add_control( 'cell_border_color', [
+            'label'       => esc_html__( 'Cell Border Color', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::COLOR,
+            'description' => esc_html__( 'Applies to every cell border in the table (outer edge, row dividers, and column dividers).', 'trb-influencer' ),
+            'selectors'   => [ '{{WRAPPER}} .dd-fc-table' => '--dd-fc-border-color: {{VALUE}};' ],
         ] );
         $this->add_responsive_control( 'cell_padding', [
             'label'      => esc_html__( 'Cell Padding', 'trb-influencer' ),

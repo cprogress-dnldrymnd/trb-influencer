@@ -123,6 +123,9 @@ class DD_Feature_Comparison_Table
 				'period'           => sanitize_text_field($col['period'] ?? ''),
 				'cta_text'         => sanitize_text_field($col['cta_text'] ?? ''),
 				'cta_url'          => ! empty($col['cta_url']) ? esc_url_raw($col['cta_url']) : '',
+				'price_annual'     => sanitize_text_field($col['price_annual'] ?? ''),
+				'period_annual'    => sanitize_text_field($col['period_annual'] ?? ''),
+				'cta_url_annual'   => ! empty($col['cta_url_annual']) ? esc_url_raw($col['cta_url_annual']) : '',
 				'recommended'      => ! empty($col['recommended']),
 				'recommended_text' => sanitize_text_field($col['recommended_text'] ?? ''),
 				'highlight'        => ! empty($col['highlight']),
@@ -382,6 +385,12 @@ class DD_Feature_Comparison_Table
 				color: #757575;
 				font-style: italic;
 			}
+
+			#dd-panel-comparison-table .dd-fc-field-note {
+				color: #757575;
+				font-size: 12px;
+				margin: 12px 0 8px;
+			}
 		</style>
 		<script>
 			jQuery(function($) {
@@ -475,6 +484,13 @@ class DD_Feature_Comparison_Table
 
 						$card.append($grid);
 
+						$card.append('<p class="dd-fc-field-note">Fill in an Annual Price to show a Yearly toggle on this column (leave blank to hide it). PMPro columns auto-detect an "Annual" Payment Plan if one is configured.</p>');
+						var $annualGrid = $('<div class="dd-fc-field-grid"></div>');
+						$annualGrid.append(field('Annual Price', 'price_annual', col.price_annual, col.type === 'pmpro' ? '(auto: annual plan price)' : 'e.g. 190'));
+						$annualGrid.append(field('Annual Price Period', 'period_annual', col.period_annual, 'e.g. /year'));
+						$annualGrid.append(field('Annual CTA URL', 'cta_url_annual', col.cta_url_annual, col.type === 'pmpro' ? '(auto: annual checkout link)' : '(defaults to CTA URL)'));
+						$card.append($annualGrid);
+
 						var $checks = $('<div class="dd-fc-field-grid" style="margin-top:10px;"></div>');
 						var $recCheck = $('<label class="dd-fc-inline-check"></label>');
 						$recCheck.append($('<input type="checkbox" data-field="recommended" data-index="' + idx + '" />').prop('checked', !!col.recommended));
@@ -561,6 +577,9 @@ class DD_Feature_Comparison_Table
 						period: '/month',
 						cta_text: 'Buy Now',
 						cta_url: '',
+						price_annual: '',
+						period_annual: '/year',
+						cta_url_annual: '',
 						recommended: false,
 						recommended_text: '',
 						highlight: false
@@ -578,6 +597,9 @@ class DD_Feature_Comparison_Table
 						period: '',
 						cta_text: 'Buy Now',
 						cta_url: '',
+						price_annual: '',
+						period_annual: '',
+						cta_url_annual: '',
 						recommended: false,
 						recommended_text: '',
 						highlight: false
@@ -725,17 +747,27 @@ class DD_Feature_Comparison_Table
 	}
 
 	/**
-	 * Resolves a column's display name/price/CTA URL, live-deriving from its PMPro level when the
-	 * admin left that field blank so a plan's price/name/checkout link never drifts stale.
+	 * Resolves a column's display name/price/CTA URL (and yearly-toggle annual price/CTA URL when
+	 * present), live-deriving from its PMPro level when the admin left a field blank so a plan's
+	 * price/name/checkout link never drifts stale.
+	 *
+	 * The annual side mirrors [dd_pricing_table]'s own monthly/yearly toggle
+	 * (DD_PMPro_Frontend_Pricing::build_pricing_card()): a PMPro column with no manually-entered
+	 * annual price auto-detects the level's "Annual" Payment Plan extension via the same
+	 * get_annual_payment_plan() lookup that table uses. A custom column (or a PMPro column with no
+	 * Annual plan configured) only shows an annual price if the admin entered one — leaving both
+	 * blank simply omits the toggle for that column.
 	 *
 	 * @param array $col
-	 * @return array{name:string, price:string, cta_url:string}
+	 * @return array{name:string, price:string, cta_url:string, price_annual:string, cta_url_annual:string}
 	 */
 	private function resolve_column($col)
 	{
-		$name    = $col['name'];
-		$price   = $col['price'];
-		$cta_url = $col['cta_url'];
+		$name           = $col['name'];
+		$price          = $col['price'];
+		$cta_url        = $col['cta_url'];
+		$price_annual   = $col['price_annual'] ?? '';
+		$cta_url_annual = $col['cta_url_annual'] ?? '';
 
 		if ($col['type'] === 'pmpro' && $col['level_id'] && function_exists('pmpro_getLevel')) {
 			$level = pmpro_getLevel($col['level_id']);
@@ -750,10 +782,32 @@ class DD_Feature_Comparison_Table
 				if ($cta_url === '' && function_exists('pmpro_url')) {
 					$cta_url = pmpro_url('checkout', '?level=' . (int) $col['level_id']);
 				}
+
+				if ($price_annual === '' && class_exists('DD_PMPro_Frontend_Pricing')) {
+					$annual_plan = DD_PMPro_Frontend_Pricing::get_annual_payment_plan($col['level_id']);
+					if (! empty($annual_plan)) {
+						$price_annual = $annual_plan['price'];
+						if ($cta_url_annual === '' && function_exists('pmpro_url')) {
+							$cta_url_annual = pmpro_url('checkout', '?level=' . (int) $col['level_id'] . '&pmpropp_chosen_plan=' . $annual_plan['id']);
+						}
+					}
+				}
 			}
 		}
 
-		return ['name' => $name, 'price' => $price, 'cta_url' => $cta_url];
+		// A manually-entered annual price with no explicit annual link reuses the monthly CTA
+		// rather than leaving the yearly view with a dead button.
+		if ($price_annual !== '' && $cta_url_annual === '') {
+			$cta_url_annual = $cta_url;
+		}
+
+		return [
+			'name'           => $name,
+			'price'          => $price,
+			'cta_url'        => $cta_url,
+			'price_annual'   => $price_annual,
+			'cta_url_annual' => $cta_url_annual,
+		];
 	}
 
 	/**
@@ -774,11 +828,18 @@ class DD_Feature_Comparison_Table
 		$rows    = $data['rows'];
 		$col_count = count($columns);
 
-		$has_recommended = false;
+		// Resolved once per column (each PMPro column resolution can hit the DB) and reused both
+		// for these page-level flags and inside the render loop below.
+		$resolved_columns = [];
+		$has_recommended  = false;
+		$has_annual       = false;
 		foreach ($columns as $col) {
+			$resolved_columns[$col['key']] = $this->resolve_column($col);
 			if (! empty($col['recommended'])) {
 				$has_recommended = true;
-				break;
+			}
+			if ($resolved_columns[$col['key']]['price'] !== '' && $resolved_columns[$col['key']]['price_annual'] !== '') {
+				$has_annual = true;
 			}
 		}
 		$wrap_id = 'dd-fc-' . (++self::$instance_counter);
@@ -789,7 +850,7 @@ class DD_Feature_Comparison_Table
 			.dd-fc-wrap .dd-fc-table {
 				display: grid;
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
-				border: 1px solid #e2e2e2;
+				border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				border-radius: 8px;
 				overflow: hidden;
 				background: #fff;
@@ -801,11 +862,15 @@ class DD_Feature_Comparison_Table
 
 			.dd-fc-wrap .dd-fc-cell {
 				padding: 14px 16px;
-				border-bottom: 1px solid #ececec;
+				border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
 				display: flex;
 				align-items: center;
 				justify-content: space-between;
 				text-align: center;
+			}
+
+			.dd-fc-wrap .dd-fc-cell:not(:last-child) {
+				border-right: 1px solid var(--dd-fc-border-color, #ececec);
 			}
 			.dd-fc-wrap  .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell:not(.dd-fc-feature) {
 				justify-content: center;
@@ -860,6 +925,82 @@ class DD_Feature_Comparison_Table
 				margin-left: 2px;
 			}
 
+			/* Yearly-toggle chrome — same classes/markup as [dd_pricing_table]'s own toggle
+			   (DD_PMPro_Frontend_Pricing::build_pricing_card()) for a visually identical switch,
+			   scoped under .dd-fc-wrap so it can't collide if both shortcodes render on one page. */
+			.dd-fc-wrap .dd-toggle-wrapper {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				margin-top: 6px;
+			}
+
+			.dd-fc-wrap .dd-switch {
+				position: relative;
+				display: inline-block;
+				width: 44px;
+				height: 24px;
+				flex-shrink: 0;
+			}
+
+			.dd-fc-wrap .dd-switch input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.dd-fc-wrap .dd-slider {
+				position: absolute;
+				cursor: pointer;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: #ccc;
+				transition: .4s;
+			}
+
+			.dd-fc-wrap .dd-slider:before {
+				position: absolute;
+				content: "";
+				height: 18px;
+				width: 18px;
+				left: 3px;
+				bottom: 3px;
+				background-color: white;
+				transition: .4s;
+			}
+
+			.dd-fc-wrap .dd-switch input:checked + .dd-slider {
+				background-color: var(--e-global-color-accent, #034146);
+			}
+
+			.dd-fc-wrap .dd-switch input:checked + .dd-slider:before {
+				transform: translateX(20px);
+			}
+
+			.dd-fc-wrap .dd-slider.round {
+				border-radius: 34px;
+			}
+
+			.dd-fc-wrap .dd-slider.round:before {
+				border-radius: 50%;
+			}
+
+			.dd-fc-wrap .dd-toggle-label {
+				font-size: 12px;
+				font-weight: 500;
+			}
+
+			.dd-fc-wrap .dd-discount {
+				background-color: #ABFFB6;
+				padding: 0 10px;
+				border-radius: 50px;
+				font-size: 11px;
+				font-weight: 600;
+				color: var(--e-global-color-primary, #034146);
+			}
+
 			.dd-fc-wrap .dd-fc-cta {
 				margin-top: 6px;
 				display: inline-block;
@@ -908,14 +1049,35 @@ class DD_Feature_Comparison_Table
 			<div class="dd-fc-table">
 				<div class="dd-fc-row dd-fc-head-row">
 					<div class="dd-fc-cell dd-fc-feature-col"></div>
-					<?php foreach ($columns as $col): $resolved = $this->resolve_column($col); ?>
-						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>">
+					<?php foreach ($columns as $col):
+						$resolved = $resolved_columns[$col['key']];
+						$col_has_annual = $resolved['price'] !== '' && $resolved['price_annual'] !== '';
+					?>
+						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>"
+							<?php if ($col_has_annual): ?>
+							data-price-monthly="<?php echo esc_attr($resolved['price']); ?>"
+							data-price-annual="<?php echo esc_attr($resolved['price_annual']); ?>"
+							data-period-monthly="<?php echo esc_attr($col['period']); ?>"
+							data-period-annual="<?php echo esc_attr($col['period_annual'] ?? ''); ?>"
+							data-url-monthly="<?php echo esc_url($resolved['cta_url']); ?>"
+							data-url-annual="<?php echo esc_url($resolved['cta_url_annual']); ?>"
+							<?php endif; ?>>
 							<?php if (! empty($col['recommended'])): ?>
 								<div class="dd-fc-recommended"><?php echo esc_html($col['recommended_text'] !== '' ? $col['recommended_text'] : 'Recommended'); ?></div>
 							<?php endif; ?>
 							<div class="dd-fc-name"><?php echo esc_html($resolved['name']); ?></div>
 							<?php if ($resolved['price'] !== ''): ?>
-								<div class="dd-fc-price"><?php echo esc_html($resolved['price']); ?><?php if (! empty($col['period'])): ?><span class="dd-fc-period"><?php echo esc_html($col['period']); ?></span><?php endif; ?></div>
+								<div class="dd-fc-price"><span class="dd-fc-price-amount"><?php echo esc_html($resolved['price']); ?></span><?php if (! empty($col['period'])): ?><span class="dd-fc-period"><?php echo esc_html($col['period']); ?></span><?php endif; ?></div>
+							<?php endif; ?>
+							<?php if ($col_has_annual): ?>
+								<div class="dd-toggle-wrapper">
+									<label class="dd-switch">
+										<input type="checkbox" class="dd-fc-plan-toggle">
+										<span class="dd-slider round"></span>
+									</label>
+									<span class="dd-toggle-label">Yearly</span>
+									<span class="dd-discount">Save 20%</span>
+								</div>
 							<?php endif; ?>
 							<?php if ($resolved['cta_url'] !== '' || ! empty($col['cta_text'])): ?>
 								<a class="dd-fc-cta" href="<?php echo esc_url($resolved['cta_url']); ?>"><?php echo esc_html($col['cta_text'] !== '' ? $col['cta_text'] : 'Buy Now'); ?></a>
@@ -974,6 +1136,44 @@ class DD_Feature_Comparison_Table
 					} else {
 						window.addEventListener('resize', sync);
 					}
+				})();
+			</script>
+		<?php endif; ?>
+		<?php if ($has_annual): ?>
+			<script>
+				(function() {
+					var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
+					if (!wrap) return;
+
+					// Deliberately a distinct class from [dd_pricing_table]'s own `.dd-plan-toggle`
+					// (see pmpro-dynamic-pricing.php) — that shortcode's global script queries the
+					// whole document for that class and assumes a `.dd-card`/`.dd-checkout-btn`
+					// ownership/trial structure this table doesn't have, so sharing the class would
+					// throw if both tables ever render on the same page.
+					var toggles = wrap.querySelectorAll('.dd-fc-plan-toggle');
+					toggles.forEach(function(toggle) {
+						toggle.addEventListener('change', function() {
+							var head = this.closest('.dd-fc-head');
+							if (!head) return;
+							var isYearly = this.checked;
+
+							var priceEl = head.querySelector('.dd-fc-price-amount');
+							if (priceEl) {
+								priceEl.textContent = isYearly ? head.getAttribute('data-price-annual') : head.getAttribute('data-price-monthly');
+							}
+
+							var periodEl = head.querySelector('.dd-fc-period');
+							if (periodEl) {
+								periodEl.textContent = isYearly ? head.getAttribute('data-period-annual') : head.getAttribute('data-period-monthly');
+							}
+
+							var ctaEl = head.querySelector('.dd-fc-cta');
+							var url = isYearly ? head.getAttribute('data-url-annual') : head.getAttribute('data-url-monthly');
+							if (ctaEl && url) {
+								ctaEl.setAttribute('href', url);
+							}
+						});
+					});
 				})();
 			</script>
 		<?php endif; ?>
