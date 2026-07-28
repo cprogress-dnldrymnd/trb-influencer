@@ -682,9 +682,9 @@ class DD_Feature_Comparison_Table
 				}
 				
 				// Admin Tabs Logic
-				$('.dd-fc-admin-tab').on('click', function(e) {
+				$('.dd-fc-admin-tabs .nav-tab').on('click', function(e) {
 					e.preventDefault();
-					$('.dd-fc-admin-tab').removeClass('nav-tab-active');
+					$('.dd-fc-admin-tabs .nav-tab').removeClass('nav-tab-active');
 					$(this).addClass('nav-tab-active');
 					$('.dd-fc-tab-pane').hide();
 					$('#' + $(this).data('target')).show();
