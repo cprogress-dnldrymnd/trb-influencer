@@ -862,6 +862,19 @@ class DD_Feature_Comparison_Table
 		ob_start();
 	?>
 		<style>
+			/* --------------------------------------------------------------------------
+			 * Structural protection: 
+			 * Using flex-direction column completely disables margin collapsing between 
+			 * siblings (e.g. between the sticky tabs and the table). This physically 
+			 * prevents the "jump" bug in Chrome when elements stick/unstick.
+			 * -------------------------------------------------------------------------- */
+			.dd-fc-wrap {
+				display: flex;
+				flex-direction: column;
+				width: 100%;
+				overflow: visible !important;
+			}
+		
 			.dd-fc-wrap .dd-fc-mobile-tabs {
 				display: none; /* Hidden on desktop */
 			}
@@ -1070,15 +1083,12 @@ class DD_Feature_Comparison_Table
 			 * -------------------------------------------------------------------------- */
 			@media (max-width: 768px) {
 				
-				/* Protect sticky positioning by removing overflow locks */
-				.dd-fc-wrap {
-					overflow: visible !important;
-				}
-
-				/* 1. Mobile Tabs (Sticky Header) */
+				/* 1. Mobile Tabs (Sticky Header) 
+				   Using flexbox directly avoids CSS Grid rendering recalculation bugs 
+				   when browsers apply position: sticky. */
 				.dd-fc-wrap .dd-fc-mobile-tabs {
-					display: grid;
-					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
+					display: flex;
+					flex-wrap: nowrap;
 					position: -webkit-sticky;
 					position: sticky;
 					top: var(--dd-fc-sticky-offset, 0px);
@@ -1086,6 +1096,7 @@ class DD_Feature_Comparison_Table
 					background: #fff;
 					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
 					box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
+					box-sizing: border-box;
 				}
 
 				/* Admin bar height fallback on mobile if user is logged in */
@@ -1094,6 +1105,8 @@ class DD_Feature_Comparison_Table
 				}
 
 				.dd-fc-wrap .dd-fc-mobile-tab {
+					flex: 1 1 0;
+					width: 0;
 					padding: 12px 4px;
 					background: #fafafa;
 					border: 1px solid var(--dd-fc-border-color, #ececec);
@@ -1105,13 +1118,14 @@ class DD_Feature_Comparison_Table
 					font-size: 13px;
 					outline: none;
 					word-break: break-word;
+					box-sizing: border-box;
 				}
 				.dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active {
 					background: #fff;
 					color: #241c15;
 					font-weight: 700;
 					border-bottom: 2px solid var(--e-global-color-primary, #034146);
-					margin-bottom: -1px; /* Overlap bottom border */
+					margin-bottom: -1px; /* Overlap bottom border safely */
 				}
 
 				/* 2. Feature Table perfectly aligns with Tabs Grid */
@@ -1122,6 +1136,9 @@ class DD_Feature_Comparison_Table
 					border-right: none;
 					border-radius: 0;
 					background: transparent;
+					/* Padding-top added here to replace the removed margin-top 
+					   on the cards, entirely preventing layout margin collapses */
+					padding-top: 16px;
 				}
 				
 				.dd-fc-wrap .dd-fc-feature-col {
@@ -1132,7 +1149,7 @@ class DD_Feature_Comparison_Table
 				.dd-fc-wrap .dd-fc-head {
 					display: none;
 					grid-column: 1 / -1;
-					margin: 16px 0;
+					margin: 0 0 16px 0; /* Margin-top removed to avoid collapsing with sticky tabs */
 					padding: 24px 16px !important;
 					border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 					border-radius: 8px;
