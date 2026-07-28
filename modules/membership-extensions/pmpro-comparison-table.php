@@ -1064,33 +1064,37 @@ class DD_Feature_Comparison_Table
 			}
 
 			/* --------------------------------------------------------------------------
-			 * Mobile Layout: Tabbed interface
-			 * Instead of trying to render all columns side-by-side or stacking them all, 
-			 * we extract the plan names to a sticky tab bar at the top, allowing the user 
-			 * to toggle through the full plan card and feature list one at a time.
+			 * Mobile Layout: 
+			 * Top Tabs switch the active 'Plan Details' card.
+			 * The Feature Table matches the Tabs grid and shows ALL columns.
 			 * -------------------------------------------------------------------------- */
 			@media (max-width: 768px) {
 				
-				/* 1. Show and style the sticky tab navigation bar */
+				/* Protect sticky positioning by removing overflow locks */
+				.dd-fc-wrap {
+					overflow: visible !important;
+				}
+
+				/* 1. Mobile Tabs (Sticky Header) */
 				.dd-fc-wrap .dd-fc-mobile-tabs {
-					display: flex;
+					display: grid;
+					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
+					position: -webkit-sticky;
 					position: sticky;
 					top: var(--dd-fc-sticky-offset, 0px);
-					z-index: 10;
+					z-index: 100;
 					background: #fff;
 					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
-					overflow-x: auto;
-					-webkit-overflow-scrolling: touch;
-					scrollbar-width: none; /* Hide scrollbar for Firefox */
+					box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
 				}
-				.dd-fc-wrap .dd-fc-mobile-tabs::-webkit-scrollbar { 
-					display: none; /* Hide scrollbar for Webkit */
+
+				/* Admin bar height fallback on mobile if user is logged in */
+				.admin-bar .dd-fc-wrap .dd-fc-mobile-tabs {
+					top: var(--dd-fc-sticky-offset, 46px);
 				}
 
 				.dd-fc-wrap .dd-fc-mobile-tab {
-					flex: 1 0 auto;
-					min-width: max-content;
-					padding: 16px 20px;
+					padding: 12px 4px;
 					background: #fafafa;
 					border: 1px solid var(--dd-fc-border-color, #ececec);
 					border-bottom: none;
@@ -1098,21 +1102,24 @@ class DD_Feature_Comparison_Table
 					color: #50575e;
 					cursor: pointer;
 					text-align: center;
-					font-size: 14px;
+					font-size: 13px;
 					outline: none;
+					word-break: break-word;
 				}
 				.dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active {
 					background: #fff;
 					color: #241c15;
-					font-weight: 600;
+					font-weight: 700;
 					border-bottom: 2px solid var(--e-global-color-primary, #034146);
 					margin-bottom: -1px; /* Overlap bottom border */
 				}
 
-				/* 2. Convert CSS Grid into standard block layout */
+				/* 2. Feature Table perfectly aligns with Tabs Grid */
 				.dd-fc-wrap .dd-fc-table {
-					display: block;
-					border: none;
+					display: grid;
+					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
+					border-left: none;
+					border-right: none;
 					border-radius: 0;
 					background: transparent;
 				}
@@ -1121,88 +1128,67 @@ class DD_Feature_Comparison_Table
 					display: none;
 				}
 
-				.dd-fc-wrap .dd-fc-row {
-					display: block;
-					border: 1px solid var(--dd-fc-border-color, #e2e2e2);
-					border-radius: 8px;
-					margin-bottom: 16px;
-					overflow: hidden;
-					background: #fff;
-				}
-				
-				/* Head row doesn't need its own border since the active card has one */
-				.dd-fc-wrap .dd-fc-head-row {
-					border: none;
-					margin-bottom: 0;
-					background: transparent;
-				}
-
-				/* 3. Hide all columns except the active one selected via JS */
-				.dd-fc-wrap .dd-fc-cell[data-col-index] {
+				/* 3. Plan Details Card (Head) spans full width, only active is shown */
+				.dd-fc-wrap .dd-fc-head {
 					display: none;
-				}
-				
-				.dd-fc-wrap .dd-fc-cell[data-col-index].dd-fc-mobile-active {
-					display: flex;
-				}
-
-				/* 4. Style the active Plan Card (the original table head) */
-				.dd-fc-wrap .dd-fc-head.dd-fc-mobile-active {
-					padding: 24px 20px;
+					grid-column: 1 / -1;
+					margin: 16px 0;
+					padding: 24px 16px !important;
 					border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 					border-radius: 8px;
-					margin: 16px 0;
 					background: #fafafa;
-					/* Remove absolute padding requirement on mobile to let native flow handle it */
-					padding-top: 24px !important; 
 					position: relative;
 					top: auto;
 				}
+				.dd-fc-wrap .dd-fc-head.dd-fc-mobile-active {
+					display: flex;
+				}
 				
-				/* 5. Recommended banner flows cleanly inside the active plan details card */
+				/* Recommended banner flows cleanly inside the active plan details card */
 				.dd-fc-wrap .dd-fc-head .dd-fc-recommended {
 					position: relative;
 					display: inline-block;
-					/* Pull banner to the very edges of the plan card container */
-					margin: -24px -20px 16px -20px;
-					width: calc(100% + 40px);
+					margin: -24px -16px 16px -16px;
+					width: calc(100% + 32px);
 					padding: 10px 0;
 					border-radius: 8px 8px 0 0;
 					font-size: 13px;
 					font-weight: 600;
-					background: #c5ebd3; /* Styling derived to match the provided screenshot */
+					background: #c5ebd3; 
 					color: #034146;
 					border-bottom: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				}
 
-				/* 6. Feature rows stack label and value vertically on mobile */
-				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) {
-					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
-					border-radius: 0;
-					border: none;
-					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
-					margin-bottom: 0;
-				}
-				
+				/* 4. Feature Names break to their own full-width row */
 				.dd-fc-wrap .dd-fc-feature {
-					display: block;
-					padding: 16px 16px 4px 16px;
-					border: none;
-					font-size: 14px;
-					color: #241c15;
+					grid-column: 1 / -1;
+					background: #f4f4f4; 
+					padding: 12px 16px;
 					font-weight: 600;
-					background: transparent;
+					color: #241c15; 
+					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
+					justify-content: flex-start;
 				}
 				
 				.dd-fc-wrap .dd-fc-feature span {
 					border-bottom: none;
 				}
+
+				/* 5. Feature Values sit under the name in the matched columns */
+				.dd-fc-wrap .dd-fc-cell:not(.dd-fc-head):not(.dd-fc-feature) {
+					padding: 14px 4px;
+					font-size: 13px;
+					word-break: break-word;
+					justify-content: center;
+				}
 				
-				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell[data-col-index].dd-fc-mobile-active {
-					justify-content: flex-start;
-					padding: 4px 16px 16px 16px;
-					border: none;
-					font-size: 14px;
+				.dd-fc-wrap .dd-fc-cell:not(:last-child) {
+					border-right: 1px solid var(--dd-fc-border-color, #ececec);
+				}
+				
+				/* Light active highlight connecting the table column visually to the active Tab */
+				.dd-fc-wrap .dd-fc-cell[data-col-index]:not(.dd-fc-head).dd-fc-mobile-active {
+					background-color: rgba(3, 65, 70, 0.04);
 				}
 			}
 		</style>
@@ -1292,24 +1278,33 @@ class DD_Feature_Comparison_Table
 		</div>
 		
 		<script>
-			// Vanilla JS handler for the mobile tab switching logic
 			(function() {
 				var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
 				if (!wrap) return;
 				
 				var tabs = wrap.querySelectorAll('.dd-fc-mobile-tab');
-				var cells = wrap.querySelectorAll('.dd-fc-cell[data-col-index]');
+				var headCards = wrap.querySelectorAll('.dd-fc-head');
+				var featureCells = wrap.querySelectorAll('.dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell[data-col-index]');
 				
 				tabs.forEach(function(tab) {
 					tab.addEventListener('click', function() {
 						var targetIndex = this.getAttribute('data-col-index');
 						
-						// Remove active state from all tabs and apply to clicked
+						// Update Top Tabs
 						tabs.forEach(function(t) { t.classList.remove('dd-fc-mobile-active'); });
 						this.classList.add('dd-fc-mobile-active');
 						
-						// Toggle visibility of plan details and feature values
-						cells.forEach(function(cell) {
+						// Update Plan Detail Cards
+						headCards.forEach(function(card) {
+							if (card.getAttribute('data-col-index') === targetIndex) {
+								card.classList.add('dd-fc-mobile-active');
+							} else {
+								card.classList.remove('dd-fc-mobile-active');
+							}
+						});
+
+						// Keep active column connected visually within the table rows
+						featureCells.forEach(function(cell) {
 							if (cell.getAttribute('data-col-index') === targetIndex) {
 								cell.classList.add('dd-fc-mobile-active');
 							} else {
