@@ -273,6 +273,15 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
             ],
         ] );
 
+        $this->add_responsive_control( 'mobile_tabs_border_radius', [
+            'label'      => esc_html__( 'Border Radius', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
+            'selectors'  => [
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
+
         $this->add_control( 'cells_heading', [
             'label'     => esc_html__( 'Feature Rows & Cells', 'trb-influencer' ),
             'type'      => \Elementor\Controls_Manager::HEADING,
