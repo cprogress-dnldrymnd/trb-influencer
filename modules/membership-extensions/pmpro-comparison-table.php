@@ -225,18 +225,28 @@ class DD_Feature_Comparison_Table
 			<input type="hidden" name="<?php echo esc_attr(self::OPTION_KEY); ?>" id="dd-fc-data-input" value="<?php echo esc_attr(wp_json_encode($data)); ?>" />
 
 			<div id="dd-fc-builder">
-				<h2>Columns</h2>
-				<div class="dd-fc-add-row">
-					<select id="dd-fc-add-pmpro-select"></select>
-					<button type="button" class="button" id="dd-fc-add-pmpro-btn">Add PMPro Plan Column</button>
-					<button type="button" class="button" id="dd-fc-add-custom-btn">Add Custom Column</button>
-				</div>
-				<div id="dd-fc-columns-list" class="dd-fc-columns-list"></div>
+				<!-- Builder Tabs Navigation -->
+				<h2 class="nav-tab-wrapper dd-fc-admin-tabs" style="margin-bottom: 20px;">
+					<a href="#" class="nav-tab nav-tab-active" data-target="dd-fc-tab-columns">Plan Columns</a>
+					<a href="#" class="nav-tab" data-target="dd-fc-tab-rows">Feature Rows</a>
+				</h2>
 
-				<h2>Feature Rows</h2>
-				<div id="dd-fc-rows-list" class="dd-fc-rows-list"></div>
-				<div class="dd-fc-add-row-bottom">
-					<button type="button" class="button" id="dd-fc-add-row-btn">Add Row</button>
+				<!-- Plan Columns Tab -->
+				<div id="dd-fc-tab-columns" class="dd-fc-tab-pane">
+					<div class="dd-fc-add-row" style="margin-bottom: 20px;">
+						<select id="dd-fc-add-pmpro-select"></select>
+						<button type="button" class="button button-secondary" id="dd-fc-add-pmpro-btn">Add PMPro Plan Column</button>
+						<button type="button" class="button button-primary" id="dd-fc-add-custom-btn">Add Custom Column</button>
+					</div>
+					<div id="dd-fc-columns-list" class="dd-fc-columns-list"></div>
+				</div>
+
+				<!-- Feature Rows Tab -->
+				<div id="dd-fc-tab-rows" class="dd-fc-tab-pane" style="display: none;">
+					<div class="dd-fc-add-row-bottom" style="justify-content: flex-start; margin-bottom: 20px;">
+						<button type="button" class="button button-primary" id="dd-fc-add-row-btn">Add Feature Row</button>
+					</div>
+					<div id="dd-fc-rows-list" class="dd-fc-rows-list"></div>
 				</div>
 			</div>
 
@@ -266,27 +276,14 @@ class DD_Feature_Comparison_Table
 				display: flex;
 				align-items: center;
 				gap: 8px;
-				margin: 10px 0 18px;
 				flex-wrap: wrap;
 			}
 
-			#dd-panel-comparison-table .dd-fc-columns-list {
-				display: flex;
-				flex-direction: column;
-				gap: 12px;
-				margin-bottom: 24px;
-			}
-
+			#dd-panel-comparison-table .dd-fc-columns-list,
 			#dd-panel-comparison-table .dd-fc-rows-list {
 				display: flex;
 				flex-direction: column;
 				gap: 12px;
-				margin-bottom: 12px;
-			}
-
-			#dd-panel-comparison-table .dd-fc-add-row-bottom {
-				display: flex;
-				justify-content: flex-end;
 				margin-bottom: 24px;
 			}
 
@@ -294,7 +291,7 @@ class DD_Feature_Comparison_Table
 				cursor: move;
 				color: #8c8f94;
 				user-select: none;
-				font-size: 16px;
+				font-size: 20px;
 				line-height: 1;
 				margin-right: 8px;
 				flex-shrink: 0;
@@ -306,16 +303,17 @@ class DD_Feature_Comparison_Table
 
 			#dd-panel-comparison-table .ui-sortable-placeholder {
 				border: 1px dashed #8c8f94;
-				border-radius: 4px;
+				border-radius: 6px;
 				background: #f6f7f7;
 				visibility: visible !important;
 			}
 
+			/* Collapsible Card Styling */
 			#dd-panel-comparison-table .dd-fc-card {
-				border: 1px solid #dcdcde;
-				border-radius: 4px;
+				border: 1px solid #c3c4c7;
+				border-radius: 6px;
 				background: #fff;
-				padding: 14px 16px;
+				box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 			}
 
 			#dd-panel-comparison-table .dd-fc-card-head {
@@ -323,12 +321,42 @@ class DD_Feature_Comparison_Table
 				align-items: center;
 				justify-content: space-between;
 				gap: 10px;
-				margin-bottom: 10px;
+				padding: 12px 16px;
+				background: #f6f7f7;
+				border-bottom: 1px solid #c3c4c7;
+				border-radius: 6px 6px 0 0;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+
+			#dd-panel-comparison-table .dd-fc-card-head:hover {
+				background: #f0f0f1;
+			}
+
+			#dd-panel-comparison-table .dd-fc-card.collapsed .dd-fc-card-head {
+				border-bottom: none;
+				border-radius: 6px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-card-body {
+				padding: 16px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-card.collapsed .dd-fc-card-body {
+				display: none;
 			}
 
 			#dd-panel-comparison-table .dd-fc-card-title {
 				font-weight: 600;
 				flex: 1;
+				font-size: 14px;
+			}
+
+			/* Input sizing corrections */
+			#dd-panel-comparison-table .dd-fc-row-label-input {
+				flex: 1;
+				max-width: 400px;
+				padding: 4px 8px;
 			}
 
 			#dd-panel-comparison-table .dd-fc-badge {
@@ -336,26 +364,82 @@ class DD_Feature_Comparison_Table
 				font-size: 11px;
 				padding: 2px 8px;
 				border-radius: 10px;
-				background: #f0f0f1;
+				background: #e2e4e7;
 				color: #50575e;
 				margin-left: 8px;
+			}
+
+			/* Card Action Buttons (Duplicate / Remove / Toggle) */
+			#dd-panel-comparison-table .dd-fc-actions {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-btn-icon {
+				background: none;
+				border: none;
+				cursor: pointer;
+				font-size: 13px;
+				color: #2271b1;
+				text-decoration: none;
+				padding: 0;
+			}
+
+			#dd-panel-comparison-table .dd-fc-btn-icon:hover {
+				color: #135e96;
+				text-decoration: underline;
+			}
+
+			#dd-panel-comparison-table .dd-fc-btn-icon.dd-fc-remove {
+				color: #d63638;
+			}
+
+			#dd-panel-comparison-table .dd-fc-btn-icon.dd-fc-remove:hover {
+				color: #d63638;
+			}
+
+			#dd-panel-comparison-table .dd-fc-toggle-icon {
+				display: inline-block;
+				width: 20px;
+				height: 20px;
+				position: relative;
+			}
+
+			#dd-panel-comparison-table .dd-fc-toggle-icon::after {
+				content: '';
+				position: absolute;
+				top: 8px;
+				left: 5px;
+				border: 5px solid transparent;
+				border-top-color: #50575e;
+				transform-origin: 50% 25%;
+				transition: transform 0.2s ease;
+			}
+
+			#dd-panel-comparison-table .dd-fc-card.collapsed .dd-fc-toggle-icon::after {
+				transform: rotate(-90deg);
+				top: 5px;
+				left: 7px;
 			}
 
 			#dd-panel-comparison-table .dd-fc-field-grid {
 				display: grid;
 				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-				gap: 10px;
+				gap: 16px;
 			}
 
 			#dd-panel-comparison-table .dd-fc-field label {
 				display: block;
-				font-size: 12px;
+				font-size: 13px;
+				font-weight: 600;
 				color: #50575e;
-				margin-bottom: 3px;
+				margin-bottom: 6px;
 			}
 
 			#dd-panel-comparison-table .dd-fc-field input[type="text"] {
 				width: 100%;
+				box-sizing: border-box;
 			}
 
 			#dd-panel-comparison-table .dd-fc-inline-check {
@@ -363,36 +447,36 @@ class DD_Feature_Comparison_Table
 				align-items: center;
 				gap: 6px;
 				font-size: 13px;
-			}
-
-			#dd-panel-comparison-table .dd-fc-row-card .dd-fc-cells {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 10px;
-				margin-top: 10px;
-			}
-
-			#dd-panel-comparison-table .dd-fc-cell-field {
-				display: flex;
-				flex-direction: column;
-				gap: 4px;
-				min-width: 150px;
-			}
-
-			#dd-panel-comparison-table .dd-fc-cell-field .dd-fc-cell-col-label {
-				font-size: 11px;
-				color: #50575e;
 				font-weight: 600;
 			}
 
-			#dd-panel-comparison-table .dd-fc-remove {
-				color: #b32d2e;
-				cursor: pointer;
-				background: none;
-				border: none;
+			/* Feature Cell Grid Alignment */
+			#dd-panel-comparison-table .dd-fc-row-card .dd-fc-cells {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+				gap: 16px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-cell-field {
+				background: #f9f9f9;
+				padding: 12px;
+				border-radius: 6px;
+				border: 1px solid #e2e4e7;
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+			}
+
+			#dd-panel-comparison-table .dd-fc-cell-field .dd-fc-cell-col-label {
 				font-size: 12px;
-				text-decoration: underline;
-				padding: 0;
+				color: #2c3338;
+				font-weight: 600;
+			}
+
+			#dd-panel-comparison-table .dd-fc-cell-field select,
+			#dd-panel-comparison-table .dd-fc-cell-field input[type="text"] {
+				width: 100%;
+				box-sizing: border-box;
 			}
 
 			#dd-panel-comparison-table .dd-fc-empty-note {
@@ -403,7 +487,7 @@ class DD_Feature_Comparison_Table
 			#dd-panel-comparison-table .dd-fc-field-note {
 				color: #757575;
 				font-size: 12px;
-				margin: 12px 0 8px;
+				margin: 16px 0 10px;
 			}
 		</style>
 		<script>
@@ -470,14 +554,21 @@ class DD_Feature_Comparison_Table
 					}
 
 					state.columns.forEach(function(col, idx) {
-						var $card = $('<div class="dd-fc-card" data-key="' + col.key + '"></div>');
+						var isCollapsed = !!col._collapsed;
+						var $card = $('<div class="dd-fc-card' + (isCollapsed ? ' collapsed' : '') + '" data-key="' + col.key + '" data-index="' + idx + '"></div>');
 
 						var $head = $('<div class="dd-fc-card-head"></div>');
-						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#9783;</span>');
+						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#8801;</span>');
 						$head.append('<span class="dd-fc-card-title">' + esc(columnLabel(col)) + '<span class="dd-fc-badge">' + (col.type === 'pmpro' ? 'PMPro Plan' : 'Custom') + '</span></span>');
-						$head.append('<button type="button" class="dd-fc-remove" data-action="remove-column" data-index="' + idx + '">Remove column</button>');
+						
+						var $actions = $('<div class="dd-fc-actions"></div>');
+						$actions.append('<button type="button" class="dd-fc-btn-icon dd-fc-duplicate" data-action="duplicate-column" data-index="' + idx + '" title="Duplicate">Copy</button>');
+						$actions.append('<button type="button" class="dd-fc-btn-icon dd-fc-remove" data-action="remove-column" data-index="' + idx + '" title="Remove">Remove</button>');
+						$actions.append('<span class="dd-fc-toggle-icon"></span>');
+						$head.append($actions);
 						$card.append($head);
 
+						var $body = $('<div class="dd-fc-card-body"></div>');
 						var $grid = $('<div class="dd-fc-field-grid"></div>');
 
 						function field(labelText, key, value, placeholder) {
@@ -496,16 +587,16 @@ class DD_Feature_Comparison_Table
 						$grid.append(field('CTA URL', 'cta_url', col.cta_url, col.type === 'pmpro' ? '(auto: checkout link)' : 'https://'));
 						$grid.append(field('Recommended Banner Text', 'recommended_text', col.recommended_text, 'e.g. Recommended'));
 
-						$card.append($grid);
-
-						$card.append('<p class="dd-fc-field-note">Fill in an Annual Price to show a Yearly toggle on this column (leave blank to hide it). PMPro columns auto-detect an "Annual" Payment Plan if one is configured.</p>');
+						$body.append($grid);
+						$body.append('<p class="dd-fc-field-note">Fill in an Annual Price to show a Yearly toggle on this column (leave blank to hide it). PMPro columns auto-detect an "Annual" Payment Plan if one is configured.</p>');
+						
 						var $annualGrid = $('<div class="dd-fc-field-grid"></div>');
 						$annualGrid.append(field('Annual Price', 'price_annual', col.price_annual, col.type === 'pmpro' ? '(auto: annual plan price)' : 'e.g. 190'));
 						$annualGrid.append(field('Annual Price Period', 'period_annual', col.period_annual, 'e.g. /year'));
 						$annualGrid.append(field('Annual CTA URL', 'cta_url_annual', col.cta_url_annual, col.type === 'pmpro' ? '(auto: annual checkout link)' : '(defaults to CTA URL)'));
-						$card.append($annualGrid);
+						$body.append($annualGrid);
 
-						var $checks = $('<div class="dd-fc-field-grid" style="margin-top:10px;"></div>');
+						var $checks = $('<div class="dd-fc-field-grid" style="margin-top:20px;"></div>');
 						var $recCheck = $('<label class="dd-fc-inline-check"></label>');
 						$recCheck.append($('<input type="checkbox" data-field="recommended" data-index="' + idx + '" />').prop('checked', !!col.recommended));
 						$recCheck.append('Show recommended banner');
@@ -516,7 +607,9 @@ class DD_Feature_Comparison_Table
 						$hlCheck.append('Highlight this column');
 						$checks.append($hlCheck);
 
-						$card.append($checks);
+						$body.append($checks);
+						$card.append($body);
+						
 						$list.append($card);
 					});
 
@@ -532,16 +625,26 @@ class DD_Feature_Comparison_Table
 					}
 
 					state.rows.forEach(function(row, rIdx) {
-						var $card = $('<div class="dd-fc-card dd-fc-row-card" data-row-index="' + rIdx + '"></div>');
+						var isCollapsed = !!row._collapsed;
+						var $card = $('<div class="dd-fc-card dd-fc-row-card' + (isCollapsed ? ' collapsed' : '') + '" data-row-index="' + rIdx + '"></div>');
 
 						var $head = $('<div class="dd-fc-card-head"></div>');
-						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#9783;</span>');
-						var $labelInput = $('<input type="text" data-row-field="label" data-row-index="' + rIdx + '" style="flex:1;margin-right:10px;" />').val(row.label || '').attr('placeholder', 'Feature label, e.g. Monthly Email Sends');
+						$head.append('<span class="dd-fc-drag" title="Drag to reorder">&#8801;</span>');
+						
+						var $labelInput = $('<input type="text" class="dd-fc-row-label-input" data-row-field="label" data-row-index="' + rIdx + '" />').val(row.label || '').attr('placeholder', 'Feature label, e.g. Monthly Email Sends');
 						$head.append($labelInput);
-						$head.append('<button type="button" class="dd-fc-remove" data-action="remove-row" data-row-index="' + rIdx + '">Remove row</button>');
+						
+						var $actions = $('<div class="dd-fc-actions"></div>');
+						$actions.append('<button type="button" class="dd-fc-btn-icon dd-fc-duplicate" data-action="duplicate-row" data-row-index="' + rIdx + '" title="Duplicate">Copy</button>');
+						$actions.append('<button type="button" class="dd-fc-btn-icon dd-fc-remove" data-action="remove-row" data-row-index="' + rIdx + '" title="Remove">Remove</button>');
+						$actions.append('<span class="dd-fc-toggle-icon"></span>');
+						
+						$head.append($actions);
 						$card.append($head);
 
+						var $body = $('<div class="dd-fc-card-body"></div>');
 						var $cells = $('<div class="dd-fc-cells"></div>');
+						
 						state.columns.forEach(function(col) {
 							var cell = (row.cells && row.cells[col.key]) || {
 								type: 'text',
@@ -560,7 +663,10 @@ class DD_Feature_Comparison_Table
 							$cf.append($text);
 							$cells.append($cf);
 						});
-						$card.append($cells);
+						
+						$body.append($cells);
+						$card.append($body);
+						
 						$list.append($card);
 					});
 				}
@@ -574,6 +680,33 @@ class DD_Feature_Comparison_Table
 					renderRows();
 					syncToInput();
 				}
+				
+				// Admin Tabs Logic
+				$('.dd-fc-admin-tab').on('click', function(e) {
+					e.preventDefault();
+					$('.dd-fc-admin-tab').removeClass('nav-tab-active');
+					$(this).addClass('nav-tab-active');
+					$('.dd-fc-tab-pane').hide();
+					$('#' + $(this).data('target')).show();
+				});
+				
+				// Accordion Collapse/Expand Logic
+				$('#dd-fc-columns-list, #dd-fc-rows-list').on('click', '.dd-fc-card-head', function(e) {
+					// Prevent collapsing if user clicks an input, button, or drag handle
+					if ($(e.target).closest('button, input, select, .dd-fc-drag').length) return;
+					
+					var $card = $(this).closest('.dd-fc-card');
+					var isRow = $card.hasClass('dd-fc-row-card');
+					var idx = parseInt(isRow ? $card.data('row-index') : $card.data('index'), 10);
+					
+					if (isRow) {
+						state.rows[idx]._collapsed = !state.rows[idx]._collapsed;
+						$card.toggleClass('collapsed', state.rows[idx]._collapsed);
+					} else {
+						state.columns[idx]._collapsed = !state.columns[idx]._collapsed;
+						$card.toggleClass('collapsed', state.columns[idx]._collapsed);
+					}
+				});
 
 				$('#dd-fc-add-pmpro-btn').on('click', function() {
 					var id = parseInt($('#dd-fc-add-pmpro-select').val(), 10);
@@ -596,7 +729,8 @@ class DD_Feature_Comparison_Table
 						cta_url_annual: '',
 						recommended: false,
 						recommended_text: '',
-						highlight: false
+						highlight: false,
+						_collapsed: false
 					});
 					renderAll();
 				});
@@ -616,7 +750,8 @@ class DD_Feature_Comparison_Table
 						cta_url_annual: '',
 						recommended: false,
 						recommended_text: '',
-						highlight: false
+						highlight: false,
+						_collapsed: false
 					});
 					renderAll();
 				});
@@ -631,12 +766,50 @@ class DD_Feature_Comparison_Table
 					});
 					state.rows.push({
 						label: '',
-						cells: cells
+						cells: cells,
+						_collapsed: false
 					});
 					renderAll();
 				});
 
-				$('#dd-fc-columns-list').on('click', 'button[data-action="remove-column"]', function() {
+				// Column Duplication
+				$('#dd-fc-columns-list').on('click', 'button[data-action="duplicate-column"]', function(e) {
+					e.stopPropagation();
+					var idx = parseInt($(this).data('index'), 10);
+					var col = state.columns[idx];
+					var newCol = JSON.parse(JSON.stringify(col));
+					newCol.key = uid();
+					newCol.name = newCol.name + ' (Copy)';
+					newCol._collapsed = false;
+					
+					state.columns.splice(idx + 1, 0, newCol);
+					
+					// Replicate row values for the new column
+					state.rows.forEach(function(row) {
+						if (row.cells && row.cells[col.key]) {
+							row.cells[newCol.key] = JSON.parse(JSON.stringify(row.cells[col.key]));
+						} else {
+							row.cells[newCol.key] = { type: 'text', text: '' };
+						}
+					});
+					renderAll();
+				});
+
+				// Row Duplication
+				$('#dd-fc-rows-list').on('click', 'button[data-action="duplicate-row"]', function(e) {
+					e.stopPropagation();
+					var rIdx = parseInt($(this).data('row-index'), 10);
+					var row = state.rows[rIdx];
+					var newRow = JSON.parse(JSON.stringify(row));
+					newRow.label = newRow.label + ' (Copy)';
+					newRow._collapsed = false;
+					
+					state.rows.splice(rIdx + 1, 0, newRow);
+					renderAll();
+				});
+
+				$('#dd-fc-columns-list').on('click', 'button[data-action="remove-column"]', function(e) {
+					e.stopPropagation();
 					var idx = parseInt($(this).data('index'), 10);
 					var removed = state.columns[idx];
 					state.columns.splice(idx, 1);
@@ -664,7 +837,8 @@ class DD_Feature_Comparison_Table
 					syncToInput();
 				});
 
-				$('#dd-fc-rows-list').on('click', 'button[data-action="remove-row"]', function() {
+				$('#dd-fc-rows-list').on('click', 'button[data-action="remove-row"]', function(e) {
+					e.stopPropagation();
 					var rIdx = parseInt($(this).data('row-index'), 10);
 					state.rows.splice(rIdx, 1);
 					renderAll();
