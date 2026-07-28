@@ -805,6 +805,7 @@ class DD_Feature_Comparison_Table
 				background: #fafafa;
 				font-weight: 600;
 				position: relative;
+				text-align: left;
 			}
 
 			.dd-fc-wrap .dd-fc-head > * {
@@ -846,6 +847,8 @@ class DD_Feature_Comparison_Table
 				text-decoration: none;
 				font-weight: 600;
 				font-size: 13px;
+				text-align: center;
+				line-height: 1 !important;
 			}
 
 			.dd-fc-wrap .dd-fc-cta:hover {
