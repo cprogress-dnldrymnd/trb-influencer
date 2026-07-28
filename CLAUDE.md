@@ -491,7 +491,7 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   second DB-hitting `resolve_column()` call per column) and sets `$has_annual` when any column ends up
   with both a monthly and annual price. When `$has_annual` is true, each such column's head cell gets a
   monthly/yearly toggle switch (`.dd-fc-plan-toggle`, styled as `.dd-switch`/`.dd-slider` — visually
-  identical markup/classes to `[dd_pricing_table]`'s own toggle in `pmpro-dynamic-pricing.php`, but
+  identical markup/classes to the `dd_pricing_table` shortcode's own toggle in `pmpro-dynamic-pricing.php`, but
   deliberately scoped under `.dd-fc-wrap`/a distinct `.dd-fc-plan-toggle` class rather than reusing
   `.dd-plan-toggle`, since that shortcode's global toggle script assumes a `.dd-card`/`.dd-checkout-btn`
   structure this table doesn't have) plus a `data-price-monthly`/`data-price-annual`/`data-period-*`/
@@ -806,6 +806,15 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   site key from the enqueued `recaptcha/api.js?render=…`, fetches a fresh token via
   `grecaptcha.execute()`, then submits — failing open (never blocks) if reCAPTCHA is unavailable.
 - There is a stray `gitignore` file (no leading dot) alongside the real `.gitignore`.
+- **Never write a bracketed `[registered_shortcode_tag]` inside any file's actual output** —
+  echoed HTML/CSS/JS, including `<style>`/`<script>` comments — even to reference another
+  shortcode by name in a code comment. `do_shortcode()` regex-replaces any `[registered_tag]`
+  text wherever it later appears in the page, so e.g. writing `[dd_pricing_table]` inside a
+  comment in `pmpro-comparison-table.php`'s emitted `<style>` block got replaced with that other
+  shortcode's full rendered HTML mid-tag, breaking the block (fixed by de-bracketing such
+  references to plain text like "the `dd_pricing_table` shortcode"). PHP-only docblock/code
+  comments that never reach output are unaffected, but treat any comment inside a render
+  function's output buffer as reachable.
 - **Geo-IP currency shortcode:** `[currency]` (`shortcode_currency()` in `includes/core/shortcodes.php`)
   resolves the visitor's country via `dd_geolocate_country_code()` — client IP from
   `dd_get_client_ip()` (checks `CF-Connecting-IP`/`X-Forwarded-For`/`X-Real-IP` before

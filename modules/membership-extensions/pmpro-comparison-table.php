@@ -537,7 +537,7 @@ class DD_Feature_Comparison_Table
 							$cf.append('<span class="dd-fc-cell-col-label">' + esc(columnLabel(col)) + '</span>');
 							var $select = $('<select data-cell-field="type" data-row-index="' + rIdx + '" data-col-key="' + col.key + '"></select>');
 							['tick', 'cross', 'text'].forEach(function(t) {
-								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Cross' : 'Text')));
+								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Text')));
 							});
 							$select.val(cell.type);
 							$cf.append($select);
@@ -852,8 +852,11 @@ class DD_Feature_Comparison_Table
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
 				border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				border-radius: 8px;
-				overflow: hidden;
 				background: #fff;
+				/* Implements horizontal scrolling on mobile similar to standard SaaS pricing tables */
+				overflow-x: auto;
+				overflow-y: hidden;
+				-webkit-overflow-scrolling: touch;
 			}
 
 			.dd-fc-wrap .dd-fc-row {
@@ -881,7 +884,18 @@ class DD_Feature_Comparison_Table
 				justify-content: flex-start;
 				text-align: left;
 				font-weight: 500;
+				/* Keeps the feature labels locked to the left when users scroll the plans horizontally */
+				position: sticky;
+				left: 0;
+				z-index: 2;
+				background: #fff;
 			}
+			
+			.dd-fc-wrap .dd-fc-feature-col {
+				background: #fafafa; /* Match .dd-fc-head */
+				z-index: 3; /* Elevated z-index to overlay both the normal cells and sticky feature cells */
+			}
+			
 			.dd-fc-wrap .dd-fc-feature span{
 				border-bottom: 1px dashed;
 			}
