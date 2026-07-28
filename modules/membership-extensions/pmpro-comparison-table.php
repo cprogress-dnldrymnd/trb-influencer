@@ -55,7 +55,9 @@ class DD_Feature_Comparison_Table
 
 	/**
 	 * Registers the single JSON-carrying option. All validation happens in sanitize().
-	 * @return void
+	 *
+	 * @param string $raw
+	 * @return string JSON-encoded ['columns' => [...], 'rows' => [...]]
 	 */
 	public function register_setting()
 	{
@@ -70,6 +72,7 @@ class DD_Feature_Comparison_Table
 	 * wp.media and jQuery UI Sortable are only needed on the settings screen; wp.media is also
 	 * enqueued independently by the Platform Icons tab, but this guards itself since module load
 	 * order isn't guaranteed. Sortable powers drag-to-reorder on both the Columns and Rows lists.
+	 * 
 	 * @param string $hook
 	 * @return void
 	 */
@@ -164,6 +167,7 @@ class DD_Feature_Comparison_Table
 
 	/**
 	 * Reads and decodes the current table data, defaulting to an empty shape.
+	 * 
 	 * @return array{columns: array, rows: array}
 	 */
 	public function get_data()
@@ -208,6 +212,7 @@ class DD_Feature_Comparison_Table
 	 * Self-contained "Comparison Table" tab panel body (the hub provides the surrounding
 	 * <div class="dd-panel">). Columns/rows are built entirely client-side against the
 	 * #dd-fc-data-input hidden field, which is the only field this form actually submits.
+	 * 
 	 * @return void
 	 */
 	public function render_tab_panel()
@@ -243,10 +248,10 @@ class DD_Feature_Comparison_Table
 
 				<!-- Feature Rows Tab -->
 				<div id="dd-fc-tab-rows" class="dd-fc-tab-pane" style="display: none;">
-					<div class="dd-fc-add-row-bottom" style="justify-content: flex-start; margin-bottom: 20px;">
+					<div id="dd-fc-rows-list" class="dd-fc-rows-list"></div>
+					<div class="dd-fc-add-row-bottom" style="display: flex; justify-content: flex-end; margin-top: 20px;">
 						<button type="button" class="button button-primary" id="dd-fc-add-row-btn">Add Feature Row</button>
 					</div>
-					<div id="dd-fc-rows-list" class="dd-fc-rows-list"></div>
 				</div>
 			</div>
 
@@ -259,6 +264,7 @@ class DD_Feature_Comparison_Table
 	 * Prints the builder's CSS/JS, scoped to #dd-panel-comparison-table, on the settings screen
 	 * only. Follows the same admin_footer + screen-id guard every other module tab uses so several
 	 * modules' inline assets can coexist on one admin page without colliding.
+	 * 
 	 * @return void
 	 */
 	public function render_admin_assets()
@@ -284,7 +290,6 @@ class DD_Feature_Comparison_Table
 				display: flex;
 				flex-direction: column;
 				gap: 12px;
-				margin-bottom: 24px;
 			}
 
 			#dd-panel-comparison-table .dd-fc-drag {
@@ -319,7 +324,6 @@ class DD_Feature_Comparison_Table
 			#dd-panel-comparison-table .dd-fc-card-head {
 				display: flex;
 				align-items: center;
-				justify-content: space-between;
 				gap: 10px;
 				padding: 12px 16px;
 				background: #f6f7f7;
@@ -355,7 +359,7 @@ class DD_Feature_Comparison_Table
 			/* Input sizing corrections */
 			#dd-panel-comparison-table .dd-fc-row-label-input {
 				flex: 1;
-				max-width: 400px;
+				max-width: 500px;
 				padding: 4px 8px;
 			}
 
@@ -374,6 +378,7 @@ class DD_Feature_Comparison_Table
 				display: flex;
 				align-items: center;
 				gap: 12px;
+				margin-left: auto; /* Pushes the actions group to the far right */
 			}
 
 			#dd-panel-comparison-table .dd-fc-btn-icon {
