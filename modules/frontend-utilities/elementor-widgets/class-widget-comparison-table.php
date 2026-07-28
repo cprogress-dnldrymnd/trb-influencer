@@ -172,6 +172,107 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
 
         $this->end_controls_tabs();
 
+        // ----------------------------------------------------------------------
+        // Mobile Tabs Style
+        // ----------------------------------------------------------------------
+        $this->add_control( 'mobile_tabs_heading', [
+            'label'     => esc_html__( 'Mobile Tabs', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'mobile_tabs_typography',
+                'label'    => esc_html__( 'Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab',
+            ]
+        );
+
+        $this->start_controls_tabs( 'mobile_tabs_states' );
+
+        // Normal State
+        $this->start_controls_tab( 'mobile_tabs_normal', [
+            'label' => esc_html__( 'Normal', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'mobile_tabs_color', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'mobile_tabs_bg_color', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'mobile_tabs_border',
+                'selector' => '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab',
+            ]
+        );
+        $this->end_controls_tab();
+
+        // Hover State
+        $this->start_controls_tab( 'mobile_tabs_hover', [
+            'label' => esc_html__( 'Hover', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'mobile_tabs_color_hover', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab:hover' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'mobile_tabs_bg_color_hover', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab:hover' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'mobile_tabs_border_hover',
+                'selector' => '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab:hover',
+            ]
+        );
+        $this->end_controls_tab();
+
+        // Active State
+        $this->start_controls_tab( 'mobile_tabs_active', [
+            'label' => esc_html__( 'Active', 'trb-influencer' ),
+        ] );
+        $this->add_control( 'mobile_tabs_color_active', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'mobile_tabs_bg_color_active', [
+            'label'     => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Border::get_type(),
+            [
+                'name'     => 'mobile_tabs_border_active',
+                'selector' => '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab.dd-fc-mobile-active',
+            ]
+        );
+        $this->end_controls_tab();
+
+        $this->end_controls_tabs();
+
+        $this->add_responsive_control( 'mobile_tabs_padding', [
+            'label'      => esc_html__( 'Padding', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
+            'separator'  => 'before',
+            'selectors'  => [
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-mobile-tab' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
+
         $this->add_control( 'cells_heading', [
             'label'     => esc_html__( 'Feature Rows & Cells', 'trb-influencer' ),
             'type'      => \Elementor\Controls_Manager::HEADING,
