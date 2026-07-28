@@ -82,11 +82,14 @@ brief, merged filters, and `WP_Query` args. Watch `wp-content/debug.log`.
 ### Bootstrap & load order (`functions.php`)
 
 `functions.php` enqueues assets and then `require`s every module in a **deliberate order** that
-must be preserved: core helpers → plan capabilities → admin settings → hooks → shortcodes →
-third-party integrations → domain modules. Foundational helpers must load before the
-integrations and modules that call them — `includes/core/plan-capabilities.php` in particular
-must load before `admin-settings.php` (which renders its option fields) and before every module
-that calls `dd_user_can()`.
+must be preserved: core helpers → plan capabilities → company-trial → admin settings → messages
+settings → hooks → shortcodes → third-party integrations → domain modules. Foundational helpers
+must load before the integrations and modules that call them — `includes/core/plan-capabilities.php`
+in particular must load before `admin-settings.php` (which renders its option fields) and before
+every module that calls `dd_user_can()`; `includes/core/company-trial.php` must load before
+`admin-settings.php` too (its `dd_default_public_email_domains()` backs the Personal Email Domains
+field's placeholder) and before `plan-capabilities.php`'s `dd_user_search_limit()` can call
+`dd_user_trial_restricted()`.
 
 ### "Modules" are theme code, not installed plugins
 
@@ -324,7 +327,10 @@ One deliberate override of that fail-open posture: if `dd_user_trial_restricted(
 (`includes/core/company-trial.php`) is true — a second trial signup from a company that already
 claimed its one trial — `dd_user_search_limit()` returns `0` regardless of the user's level, so the
 existing search-cap enforcement chain (AJAX gate, page-load redirect, `[searches_remaining]`) blocks
-them with no separate code path needed.
+them with no separate limit-checking code path needed; the AJAX handler and the localized
+`ajax_vars.search_limit_message` do each independently swap in the distinct `dd_msg_company_trial_block`
+message (vs. the normal `dd_msg_search_limit`) when `dd_user_trial_restricted()` is true, so a
+restricted user sees "your company already has a trial" wording rather than the generic cap message.
 `dd_searches_remaining($user_id = null)` builds on it for display purposes — `dd_user_search_limit()` minus
 the `number_of_searches` counter, floored at 0 — and returns `null` for unlimited plans or logged-out users
 so callers render nothing rather than a bogus number. The `[searches_remaining template_id="…"]` shortcode
@@ -474,7 +480,14 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   the same accessor the dynamic pricing table widget uses) or a **custom column** with its own
   price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
   at render time (`resolve_column()`) so it never drifts stale — only fields the admin explicitly
-  filled in override the live plan data.
+  filled in override the live plan data. Both the Columns and Feature Rows lists are drag-to-reorder
+  (jQuery UI Sortable, enqueued only on the settings screen) via a `.dd-fc-drag` handle; the client-side
+  `state` object (not the DOM) is authoritative, so a drag's `update` callback reads the new DOM order
+  back into `state.columns`/`state.rows` and calls `renderAll()` rather than rewriting input names in
+  place — keep new list mutations going through `state` + `renderAll()` for the same reason. The widget's
+  Style tab also exposes `Group_Control_Typography` controls for the plan-name header and the
+  "Recommended" banner text, and its padding/border-radius `DIMENSIONS` controls include the `custom`
+  unit alongside `px`/`em`/`%`.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

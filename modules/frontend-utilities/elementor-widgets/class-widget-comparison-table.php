@@ -85,6 +85,14 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
                 'selector' => '{{WRAPPER}} .dd-fc-table .dd-fc-recommended',
             ]
         );
+        $this->add_responsive_control( 'recommended_padding', [
+            'label'      => esc_html__( 'Banner Padding', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
+            'selectors'  => [
+                '{{WRAPPER}} .dd-fc-table .dd-fc-recommended' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
 
         $this->add_control( 'cta_heading', [
             'label'     => esc_html__( 'CTA Button', 'trb-influencer' ),
@@ -175,6 +183,14 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
                 'name'     => 'feature_typography',
                 'label'    => esc_html__( 'Feature Label Typography', 'trb-influencer' ),
                 'selector' => '{{WRAPPER}} .dd-fc-table .dd-fc-feature',
+            ]
+        );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'cell_value_typography',
+                'label'    => esc_html__( 'Cell Value Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-fc-table .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell:not(.dd-fc-feature)',
             ]
         );
         $this->add_control( 'tick_color', [
