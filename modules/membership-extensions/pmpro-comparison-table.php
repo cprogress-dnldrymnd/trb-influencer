@@ -537,7 +537,7 @@ class DD_Feature_Comparison_Table
 							$cf.append('<span class="dd-fc-cell-col-label">' + esc(columnLabel(col)) + '</span>');
 							var $select = $('<select data-cell-field="type" data-row-index="' + rIdx + '" data-col-key="' + col.key + '"></select>');
 							['tick', 'cross', 'text'].forEach(function(t) {
-								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Cross' : 'Text')));
+								$select.append($('<option>').val(t).text(t === 'tick' ? 'Tick' : (t === 'cross' ? 'Text')));
 							});
 							$select.val(cell.type);
 							$cf.append($select);
@@ -852,8 +852,11 @@ class DD_Feature_Comparison_Table
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
 				border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				border-radius: 8px;
-				overflow: hidden;
 				background: #fff;
+				/* Implements horizontal scrolling on mobile similar to standard SaaS pricing tables */
+				overflow-x: auto;
+				overflow-y: hidden;
+				-webkit-overflow-scrolling: touch;
 			}
 
 			.dd-fc-wrap .dd-fc-row {
@@ -881,7 +884,18 @@ class DD_Feature_Comparison_Table
 				justify-content: flex-start;
 				text-align: left;
 				font-weight: 500;
+				/* Keeps the feature labels locked to the left when users scroll the plans horizontally */
+				position: sticky;
+				left: 0;
+				z-index: 2;
+				background: #fff;
 			}
+			
+			.dd-fc-wrap .dd-fc-feature-col {
+				background: #fafafa; /* Match .dd-fc-head */
+				z-index: 3; /* Elevated z-index to overlay both the normal cells and sticky feature cells */
+			}
+			
 			.dd-fc-wrap .dd-fc-feature span{
 				border-bottom: 1px dashed;
 			}
@@ -1043,82 +1057,73 @@ class DD_Feature_Comparison_Table
 			.dd-fc-wrap .dd-fc-row:last-child .dd-fc-cell {
 				border-bottom: none;
 			}
-
-			/* --------------------------------------------------------------------------
-			 * Mobile Layout: Mailchimp-style stacked feature grid
-			 * Instead of horizontal scroll, CSS Grid is recalcuated to span feature labels 
-			 * across all plan columns. Headers remain sticky but compact. 
-			 * -------------------------------------------------------------------------- */
-			@media (max-width: 768px) {
-				.dd-fc-wrap .dd-fc-table {
-					/* Render exactly X columns for X plans, stripping the dedicated label column */
-					grid-template-columns: repeat(<?php echo (int) $col_count; ?>, minmax(0, 1fr));
-					border-left: none;
-					border-right: none;
-					border-radius: 0;
-					background: transparent;
-				}
-
-				.dd-fc-wrap .dd-fc-feature-col {
-					display: none;
-				}
-
-				.dd-fc-wrap .dd-fc-feature {
-					/* Feature name breaks into its own row spanning all plan columns */
-					grid-column: 1 / -1; 
-					background: #f4f4f4; /* Section divider gray matching Mailchimp */
-					padding: 12px 16px;
-					font-weight: 600;
-					color: #241c15; /* Match typical dark header contrast */
-					border-bottom: 1px solid var(--dd-fc-border-color, #ececec);
-					justify-content: flex-start;
-				}
-				
-				.dd-fc-wrap .dd-fc-feature span {
-					border-bottom: none;
-				}
-
-				.dd-fc-wrap .dd-fc-head {
-					position: sticky;
-					top: var(--dd-fc-sticky-offset, 0px);
-					z-index: 10;
-					background: #fff;
-					padding: 12px 4px !important; /* Override JS --dd-fc-rec-pad computation */
-					border-bottom: 2px solid #241c15; /* Distinct lower border to visually ground sticky header */
-					box-shadow: 0 4px 10px -4px rgba(0,0,0,0.1);
-				}
-
-				/* Heaviest UI pieces are hidden from the sticky nav on mobile, keeping it strictly to Text Labels */
-				.dd-fc-wrap .dd-fc-price,
-				.dd-fc-wrap .dd-toggle-wrapper,
-				.dd-fc-wrap .dd-fc-cta {
-					display: none !important;
-				}
-
-				.dd-fc-wrap .dd-fc-name {
-					font-size: 13px;
-					text-align: center;
-				}
-
-				.dd-fc-wrap .dd-fc-recommended {
-					position: static; 
-					display: table;
-					margin: 0 auto 6px auto;
-					font-size: 9px;
-					padding: 2px 6px;
-				}
-
-				.dd-fc-wrap .dd-fc-cell {
-					padding: 14px 4px;
-					font-size: 13px;
-					word-break: break-word;
-				}
-
-				.dd-fc-wrap .dd-fc-cell:not(:last-child) {
-					border-right: 1px solid var(--dd-fc-border-color, #ececec);
-				}
-			}
 		</style>
+		<?php if ($has_recommended): ?>
+			<style>
+				#<?php echo esc_attr($wrap_id); ?> { --dd-fc-rec-pad: 30px; }
+			</style>
+		<?php endif; ?>
+		<div class="dd-fc-wrap" id="<?php echo esc_attr($wrap_id); ?>">
+			<div class="dd-fc-table">
+				<div class="dd-fc-row dd-fc-head-row">
+					<div class="dd-fc-cell dd-fc-feature-col"></div>
+					<?php foreach ($columns as $col):
+						$resolved = $resolved_columns[$col['key']];
+						$col_has_annual = $resolved['price'] !== '' && $resolved['price_annual'] !== '';
+					?>
+						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>"
+							<?php if ($col_has_annual): ?>
+							data-price-monthly="<?php echo esc_attr($resolved['price']); ?>"
+							data-price-annual="<?php echo esc_attr($resolved['price_annual']); ?>"
+							data-period-monthly="<?php echo esc_attr($col['period']); ?>"
+							data-period-annual="<?php echo esc_attr($col['period_annual'] ?? ''); ?>"
+							data-url-monthly="<?php echo esc_url($resolved['cta_url']); ?>"
+							data-url-annual="<?php echo esc_url($resolved['cta_url_annual']); ?>"
+							<?php endif; ?>>
+							<?php if (! empty($col['recommended'])): ?>
+								<div class="dd-fc-recommended"><?php echo esc_html($col['recommended_text'] !== '' ? $col['recommended_text'] : 'Recommended'); ?></div>
+							<?php endif; ?>
+							<div class="dd-fc-name"><?php echo esc_html($resolved['name']); ?></div>
+							<?php if ($resolved['price'] !== ''): ?>
+								<div class="dd-fc-price"><span class="dd-fc-price-amount"><?php echo esc_html($resolved['price']); ?></span><?php if (! empty($col['period'])): ?><span class="dd-fc-period"><?php echo esc_html($col['period']); ?></span><?php endif; ?></div>
+							<?php endif; ?>
+							<?php if ($col_has_annual): ?>
+								<div class="dd-toggle-wrapper">
+									<label class="dd-switch">
+										<input type="checkbox" class="dd-fc-plan-toggle">
+										<span class="dd-slider round"></span>
+									</label>
+									<span class="dd-toggle-label">Yearly</span>
+									<span class="dd-discount">Save 20%</span>
+								</div>
+							<?php endif; ?>
+							<?php if ($resolved['cta_url'] !== '' || ! empty($col['cta_text'])): ?>
+								<a class="dd-fc-cta" href="<?php echo esc_url($resolved['cta_url']); ?>"><?php echo esc_html($col['cta_text'] !== '' ? $col['cta_text'] : 'Buy Now'); ?></a>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+
+				<?php foreach ($rows as $row): ?>
+					<div class="dd-fc-row">
+						<div class="dd-fc-cell dd-fc-feature"><span><?php echo esc_html($row['label']); ?></span></div>
+						<?php foreach ($columns as $col):
+							$cell = (isset($row['cells'][$col['key']])) ? $row['cells'][$col['key']] : ['type' => 'text', 'text' => ''];
+						?>
+							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?>">
+								<?php if ($cell['type'] === 'tick'): ?>
+									<span class="dd-fc-tick" aria-label="Included">&#10003;</span>
+								<?php elseif ($cell['type'] === 'cross'): ?>
+									<span class="dd-fc-cross" aria-label="Not included">&#10005;</span>
+								<?php else: ?>
+									<?php echo esc_html($cell['text']); ?>
+								<?php endif; ?>
+							</div>
+						<?php endforeach; ?>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		</div>
 		<?php if ($has_recommended): ?>
 			<script>
 				(function() {
