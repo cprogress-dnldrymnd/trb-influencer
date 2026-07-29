@@ -1077,9 +1077,16 @@ class DD_Feature_Comparison_Table
 				grid-template-columns: minmax(160px, 1.4fr) repeat(<?php echo (int) $col_count; ?>, minmax(120px, 1fr));
 				border: 1px solid var(--dd-fc-border-color, #e2e2e2);
 				border-radius: 8px;
-				overflow: hidden;
 				background: #fff;
 			}
+
+			/* Corners are rounded per-cell rather than via .dd-fc-table{overflow:hidden} —
+			   overflow:hidden on an ancestor silently disables position:sticky on descendants,
+			   which the desktop sticky plan header below relies on. */
+			.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col     { border-top-left-radius: var(--dd-fc-radius-tl, 8px); }
+			.dd-fc-wrap .dd-fc-head-row .dd-fc-head:last-child { border-top-right-radius: var(--dd-fc-radius-tr, 8px); }
+			.dd-fc-wrap .dd-fc-row:last-child .dd-fc-feature   { border-bottom-left-radius: var(--dd-fc-radius-bl, 8px); }
+			.dd-fc-wrap .dd-fc-row:last-child .dd-fc-cell:last-child { border-bottom-right-radius: var(--dd-fc-radius-br, 8px); }
 
 			.dd-fc-wrap .dd-fc-row {
 				display: contents;
@@ -1401,6 +1408,68 @@ class DD_Feature_Comparison_Table
 					background-color: rgba(3, 65, 70, 0.04);
 				}
 			}
+
+			/* --------------------------------------------------------------------------
+			 * Desktop: Plan Details header row sticks to the top of the viewport while
+			 * feature rows scroll underneath, then condenses once detached from its
+			 * natural position (.dd-fc-stuck, toggled by the IntersectionObserver script
+			 * below) so it doesn't eat a third of the viewport for the whole scroll.
+			 * -------------------------------------------------------------------------- */
+			@media (min-width: 769px) {
+
+				.dd-fc-sticky-sentinel {
+					height: 0;
+				}
+
+				/* Locks grid row 1 to its natural height so condensing the head cell
+				   (which shrinks its content) can't reflow/jump the feature rows below —
+				   the vacated space is exactly what scrolls away under the pinned bar. */
+				.dd-fc-wrap .dd-fc-table {
+					grid-template-rows: var(--dd-fc-head-h, auto);
+				}
+
+				.dd-fc-wrap .dd-fc-head,
+				.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
+					position: -webkit-sticky;
+					position: sticky;
+					top: var(--dd-fc-sticky-offset, 0px);
+					z-index: 10;
+					align-self: start;
+				}
+
+				.admin-bar .dd-fc-wrap .dd-fc-head,
+				.admin-bar .dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
+					top: var(--dd-fc-sticky-offset, 32px);
+				}
+
+				.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
+					background: #fff;
+				}
+
+				.dd-fc-wrap .dd-fc-head {
+					transition: padding .18s ease;
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head {
+					padding-top: 10px;
+					padding-bottom: 10px;
+					gap: 4px;
+					box-shadow: 0 4px 6px -4px rgba(0, 0, 0, .08);
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-toggle-wrapper,
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-recommended {
+					display: none;
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-price {
+					font-size: 16px;
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-cta {
+					padding: 8px 12px;
+				}
+			}
 		</style>
 		<?php if ($has_recommended): ?>
 			<style>
@@ -1410,7 +1479,9 @@ class DD_Feature_Comparison_Table
 			</style>
 		<?php endif; ?>
 		<div class="dd-fc-wrap" id="<?php echo esc_attr($wrap_id); ?>">
-			
+
+			<div class="dd-fc-sticky-sentinel" aria-hidden="true"></div>
+
 			<!-- Mobile Sticky Tab Bar -->
 			<div class="dd-fc-mobile-tabs">
 				<?php foreach ($columns as $index => $col): 
@@ -1523,6 +1594,82 @@ class DD_Feature_Comparison_Table
 						});
 					});
 				});
+			})();
+		</script>
+
+		<script>
+			(function() {
+				var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
+				if (!wrap) return;
+
+				var sentinel = wrap.querySelector('.dd-fc-sticky-sentinel');
+				var heads = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-head');
+				var mq = window.matchMedia('(min-width: 769px)');
+				var observer = null;
+				var resizeTimer = null;
+
+				// Measures the head row's natural (unstuck, uncondensed) height and locks
+				// the table's first grid row to it, so condensing the sticky cell's padding
+				// can't shrink the row and jump every feature row up the page.
+				function measureHeadHeight() {
+					wrap.classList.remove('dd-fc-stuck');
+					wrap.style.removeProperty('--dd-fc-head-h');
+					var max = 0;
+					heads.forEach(function(el) {
+						if (el.offsetHeight > max) max = el.offsetHeight;
+					});
+					if (max > 0) {
+						wrap.style.setProperty('--dd-fc-head-h', max + 'px');
+					}
+				}
+
+				function getOffset() {
+					var raw = getComputedStyle(wrap).getPropertyValue('--dd-fc-sticky-offset').trim();
+					var px = parseFloat(raw);
+					return isNaN(px) ? 0 : px;
+				}
+
+				function teardown() {
+					if (observer) {
+						observer.disconnect();
+						observer = null;
+					}
+					wrap.classList.remove('dd-fc-stuck');
+					wrap.style.removeProperty('--dd-fc-head-h');
+				}
+
+				function setup() {
+					if (!sentinel || !window.IntersectionObserver) return;
+					measureHeadHeight();
+					observer = new IntersectionObserver(function(entries) {
+						entries.forEach(function(entry) {
+							wrap.classList.toggle('dd-fc-stuck', !entry.isIntersecting);
+						});
+					}, { rootMargin: '-' + (getOffset() + 1) + 'px 0px 0px 0px', threshold: 0 });
+					observer.observe(sentinel);
+				}
+
+				function sync() {
+					if (mq.matches) {
+						teardown();
+						setup();
+					} else {
+						teardown();
+					}
+				}
+
+				sync();
+
+				window.addEventListener('resize', function() {
+					clearTimeout(resizeTimer);
+					resizeTimer = setTimeout(sync, 150);
+				});
+
+				if (mq.addEventListener) {
+					mq.addEventListener('change', sync);
+				} else if (mq.addListener) {
+					mq.addListener(sync);
+				}
 			})();
 		</script>
 

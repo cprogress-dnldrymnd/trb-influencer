@@ -347,12 +347,35 @@ class Widget_Feature_Comparison_Table extends \Elementor\Widget_Base {
         );
 
         $this->add_control( 'table_border_radius', [
-            'label'      => esc_html__( 'Table Border Radius', 'trb-influencer' ),
-            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-            'size_units' => [ 'px', 'custom' ],
-            'separator'  => 'before',
-            'selectors'  => [
-                '{{WRAPPER}} .dd-fc-table' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; overflow: hidden;',
+            'label'       => esc_html__( 'Table Border Radius', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units'  => [ 'px', 'custom' ],
+            'separator'   => 'before',
+            'description' => esc_html__( 'Rounds each corner cell individually rather than clipping the table, so the sticky plan header below keeps working (overflow:hidden on the table would silently disable position:sticky).', 'trb-influencer' ),
+            'selectors'   => [
+                '{{WRAPPER}} .dd-fc-table' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+                '{{WRAPPER}} .dd-fc-wrap'  => '--dd-fc-radius-tl: {{TOP}}{{UNIT}}; --dd-fc-radius-tr: {{RIGHT}}{{UNIT}}; --dd-fc-radius-br: {{BOTTOM}}{{UNIT}}; --dd-fc-radius-bl: {{LEFT}}{{UNIT}};',
+            ],
+        ] );
+
+        // ----------------------------------------------------------------------
+        // Sticky Behaviour
+        // ----------------------------------------------------------------------
+        $this->add_control( 'sticky_heading', [
+            'label'     => esc_html__( 'Sticky Behaviour', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_responsive_control( 'sticky_top_offset', [
+            'label'       => esc_html__( 'Sticky Top Offset', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::SLIDER,
+            'size_units'  => [ 'px' ],
+            'range'       => [
+                'px' => [ 'min' => 0, 'max' => 300, 'step' => 1 ],
+            ],
+            'description' => esc_html__( 'Distance from the top of the viewport (e.g. a fixed site header height) that the desktop plan header and the mobile tab bar stick below.', 'trb-influencer' ),
+            'selectors'   => [
+                '{{WRAPPER}} .dd-fc-wrap' => '--dd-fc-sticky-offset: {{SIZE}}{{UNIT}};',
             ],
         ] );
 

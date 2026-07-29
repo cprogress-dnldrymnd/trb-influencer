@@ -342,6 +342,15 @@ was supplied, otherwise still renders the same two-span "0 searches remaining" m
 `Widget_Searches_Remaining` (`sc_searches_remaining` / "Searches Remaining") exposes the same `template_id`
 as a template-picker Content control, plus a Style tab with separate `Group_Control_Typography` controls for
 the value and label spans (targeting the two classes above).
+A second, simpler consumer of the same `dd_searches_remaining()`/`dd_user_trial_restricted()` pair is the
+`[account_notice]` shortcode (`shortcode_account_notice()`, `includes/core/shortcodes.php`, widget
+`Widget_Account_Notice` / `sc_account_notice` / "Account Notice") — a standalone dismissable-looking notice
+box (not tied to a template swap) that renders nothing for logged-out users, unlimited plans, or anyone with
+searches still remaining, and otherwise prints a message + upgrade CTA. It picks the same
+`dd_msg_company_trial_block` vs. `dd_msg_search_limit` message as the AJAX/redirect gates based on
+`dd_user_trial_restricted()`, plus a dedicated `dd_msg_notice_upgrade_cta` message for the button label — all
+three editable under Influencer Theme → Messages. The widget's Style tab covers message typography/color, box
+background/border/radius/padding, and button typography/padding/radius/colors with separate Normal/Hover tabs.
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
 - **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —
@@ -476,9 +485,15 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   JSON-encoded option (`dd_feature_comparison_table`) built entirely client-side against a hidden
   `#dd-fc-data-input` field and validated/re-encoded server-side in `sanitize()` (unknown cell types
   collapse to `text`; a cell referencing a column key that didn't survive column sanitation is
-  dropped). A column can be a **PMPro plan column** (seeded from `DD_PMPro_Frontend_Pricing::get_orderable_plans()`,
-  the same accessor the dynamic pricing table widget uses) or a **custom column** with its own
-  price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
+  dropped). The Columns/Feature Rows builder is a two-tab admin UI (`.dd-fc-admin-tabs`, "Plan Columns" /
+  "Feature Rows") of collapsible cards (`.dd-fc-card.collapsed`) with per-card Duplicate/Remove actions —
+  duplicating a column also copies that column's cell value onto every row so the new column starts
+  populated rather than blank; duplicating a row deep-copies its cells as-is (label suffixed " (Copy)").
+  A column can be a **PMPro plan column** — seeded via `get_pmpro_plans()`,
+  which queries `pmpro_getAllLevels()` directly (filtered only on `allow_signups`) rather than reusing
+  `DD_PMPro_Frontend_Pricing::get_orderable_plans()`, so free/£0 levels (e.g. Trial) **are** offered as
+  columns here even though that pricing-card widget deliberately excludes them — or a **custom column**
+  with its own price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
   at render time (`resolve_column()`) so it never drifts stale — only fields the admin explicitly
   filled in override the live plan data. `resolve_column()` also resolves an **annual price/CTA URL**
   pair the same way: a PMPro column with no manually-entered annual price auto-detects the level's
@@ -520,6 +535,29 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   wrapped two-line banner overlap the plan name below it. Each rendered instance gets a unique
   `#dd-fc-{n}` wrapper id (`self::$instance_counter`) so the measurement stays scoped if the
   shortcode/widget appears more than once on a page.
+  **Mobile (`≤768px`) collapses the grid to one visible plan at a time**, switched via a sticky
+  `.dd-fc-mobile-tabs` bar (one button per column) rendered above the table; clicking a tab toggles
+  `.dd-fc-mobile-active` on the matching plan-detail card, tab button, and every feature cell sharing
+  that `data-col-index` (plain inline `<script>`, no shared JS module). The initially active column
+  defaults to the first `recommended` column, else the first `highlight`ed column, else column 0
+  (`$initial_active` in `render_shortcode()`). `.dd-fc-wrap` is a column flexbox specifically to avoid
+  margin-collapse jumps between the sticky tab bar and the table on mobile — don't revert it to block
+  layout without re-checking that.
+  **Desktop (`≥769px`) sticks the plan-details head row** to the top of the viewport instead
+  (`position: sticky` on `.dd-fc-head`/the head row's spacer cell, `z-index: 10`), then condenses it
+  once detached — a `.dd-fc-sticky-sentinel` (zero-height, rendered as the first child of `.dd-fc-wrap`)
+  is watched by an `IntersectionObserver`; when it scrolls past `--dd-fc-sticky-offset` the script adds
+  `.dd-fc-stuck` to `.dd-fc-wrap`, which shrinks the head's padding/price size and hides the Yearly
+  toggle and the recommended banner. **Two load-bearing gotchas:** (1) `overflow: hidden` anywhere on
+  `.dd-fc-table` silently disables `position: sticky` on its descendants — the table's rounded corners
+  are therefore drawn per-cell (`--dd-fc-radius-{tl,tr,bl,br}` on the four corner cells, set by the
+  widget's "Table Border Radius" control) rather than via clipping; don't reintroduce
+  `overflow: hidden` there. (2) condensing the head cell shrinks its content, which would otherwise
+  shrink grid row 1 and jump every feature row up the page — a same-origin script measures the head's
+  natural (unstuck) height into `--dd-fc-head-h` and `.dd-fc-table` locks `grid-template-rows` to it,
+  so only the cell's own padding animates. `--dd-fc-sticky-offset` (also read by the mobile tab bar's
+  `top`) is exposed as a responsive "Sticky Top Offset" Style-tab slider on the widget for sites with a
+  fixed header.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

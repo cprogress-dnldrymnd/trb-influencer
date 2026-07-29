@@ -1055,6 +1055,78 @@ function shortcode_searches_remaining($atts)
 add_shortcode('searches_remaining', 'shortcode_searches_remaining');
 
 
+/**
+ * Persistent on-page notice for a user who has no creator searches left —
+ * either because their plan's search cap is exhausted, or because their
+ * company already claimed its one trial (dd_user_trial_restricted()), which
+ * forces the search limit to 0 regardless of level. Renders nothing for
+ * unlimited plans, users who still have quota left, or logged-out visitors.
+ */
+function shortcode_account_notice($atts)
+{
+    if (! is_user_logged_in() || ! function_exists('dd_searches_remaining')) {
+        return '';
+    }
+
+    $user_id   = get_current_user_id();
+    $remaining = dd_searches_remaining($user_id);
+
+    if ($remaining === null || $remaining > 0) {
+        return '';
+    }
+
+    $is_trial_restricted = function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id);
+    $message_key = $is_trial_restricted ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit';
+    $message     = dd_get_message($message_key);
+    $cta_label   = dd_get_message('dd_msg_notice_upgrade_cta');
+    $upgrade_url = function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : home_url('/');
+    $variant     = $is_trial_restricted ? 'trial-block' : 'limit-reached';
+
+    ob_start();
+?>
+    <div class="dd-account-notice dd-account-notice--<?php echo esc_attr($variant); ?>">
+        <p class="dd-account-notice-text"><?php echo esc_html($message); ?></p>
+        <a class="dd-account-notice-cta" href="<?php echo esc_url($upgrade_url); ?>"><?php echo esc_html($cta_label); ?></a>
+    </div>
+    <style>
+        .dd-account-notice {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            background: #fff4e5;
+            border: 1px solid #f0c36d;
+        }
+        .dd-account-notice-text {
+            margin: 0;
+            flex: 1 1 auto;
+        }
+        .dd-account-notice-cta {
+            display: inline-block;
+            flex: 0 0 auto;
+            padding: 8px 18px;
+            border-radius: 6px;
+            background: var(--e-global-color-primary, #034146);
+            color: #fff;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: opacity 0.2s ease;
+        }
+        .dd-account-notice-cta:hover {
+            opacity: 0.85;
+            color: #fff;
+        }
+    </style>
+<?php
+    return ob_get_clean();
+}
+
+add_shortcode('account_notice', 'shortcode_account_notice');
+
+
 function roi_calculator()
 {
     ob_start();
