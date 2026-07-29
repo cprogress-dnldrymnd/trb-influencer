@@ -17,7 +17,7 @@ class Widget_Account_Notice extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [account_notice]. Shows an upgrade notice when the current user has no creator searches left — either because their company already used its trial, or because their plan\'s search cap is exhausted. Renders nothing for unlimited plans, users who still have searches remaining, or logged-out visitors. Message text is edited under Influencer Theme → Messages → "Search Limit Reached" / "Company Trial Limit" / "Account Notice Upgrade Button".', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders [account_notice]. Shows an upgrade notice when the current user has no creator searches left — either because their company already used its trial, or because their plan\'s search cap is exhausted. Renders nothing for unlimited plans, users who still have searches remaining, or logged-out visitors. Inside the Elementor editor the notice always previews (using the configured message/button) regardless of your own account state. Message text is edited under Influencer Theme → Messages → "Search Limit Reached" / "Company Trial Limit" / "Account Notice Upgrade Button".', 'trb-influencer' ),
         ] );
         $this->add_control( 'show_button', [
             'label'        => esc_html__( 'Show Upgrade Button', 'trb-influencer' ),

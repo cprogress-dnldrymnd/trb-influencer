@@ -1062,24 +1062,33 @@ add_shortcode('searches_remaining', 'shortcode_searches_remaining');
  * forces the search limit to 0 regardless of level. Renders nothing for
  * unlimited plans, users who still have quota left, or logged-out visitors.
  * `show_button="no"` omits the upgrade CTA anchor entirely (default "yes").
+ * Inside the Elementor editor, the empty-state checks are skipped so the
+ * admin always sees the configured message/button while styling the widget.
  */
 function shortcode_account_notice($atts)
 {
-    if (! is_user_logged_in() || ! function_exists('dd_searches_remaining')) {
-        return '';
-    }
+    $is_editor_preview = class_exists('\Elementor\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode();
 
-    $user_id   = get_current_user_id();
-    $remaining = dd_searches_remaining($user_id);
+    $is_trial_restricted = false;
 
-    if ($remaining === null || $remaining > 0) {
-        return '';
+    if (! $is_editor_preview) {
+        if (! is_user_logged_in() || ! function_exists('dd_searches_remaining')) {
+            return '';
+        }
+
+        $user_id   = get_current_user_id();
+        $remaining = dd_searches_remaining($user_id);
+
+        if ($remaining === null || $remaining > 0) {
+            return '';
+        }
+
+        $is_trial_restricted = function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id);
     }
 
     $atts = shortcode_atts(['show_button' => 'yes'], $atts, 'account_notice');
     $show_button = ('yes' === $atts['show_button']);
 
-    $is_trial_restricted = function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id);
     $message_key = $is_trial_restricted ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit';
     $message     = dd_get_message($message_key);
     $variant     = $is_trial_restricted ? 'trial-block' : 'limit-reached';

@@ -357,7 +357,7 @@ anyone with searches still remaining, and otherwise prints a message + upgrade C
 three editable under Influencer Theme → Messages. `show_button="no"` omits the upgrade CTA anchor entirely
 (message-only notice); the widget exposes this as a Content-tab "Show Upgrade Button" `SWITCHER` control that
 also conditions the Style tab's Button section (hidden when the button is off). The widget's Style tab covers
-message typography/color, box background/border/radius/padding, and button typography/padding/radius/colors
+message typography/color, box background/border/radius/padding/margin, and button typography/padding/radius/colors
 with separate Normal/Hover tabs.
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
