@@ -348,14 +348,17 @@ was supplied, otherwise still renders the same two-span "0 searches remaining" m
 as a template-picker Content control, plus a Style tab with separate `Group_Control_Typography` controls for
 the value and label spans (targeting the two classes above).
 A second, simpler consumer of the same `dd_searches_remaining()`/`dd_user_trial_restricted()` pair is the
-`[account_notice]` shortcode (`shortcode_account_notice()`, `includes/core/shortcodes.php`, widget
-`Widget_Account_Notice` / `sc_account_notice` / "Account Notice") — a standalone dismissable-looking notice
-box (not tied to a template swap) that renders nothing for logged-out users, unlimited plans, or anyone with
-searches still remaining, and otherwise prints a message + upgrade CTA. It picks the same
+`[account_notice show_button="yes"]` shortcode (`shortcode_account_notice()`, `includes/core/shortcodes.php`,
+widget `Widget_Account_Notice` / `sc_account_notice` / "Account Notice") — a standalone dismissable-looking
+notice box (not tied to a template swap) that renders nothing for logged-out users, unlimited plans, or
+anyone with searches still remaining, and otherwise prints a message + upgrade CTA. It picks the same
 `dd_msg_company_trial_block` vs. `dd_msg_search_limit` message as the AJAX/redirect gates based on
 `dd_user_trial_restricted()`, plus a dedicated `dd_msg_notice_upgrade_cta` message for the button label — all
-three editable under Influencer Theme → Messages. The widget's Style tab covers message typography/color, box
-background/border/radius/padding, and button typography/padding/radius/colors with separate Normal/Hover tabs.
+three editable under Influencer Theme → Messages. `show_button="no"` omits the upgrade CTA anchor entirely
+(message-only notice); the widget exposes this as a Content-tab "Show Upgrade Button" `SWITCHER` control that
+also conditions the Style tab's Button section (hidden when the button is off). The widget's Style tab covers
+message typography/color, box background/border/radius/padding, and button typography/padding/radius/colors
+with separate Normal/Hover tabs.
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
 - **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —

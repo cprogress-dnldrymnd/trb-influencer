@@ -19,6 +19,15 @@ class Widget_Account_Notice extends \Elementor\Widget_Base {
             'type' => \Elementor\Controls_Manager::RAW_HTML,
             'raw'  => esc_html__( 'Renders [account_notice]. Shows an upgrade notice when the current user has no creator searches left — either because their company already used its trial, or because their plan\'s search cap is exhausted. Renders nothing for unlimited plans, users who still have searches remaining, or logged-out visitors. Message text is edited under Influencer Theme → Messages → "Search Limit Reached" / "Company Trial Limit" / "Account Notice Upgrade Button".', 'trb-influencer' ),
         ] );
+        $this->add_control( 'show_button', [
+            'label'        => esc_html__( 'Show Upgrade Button', 'trb-influencer' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'label_on'     => esc_html__( 'Show', 'trb-influencer' ),
+            'label_off'    => esc_html__( 'Hide', 'trb-influencer' ),
+            'return_value' => 'yes',
+            'default'      => 'yes',
+            'description'  => esc_html__( 'Turn off to show the message only, with no upgrade call to action.', 'trb-influencer' ),
+        ] );
         $this->end_controls_section();
 
         $this->start_controls_section( 'style_section', [
@@ -66,11 +75,21 @@ class Widget_Account_Notice extends \Elementor\Widget_Base {
                 '{{WRAPPER}} .dd-account-notice' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
         ] );
+        $this->add_responsive_control( 'box_margin', [
+            'label'      => esc_html__( 'Box Margin', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%' ],
+            'allow_negative' => true,
+            'selectors'  => [
+                '{{WRAPPER}} .dd-account-notice' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ],
+        ] );
         $this->end_controls_section();
 
         $this->start_controls_section( 'button_style_section', [
-            'label' => esc_html__( 'Button', 'trb-influencer' ),
-            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+            'label'     => esc_html__( 'Button', 'trb-influencer' ),
+            'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+            'condition' => [ 'show_button' => 'yes' ],
         ] );
         $this->add_group_control(
             \Elementor\Group_Control_Typography::get_type(),
@@ -149,6 +168,11 @@ class Widget_Account_Notice extends \Elementor\Widget_Base {
     }
 
     protected function render() {
-        echo do_shortcode( '[account_notice]' );
+        $settings = $this->get_settings_for_display();
+        $attrs    = '';
+        if ( isset( $settings['show_button'] ) && 'yes' !== $settings['show_button'] ) {
+            $attrs .= ' show_button="no"';
+        }
+        echo do_shortcode( '[account_notice' . $attrs . ']' );
     }
 }

@@ -1061,6 +1061,7 @@ add_shortcode('searches_remaining', 'shortcode_searches_remaining');
  * company already claimed its one trial (dd_user_trial_restricted()), which
  * forces the search limit to 0 regardless of level. Renders nothing for
  * unlimited plans, users who still have quota left, or logged-out visitors.
+ * `show_button="no"` omits the upgrade CTA anchor entirely (default "yes").
  */
 function shortcode_account_notice($atts)
 {
@@ -1075,18 +1076,26 @@ function shortcode_account_notice($atts)
         return '';
     }
 
+    $atts = shortcode_atts(['show_button' => 'yes'], $atts, 'account_notice');
+    $show_button = ('yes' === $atts['show_button']);
+
     $is_trial_restricted = function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id);
     $message_key = $is_trial_restricted ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit';
     $message     = dd_get_message($message_key);
-    $cta_label   = dd_get_message('dd_msg_notice_upgrade_cta');
-    $upgrade_url = function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : home_url('/');
     $variant     = $is_trial_restricted ? 'trial-block' : 'limit-reached';
+
+    if ($show_button) {
+        $cta_label   = dd_get_message('dd_msg_notice_upgrade_cta');
+        $upgrade_url = function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : home_url('/');
+    }
 
     ob_start();
 ?>
     <div class="dd-account-notice dd-account-notice--<?php echo esc_attr($variant); ?>">
         <p class="dd-account-notice-text"><?php echo esc_html($message); ?></p>
-        <a class="dd-account-notice-cta" href="<?php echo esc_url($upgrade_url); ?>"><?php echo esc_html($cta_label); ?></a>
+        <?php if ($show_button) : ?>
+            <a class="dd-account-notice-cta" href="<?php echo esc_url($upgrade_url); ?>"><?php echo esc_html($cta_label); ?></a>
+        <?php endif; ?>
     </div>
     <style>
         .dd-account-notice {
