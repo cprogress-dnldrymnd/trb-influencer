@@ -236,7 +236,7 @@ add_action('admin_init', function () {
 
     // Per-feature allowed-levels options (checkbox lists) — one per capability gate.
     // dd_trial_levels shares the same shape/sanitizer but isn't a dd_user_can() capability gate —
-    // it's a level *classification* consumed by includes/core/company-trial.php.
+    // it's a level *classification* consumed by modules/membership-extensions/pmpro-company-trial.php.
     $level_allowlist_keys = [
         'dd_export_pdf_allowed_levels',
         'dd_outreach_allowed_levels',
@@ -280,7 +280,7 @@ add_action('admin_init', function () {
 
     // Personal-email exemption list for the one-trial-per-company rule — a newline-per-domain
     // textarea, sanitized into a clean array. Blank means "use the built-in default list" (see
-    // dd_default_public_email_domains() in includes/core/company-trial.php).
+    // dd_default_public_email_domains() in modules/membership-extensions/pmpro-company-trial.php).
     register_setting('dd_theme_page_ids', 'dd_public_email_domains', [
         'type'              => 'array',
         'sanitize_callback' => function ($value) {

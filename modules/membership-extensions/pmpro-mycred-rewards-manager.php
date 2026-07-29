@@ -407,7 +407,8 @@ class DD_PMPro_Rewards_Manager
         if (! $level_id) return;
 
         // One-trial-per-company: a second trial account from a company that already claimed its
-        // trial gets no registration credits and no allowance seed. See includes/core/company-trial.php.
+        // trial gets no registration credits and no allowance seed. See
+        // modules/membership-extensions/pmpro-company-trial.php.
         if (function_exists('dd_user_trial_restricted') && dd_user_trial_restricted($user_id)) {
             $this->insert_log($user_id, "Registration points blocked (Company Trial Limit — another account from this company already holds the trial).");
             return;

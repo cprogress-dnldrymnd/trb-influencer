@@ -134,7 +134,6 @@ $dir = get_stylesheet_directory();
 // 1. Core Includes (Load foundational dependencies first)
 require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/plan-capabilities.php';
-require $dir . '/includes/core/company-trial.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/messages-settings.php';
 require $dir . '/includes/core/hooks.php';
@@ -160,6 +159,7 @@ require $dir . '/modules/membership-extensions/pmpro-sign-up.php';
 require $dir . '/modules/membership-extensions/pmpro-dynamic-pricing.php';
 require $dir . '/modules/membership-extensions/pmpro-comparison-table.php';
 require $dir . '/modules/membership-extensions/pmpro-mycred-rewards-manager.php';
+require $dir . '/modules/membership-extensions/pmpro-company-trial.php';
 require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';

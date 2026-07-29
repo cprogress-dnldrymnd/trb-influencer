@@ -82,20 +82,25 @@ brief, merged filters, and `WP_Query` args. Watch `wp-content/debug.log`.
 ### Bootstrap & load order (`functions.php`)
 
 `functions.php` enqueues assets and then `require`s every module in a **deliberate order** that
-must be preserved: core helpers → plan capabilities → company-trial → admin settings → messages
-settings → hooks → shortcodes → third-party integrations → domain modules. Foundational helpers
-must load before the integrations and modules that call them — `includes/core/plan-capabilities.php`
-in particular must load before `admin-settings.php` (which renders its option fields) and before
-every module that calls `dd_user_can()`; `includes/core/company-trial.php` must load before
-`admin-settings.php` too (its `dd_default_public_email_domains()` backs the Personal Email Domains
-field's placeholder) and before `plan-capabilities.php`'s `dd_user_search_limit()` can call
-`dd_user_trial_restricted()`.
+must be preserved: core helpers → plan capabilities → admin settings → messages settings → hooks
+→ shortcodes → third-party integrations → domain modules. Foundational helpers must load before
+the integrations and modules that call them — `includes/core/plan-capabilities.php` in particular
+must load before `admin-settings.php` (which renders its option fields) and before every module
+that calls `dd_user_can()`. `modules/membership-extensions/pmpro-company-trial.php` loads later,
+alongside the other membership-extension modules — its coupling to `plan-capabilities.php`
+(`dd_user_search_limit()` calling `dd_user_trial_restricted()`) and to `admin-settings.php` (whose
+Personal Email Domains field placeholder calls `dd_default_public_email_domains()`) is
+**runtime-only and `function_exists`-guarded in both directions**, so its require position isn't
+load-bearing the way the others are.
 
 ### "Modules" are theme code, not installed plugins
 
 Files under `modules/` carry `Plugin Name:` docblocks and even describe themselves as plugins,
 but they are **`require`d by the theme**, never installed via wp-admin → Plugins. Each domain
-module is a **singleton class instantiated at the bottom of its own file**:
+module is a **singleton class instantiated at the bottom of its own file** — the one deliberate
+exception is `modules/membership-extensions/pmpro-company-trial.php`, which stays a plain
+procedural file of global `dd_*` functions (see below) rather than being wrapped in a class, since
+every call site already reaches it through a `function_exists('dd_…')` guard.
 
 | File | Class (instantiated at EOF) | Responsibility |
 |------|------------------------------|----------------|
@@ -185,7 +190,7 @@ bespoke option; a plain non-plan feature toggle still registers directly on the
 `dd-theme-settings-functionality` page / `dd_functionality_section` and reads via `get_option()`.
 
 Two further Functionality-tab fields back the **one-trial-per-company rule**
-(`includes/core/company-trial.php`): `dd_trial_levels` ("Trial Levels") is a level-ID checkbox
+(`modules/membership-extensions/pmpro-company-trial.php`): `dd_trial_levels` ("Trial Levels") is a level-ID checkbox
 list sharing the same shape/sanitizer as the capability gates above but registered separately —
 it's a level *classification*, not a `dd_user_can()` feature, so it is deliberately **not** in
 `dd_plan_feature_option_key()`'s map; and `dd_public_email_domains` ("Personal Email Domains") is a
@@ -324,7 +329,7 @@ is the shared "upgrade your plan" CTA destination used wherever a gate blocks a 
 `dd_user_search_limit($user_id = null)`, reads the separate `dd_search_limits` per-level numeric option and
 **fails open** (`-1` = unlimited) rather than closed — see the search pipeline section above.
 One deliberate override of that fail-open posture: if `dd_user_trial_restricted($user_id)`
-(`includes/core/company-trial.php`) is true — a second trial signup from a company that already
+(`modules/membership-extensions/pmpro-company-trial.php`) is true — a second trial signup from a company that already
 claimed its one trial — `dd_user_search_limit()` returns `0` regardless of the user's level, so the
 existing search-cap enforcement chain (AJAX gate, page-load redirect, `[searches_remaining]`) blocks
 them with no separate limit-checking code path needed; the AJAX handler and the localized
@@ -562,7 +567,7 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription
   Delay.
-- **One trial per company** (`includes/core/company-trial.php`) — a complementary, payment-method-
+- **One trial per company** (`modules/membership-extensions/pmpro-company-trial.php`) — a complementary, payment-method-
   independent anti-abuse layer: "company" is derived from the signup email's domain
   (`dd_user_company_domain()`), exempting an admin-editable personal-provider list
   (`dd_public_email_domains`, falls back to a built-in default) so e.g. two separate Gmail signups
