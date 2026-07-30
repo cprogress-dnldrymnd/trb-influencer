@@ -358,7 +358,9 @@ three editable under Influencer Theme → Messages. `show_button="no"` omits the
 (message-only notice); the widget exposes this as a Content-tab "Show Upgrade Button" `SWITCHER` control that
 also conditions the Style tab's Button section (hidden when the button is off). The widget's Style tab covers
 message typography/color, box background/border/radius/padding/margin, and button typography/padding/radius/colors
-with separate Normal/Hover tabs.
+with separate Normal/Hover tabs. Inside the Elementor editor (`\Elementor\Plugin::$instance->editor->is_edit_mode()`),
+`shortcode_account_notice()` skips the logged-out/unlimited/remaining-quota empty-state checks entirely so the
+admin always sees the configured message/button while styling the widget, regardless of their own account state.
 
 Every gate follows the same **UI-hint + server-boundary** pattern — never trust the client-side cue alone:
 - **Export PDF** (`Saves_Manager::user_can_export_pdf()`, now a thin wrapper around `dd_user_can('export_pdf')`) —
@@ -552,20 +554,41 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   margin-collapse jumps between the sticky tab bar and the table on mobile — don't revert it to block
   layout without re-checking that.
   **Desktop (`≥769px`) sticks the plan-details head row** to the top of the viewport instead
-  (`position: sticky` on `.dd-fc-head`/the head row's spacer cell, `z-index: 10`), then condenses it
-  once detached — a `.dd-fc-sticky-sentinel` (zero-height, rendered as the first child of `.dd-fc-wrap`)
-  is watched by an `IntersectionObserver`; when it scrolls past `--dd-fc-sticky-offset` the script adds
-  `.dd-fc-stuck` to `.dd-fc-wrap`, which shrinks the head's padding/price size and hides the Yearly
-  toggle and the recommended banner. **Two load-bearing gotchas:** (1) `overflow: hidden` anywhere on
-  `.dd-fc-table` silently disables `position: sticky` on its descendants — the table's rounded corners
-  are therefore drawn per-cell (`--dd-fc-radius-{tl,tr,bl,br}` on the four corner cells, set by the
-  widget's "Table Border Radius" control) rather than via clipping; don't reintroduce
-  `overflow: hidden` there. (2) condensing the head cell shrinks its content, which would otherwise
-  shrink grid row 1 and jump every feature row up the page — a same-origin script measures the head's
-  natural (unstuck) height into `--dd-fc-head-h` and `.dd-fc-table` locks `grid-template-rows` to it,
-  so only the cell's own padding animates. `--dd-fc-sticky-offset` (also read by the mobile tab bar's
-  `top`) is exposed as a responsive "Sticky Top Offset" Style-tab slider on the widget for sites with a
-  fixed header.
+  (`position: sticky` on `.dd-fc-head`/the head row's spacer cell), then condenses it once detached —
+  a `.dd-fc-sticky-sentinel` (zero-height, rendered as the first child of `.dd-fc-wrap`) is watched by
+  an `IntersectionObserver`; when it scrolls past `--dd-fc-sticky-offset` the script adds `.dd-fc-stuck`
+  to `.dd-fc-wrap`, which shrinks the head's padding/price size and hides the Yearly toggle and the
+  recommended banner. A sticky item's containing block is its own **grid area**, so the head/spacer
+  cells carry `grid-row: 1 / -1` to span every row (not just row 1) and stay pinned for the table's
+  whole scroll — every row is therefore listed explicitly in `grid-template-rows` (PHP
+  `$grid_template_rows`, from `$row_count`) rather than left to `grid-auto-rows`, since `-1` resolves
+  against the grid's *explicit* tracks only; an implicit-only row 2+ silently collapses the span back
+  down to row 1 alone. Every cell (head and body) also gets explicit `--dd-fc-c`/`--dd-fc-r` custom
+  properties inline, read only inside the `≥769px` media query (`grid-column`/`grid-row: var(...)`) so
+  mobile's auto-placement/`grid-column: 1 / -1` stays untouched. **Load-bearing gotchas:**
+  (1) `overflow: hidden` anywhere on `.dd-fc-table` silently disables `position: sticky` on its
+  descendants — the table's rounded corners are therefore drawn per-cell (`--dd-fc-radius-{tl,tr,bl,br}`
+  on the four corner cells, set by the widget's "Table Border Radius" control) rather than via clipping;
+  don't reintroduce `overflow: hidden` there. (2) condensing the head cell shrinks its content, which
+  would otherwise shrink grid row 1 and jump every feature row up the page — a same-origin script
+  measures the head's natural (unstuck) height into `--dd-fc-head-h` and its condensed (stuck) height
+  into `--dd-fc-stuck-h`, and `.dd-fc-head`/the spacer cell are locked to those via `min-height`/`height`
+  (not `height` alone on the head, so a column whose own content runs taller still isn't clipped); the
+  CTA anchor's `margin-top: auto` then rides the resulting free space down to a shared bottom edge so
+  every plan's button lines up. (3) the recommended-banner's live-measured `--dd-fc-rec-pad` (see below)
+  changes the head's `padding-top`, so it **must be measured before `--dd-fc-head-h`** in the same pass
+  — reversing that order under-measures the row and lets the head's background paint over the feature
+  row beneath it. Because of this, `--dd-fc-head-h`/`--dd-fc-stuck-h`/`--dd-fc-rec-pad` are all
+  (re)computed together by one `measureHeadHeights()` pass (banner pad → natural height → stuck height,
+  toggling a `.dd-fc-measuring` class that strips the sticky span/min-height so a measurement can't just
+  read back its own prior output), re-run on `document.fonts.ready`, `window.load`, a debounced `resize`,
+  and a `ResizeObserver` on the banners — not four independent scripts. (4) as a defensive backstop for
+  a still-stale measurement, non-head body cells are explicitly opaque and default to `z-index: 1` (above
+  the header's `z-index: 0`), so any residual head overflow is covered by the row below rather than
+  clipping its text; only `.dd-fc-stuck` raises the head/spacer back to `z-index: 10` to cover rows
+  scrolling underneath it, which is the one state that actually needs it on top. `--dd-fc-sticky-offset`
+  (also read by the mobile tab bar's `top`) is exposed as a responsive "Sticky Top Offset" Style-tab
+  slider on the widget for sites with a fixed header.
 - **Trial abuse protection** (`pmpro-trial-protection.php`, `DD_PMPro_Trial_Protection`) —
   fingerprints Stripe payment tokens to block repeat free trials, lets users opt out of a trial
   (forcing full payment via `pmpro_checkout_level` filters), and enforces the one-time Subscription

@@ -1020,6 +1020,16 @@ class DD_Feature_Comparison_Table
 		$columns = $data['columns'];
 		$rows    = $data['rows'];
 		$col_count = count($columns);
+		$row_count = count($rows);
+
+		// grid-row: 1 / -1 (used below to span the sticky plan header across every
+		// row) resolves -1 against the grid's EXPLICIT tracks — every row must be
+		// listed here rather than left to grid-auto-rows, or the span collapses back
+		// down to row 1 alone and the header can only stay pinned for one row's height.
+		$grid_template_rows = 'var(--dd-fc-head-h, auto)';
+		if ($row_count > 0) {
+			$grid_template_rows .= ' repeat(' . (int) $row_count . ', auto)';
+		}
 
 		// Resolved once per column (each PMPro column resolution can hit the DB) and reused both
 		// for these page-level flags and inside the render loop below.
@@ -1421,20 +1431,53 @@ class DD_Feature_Comparison_Table
 					height: 0;
 				}
 
-				/* Locks grid row 1 to its natural height so condensing the head cell
-				   (which shrinks its content) can't reflow/jump the feature rows below —
-				   the vacated space is exactly what scrolls away under the pinned bar. */
+				/* Row 1 is locked to the tallest head's natural (unstuck) height so
+				   condensing the sticky cell's padding can't shrink the row and jump the
+				   feature rows below. Every other row is listed explicitly too (PHP
+				   $grid_template_rows) since grid-row: 1 / -1 below resolves -1 against
+				   the EXPLICIT grid only — an implicit-only row 2+ would collapse the
+				   header's span back down to row 1 alone. */
 				.dd-fc-wrap .dd-fc-table {
-					grid-template-rows: var(--dd-fc-head-h, auto);
+					grid-template-rows: <?php echo $grid_template_rows; ?>;
 				}
 
+				/* Explicit placement from the --dd-fc-c/--dd-fc-r vars every cell carries
+				   inline (server-rendered column/row index) — inert on mobile, where
+				   auto-placement plus grid-column: 1 / -1 stays in charge. */
+				.dd-fc-wrap .dd-fc-cell {
+					grid-column: var(--dd-fc-c, auto);
+					grid-row: var(--dd-fc-r, auto);
+				}
+
+				/* The plan header spans every row so it can stay pinned for the whole
+				   table's scroll, not just row 1 — a sticky item's containing block is
+				   its own grid area, so without this span it could travel at most
+				   row 1's height before scrolling away with it. */
 				.dd-fc-wrap .dd-fc-head,
 				.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
+					grid-row: 1 / -1;
 					position: -webkit-sticky;
 					position: sticky;
 					top: var(--dd-fc-sticky-offset, 0px);
-					z-index: 10;
 					align-self: start;
+					z-index: 0;
+				}
+
+				/* Paint-order guard: every body cell is opaque and, at rest, stacks ABOVE
+				   the header (z-index 0) — so if a stale height measurement ever lets the
+				   header overflow into the row below again, that row's own background
+				   simply covers the overflow instead of the header clipping its text.
+				   Only once actually stuck does the header retake the top spot, which it
+				   needs in order to visually cover rows scrolling underneath it. */
+				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell:not(.dd-fc-highlight) {
+					background: #fff;
+				}
+				.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell {
+					z-index: 1;
+				}
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head,
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head-row .dd-fc-feature-col {
+					z-index: 10;
 				}
 
 				.admin-bar .dd-fc-wrap .dd-fc-head,
@@ -1442,19 +1485,35 @@ class DD_Feature_Comparison_Table
 					top: var(--dd-fc-sticky-offset, 32px);
 				}
 
-				.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
-					background: #fff;
+				/* min-height (not height) equalises every column to the tallest head at
+				   rest, without clipping a column whose own content happens to run
+				   taller. The CTA anchor's margin-top: auto (below) then rides that extra
+				   space down to a shared bottom edge so all the buttons line up. */
+				.dd-fc-wrap .dd-fc-head {
+					min-height: var(--dd-fc-head-h, auto);
+					transition: padding .18s ease, min-height .18s ease;
 				}
 
-				.dd-fc-wrap .dd-fc-head {
-					transition: padding .18s ease;
+				.dd-fc-wrap .dd-fc-cta {
+					margin-top: auto;
+				}
+
+				.dd-fc-wrap .dd-fc-head-row .dd-fc-feature-col {
+					background: #fff;
+					height: var(--dd-fc-head-h, auto);
+					transition: height .18s ease;
 				}
 
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head {
+					min-height: var(--dd-fc-stuck-h, auto);
 					padding-top: 10px;
 					padding-bottom: 10px;
 					gap: 4px;
 					box-shadow: 0 4px 6px -4px rgba(0, 0, 0, .08);
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head-row .dd-fc-feature-col {
+					height: var(--dd-fc-stuck-h, auto);
 				}
 
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-toggle-wrapper,
@@ -1468,6 +1527,22 @@ class DD_Feature_Comparison_Table
 
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-cta {
 					padding: 8px 12px;
+				}
+
+				/* Neutralised only during the JS measurement pass below, so it can read
+				   each head's true natural/condensed height before any of the above
+				   (equal min-height, spanned grid-row, sticky positioning) can influence
+				   it — otherwise a measurement would just read back its own prior output. */
+				.dd-fc-wrap.dd-fc-measuring .dd-fc-table {
+					grid-template-rows: auto;
+				}
+				.dd-fc-wrap.dd-fc-measuring .dd-fc-head,
+				.dd-fc-wrap.dd-fc-measuring .dd-fc-head-row .dd-fc-feature-col {
+					grid-row: 1;
+					position: static;
+					min-height: 0;
+					height: auto;
+					transition: none;
 				}
 			}
 		</style>
@@ -1496,7 +1571,7 @@ class DD_Feature_Comparison_Table
 
 			<div class="dd-fc-table">
 				<div class="dd-fc-row dd-fc-head-row">
-					<div class="dd-fc-cell dd-fc-feature-col"></div>
+					<div class="dd-fc-cell dd-fc-feature-col" style="--dd-fc-c:1"></div>
 					<?php foreach ($columns as $index => $col):
 						$resolved = $resolved_columns[$col['key']];
 						$col_has_annual = $resolved['price'] !== '' && $resolved['price_annual'] !== '';
@@ -1504,6 +1579,7 @@ class DD_Feature_Comparison_Table
 					?>
 						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>"
 							data-col-index="<?php echo (int) $index; ?>"
+							style="--dd-fc-c:<?php echo (int) $index + 2; ?>"
 							<?php if ($col_has_annual): ?>
 							data-price-monthly="<?php echo esc_attr($resolved['price']); ?>"
 							data-price-annual="<?php echo esc_attr($resolved['price_annual']); ?>"
@@ -1536,14 +1612,14 @@ class DD_Feature_Comparison_Table
 					<?php endforeach; ?>
 				</div>
 
-				<?php foreach ($rows as $row): ?>
+				<?php foreach ($rows as $row_index => $row): ?>
 					<div class="dd-fc-row">
-						<div class="dd-fc-cell dd-fc-feature"><span><?php echo esc_html($row['label']); ?></span></div>
+						<div class="dd-fc-cell dd-fc-feature" style="--dd-fc-c:1;--dd-fc-r:<?php echo (int) $row_index + 2; ?>"><span><?php echo esc_html($row['label']); ?></span></div>
 						<?php foreach ($columns as $index => $col):
 							$cell = (isset($row['cells'][$col['key']])) ? $row['cells'][$col['key']] : ['type' => 'text', 'text' => ''];
 							$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
 						?>
-							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>">
+							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>" style="--dd-fc-c:<?php echo (int) $index + 2; ?>;--dd-fc-r:<?php echo (int) $row_index + 2; ?>">
 								<?php if ($cell['type'] === 'tick'): ?>
 									<span class="dd-fc-tick" aria-label="Included">&#10003;</span>
 								<?php elseif ($cell['type'] === 'cross'): ?>
@@ -1604,23 +1680,58 @@ class DD_Feature_Comparison_Table
 
 				var sentinel = wrap.querySelector('.dd-fc-sticky-sentinel');
 				var heads = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-head');
+				var banners = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-recommended');
 				var mq = window.matchMedia('(min-width: 769px)');
 				var observer = null;
 				var resizeTimer = null;
 
-				// Measures the head row's natural (unstuck, uncondensed) height and locks
-				// the table's first grid row to it, so condensing the sticky cell's padding
-				// can't shrink the row and jump every feature row up the page.
-				function measureHeadHeight() {
-					wrap.classList.remove('dd-fc-stuck');
-					wrap.style.removeProperty('--dd-fc-head-h');
+				// The banner overlays the top of the head cell (position:absolute) and
+				// reserves the head's own padding-top (--dd-fc-rec-pad) to make room for
+				// itself, so it MUST be measured before the head — measuring the head
+				// first is what previously let a stale --dd-fc-head-h clip into the
+				// feature row below it.
+				function measureBannerPad() {
+					if (!banners.length) return;
 					var max = 0;
-					heads.forEach(function(el) {
+					banners.forEach(function(el) {
 						if (el.offsetHeight > max) max = el.offsetHeight;
 					});
 					if (max > 0) {
-						wrap.style.setProperty('--dd-fc-head-h', max + 'px');
+						wrap.style.setProperty('--dd-fc-rec-pad', (max + 8) + 'px');
 					}
+				}
+
+				// Measures the head row's natural (unstuck) and condensed (stuck) heights
+				// so every column can be locked to a shared height at each state.
+				// .dd-fc-measuring strips the sticky span/min-height/position that would
+				// otherwise make a head's offsetHeight reflect a previous measurement
+				// instead of its own true content height.
+				function measureHeadHeights() {
+					var wasStuck = wrap.classList.contains('dd-fc-stuck');
+					wrap.classList.add('dd-fc-measuring');
+					wrap.classList.remove('dd-fc-stuck');
+
+					measureBannerPad();
+
+					var naturalMax = 0;
+					heads.forEach(function(el) {
+						if (el.offsetHeight > naturalMax) naturalMax = el.offsetHeight;
+					});
+					if (naturalMax > 0) {
+						wrap.style.setProperty('--dd-fc-head-h', naturalMax + 'px');
+					}
+
+					wrap.classList.add('dd-fc-stuck');
+					var stuckMax = 0;
+					heads.forEach(function(el) {
+						if (el.offsetHeight > stuckMax) stuckMax = el.offsetHeight;
+					});
+					if (stuckMax > 0) {
+						wrap.style.setProperty('--dd-fc-stuck-h', stuckMax + 'px');
+					}
+
+					wrap.classList.remove('dd-fc-measuring');
+					wrap.classList.toggle('dd-fc-stuck', wasStuck);
 				}
 
 				function getOffset() {
@@ -1634,13 +1745,14 @@ class DD_Feature_Comparison_Table
 						observer.disconnect();
 						observer = null;
 					}
-					wrap.classList.remove('dd-fc-stuck');
+					wrap.classList.remove('dd-fc-stuck', 'dd-fc-measuring');
 					wrap.style.removeProperty('--dd-fc-head-h');
+					wrap.style.removeProperty('--dd-fc-stuck-h');
 				}
 
 				function setup() {
 					if (!sentinel || !window.IntersectionObserver) return;
-					measureHeadHeight();
+					measureHeadHeights();
 					observer = new IntersectionObserver(function(entries) {
 						entries.forEach(function(entry) {
 							wrap.classList.toggle('dd-fc-stuck', !entry.isIntersecting);
@@ -1658,7 +1770,20 @@ class DD_Feature_Comparison_Table
 					}
 				}
 
+				// Re-measures in place without tearing down the IntersectionObserver —
+				// used when only sizes changed (fonts finishing, a banner resizing), not
+				// the breakpoint itself.
+				function remeasure() {
+					if (!mq.matches) return;
+					measureHeadHeights();
+				}
+
 				sync();
+
+				if (document.fonts && document.fonts.ready) {
+					document.fonts.ready.then(remeasure);
+				}
+				window.addEventListener('load', remeasure);
 
 				window.addEventListener('resize', function() {
 					clearTimeout(resizeTimer);
@@ -1670,43 +1795,17 @@ class DD_Feature_Comparison_Table
 				} else if (mq.addListener) {
 					mq.addListener(sync);
 				}
+
+				if (banners.length && window.ResizeObserver) {
+					var bannerRO = new ResizeObserver(function() {
+						remeasure();
+					});
+					banners.forEach(function(el) {
+						bannerRO.observe(el);
+					});
+				}
 			})();
 		</script>
-
-		<?php if ($has_recommended): ?>
-			<script>
-				(function() {
-					var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
-					if (!wrap) return;
-					var banners = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-recommended');
-					if (!banners.length) return;
-
-					// The banner overlays the top of the head cell (position:absolute), so the
-					// reserved top padding must be at least its rendered height (plus a small gap)
-					// or a wrapped two-line banner overlaps the plan name below it. Measured live
-					// since the actual height depends on the admin's text length and column width.
-					function sync() {
-						if (window.innerWidth <= 768) return; // Only needed on Desktop grid layout
-						var max = 0;
-						banners.forEach(function(el) {
-							if (el.offsetHeight > max) max = el.offsetHeight;
-						});
-						wrap.style.setProperty('--dd-fc-rec-pad', (max + 8) + 'px');
-					}
-
-					sync();
-
-					if (window.ResizeObserver) {
-						var ro = new ResizeObserver(sync);
-						banners.forEach(function(el) {
-							ro.observe(el);
-						});
-					} else {
-						window.addEventListener('resize', sync);
-					}
-				})();
-			</script>
-		<?php endif; ?>
 		<?php if ($has_annual): ?>
 			<script>
 				(function() {
