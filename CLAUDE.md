@@ -429,6 +429,13 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   every Dashboard-template page (search, unlocked-influencers, dashboard, etc.); that lockout was
   removed — Free/trial members may now use those pages, with access capped instead by the per-level
   creator-search limit (see below).
+  > **Anti-Ladder Protocol** (`dd_pmpro_switch_credit()`): the monetary credit for unused days on
+  > an old level (used by `dd_pmpro_append_billing_cycle_on_switch()`'s upgrade-proration branches)
+  > is capped by what the user **actually paid** for that level — `min(billing_amount, last order
+  > total)` — not the level's nominal `billing_amount` alone. Without this cap a $0 trial or a
+  > heavily-discounted signup could still earn a full-rate cash credit toward an expensive upgrade.
+  > The daily rate is also computed against the old level's real cycle length (`cycle_period`/
+  > `cycle_number`), not a hardcoded 30-day divisor.
 - **myCred** (`mycred.php`) — credits/points: deduct/balance helpers, restyles the buy-credits
   checkout (`#buycred-checkout-form`) into the influencer look, a click-confirm gate before
   spending a credit (`mycred-buy-confirm.js`), and bank-transfer pending-notification handling.
@@ -442,6 +449,16 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   **per level** — a real checkout firing both hooks for the same level won't double-award, but a later
   upgrade to a *different* level still gets its own registration points instead of being silently
   blocked forever; level `0` (cancellation/expiry) is ignored.
+  > **Anti-Ladder Protocol:** each level's configured "Registration Points" is a **per-account
+  > target, not a stackable per-level bonus** — a user who upgrades through several levels only
+  > ever gets topped up to the new level's tier value, never a fresh full bonus on top of what
+  > they already have. `get_registration_credit_watermark()` reads the running total from
+  > `_dd_registration_points_credited` user meta (lazily backfilled by summing `reg_points` for
+  > every level in `_dd_registration_points_awarded_levels` for pre-existing accounts); the award
+  > path computes `delta = max(0, tier_value - already_credited)`, only calls `mycred_add()` for
+  > that delta (logged as an "Upgrade credit top-up" when `already_credited > 0`), and updates the
+  > watermark meta afterward. A downgrade-then-reupgrade cycle therefore doesn't re-earn points
+  > already banked.
 - **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
   `[dd_pricing_table order="…"]` shortcode renders a card per paid signup level
   (`get_orderable_plans()`, a public static method, excludes free/£0 levels, e.g. the Trial tier,

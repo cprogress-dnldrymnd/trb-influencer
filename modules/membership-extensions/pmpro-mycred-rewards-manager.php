@@ -212,6 +212,43 @@ class DD_PMPro_Rewards_Manager
     }
 
     /**
+     * Anti-Ladder Protocol: Returns the total registration-point value already credited
+     * to this account across every level it has ever held, so a later upgrade only ever
+     * tops up the DIFFERENCE between what it already has and the new level's tier value —
+     * it can never stack a fresh full bonus on top of an earlier one.
+     *
+     * Reads the running total from '_dd_registration_points_credited' when present. For an
+     * account that predates this meta, lazily backfills it by summing reg_points for every
+     * level already recorded in $awarded_levels (sum, not max — a legacy account that already
+     * stacked bonuses across two levels keeps that total as its watermark going forward).
+     *
+     * @param int   $user_id        The user ID.
+     * @param array $awarded_levels Level IDs already present in '_dd_registration_points_awarded_levels'.
+     * @return int Total registration-point value already credited.
+     */
+    private function get_registration_credit_watermark($user_id, $awarded_levels)
+    {
+        $stored = get_user_meta($user_id, '_dd_registration_points_credited', true);
+        if ($stored !== '') {
+            return intval($stored);
+        }
+
+        $watermark = 0;
+        if (! empty($awarded_levels)) {
+            $config = $this->get_rewards_config();
+            foreach ($config as $row) {
+                if (isset($row['level_id']) && in_array(intval($row['level_id']), $awarded_levels)) {
+                    $watermark += intval($row['reg_points']);
+                }
+            }
+        }
+
+        update_user_meta($user_id, '_dd_registration_points_credited', $watermark);
+
+        return $watermark;
+    }
+
+    /**
      * Handles the AJAX request to force process the monthly point logic.
      * @return void
      */
@@ -435,18 +472,34 @@ class DD_PMPro_Rewards_Manager
                 if ($reg_points > 0 && in_array($level_id, $awarded_levels)) {
                     $this->insert_log($user_id, "Registration points blocked for {$level_name} (already awarded — Anti-Farming Protocol Active).");
                 } elseif ($reg_points > 0) {
-                    $this->insert_log($user_id, "Awarded {$reg_points} points for joining {$level_name}");
-                    mycred_add(
-                        'pmpro_registration',
-                        $user_id,
-                        $reg_points,
-                        sprintf('Credits gained by joining %s Membership', $level_name),
-                        $level_id,
-                        '',
-                        $this->point_type
-                    );
+                    // Anti-Ladder Protocol: only ever top up to this level's tier value, never
+                    // stack a fresh full bonus on top of credits an earlier level already granted.
+                    $already_credited = $this->get_registration_credit_watermark($user_id, $awarded_levels);
+                    $delta            = max(0, $reg_points - $already_credited);
+
+                    if ($delta > 0) {
+                        $description = ($already_credited > 0)
+                            ? sprintf('Upgrade credit top-up: %s Membership', $level_name)
+                            : sprintf('Credits gained by joining %s Membership', $level_name);
+
+                        $this->insert_log($user_id, "Awarded {$delta} points for upgrading to {$level_name} ({$reg_points} tier value − {$already_credited} already credited).");
+
+                        mycred_add(
+                            'pmpro_registration',
+                            $user_id,
+                            $delta,
+                            $description,
+                            $level_id,
+                            '',
+                            $this->point_type
+                        );
+                    } else {
+                        $this->insert_log($user_id, "No registration top-up for {$level_name}: {$already_credited} already credited ≥ tier value {$reg_points}.");
+                    }
+
                     $awarded_levels[] = $level_id;
                     update_user_meta($user_id, '_dd_registration_points_awarded_levels', $awarded_levels);
+                    update_user_meta($user_id, '_dd_registration_points_credited', $already_credited + $delta);
                 }
 
                 // Initialize the allowance tracking bucket so points can be properly deducted immediately
@@ -1016,6 +1069,7 @@ class DD_PMPro_Rewards_Manager
                 <div>
                     <label><strong>Registration Points</strong></label><br>
                     <input type="number" name="<?php echo $this->option_name; ?>[<?php echo $index; ?>][reg_points]" value="<?php echo esc_attr($reg_points); ?>" class="widefat" placeholder="e.g., 100" <?php echo $disabled; ?>>
+                    <p class="description">This is a per-account target, not a per-level bonus. Switching plans only tops the account up to this figure — e.g. a user who already has 100 credited from a lower tier and switches to a tier with 500 here only receives the remaining 400.</p>
                 </div>
                 <div>
                     <label><strong>Monthly Recurring Cap</strong></label><br>

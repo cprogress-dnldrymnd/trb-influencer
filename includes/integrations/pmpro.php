@@ -442,6 +442,55 @@ function dd_custom_pmpro_logout_redirect($redirect_to, $requested_redirect_to, $
 add_filter('logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3);
 
 /**
+ * Anti-Ladder Protocol: Calculates the monetary credit owed for unused time on the OLD
+ * level, capped by what the user actually paid for it — never the level's list price alone.
+ * Without this cap, a $0 trial or a heavily-discounted signup on a cheap level still earns
+ * a full-rate cash credit against an expensive upgrade, letting a user pay a fraction of the
+ * expensive level's price for a full cycle of access.
+ *
+ * @param int    $user_id        The user ID switching levels.
+ * @param object $old_level      The level object being switched away from.
+ * @param float  $days_remaining Days left in the old level's current billing cycle (uncapped).
+ * @return float The monetary credit to apply to the new level's initial payment.
+ */
+function dd_pmpro_switch_credit($user_id, $old_level, $days_remaining)
+{
+    global $wpdb;
+
+    $old_cycle_period = ! empty($old_level->cycle_period) ? $old_level->cycle_period : 'Month';
+    $old_cycle_number  = ! empty($old_level->cycle_number) ? (int) $old_level->cycle_number : 1;
+    $old_cycle_days    = ($old_cycle_period === 'Year' ? 365 : 30) * max(1, $old_cycle_number);
+
+    // Never credit more days than the old cycle actually contains (guards against a
+    // Subscription-Delay-extended next-payment date sitting far in the future).
+    $credit_days = min((float) $days_remaining, $old_cycle_days);
+    if ($credit_days <= 0) {
+        return 0.0;
+    }
+
+    // What was actually charged for the old level, most recent order first.
+    $paid = $wpdb->get_var($wpdb->prepare(
+        "SELECT total FROM {$wpdb->prefix}pmpro_membership_orders
+         WHERE user_id = %d AND membership_id = %d AND status IN ('success', 'pending')
+         ORDER BY timestamp DESC LIMIT 1",
+        $user_id,
+        $old_level->id
+    ));
+    $paid = ($paid !== null) ? (float) $paid : 0.0;
+
+    // Cap the daily rate by what was actually paid — a discounted/free cycle can only ever
+    // credit a discounted/zero amount, regardless of the level's nominal billing_amount.
+    $basis = min((float) $old_level->billing_amount, $paid);
+    if ($basis <= 0) {
+        return 0.0;
+    }
+
+    $daily_rate = $basis / $old_cycle_days;
+
+    return $daily_rate * $credit_days;
+}
+
+/**
  * Adjusts the profile_start_date and initial_payment for the new membership level during checkout.
  * Manually calculates monetary proration for users upgrading with scheduled downgrades.
  *
@@ -500,9 +549,9 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
         // SCENARIO 2: Monthly to Annual (Upgrade)
         // Action: Monetary Proration. Start new cycle today, discount the initial payment.
 
-        // 1. Calculate the monetary credit for the unused days of the current month (based on a 30-day average)
-        $daily_rate = (float) $old_level->billing_amount / 30;
-        $credit = $daily_rate * $days_remaining;
+        // 1. Calculate the monetary credit for the unused days of the current cycle, capped by
+        // what the user actually paid for the old level (Anti-Ladder Protocol).
+        $credit = dd_pmpro_switch_credit($user_id, $old_level, $days_remaining);
 
         // 2. Apply the credit to the initial payment (ensure it doesn't drop below 0 mathematically)
         $new_initial_payment = (float) $level->billing_amount - $credit;
@@ -515,10 +564,9 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     } else {
         // SCENARIO 3: Same Cycle Switch (Month-to-Month or Year-to-Year switch to a different tier)
         if ((float)$level->billing_amount > (float)$old_level->billing_amount) {
-            // Upgrade Action: Monetary Proration. Start today, discount the initial payment.
-            $divisor = ($old_cycle_period === 'Year') ? 365 : 30;
-            $daily_rate = (float) $old_level->billing_amount / $divisor;
-            $credit = $daily_rate * $days_remaining;
+            // Upgrade Action: Monetary Proration. Start today, discount the initial payment,
+            // capped by what the user actually paid for the old level (Anti-Ladder Protocol).
+            $credit = dd_pmpro_switch_credit($user_id, $old_level, $days_remaining);
 
             $new_initial_payment = (float) $level->billing_amount - $credit;
             $level->initial_payment = max(0, round($new_initial_payment, 2));
