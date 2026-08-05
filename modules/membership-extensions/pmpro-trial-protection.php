@@ -314,7 +314,8 @@ if (!class_exists('DD_PMPro_Trial_Protection')) {
                 return $checkout_level;
             }
 
-            if (pmpro_hasMembershipLevel(15) || $checkout_level->id == 15) {
+            $free_level_id = (int) get_option('dd_free_level_id', 15);
+            if (pmpro_hasMembershipLevel($free_level_id) || $checkout_level->id == $free_level_id) {
                 return $checkout_level;
             }
 

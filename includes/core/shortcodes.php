@@ -598,7 +598,7 @@ function breadcrumbs()
                 <?php } ?>
 
             <?php } else { ?>
-                <?php if (!is_page(1565)) { ?>
+                <?php if (!is_page(dd_get_page_id('dd_dashboard_page_id', 1565))) { ?>
                     <li><span><?= esc_html(get_the_title()) ?></span></li>
                 <?php } ?>
             <?php } ?>

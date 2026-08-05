@@ -1183,7 +1183,7 @@ class Saves_Manager
             if ($balance < 1) {
                 wp_send_json_error([
                     'action' => 'redirect',
-                    'url' => '/buy-credit/',
+                    'url' => dd_get_buy_credits_url(),
                     'message' => __('Insufficient credits. Redirecting...', 'hello-elementor-child')
                 ]);
             }

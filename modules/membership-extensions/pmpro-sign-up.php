@@ -74,7 +74,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             if (! function_exists('pmpro_url')) {
                 return;
             }
-            if (is_page(4144)) {
+            if (is_page(dd_get_page_id('dd_login_redirect_page_id', 4144))) {
 ?>
                 <script type="text/javascript">
                     /**
@@ -230,7 +230,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             }
 
             // Strict contextual check to isolate the field from the standard checkout page.
-            $is_custom_page = is_page(4144);
+            $is_custom_page = is_page(dd_get_page_id('dd_login_redirect_page_id', 4144));
             $is_ajax_post   = isset($_POST['is_custom_ajax_signup']);
 
             if (! $is_custom_page && ! $is_ajax_post) {
@@ -282,7 +282,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
             }
 
             // Contextual bypass: Do not enforce validation on the native checkout page.
-            $is_custom_page = is_page(4144);
+            $is_custom_page = is_page(dd_get_page_id('dd_login_redirect_page_id', 4144));
             $is_ajax_post   = isset($_POST['is_custom_ajax_signup']);
 
             if (! $is_custom_page && ! $is_ajax_post) {

@@ -822,10 +822,11 @@ class DD_PMPro_Frontend_Pricing
 		// Execute your custom avatar shortcode safely
 		$avatar_html = do_shortcode('[user_avatar]');
 	?>
+		<?php $hide_sidebar_levels = array_map('intval', (array) get_option('dd_hide_checkout_sidebar_levels', [9])); ?>
 		<style>
-			<?php if ($level_id === 9) : ?>
+			<?php if (in_array($level_id, $hide_sidebar_levels, true)) : ?>
 
-			/* Level 9 (Growth): hide the checkout sidebar */
+			/* Hide the checkout sidebar for the configured level(s) */
 			.checkout-sidebar {
 				display: none !important;
 			}

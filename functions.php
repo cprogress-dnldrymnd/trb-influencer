@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.4.2');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.5.0');
 
 /**
  * Load child theme scripts & styles.
@@ -164,6 +164,8 @@ require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';
 require $dir . '/modules/saves/saves-manager.php';
+
+require $dir . '/modules/settings-io/settings-io.php';
 
 
 function influencers_meta()

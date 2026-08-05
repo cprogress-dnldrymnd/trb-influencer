@@ -14,6 +14,18 @@ function dd_get_template_id($key, $fallback = 0)
 }
 
 /**
+ * URL of the Buy Credits page, falling back to the legacy hardcoded path when unset.
+ *
+ * @return string
+ */
+function dd_get_buy_credits_url()
+{
+    $id  = dd_get_page_id('dd_buy_credits_page_id', 0);
+    $url = $id ? get_permalink($id) : '';
+    return $url ?: '/buy-credit/';
+}
+
+/**
  * Renders a checkbox list of all PMPro membership levels.
  *
  * @param string $name        The option/field name (rendered as `{$name}[]`).
@@ -88,6 +100,38 @@ function dd_render_pmpro_search_limits($name, $values, $description = '')
             </label>
         <?php endforeach; ?>
     </fieldset>
+    <?php if ($description): ?>
+        <p class="description"><?php echo esc_html($description); ?></p>
+    <?php endif; ?>
+<?php
+}
+
+/**
+ * Renders a single <select> of all PMPro membership levels, plus a "None" option.
+ *
+ * @param string $name        The option name.
+ * @param int    $selected    The currently-selected level ID (0 = none).
+ * @param string $description Optional helper text shown below the field.
+ */
+function dd_render_pmpro_level_select($name, $selected, $description = '')
+{
+    $selected = (int) $selected;
+
+    if (! function_exists('pmpro_getAllLevels')) {
+        echo '<p class="description">Paid Memberships Pro is not active.</p>';
+        return;
+    }
+
+    $levels = pmpro_getAllLevels(true, true);
+?>
+    <select name="<?php echo esc_attr($name); ?>">
+        <option value="0" <?php selected($selected, 0); ?>>— None —</option>
+        <?php foreach ($levels as $level): ?>
+            <option value="<?php echo esc_attr($level->id); ?>" <?php selected($selected, (int) $level->id); ?>>
+                <?php echo esc_html($level->name); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
     <?php if ($description): ?>
         <p class="description"><?php echo esc_html($description); ?></p>
     <?php endif; ?>
@@ -203,10 +247,15 @@ add_action('wp_ajax_dd_admin_post_search', function () {
 // ---------------------------------------------------------------------------
 add_action('admin_init', function () {
     $page_keys = [
-        'dd_search_results_page_id' => 1949,
-        'dd_search_page_id'         => 2149,
-        'dd_dashboard_page_id'      => 1565,
-        'dd_login_redirect_page_id' => 4144,
+        'dd_search_results_page_id'   => 1949,
+        'dd_search_page_id'           => 2149,
+        'dd_dashboard_page_id'        => 1565,
+        'dd_login_redirect_page_id'   => 4144,
+        'dd_saved_lists_page_id'      => 0,
+        'dd_saved_searches_page_id'   => 0,
+        'dd_roi_calculator_page_id'   => 0,
+        'dd_outreach_page_id'         => 0,
+        'dd_buy_credits_page_id'      => 4191,
     ];
     foreach ($page_keys as $key => $default) {
         register_setting('dd_theme_page_ids', $key, [
@@ -235,8 +284,9 @@ add_action('admin_init', function () {
     }
 
     // Per-feature allowed-levels options (checkbox lists) — one per capability gate.
-    // dd_trial_levels shares the same shape/sanitizer but isn't a dd_user_can() capability gate —
-    // it's a level *classification* consumed by modules/membership-extensions/pmpro-company-trial.php.
+    // dd_trial_levels and dd_hide_checkout_sidebar_levels share the same shape/sanitizer but
+    // aren't dd_user_can() capability gates — they're level *classifications* consumed directly
+    // by their own modules (pmpro-company-trial.php and pmpro-dynamic-pricing.php respectively).
     $level_allowlist_keys = [
         'dd_export_pdf_allowed_levels',
         'dd_outreach_allowed_levels',
@@ -244,6 +294,7 @@ add_action('admin_init', function () {
         'dd_custom_outreach_message_allowed_levels',
         'dd_saved_search_allowed_levels',
         'dd_trial_levels',
+        'dd_hide_checkout_sidebar_levels',
     ];
     foreach ($level_allowlist_keys as $key) {
         register_setting('dd_theme_page_ids', $key, [
@@ -257,6 +308,14 @@ add_action('admin_init', function () {
             'default'           => [],
         ]);
     }
+
+    // The PMPro level treated as "Free" — used to bounce a Free-level checkout confirmation
+    // back to the pricing page, and to exempt Free members from the one-time subscription delay.
+    register_setting('dd_theme_page_ids', 'dd_free_level_id', [
+        'type'              => 'integer',
+        'sanitize_callback' => 'absint',
+        'default'           => 15,
+    ]);
 
     // Per-level numeric creator-search cap ("-1"/blank = unlimited).
     register_setting('dd_theme_page_ids', 'dd_search_limits', [
@@ -322,6 +381,11 @@ add_action('admin_init', function () {
         'dd_search_page_id'         => ['Search Form Page',      2149, 'Page that contains the influencer search form.'],
         'dd_dashboard_page_id'      => ['Dashboard Page',        1565, 'User dashboard — also the post-login redirect target.'],
         'dd_login_redirect_page_id' => ['Login / Redirect Page', 4144, 'Non-logged-in users are redirected here.'],
+        'dd_saved_lists_page_id'    => ['Saved Lists Page',      0,    'Page where members view their saved creator lists.'],
+        'dd_saved_searches_page_id' => ['Saved Searches Page',   0,    'Page where members view their saved searches.'],
+        'dd_roi_calculator_page_id' => ['ROI Calculator Page',   0,    'Page hosting the [roi_calculator] shortcode.'],
+        'dd_outreach_page_id'       => ['Outreach Page',         0,    'Page hosting the outreach dashboard/history.'],
+        'dd_buy_credits_page_id'    => ['Buy Credits Page',      4191, 'Page where members purchase myCred credits.'],
     ];
     foreach ($page_fields as $key => [$label, $default, $description]) {
         add_settings_field($key, $label, function () use ($key, $default, $description) {
@@ -406,6 +470,22 @@ add_action('admin_init', function () {
             'dd_public_email_domains',
             get_option('dd_public_email_domains', []),
             'Email domains that are never treated as a shared "company" for the one-trial-per-company rule above (so e.g. two separate Gmail signups are never grouped together).'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_free_level_id', 'Free Membership Level', function () {
+        dd_render_pmpro_level_select(
+            'dd_free_level_id',
+            get_option('dd_free_level_id', 15),
+            'The level treated as "Free". A checkout confirmation for this level redirects back to the pricing page, and members on this level are exempt from the one-time subscription delay.'
+        );
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+
+    add_settings_field('dd_hide_checkout_sidebar_levels', 'Hide Checkout Sidebar', function () {
+        dd_render_pmpro_levels_checkboxes(
+            'dd_hide_checkout_sidebar_levels',
+            get_option('dd_hide_checkout_sidebar_levels', [9]),
+            'The checkout sidebar is hidden for members checking out into the selected levels.'
         );
     }, 'dd-theme-settings-functionality', 'dd_functionality_section');
 

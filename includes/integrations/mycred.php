@@ -110,7 +110,7 @@ function get_current_user_remaining_mycred_balance($point_type_key = 'mycred_def
 function dd_influencer_style_mycred_checkout()
 {
     // 1.Check if user is logged in
-    if (!is_page(4191)) {
+    if (!is_page(dd_get_page_id('dd_buy_credits_page_id', 4191))) {
         return;
     }
     // Execute your custom avatar shortcode safely
@@ -461,7 +461,7 @@ function dd_influencer_style_mycred_checkout()
                     $form.find('.dd-influencer-header, .dd-checkout-title-row, #dd-influencer-summary').remove();
 
                     // 2. Safely grab myCred's Cancel URL so the "Change amount" link actually drops the pending order
-                    var cancelUrl = $form.find('.cancel a').attr('href') || '/buy-credit/';
+                    var cancelUrl = $form.find('.cancel a').attr('href') || <?php echo wp_json_encode(dd_get_buy_credits_url()); ?>;
 
                     var avatarHtml = <?php echo wp_json_encode($avatar_html); ?>;
 

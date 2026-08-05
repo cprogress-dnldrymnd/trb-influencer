@@ -61,9 +61,9 @@ if (! function_exists('dd_pmpro_enforce_single_membership_global')) {
 
 function dd_pmpro_force_checkout_text_observer()
 {
-    // 1. Target the specific checkout page URL provided
-    // We check if we are on the 'membership-checkout' page.
-    if (! is_page(1551)) {
+    // 1. Target the PMPro checkout page (reads PMPro's own page registry, so this is
+    // correct on every environment without needing a theme setting).
+    if (! function_exists('pmpro_is_checkout') || ! pmpro_is_checkout()) {
         return;
     }
 ?>
@@ -618,7 +618,7 @@ function dd_force_free_members_to_upgrade()
     if (! empty($pmpro_pages['confirmation']) && is_page($pmpro_pages['confirmation'])) {
         $level_id = isset($_GET['pmpro_level']) ? intval($_GET['pmpro_level']) : 0;
 
-        if ($level_id === 15) {
+        if ($level_id === (int) get_option('dd_free_level_id', 15)) {
             $redirect_url = pmpro_url('levels');
             if ($redirect_url) {
                 wp_safe_redirect($redirect_url);

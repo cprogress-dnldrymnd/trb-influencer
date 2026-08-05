@@ -208,10 +208,18 @@ SVG when set — everywhere that reads through this helper (switcher, `[platform
 `[platform_icon]`) picks up the override automatically, but a custom image does **not** recolor via
 `currentColor` the way the built-in SVGs do.
 
-> Caveat: integration files still contain **environment-specific magic page/level IDs** tied to
-> the production site (e.g. `is_page(1551)` checkout, `4191` buy-credits, free PMPro level `15`;
-> `influencer_style_pmpro_checkout()` also hides `.checkout-sidebar` specifically for level `9`).
-> These are not in the settings system; treat them as production constants.
+> The environment-specific magic page/level IDs that used to live directly in integration files
+> are now settings: the checkout page check uses PMPro's own `pmpro_is_checkout()` (no setting
+> needed — it reads PMPro's page registry); the buy-credits page is `dd_buy_credits_page_id`
+> (default `4191`, also backing the `dd_get_buy_credits_url()` helper used wherever a
+> `/buy-credit/` redirect is needed); the "Free" level is `dd_free_level_id` (default `15`,
+> read by the checkout-confirmation redirect and the one-time subscription-delay exemption); and
+> `influencer_style_pmpro_checkout()`'s checkout-sidebar hide is `dd_hide_checkout_sidebar_levels`
+> (a level-ID checkbox list, default `[9]`). All four are on the Functionality/Page Assignments
+> tabs alongside the existing settings. Four further page assignments exist with no current
+> consumer in theme code — `dd_saved_lists_page_id`, `dd_saved_searches_page_id`,
+> `dd_roi_calculator_page_id`, `dd_outreach_page_id` — added so those destinations are
+> configurable/portable even though nothing reads them yet.
 
 ### Influencer search pipeline (the core feature)
 
