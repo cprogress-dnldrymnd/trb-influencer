@@ -6,10 +6,13 @@ if (! defined('ABSPATH')) {
  * Plugin Name: Feature Comparison Pricing Table
  * Description: Provides an editable Mailchimp-style feature-comparison pricing table. Content
  * (columns — auto-seeded from PMPro plans or fully custom — and feature rows with tick/cross/text
- * cells) is authored once from a "Comparison Table" tab on the Influencer Theme settings hub, then
- * rendered via the [dd_feature_comparison] shortcode and its Elementor widget wrapper. Distinct
- * from [dd_pricing_table] (DD_PMPro_Frontend_Pricing), which is a dynamic monthly/yearly toggle
- * card layout, not an editable comparison grid.
+ * cells) is authored once from the "Pricing Tables" tab on the Influencer Theme settings hub.
+ * render_table() serves BOTH front-end tables from that one authored dataset: the
+ * [dd_feature_comparison] shortcode (every column, plain static CTA buttons) and, in "pricing
+ * mode", the dd_pricing_table shortcode owned by DD_PMPro_Frontend_Pricing (same grid, but each
+ * PMPro column's button becomes membership-aware and a chosen set of columns — typically the free
+ * Trial tier — is excluded). Sharing one renderer keeps the grid CSS, the desktop sticky-header
+ * measurement pass and the mobile tab script from drifting between the two tables.
  * Version: 1.0.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
@@ -28,8 +31,18 @@ class DD_Feature_Comparison_Table
 	 */
 	private static $instance_counter = 0;
 
+	/**
+	 * The single live instance, so other modules (notably DD_PMPro_Frontend_Pricing, whose
+	 * dd_pricing_table shortcode renders this same table in "pricing mode") can reach
+	 * render_table() without constructing a second object and double-registering every hook.
+	 * @var DD_Feature_Comparison_Table|null
+	 */
+	private static $instance;
+
 	public function __construct()
 	{
+		self::$instance = $this;
+
 		add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
 		add_action('admin_init', [$this, 'register_setting']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
@@ -38,7 +51,18 @@ class DD_Feature_Comparison_Table
 	}
 
 	/**
-	 * Appends the "Comparison Table" tab to the Influencer Theme settings hub.
+	 * @return DD_Feature_Comparison_Table|null
+	 */
+	public static function instance()
+	{
+		return self::$instance;
+	}
+
+	/**
+	 * Appends the settings tab to the Influencer Theme settings hub. The tab id stays
+	 * 'comparison-table' (the hub renders it into #dd-panel-comparison-table, which this module's
+	 * own admin JS/CSS scopes itself to) even though the label now covers both tables — the
+	 * authored columns/rows feed the Pricing Table widget as well.
 	 *
 	 * @param array $tabs
 	 * @return array
@@ -47,7 +71,7 @@ class DD_Feature_Comparison_Table
 	{
 		$tabs[] = [
 			'id'     => 'comparison-table',
-			'label'  => 'Comparison Table',
+			'label'  => 'Pricing Tables',
 			'render' => [$this, 'render_tab_panel'],
 		];
 		return $tabs;
@@ -223,7 +247,8 @@ class DD_Feature_Comparison_Table
 
 		$data = $this->get_data();
 	?>
-		<p class="dd-tab-desc">Build the feature-comparison pricing table shown by the <code>[dd_feature_comparison]</code> shortcode and the "Comparison Pricing Table" Elementor widget. Columns can be pulled from your PMPro plans or added as fully custom columns with their own price. Each feature row's cell can be a tick, a cross, or free text.</p>
+		<p class="dd-tab-desc">Build the plan columns and feature rows used by <strong>both</strong> pricing tables. Columns can be pulled from your PMPro plans or added as fully custom columns with their own price. Each feature row's cell can be a tick, a cross, or free text. Drag either list to reorder it — that order is what both tables render.</p>
+		<p class="dd-tab-desc"><strong>Comparison Pricing Table</strong> widget (<code>[dd_feature_comparison]</code>) shows every column below with plain "Buy Now" buttons. <strong>Pricing Table</strong> widget shows the same columns, but each button becomes membership-aware (Upgrade / Downgrade / Switch / Current Plan) and the visitor's active plan gets a "Current Plan" badge — use that widget's <em>Hide Plans</em> setting in Elementor to keep the free Trial column off it.</p>
 
 		<form action="options.php" method="post" id="dd-fc-form">
 			<?php settings_fields('dd_feature_comparison_group'); ?>
@@ -944,23 +969,26 @@ class DD_Feature_Comparison_Table
 	 * present), live-deriving from its PMPro level when the admin left a field blank so a plan's
 	 * price/name/checkout link never drifts stale.
 	 *
-	 * The annual side mirrors [dd_pricing_table]'s own monthly/yearly toggle
-	 * (DD_PMPro_Frontend_Pricing::build_pricing_card()): a PMPro column with no manually-entered
-	 * annual price auto-detects the level's "Annual" Payment Plan extension via the same
-	 * get_annual_payment_plan() lookup that table uses. A custom column (or a PMPro column with no
-	 * Annual plan configured) only shows an annual price if the admin entered one — leaving both
-	 * blank simply omits the toggle for that column.
+	 * A PMPro column with no manually-entered annual price auto-detects the level's "Annual" Payment
+	 * Plan extension via DD_PMPro_Frontend_Pricing::get_annual_payment_plan(). A custom column (or a
+	 * PMPro column with no Annual plan configured) only shows an annual price if the admin entered
+	 * one — leaving both blank simply omits the toggle for that column.
+	 *
+	 * annual_plan_id is returned separately from the price because pricing mode needs the Payment
+	 * Plan identifier itself to detect whether the visitor owns the annual term of a level, so it is
+	 * looked up even when the admin overrode the displayed annual price by hand.
 	 *
 	 * @param array $col
-	 * @return array{name:string, price:string, cta_url:string, price_annual:string, cta_url_annual:string}
+	 * @return array{name:string, price:string, cta_url:string, price_annual:string, cta_url_annual:string, annual_plan_id:string}
 	 */
-	private function resolve_column($col)
+	private static function resolve_column($col)
 	{
 		$name           = $col['name'];
 		$price          = $col['price'];
 		$cta_url        = $col['cta_url'];
 		$price_annual   = $col['price_annual'] ?? '';
 		$cta_url_annual = $col['cta_url_annual'] ?? '';
+		$annual_plan_id = '';
 
 		if ($col['type'] === 'pmpro' && $col['level_id'] && function_exists('pmpro_getLevel')) {
 			$level = pmpro_getLevel($col['level_id']);
@@ -976,12 +1004,18 @@ class DD_Feature_Comparison_Table
 					$cta_url = pmpro_url('checkout', '?level=' . (int) $col['level_id']);
 				}
 
-				if ($price_annual === '' && class_exists('DD_PMPro_Frontend_Pricing')) {
+				// Looked up even when the admin typed their own annual price, because pricing mode
+				// needs the Payment Plan id itself (not just its price) to tell whether the visitor
+				// owns the annual term of this level — see DD_PMPro_Frontend_Pricing.
+				if (class_exists('DD_PMPro_Frontend_Pricing')) {
 					$annual_plan = DD_PMPro_Frontend_Pricing::get_annual_payment_plan($col['level_id']);
 					if (! empty($annual_plan)) {
-						$price_annual = $annual_plan['price'];
-						if ($cta_url_annual === '' && function_exists('pmpro_url')) {
-							$cta_url_annual = pmpro_url('checkout', '?level=' . (int) $col['level_id'] . '&pmpropp_chosen_plan=' . $annual_plan['id']);
+						$annual_plan_id = $annual_plan['id'];
+						if ($price_annual === '') {
+							$price_annual = $annual_plan['price'];
+							if ($cta_url_annual === '' && function_exists('pmpro_url')) {
+								$cta_url_annual = pmpro_url('checkout', '?level=' . (int) $col['level_id'] . '&pmpropp_chosen_plan=' . $annual_plan['id']);
+							}
 						}
 					}
 				}
@@ -1000,18 +1034,77 @@ class DD_Feature_Comparison_Table
 			'cta_url'        => $cta_url,
 			'price_annual'   => $price_annual,
 			'cta_url_annual' => $cta_url_annual,
+			'annual_plan_id' => $annual_plan_id,
 		];
 	}
 
 	/**
-	 * Renders the [dd_feature_comparison] shortcode — a CSS-grid comparison table with one column
-	 * per configured plan and one row per configured feature. Empty state (no columns) renders
-	 * nothing rather than an empty shell.
+	 * The configured columns as an Elementor-friendly choices map, resolving blank names from the
+	 * live PMPro level the same way the front end does. Static so a widget can call it without an
+	 * instance.
+	 *
+	 * @return array<string,string> column key => display name
+	 */
+	public static function get_column_choices()
+	{
+		$raw     = get_option(self::OPTION_KEY, '');
+		$decoded = json_decode(is_string($raw) ? $raw : '', true);
+		if (! is_array($decoded) || empty($decoded['columns']) || ! is_array($decoded['columns'])) {
+			return [];
+		}
+
+		$choices = [];
+		foreach ($decoded['columns'] as $col) {
+			if (empty($col['key'])) {
+				continue;
+			}
+			$resolved = self::resolve_column($col);
+			$choices[$col['key']] = $resolved['name'] !== '' ? $resolved['name'] : $col['key'];
+		}
+
+		return $choices;
+	}
+
+	/**
+	 * Renders the [dd_feature_comparison] shortcode — every configured column, with plain static
+	 * CTA buttons.
 	 *
 	 * @return string
 	 */
 	public function render_shortcode()
 	{
+		return $this->render_table();
+	}
+
+	/**
+	 * Renders the CSS-grid table — one column per configured plan, one row per configured feature.
+	 * Empty state (no columns) renders nothing rather than an empty shell.
+	 *
+	 * Two modes share this one renderer so the grid CSS, the desktop sticky-header measurement pass
+	 * and the mobile tab script can't drift between them:
+	 *   - default          — the comparison table. Static CTA buttons, every column shown.
+	 *   - pricing_mode      — the dd_pricing_table shortcode. Each PMPro column's button becomes
+	 *                         membership-aware (upgrade/downgrade/switch/current/trial-lockdown) via
+	 *                         DD_PMPro_Frontend_Pricing, the visitor's active plan gets a "Current
+	 *                         Plan" badge, and 'exclude' drops columns (this is how the free Trial
+	 *                         column is kept off the pricing table).
+	 *
+	 * @param array $args {
+	 *     @type string[] $exclude      Column keys to omit entirely.
+	 *     @type bool     $pricing_mode Resolve membership state per column.
+	 * }
+	 * @return string
+	 */
+	public function render_table($args = [])
+	{
+		$args = wp_parse_args($args, [
+			'exclude'      => [],
+			'pricing_mode' => false,
+		]);
+
+		$pricing_mode = ! empty($args['pricing_mode']);
+		$exclude      = is_array($args['exclude']) ? $args['exclude'] : [];
+
 		$data = $this->get_data();
 		if (empty($data['columns'])) {
 			return '';
@@ -1019,6 +1112,19 @@ class DD_Feature_Comparison_Table
 
 		$columns = $data['columns'];
 		$rows    = $data['rows'];
+
+		// Reindexed so data-col-index / --dd-fc-c stay contiguous — the mobile tab script and the
+		// desktop explicit grid placement both key off those being 0..n with no gaps.
+		if (! empty($exclude)) {
+			$columns = array_values(array_filter($columns, function ($col) use ($exclude) {
+				return empty($col['key']) || ! in_array($col['key'], $exclude, true);
+			}));
+		}
+
+		if (empty($columns)) {
+			return '';
+		}
+
 		$col_count = count($columns);
 		$row_count = count($rows);
 
@@ -1034,12 +1140,17 @@ class DD_Feature_Comparison_Table
 		// Resolved once per column (each PMPro column resolution can hit the DB) and reused both
 		// for these page-level flags and inside the render loop below.
 		$resolved_columns = [];
+		$plan_states      = [];
 		$has_recommended  = false;
 		$has_annual       = false;
+		$has_badge        = false;
+		$owned_index      = null;
 		$initial_active   = 0; // Default active tab index for mobile
 
+		$pricing = ($pricing_mode && class_exists('DD_PMPro_Frontend_Pricing')) ? DD_PMPro_Frontend_Pricing::instance() : null;
+
 		foreach ($columns as $index => $col) {
-			$resolved_columns[$col['key']] = $this->resolve_column($col);
+			$resolved_columns[$col['key']] = self::resolve_column($col);
 			if (! empty($col['recommended'])) {
 				$has_recommended = true;
 				// If a recommended column exists, default to it on mobile initially
@@ -1048,8 +1159,19 @@ class DD_Feature_Comparison_Table
 			if ($resolved_columns[$col['key']]['price'] !== '' && $resolved_columns[$col['key']]['price_annual'] !== '') {
 				$has_annual = true;
 			}
+
+			// Only a real PMPro column can carry membership state; a custom column keeps the static
+			// price/CTA the admin authored, with no badge and no upgrade/downgrade logic.
+			if ($pricing && $col['type'] === 'pmpro' && ! empty($col['level_id'])) {
+				$state = $pricing->get_plan_button_state($col['level_id'], $resolved_columns[$col['key']]['annual_plan_id']);
+				$plan_states[$col['key']] = $state;
+				if (! empty($state['has_any_plan'])) {
+					$has_badge   = true;
+					$owned_index = $index;
+				}
+			}
 		}
-		
+
 		// If no recommended column, fallback to the highlighted one (if any)
 		if (!$has_recommended) {
 			foreach ($columns as $index => $col) {
@@ -1058,6 +1180,17 @@ class DD_Feature_Comparison_Table
 					break;
 				}
 			}
+		}
+
+		// The visitor's own plan is the most useful mobile tab to open on, so it outranks both.
+		if ($owned_index !== null) {
+			$initial_active = $owned_index;
+		}
+
+		// The "Current Plan" badge occupies the same absolute slot as the recommended banner, so it
+		// needs the same reserved head padding even on a table where nothing is marked recommended.
+		if ($has_badge) {
+			$has_recommended = true;
 		}
 
 		$wrap_id = 'dd-fc-' . (++self::$instance_counter);
@@ -1167,9 +1300,8 @@ class DD_Feature_Comparison_Table
 				margin-left: 2px;
 			}
 
-			/* Yearly-toggle chrome — same classes/markup as the dd_pricing_table shortcode's own
-			   toggle (DD_PMPro_Frontend_Pricing::build_pricing_card()) for a visually identical
-			   switch, scoped under .dd-fc-wrap so it can't collide if both render on one page.
+			/* Yearly-toggle chrome, scoped under .dd-fc-wrap so it can't collide with anything
+			   else on the page.
 			   NOTE: never write a bracketed shortcode-tag anywhere in this file's actual output
 			   (echoed HTML/CSS/JS, not PHP docblocks) — do_shortcode() blindly regex-replaces any
 			   registered-tag text wherever it appears, even inside a <script>/<style> comment,
@@ -1264,6 +1396,67 @@ class DD_Feature_Comparison_Table
 			.dd-fc-wrap .dd-fc-cta:hover {
 				opacity: .9;
 				color: #fff;
+			}
+
+			/* --------------------------------------------------------------------------
+			 * Pricing mode only (.dd-fc-pricing) — the membership-aware chrome carried
+			 * over from the old card layout: the "Current Plan" badge, the locked-button
+			 * state, the active-plan column emphasis and the free-trial notice.
+			 * -------------------------------------------------------------------------- */
+			.dd-fc-wrap .dd-fc-badge {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				background: #ffe270;
+				color: #241c15;
+				font-size: 11px;
+				font-weight: 700;
+				line-height: 1.4;
+				letter-spacing: .3px;
+				padding: 4px 6px;
+				text-align: center;
+			}
+
+			.dd-fc-wrap .dd-fc-cta.dd-fc-cta-disabled {
+				background: #ffbbae;
+				color: #241c15;
+				pointer-events: none;
+				cursor: not-allowed;
+			}
+
+			.dd-fc-wrap .dd-fc-head.dd-fc-current {
+				box-shadow: inset 0 0 0 2px var(--e-global-color-secondary, #ff6b4a);
+			}
+
+			/* Side-only emphasis (inset shadow, not a background) so the owned column reads as one
+			   connected column without fighting the .dd-fc-highlight background or the paint-order
+			   guard that keeps body cells opaque above the sticky header. */
+			.dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell.dd-fc-current {
+				box-shadow: inset 2px 0 0 var(--e-global-color-secondary, #ff6b4a), inset -2px 0 0 var(--e-global-color-secondary, #ff6b4a);
+			}
+
+			.dd-fc-wrap .dd-fc-row:last-child .dd-fc-cell.dd-fc-current {
+				box-shadow: inset 2px 0 0 var(--e-global-color-secondary, #ff6b4a), inset -2px 0 0 var(--e-global-color-secondary, #ff6b4a), inset 0 -2px 0 var(--e-global-color-secondary, #ff6b4a);
+			}
+
+			.dd-fc-wrap .dd-fc-trial-text {
+				font-size: 12px;
+				font-weight: 500;
+			}
+
+			.dd-fc-wrap .dd-fc-trial-text span {
+				background-color: var(--e-global-color-secondary, #ff6b4a);
+				color: #fef6f3;
+				padding: 6px 8px;
+				display: inline-block;
+				border-radius: 5px;
+				font-weight: 600;
+				letter-spacing: .2px;
+			}
+
+			.dd-fc-wrap .dd-fc-trial-text i {
+				font-style: italic;
 			}
 
 			.dd-fc-wrap .dd-fc-tick {
@@ -1371,8 +1564,9 @@ class DD_Feature_Comparison_Table
 					display: flex;
 				}
 				
-				/* Recommended banner flows cleanly inside the active plan details card */
-				.dd-fc-wrap .dd-fc-head .dd-fc-recommended {
+				/* Recommended banner / current-plan badge flow cleanly inside the active plan details card */
+				.dd-fc-wrap .dd-fc-head .dd-fc-recommended,
+				.dd-fc-wrap .dd-fc-head .dd-fc-badge {
 					position: relative;
 					display: inline-block;
 					margin: -24px -16px 16px -16px;
@@ -1381,9 +1575,14 @@ class DD_Feature_Comparison_Table
 					border-radius: 8px 8px 0 0;
 					font-size: 13px;
 					font-weight: 600;
-					background: #c5ebd3; 
+					background: #c5ebd3;
 					color: #034146;
 					border-bottom: 1px solid var(--dd-fc-border-color, #e2e2e2);
+				}
+
+				.dd-fc-wrap .dd-fc-head .dd-fc-badge {
+					background: #ffe270;
+					color: #241c15;
 				}
 
 				/* 4. Feature Names break to their own full-width row */
@@ -1517,7 +1716,9 @@ class DD_Feature_Comparison_Table
 				}
 
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-toggle-wrapper,
-				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-recommended {
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-recommended,
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-badge,
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-trial-text {
 					display: none;
 				}
 
@@ -1553,7 +1754,7 @@ class DD_Feature_Comparison_Table
 				}
 			</style>
 		<?php endif; ?>
-		<div class="dd-fc-wrap" id="<?php echo esc_attr($wrap_id); ?>">
+		<div class="dd-fc-wrap<?php echo $pricing_mode ? ' dd-fc-pricing' : ''; ?>" id="<?php echo esc_attr($wrap_id); ?>">
 
 			<div class="dd-fc-sticky-sentinel" aria-hidden="true"></div>
 
@@ -1576,8 +1777,19 @@ class DD_Feature_Comparison_Table
 						$resolved = $resolved_columns[$col['key']];
 						$col_has_annual = $resolved['price'] !== '' && $resolved['price_annual'] !== '';
 						$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
+						$state = isset($plan_states[$col['key']]) ? $plan_states[$col['key']] : null;
+
+						// Pricing mode opens on the term the visitor actually owns, so someone on the
+						// annual plan sees their own price rather than the monthly one they'd have to
+						// switch the toggle to find.
+						$show_annual = ($state && $col_has_annual && ! empty($state['default_annual']));
+						$shown_price  = $show_annual ? $resolved['price_annual'] : $resolved['price'];
+						$shown_period = $show_annual ? ($col['period_annual'] ?? '') : $col['period'];
+
+						$is_current   = ($state && ! empty($state['has_any_plan']));
+						$trial_notice = ($pricing && $col['type'] === 'pmpro' && ! empty($col['level_id'])) ? $pricing->get_trial_notice($col['level_id']) : '';
 					?>
-						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>"
+						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $is_current ? ' dd-fc-current' : ''; ?><?php echo $active_class; ?>"
 							data-col-index="<?php echo (int) $index; ?>"
 							style="--dd-fc-c:<?php echo (int) $index + 2; ?>"
 							<?php if ($col_has_annual): ?>
@@ -1587,25 +1799,38 @@ class DD_Feature_Comparison_Table
 							data-period-annual="<?php echo esc_attr($col['period_annual'] ?? ''); ?>"
 							data-url-monthly="<?php echo esc_url($resolved['cta_url']); ?>"
 							data-url-annual="<?php echo esc_url($resolved['cta_url_annual']); ?>"
+							<?php endif; ?>
+							<?php if ($state): ?>
+							data-owns-monthly="<?php echo ! empty($state['owns_monthly']) ? 'true' : 'false'; ?>"
+							data-owns-annual="<?php echo ! empty($state['owns_annual']) ? 'true' : 'false'; ?>"
+							data-action-verb="<?php echo esc_attr($state['action_verb']); ?>"
+							data-is-on-trial="<?php echo ! empty($state['is_on_trial']) ? 'true' : 'false'; ?>"
+							data-is-pending-downgrade="<?php echo ! empty($state['is_pending_downgrade']) ? 'true' : 'false'; ?>"
+							data-is-leaving-plan="<?php echo ! empty($state['is_leaving_plan']) ? 'true' : 'false'; ?>"
 							<?php endif; ?>>
-							<?php if (! empty($col['recommended'])): ?>
+							<?php if ($is_current): ?>
+								<div class="dd-fc-badge">CURRENT PLAN</div>
+							<?php elseif (! empty($col['recommended'])): ?>
 								<div class="dd-fc-recommended"><?php echo esc_html($col['recommended_text'] !== '' ? $col['recommended_text'] : 'Recommended'); ?></div>
 							<?php endif; ?>
 							<div class="dd-fc-name"><?php echo esc_html($resolved['name']); ?></div>
 							<?php if ($resolved['price'] !== ''): ?>
-								<div class="dd-fc-price"><span class="dd-fc-price-amount"><?php echo esc_html($resolved['price']); ?></span><?php if (! empty($col['period'])): ?><span class="dd-fc-period"><?php echo esc_html($col['period']); ?></span><?php endif; ?></div>
+								<div class="dd-fc-price"><span class="dd-fc-price-amount"><?php echo esc_html($shown_price); ?></span><?php if (! empty($col['period'])): ?><span class="dd-fc-period"><?php echo esc_html($shown_period); ?></span><?php endif; ?></div>
 							<?php endif; ?>
 							<?php if ($col_has_annual): ?>
 								<div class="dd-toggle-wrapper">
 									<label class="dd-switch">
-										<input type="checkbox" class="dd-fc-plan-toggle">
+										<input type="checkbox" class="dd-fc-plan-toggle" <?php checked($show_annual); ?>>
 										<span class="dd-slider round"></span>
 									</label>
 									<span class="dd-toggle-label">Yearly</span>
 									<span class="dd-discount">Save 20%</span>
 								</div>
 							<?php endif; ?>
-							<?php if ($resolved['cta_url'] !== '' || ! empty($col['cta_text'])): ?>
+							<?php echo wp_kses_post($trial_notice); ?>
+							<?php if ($state): ?>
+								<a class="dd-fc-cta<?php echo ! empty($state['btn_disabled']) ? ' dd-fc-cta-disabled' : ''; ?>"<?php echo ! empty($state['btn_url']) ? ' href="' . esc_url($state['btn_url']) . '"' : ''; ?>><?php echo esc_html($state['btn_text']); ?></a>
+							<?php elseif ($resolved['cta_url'] !== '' || ! empty($col['cta_text'])): ?>
 								<a class="dd-fc-cta" href="<?php echo esc_url($resolved['cta_url']); ?>"><?php echo esc_html($col['cta_text'] !== '' ? $col['cta_text'] : 'Buy Now'); ?></a>
 							<?php endif; ?>
 						</div>
@@ -1618,8 +1843,9 @@ class DD_Feature_Comparison_Table
 						<?php foreach ($columns as $index => $col):
 							$cell = (isset($row['cells'][$col['key']])) ? $row['cells'][$col['key']] : ['type' => 'text', 'text' => ''];
 							$active_class = ($index === $initial_active) ? ' dd-fc-mobile-active' : '';
+							$current_class = (isset($plan_states[$col['key']]) && ! empty($plan_states[$col['key']]['has_any_plan'])) ? ' dd-fc-current' : '';
 						?>
-							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>" style="--dd-fc-c:<?php echo (int) $index + 2; ?>;--dd-fc-r:<?php echo (int) $row_index + 2; ?>">
+							<div class="dd-fc-cell<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $current_class; ?><?php echo $active_class; ?>" data-col-index="<?php echo (int) $index; ?>" style="--dd-fc-c:<?php echo (int) $index + 2; ?>;--dd-fc-r:<?php echo (int) $row_index + 2; ?>">
 								<?php if ($cell['type'] === 'tick'): ?>
 									<span class="dd-fc-tick" aria-label="Included">&#10003;</span>
 								<?php elseif ($cell['type'] === 'cross'): ?>
@@ -1680,7 +1906,10 @@ class DD_Feature_Comparison_Table
 
 				var sentinel = wrap.querySelector('.dd-fc-sticky-sentinel');
 				var heads = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-head');
-				var banners = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-recommended');
+				// The "Current Plan" badge (pricing mode) occupies the same absolute slot as the
+				// recommended banner and therefore reserves the same head padding — both must be
+				// measured or a badge-only table under-reserves --dd-fc-rec-pad.
+				var banners = wrap.querySelectorAll('.dd-fc-head-row .dd-fc-recommended, .dd-fc-head-row .dd-fc-badge');
 				var mq = window.matchMedia('(min-width: 769px)');
 				var observer = null;
 				var resizeTimer = null;
@@ -1812,11 +2041,8 @@ class DD_Feature_Comparison_Table
 					var wrap = document.getElementById('<?php echo esc_js($wrap_id); ?>');
 					if (!wrap) return;
 
-					// Deliberately a distinct class from the dd_pricing_table shortcode's own
-					// `.dd-plan-toggle` (see pmpro-dynamic-pricing.php) — that shortcode's global
-					// script queries the whole document for that class and assumes a
-					// `.dd-card`/`.dd-checkout-btn` ownership/trial structure this table doesn't
-					// have, so sharing the class would throw if both tables ever render on one page.
+					// Scoped to this instance's wrapper, so a comparison table and a pricing table
+					// rendered on the same page each drive only their own toggles.
 					var toggles = wrap.querySelectorAll('.dd-fc-plan-toggle');
 					toggles.forEach(function(toggle) {
 						toggle.addEventListener('change', function() {
@@ -1836,8 +2062,56 @@ class DD_Feature_Comparison_Table
 
 							var ctaEl = head.querySelector('.dd-fc-cta');
 							var url = isYearly ? head.getAttribute('data-url-annual') : head.getAttribute('data-url-monthly');
-							if (ctaEl && url) {
-								ctaEl.setAttribute('href', url);
+
+							// Comparison mode: the CTA is a plain static link, so only its target changes.
+							if (!head.hasAttribute('data-action-verb')) {
+								if (ctaEl && url) {
+									ctaEl.setAttribute('href', url);
+								}
+								return;
+							}
+
+							// Pricing mode: mirror of the server-side cascade in
+							// DD_PMPro_Frontend_Pricing::get_plan_button_state(). The precedence order
+							// and every button string below must stay identical to that method — they
+							// are the same states rendered twice, once per term.
+							if (!ctaEl) return;
+
+							var ownsMonthly       = head.getAttribute('data-owns-monthly') === 'true';
+							var ownsAnnual        = head.getAttribute('data-owns-annual') === 'true';
+							var actionVerb        = head.getAttribute('data-action-verb') || 'SELECT PLAN';
+							var isOnTrial         = head.getAttribute('data-is-on-trial') === 'true';
+							var isTargetDowngrade = head.getAttribute('data-is-pending-downgrade') === 'true';
+							var isLeavingPlan     = head.getAttribute('data-is-leaving-plan') === 'true';
+
+							var ownsSelected = isYearly ? ownsAnnual : ownsMonthly;
+							var ownsOther    = isYearly ? ownsMonthly : ownsAnnual;
+
+							var text     = '';
+							var disabled = true;
+
+							if (isOnTrial) {
+								text = ownsSelected ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
+							} else if (isTargetDowngrade) {
+								text = 'PENDING DOWNGRADE';
+							} else if (isLeavingPlan) {
+								text = ownsSelected ? 'CURRENT PLAN' : 'CHANGES LOCKED';
+							} else if (ownsSelected) {
+								text = 'CURRENT PLAN';
+							} else {
+								text = ownsOther ? 'SWITCH PLAN' : actionVerb;
+								disabled = false;
+							}
+
+							ctaEl.textContent = text;
+							if (disabled) {
+								ctaEl.classList.add('dd-fc-cta-disabled');
+								ctaEl.removeAttribute('href');
+							} else {
+								ctaEl.classList.remove('dd-fc-cta-disabled');
+								if (url) {
+									ctaEl.setAttribute('href', url);
+								}
 							}
 						});
 					});

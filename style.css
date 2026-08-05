@@ -3071,18 +3071,6 @@ body {
 .page-template-page-dashboard .pmpro_card_actions {
   background-color: var(--e-global-color-primary);
 }
-.page-template-page-dashboard .dd-pricing-container .dd-card {
-  border: 1px solid var(--e-global-color-f35d6b9);
-}
-.page-template-page-dashboard .dd-card-active {
-  border-color: var(--e-global-color-primary) !important;
-}
-.page-template-page-dashboard .dd-pricing-container .dd-btn {
-  background-color: var(--e-global-color-primary);
-}
-.page-template-page-dashboard .dd-pricing-container .dd-btn:hover {
-  background-color: var(--e-global-color-secondary);
-}
 .page-template-page-dashboard .dd-message-overview-container {
   border: 1px solid var(--e-global-color-f35d6b9) !important;
 }
@@ -3252,10 +3240,6 @@ body {
   background-color: var(--e-global-color-primary);
 }
 
-.dd-card .elementor-widget .elementor-icon-list-items {
-  list-style-type: none;
-  padding: 0;
-}
 .contact-form form .elementor-field-subgroup {
   display: flex !important;
   gap: 10px;

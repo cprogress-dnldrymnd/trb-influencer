@@ -21,6 +21,9 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
 
     $dir = get_stylesheet_directory() . '/modules/frontend-utilities/elementor-widgets/';
 
+    // Shared control sets — must load before the widgets that `use` them.
+    require_once $dir . 'trait-comparison-table-styles.php';
+
     // Core search widgets (shortcodes are registered by Influencer_Search)
     require_once $dir . 'class-widget-influencer-match-score.php';
     require_once $dir . 'class-widget-influencer-search-form.php';

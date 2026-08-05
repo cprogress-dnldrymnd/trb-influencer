@@ -5,27 +5,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Widget_Pricing_Table extends \Elementor\Widget_Base {
 
+    // Shared with Widget_Feature_Comparison_Table — both render the same .dd-fc-* grid.
+    use DD_Comparison_Table_Style_Controls;
+
     public function get_name()       { return 'sc_dd_pricing_table'; }
     public function get_title()      { return esc_html__( 'Pricing Table', 'trb-influencer' ); }
     public function get_icon()       { return 'eicon-price-table'; }
     public function get_categories() { return [ 'influencer-collective' ]; }
 
     /**
-     * Every paid, signup-enabled PMPro plan available to order — id + name, in PMPro
-     * Membership Plans settings-screen order. Powers both the repeater's default rows and
-     * its per-row plan SELECT options.
+     * The plan columns authored on the Pricing Tables settings tab, as key => name. This is the same
+     * dataset the Comparison Pricing Table renders — this widget only chooses which of those columns
+     * to leave out.
      *
-     * @return array<int,array{id:int,name:string}>
+     * @return array<string,string>
      */
-    private function get_available_plans() {
-        if ( ! class_exists( 'DD_PMPro_Frontend_Pricing' ) || ! function_exists( 'pmpro_getAllLevels' ) ) {
+    private function get_available_columns() {
+        if ( ! class_exists( 'DD_Feature_Comparison_Table' ) ) {
             return [];
         }
-        return DD_PMPro_Frontend_Pricing::get_orderable_plans();
+        return DD_Feature_Comparison_Table::get_column_choices();
     }
 
     protected function register_controls() {
-        $plans = $this->get_available_plans();
+        $columns = $this->get_available_columns();
 
         $this->start_controls_section( 'content_section', [
             'label' => esc_html__( 'Settings', 'trb-influencer' ),
@@ -33,52 +36,23 @@ class Widget_Pricing_Table extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders [dd_pricing_table]. Displays the dynamic membership pricing table.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Renders the membership pricing table. Plan columns and feature rows are authored on the Influencer Theme → Pricing Tables settings tab (the same content the Comparison Pricing Table uses), and drag-reordering them there is what sets the column order here. Each plan button is resolved per visitor — Upgrade, Downgrade, Switch, Current Plan, or locked during a free trial or a scheduled downgrade — and the visitor\'s active plan gets a "Current Plan" badge.', 'trb-influencer' ),
         ] );
 
-        if ( empty( $plans ) ) {
-            $this->add_control( 'no_plans_notice', [
-                'type' => \Elementor\Controls_Manager::RAW_HTML,
-                'raw'  => esc_html__( 'No paid PMPro plans were found to order. Add/enable signups on a level, then reload this panel.', 'trb-influencer' ),
+        if ( empty( $columns ) ) {
+            $this->add_control( 'no_columns_notice', [
+                'type'            => \Elementor\Controls_Manager::RAW_HTML,
+                'raw'             => esc_html__( 'No plan columns are configured yet. Add them under Influencer Theme → Pricing Tables, then reload this panel.', 'trb-influencer' ),
                 'content_classes' => 'elementor-panel-alert elementor-panel-alert-warning',
             ] );
         } else {
-            $plan_options = [];
-            foreach ( $plans as $plan ) {
-                $plan_options[ $plan['id'] ] = $plan['name'];
-            }
-
-            $repeater = new \Elementor\Repeater();
-            $repeater->add_control( 'plan_id', [
-                'label'   => esc_html__( 'Plan', 'trb-influencer' ),
-                'type'    => \Elementor\Controls_Manager::SELECT,
-                'options' => $plan_options,
-                'default' => array_key_first( $plan_options ),
-            ] );
-            // Hidden — mirrors plan_id's default label so collapsed rows show the plan name
-            // without extra JS wiring. Only accurate for the auto-seeded rows below; if a row's
-            // Plan dropdown is manually changed to a different plan, the collapsed title keeps
-            // showing the original name (cosmetic only — order/render still use plan_id).
-            $repeater->add_control( 'plan_name', [
-                'type'    => \Elementor\Controls_Manager::HIDDEN,
-                'default' => '',
-            ] );
-
-            $default_rows = [];
-            foreach ( $plans as $plan ) {
-                $default_rows[] = [
-                    'plan_id'   => $plan['id'],
-                    'plan_name' => $plan['name'],
-                ];
-            }
-
-            $this->add_control( 'plan_order', [
-                'label'       => esc_html__( 'Plan Order', 'trb-influencer' ),
-                'type'        => \Elementor\Controls_Manager::REPEATER,
-                'fields'      => $repeater->get_controls(),
-                'default'     => $default_rows,
-                'title_field' => '{{{ plan_name }}}',
-                'description' => esc_html__( 'Drag to reorder. Every available paid plan is listed automatically — newly added plans appear here (and on the front end) the next time this panel loads.', 'trb-influencer' ),
+            $this->add_control( 'hide_columns', [
+                'label'       => esc_html__( 'Hide Plans', 'trb-influencer' ),
+                'type'        => \Elementor\Controls_Manager::SELECT2,
+                'multiple'    => true,
+                'options'     => $columns,
+                'label_block' => true,
+                'description' => esc_html__( 'Columns to leave off this table. Use this to keep the free Trial plan off the pricing table while the Comparison Pricing Table still shows it.', 'trb-influencer' ),
             ] );
         }
 
@@ -88,42 +62,113 @@ class Widget_Pricing_Table extends \Elementor\Widget_Base {
             'label' => esc_html__( 'Style', 'trb-influencer' ),
             'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
         ] );
-        $this->add_responsive_control( 'columns', [
-            'label'           => esc_html__( 'Columns', 'trb-influencer' ),
-            'type'            => \Elementor\Controls_Manager::SELECT,
-            'options'         => [
-                '1' => '1',
-                '2' => '2',
-                '3' => '3',
-                '4' => '4',
-                '5' => '5',
-                '6' => '6',
-            ],
-            'default'         => '3',
-            'tablet_default'  => '2',
-            'mobile_default'  => '1',
-            'selectors'       => [
-                '{{WRAPPER}} .dd-pricing-container' => 'grid-template-columns: repeat({{VALUE}}, 1fr);',
+
+        $this->register_comparison_style_controls();
+
+        // ----------------------------------------------------------------------
+        // Pricing-only chrome (no equivalent on the comparison table)
+        // ----------------------------------------------------------------------
+        $this->add_control( 'badge_heading', [
+            'label'     => esc_html__( 'Current Plan Badge', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'badge_bg_color', [
+            'label'     => esc_html__( 'Badge Background Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-badge' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'badge_text_color', [
+            'label'     => esc_html__( 'Badge Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-badge' => 'color: {{VALUE}};' ],
+        ] );
+        $this->add_group_control(
+            \Elementor\Group_Control_Typography::get_type(),
+            [
+                'name'     => 'badge_typography',
+                'label'    => esc_html__( 'Badge Typography', 'trb-influencer' ),
+                'selector' => '{{WRAPPER}} .dd-fc-wrap .dd-fc-badge',
+            ]
+        );
+        $this->add_responsive_control( 'badge_padding', [
+            'label'      => esc_html__( 'Badge Padding', 'trb-influencer' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => [ 'px', 'em', '%', 'custom' ],
+            'selectors'  => [
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-badge' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
             ],
         ] );
+
+        $this->add_control( 'current_column_heading', [
+            'label'     => esc_html__( 'Current Plan Column', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'current_outline_color', [
+            'label'       => esc_html__( 'Column Outline Color', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::COLOR,
+            'description' => esc_html__( 'Outlines the column belonging to the plan the visitor currently holds.', 'trb-influencer' ),
+            'selectors'   => [
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-head.dd-fc-current' => 'box-shadow: inset 0 0 0 2px {{VALUE}};',
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-row:not(.dd-fc-head-row) .dd-fc-cell.dd-fc-current' => 'box-shadow: inset 2px 0 0 {{VALUE}}, inset -2px 0 0 {{VALUE}};',
+                '{{WRAPPER}} .dd-fc-wrap .dd-fc-row:last-child .dd-fc-cell.dd-fc-current' => 'box-shadow: inset 2px 0 0 {{VALUE}}, inset -2px 0 0 {{VALUE}}, inset 0 -2px 0 {{VALUE}};',
+            ],
+        ] );
+
+        $this->add_control( 'disabled_btn_heading', [
+            'label'     => esc_html__( 'Locked / Current Button', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'disabled_btn_bg_color', [
+            'label'       => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::COLOR,
+            'description' => esc_html__( 'Used whenever a button is not clickable — Current Plan, Pending Downgrade, Changes Locked, or locked during a free trial.', 'trb-influencer' ),
+            'selectors'   => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-cta.dd-fc-cta-disabled' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'disabled_btn_text_color', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-cta.dd-fc-cta-disabled' => 'color: {{VALUE}};' ],
+        ] );
+
+        $this->add_control( 'trial_notice_heading', [
+            'label'     => esc_html__( 'Free Trial Notice', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ] );
+        $this->add_control( 'trial_notice_bg_color', [
+            'label'       => esc_html__( 'Background Color', 'trb-influencer' ),
+            'type'        => \Elementor\Controls_Manager::COLOR,
+            'description' => esc_html__( 'The "N day free trial" pill, shown only to visitors who hold no paid plan and only on levels with a Subscription Delay configured.', 'trb-influencer' ),
+            'selectors'   => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-trial-text span' => 'background-color: {{VALUE}};' ],
+        ] );
+        $this->add_control( 'trial_notice_text_color', [
+            'label'     => esc_html__( 'Text Color', 'trb-influencer' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => [ '{{WRAPPER}} .dd-fc-wrap .dd-fc-trial-text span' => 'color: {{VALUE}};' ],
+        ] );
+
         $this->end_controls_section();
     }
 
     protected function render() {
         $settings = $this->get_settings_for_display();
 
-        $order_ids = [];
-        if ( ! empty( $settings['plan_order'] ) && is_array( $settings['plan_order'] ) ) {
-            foreach ( $settings['plan_order'] as $row ) {
-                if ( ! empty( $row['plan_id'] ) ) {
-                    $order_ids[] = (int) $row['plan_id'];
+        $hidden = [];
+        if ( ! empty( $settings['hide_columns'] ) && is_array( $settings['hide_columns'] ) ) {
+            foreach ( $settings['hide_columns'] as $key ) {
+                $key = sanitize_key( $key );
+                if ( $key !== '' ) {
+                    $hidden[] = $key;
                 }
             }
         }
 
         $attrs = '';
-        if ( ! empty( $order_ids ) ) {
-            $attrs .= ' order="' . esc_attr( implode( ',', $order_ids ) ) . '"';
+        if ( ! empty( $hidden ) ) {
+            $attrs .= ' exclude="' . esc_attr( implode( ',', $hidden ) ) . '"';
         }
 
         echo do_shortcode( '[dd_pricing_table' . $attrs . ']' );

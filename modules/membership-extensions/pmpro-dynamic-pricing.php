@@ -4,8 +4,15 @@ if (! defined('ABSPATH')) {
 }
 /**
  * Plugin Name: PMPro Dynamic Pricing Toggle Shortcode
- * Description: Provides a shortcode [dd_pricing_table] to dynamically display PMPro levels in a toggleable Monthly/Yearly card format. Automatically detects the default (Monthly) level and pairs it with its "Annual" Payment Plan extension. Allows switching between plans, disables owned plans, locks plan changes during free trials (both UI and URL access), adds dynamic trial notices via the Subscription Delays Add On, and cleans up broken Payment Plan injections on non-checkout pages.
- * Version: 1.0.32
+ * Description: Owns the membership-state layer behind the dd_pricing_table shortcode — which plan a
+ * visitor holds, whether that makes another plan an upgrade or a downgrade, and the trial /
+ * pending-downgrade lockdowns that disable checkout. The table's markup itself is rendered by
+ * DD_Feature_Comparison_Table::render_table() in "pricing mode" (both tables share one grid so their
+ * CSS/JS can't drift); this class supplies the per-plan button state it stamps into each column.
+ * Also detects each level's "Annual" Payment Plan extension, adds dynamic trial notices via the
+ * Subscription Delays Add On, enforces the same lockdowns at the URL level, and rewrites the native
+ * PMPro checkout DOM into the influencer look.
+ * Version: 1.1.0
  * Author: Digitally Disruptive - Donald Raymundo
  * Author URI: https://digitallydisruptive.co.uk/
  * Text Domain: dd-pmpro-pricing
@@ -13,20 +20,35 @@ if (! defined('ABSPATH')) {
 
 /**
  * Class DD_PMPro_Frontend_Pricing
- * Handles the registration of the admin settings interface, dynamic Payment Plan extraction, data retrieval, pricing table rendering, and resilient checkout page DOM manipulation.
+ * Handles dynamic Payment Plan extraction, per-plan membership/button state, the dd_pricing_table
+ * shortcode, and resilient checkout page DOM manipulation.
  */
 class DD_PMPro_Frontend_Pricing
 {
 
 	/**
+	 * The single live instance, so DD_Feature_Comparison_Table can resolve per-plan button state
+	 * while rendering the pricing table without constructing a second object.
+	 * @var DD_PMPro_Frontend_Pricing|null
+	 */
+	private static $instance;
+
+	/**
+	 * Per-request memo for get_membership_context(). The context is identical for every column of
+	 * every table on the page, and resolving it costs several PMPro queries plus a user-meta scan.
+	 * @var array|null
+	 */
+	private $membership_context;
+
+	/**
 	 * Constructor.
-	 * Initializes the shortcode registration, admin menu hooks, frontend footer scripts, and page redirects during the WordPress lifecycle.
+	 * Initializes the shortcode registration, frontend footer scripts, and page redirects during the WordPress lifecycle.
 	 */
 	public function __construct()
 	{
+		self::$instance = $this;
+
 		add_action('init', [$this, 'register_pricing_shortcode']);
-		add_filter('dd_theme_settings_tabs', [$this, 'register_settings_tab']);
-		add_action('admin_init', [$this, 'register_plugin_settings']);
 		add_action('wp_footer', [$this, 'modify_checkout_plans_dom']);
 		add_action('template_redirect', [$this, 'prevent_checkout_during_trial']); // URL security layer
 		add_action('template_redirect', [$this, 'prevent_checkout_for_pending_downgrade']); // Block checkout on pending-downgrade target level
@@ -34,6 +56,14 @@ class DD_PMPro_Frontend_Pricing
 		// Recompute the "Starting" date when a discount code is applied via AJAX (post page-load)
 		add_action('wp_ajax_dd_get_trial_start_date', [$this, 'ajax_get_trial_start_date']);
 		add_action('wp_ajax_nopriv_dd_get_trial_start_date', [$this, 'ajax_get_trial_start_date']);
+	}
+
+	/**
+	 * @return DD_PMPro_Frontend_Pricing|null
+	 */
+	public static function instance()
+	{
+		return self::$instance;
 	}
 
 	/**
@@ -165,11 +195,13 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Retrieves every paid, signup-enabled PMPro level (id + name) that can appear on the
-	 * pricing table, in PMPro Membership Plans settings-screen order (Level Groups
-	 * displayorder — see get_level_group_order()). Public/static so the Pricing Table
-	 * Elementor widget can list plans for its sortable order control without needing an
-	 * instance of this class.
+	 * Retrieves every paid, signup-enabled PMPro level (id + name), in PMPro Membership Plans
+	 * settings-screen order (Level Groups displayorder — see get_level_group_order()). Public/static
+	 * so other modules can list orderable plans without needing an instance of this class.
+	 *
+	 * Note this deliberately strips free/£0 levels. The pricing table no longer sources its columns
+	 * from here — they come from the authored Pricing Tables settings via DD_Feature_Comparison_Table,
+	 * where the Trial tier is excluded per-widget instead.
 	 *
 	 * @return array<int,array{id:int,name:string}>
 	 */
@@ -210,52 +242,6 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		return $plans;
-	}
-
-	/**
-	 * Retrieves every paid PMPro signup level, pairing each with its "Annual" Payment Plan
-	 * extension when one is configured. Levels with no Annual plan are still included — their
-	 * card simply renders monthly-only (see build_pricing_card()).
-	 *
-	 * @param int[] $preferred_order Optional level IDs in the desired display order (e.g. from
-	 *                               the Pricing Table widget's sortable list). Any plan not
-	 *                               listed is appended at the end so new plans always render.
-	 *                               When empty, falls back to PMPro Membership Plans settings
-	 *                               order (see get_level_group_order()).
-	 * @return array Array of dynamically paired level and (possibly null) payment plan data.
-	 */
-	private function get_dynamic_plan_pairs($preferred_order = [])
-	{
-		$plans = self::get_orderable_plans();
-		$pairs = [];
-
-		foreach ($plans as $plan) {
-			$name = $plan['name'];
-
-			// Extract the Annual payment plan extension for this base level, if any.
-			$annual_plan = $this->get_annual_payment_plan($plan['id']);
-
-			$pairs[] = [
-				'name'        => $name,
-				'monthly_id'  => $plan['id'],
-				'annual_plan' => $annual_plan, // false when no Annual plan is configured
-				'option_key'  => 'dd_desc_' . sanitize_key($name),
-			];
-		}
-
-		// A widget-configured order takes priority over the settings-screen group order that
-		// get_orderable_plans() already applied. Any plan absent from $preferred_order (e.g. a
-		// newly-added plan the widget hasn't been re-saved to include) falls to the end.
-		if (! empty($preferred_order)) {
-			$position = array_flip($preferred_order);
-			usort($pairs, function ($a, $b) use ($position) {
-				$pa = $position[$a['monthly_id']] ?? PHP_INT_MAX;
-				$pb = $position[$b['monthly_id']] ?? PHP_INT_MAX;
-				return $pa <=> $pb;
-			});
-		}
-
-		return $pairs;
 	}
 
 	/**
@@ -1519,133 +1505,11 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Appends this module's settings UI as a tab on the Influencer Theme
-	 * settings hub instead of registering a standalone admin page. Only
-	 * available when PMPro is active, preserving the previous guard.
-	 * @param array $tabs
-	 * @return array
-	 */
-	public function register_settings_tab($tabs)
-	{
-		if (! defined('PMPRO_VERSION')) {
-			return $tabs;
-		}
-
-		$tabs[] = [
-			'id'     => 'pricing',
-			'label'  => 'Pricing Settings',
-			'render' => [$this, 'render_tab_panel'],
-		];
-		return $tabs;
-	}
-
-	/**
-	 * Registers the settings, sections, and fields dynamically for the WordPress Settings API.
-	 * Secures the data in the wp_options table for dynamic plans and the custom CTA card.
-	 * @return void
-	 */
-	public function register_plugin_settings()
-	{
-		$pairs = $this->get_dynamic_plan_pairs();
-
-		// Register dynamically generated options for PMPro plans
-		foreach ($pairs as $pair) {
-			register_setting('dd_pricing_settings_group', $pair['option_key']);
-		}
-
-		// Section 1: Dynamic Plan Descriptions
-		add_settings_section(
-			'dd_pricing_main_section',
-			'Dynamic Plan Descriptions',
-			function () {
-				echo '<p>Update the descriptions displayed on the frontend pricing table shortcode.</p>';
-			},
-			'dd-pricing-settings'
-		);
-
-		foreach ($pairs as $pair) {
-			add_settings_field(
-				$pair['option_key'] . '_field',
-				esc_html($pair['name']) . ' Plan Description',
-				[$this, 'render_textarea_field'],
-				'dd-pricing-settings',
-				'dd_pricing_main_section',
-				[
-					'label_for' => $pair['option_key'],
-					'name'      => $pair['option_key'],
-					'default'   => 'Discover features included in the ' . esc_html($pair['name']) . ' plan.',
-				]
-			);
-		}
-
-		// Register static options for Custom CTA Card
-		$cta_options = ['dd_cta_enable', 'dd_cta_heading', 'dd_cta_desc', 'dd_cta_btn_text', 'dd_cta_btn_link'];
-		foreach ($cta_options as $opt) {
-			register_setting('dd_pricing_settings_group', $opt);
-		}
-
-		// Section 2: Custom CTA Card
-		add_settings_section(
-			'dd_pricing_cta_section',
-			'Custom CTA Card (e.g., Scale)',
-			function () {
-				echo '<p>Configure the static card that appears at the end of the pricing table.</p>';
-			},
-			'dd-pricing-settings'
-		);
-
-		add_settings_field('dd_cta_enable', 'Enable CTA Card', [$this, 'render_checkbox_field'], 'dd-pricing-settings', 'dd_pricing_cta_section', ['name' => 'dd_cta_enable']);
-		add_settings_field('dd_cta_heading', 'Heading', [$this, 'render_text_field'], 'dd-pricing-settings', 'dd_pricing_cta_section', ['name' => 'dd_cta_heading', 'default' => 'Scale']);
-		add_settings_field('dd_cta_desc', 'Description', [$this, 'render_textarea_field'], 'dd-pricing-settings', 'dd_pricing_cta_section', ['name' => 'dd_cta_desc', 'default' => 'Manage multiple campaigns enjoy limit-free usage.']);
-		add_settings_field('dd_cta_btn_text', 'Button Text', [$this, 'render_text_field'], 'dd-pricing-settings', 'dd_pricing_cta_section', ['name' => 'dd_cta_btn_text', 'default' => 'ENQUIRE NOW']);
-		add_settings_field('dd_cta_btn_link', 'Button Link', [$this, 'render_text_field'], 'dd-pricing-settings', 'dd_pricing_cta_section', ['name' => 'dd_cta_btn_link', 'default' => '/contact']);
-	}
-
-	/**
-	 * Field Renderers
-	 */
-	public function render_textarea_field($args)
-	{
-		$option_value = get_option($args['name'], $args['default'] ?? '');
-		echo '<textarea id="' . esc_attr($args['name']) . '" name="' . esc_attr($args['name']) . '" rows="4" class="regular-text">' . esc_textarea($option_value) . '</textarea>';
-	}
-
-	public function render_text_field($args)
-	{
-		$option_value = get_option($args['name'], $args['default'] ?? '');
-		echo '<input type="text" id="' . esc_attr($args['name']) . '" name="' . esc_attr($args['name']) . '" value="' . esc_attr($option_value) . '" class="regular-text" />';
-	}
-
-	public function render_checkbox_field($args)
-	{
-		$option_value = get_option($args['name']);
-		echo '<input type="checkbox" id="' . esc_attr($args['name']) . '" name="' . esc_attr($args['name']) . '" value="1" ' . checked(1, $option_value, false) . ' />';
-	}
-
-	/**
-	 * Renders this module's settings UI as a self-contained tab panel on the
-	 * Influencer Theme settings hub.
-	 * @return void
-	 */
-	public function render_tab_panel()
-	{
-		if (! current_user_can('manage_options')) {
-			return;
-		}
-	?>
-		<form action="options.php" method="post">
-			<?php
-			settings_fields('dd_pricing_settings_group');
-			do_settings_sections('dd-pricing-settings');
-			submit_button('Save Pricing Table Settings', 'primary', 'dd_pricing_submit');
-			?>
-		</form>
-	<?php
-	}
-
-	/**
-	 * Data retrieval and standard card rendering logic
-	 * Includes raw_price for tier hierarchy evaluation.
+	 * The level's base (Monthly) price, formatted and raw, plus its plain checkout URL.
+	 * Pivots to billing_amount when initial_payment is 0 (supports structural deferred billing).
+	 *
+	 * @param int $level_id
+	 * @return array{id:int,price:string,raw_price:float,url:string}|false
 	 */
 	private function get_level_data($level_id)
 	{
@@ -1657,7 +1521,6 @@ class DD_PMPro_Frontend_Pricing
 			return false;
 		}
 
-		// Pivot to billing_amount if initial_payment is 0 (supports structural deferred billing)
 		$price = (float)$level->initial_payment > 0 ? $level->initial_payment : $level->billing_amount;
 
 		return [
@@ -1700,41 +1563,73 @@ class DD_PMPro_Frontend_Pricing
 	}
 
 	/**
-	 * Constructs the HTML for individual pricing cards.
-	 * Compiles pricing data, dynamic URLs, and current ownership status into the interactive card layout.
-	 * Identifies exact plan ownership mathematically to allow cross-plan switching on the same level.
-	 * @param string $name The level name.
-	 * @param string $description The custom description text.
-	 * @param int $level_id The primary PMPro Level ID (Default/Monthly).
-	 * @param array|false $annual_plan Payment Plan ID/formatted price/raw price, or false when the
-	 *                                  level has no "Annual" plan configured (renders monthly-only).
-	 * @param bool $is_on_free_trial Dictates if the user is locked out due to a trial state.
-	 * @return string The generated HTML markup.
+	 * The membership facts that are identical for every column of every pricing table on the page:
+	 * who the visitor is, whether they're mid free-trial, the highest tier they hold (which decides
+	 * upgrade vs downgrade), and any scheduled downgrade target.
+	 *
+	 * Memoized per request — get_pending_downgrade_level_id() alone runs up to three lookups, and
+	 * the renderer asks for this once per plan column.
+	 *
+	 * @return array{user_id:int,is_on_free_trial:bool,user_max_base_price:float,pending_downgrade_level_id:int|false}
 	 */
-	private function build_pricing_card($name, $description, $level_id, $annual_plan, $is_on_free_trial = false, $pending_downgrade_level_id = false)
+	public function get_membership_context()
 	{
-		$monthly_data = $this->get_level_data($level_id);
-
-		if (! $monthly_data) {
-			return '';
+		if ($this->membership_context !== null) {
+			return $this->membership_context;
 		}
 
-		// Annual is optional — a level with no configured "Annual" Payment Plan renders a
-		// monthly-only card (Yearly toggle hidden below) instead of being excluded entirely.
-		$annual_data = $annual_plan ? [
-			'price' => $annual_plan['price'],
-			// Use the correct `pmpropp_chosen_plan` parameter required by the Add On
-			'url'   => pmpro_url('checkout', '?level=' . $level_id . '&pmpropp_chosen_plan=' . $annual_plan['id'])
-		] : null;
+		$user_id = get_current_user_id();
 
-		$current_user_id = get_current_user_id();
-		$owns_monthly    = false;
-		$owns_annual     = false;
+		$this->membership_context = [
+			'user_id'                    => $user_id,
+			'is_on_free_trial'           => $user_id ? $this->is_user_on_free_trial($user_id) : false,
+			'user_max_base_price'        => $user_id ? $this->get_user_max_tier_base_price($user_id) : 0.00,
+			'pending_downgrade_level_id' => $user_id ? $this->get_pending_downgrade_level_id($user_id) : false,
+		];
 
-		// Fetch the active plan value mapped to this user and translate it to boolean states
-		$owned_plan_value = $this->get_user_active_plan_value($current_user_id, $level_id);
+		return $this->membership_context;
+	}
+
+	/**
+	 * Resolves one plan column's button state for the current visitor — ownership of each term,
+	 * whether this plan is an upgrade or a downgrade from what they hold, and which of the lockdown
+	 * states (free trial, scheduled downgrade) applies.
+	 *
+	 * This is the single source of truth for that cascade. The pricing table's yearly-toggle script
+	 * (in pmpro-comparison-table.php) reproduces it client-side from the data-* attributes built
+	 * here, so any change to the precedence order or to a button string must be made in both places.
+	 *
+	 * Precedence, highest first:
+	 *   1. free trial          — every plan locked; the held one reads CURRENT PLAN (TRIAL)
+	 *   2. pending downgrade   — this plan is the scheduled target, so checkout is blocked outright
+	 *   3. leaving current plan— the visitor is downgrading away, so their terms are frozen
+	 *   4. owns the shown term — CURRENT PLAN, disabled
+	 *   5. owns the other term — SWITCH PLAN (monthly <-> annual on the same level)
+	 *   6. otherwise           — UPGRADE / DOWNGRADE / SELECT PLAN
+	 *
+	 * @param int    $level_id       The primary PMPro Level ID (Default/Monthly).
+	 * @param string $annual_plan_id The level's "Annual" Payment Plan identifier (e.g. 'L-8-P-0'),
+	 *                               or '' when the level has no Annual plan configured.
+	 * @return array|null Null when the level can't be resolved.
+	 */
+	public function get_plan_button_state($level_id, $annual_plan_id = '')
+	{
+		$monthly_data = $this->get_level_data($level_id);
+		if (! $monthly_data) {
+			return null;
+		}
+
+		$context     = $this->get_membership_context();
+		$annual_plan_id = (string) $annual_plan_id;
+
+		$owns_monthly = false;
+		$owns_annual  = false;
+
+		// Resolve which exact plan value the user holds on this level, so a monthly holder and an
+		// annual holder of the SAME level are told apart (that's what makes SWITCH PLAN possible).
+		$owned_plan_value = $this->get_user_active_plan_value($context['user_id'], $level_id);
 		if ($owned_plan_value) {
-			if ($annual_plan && $owned_plan_value === $annual_plan['id']) {
+			if ($annual_plan_id !== '' && $owned_plan_value === $annual_plan_id) {
 				$owns_annual = true;
 			} else {
 				$owns_monthly = true;
@@ -1742,104 +1637,104 @@ class DD_PMPro_Frontend_Pricing
 		}
 
 		$has_any_plan = $owns_monthly || $owns_annual;
-		$card_class = $has_any_plan ? 'dd-card dd-card-active' : 'dd-card';
-		$badge_html = $has_any_plan ? '<div class="dd-badge">CURRENT PLAN</div>' : '';
 
-		// Automatically default the toggle view to the user's active plan (if they own one)
-		$show_annual_default = $owns_annual;
-		$toggle_checked      = $show_annual_default ? 'checked' : '';
-		$current_price       = $show_annual_default ? $annual_data['price'] : $monthly_data['price'];
+		// Default the shown term to the one the visitor actually holds.
+		$show_annual       = $owns_annual;
+		$owns_current_view = $show_annual ? $owns_annual : $owns_monthly;
+		$owns_other_view   = $show_annual ? $owns_monthly : $owns_annual;
 
-		$owns_current_view = $show_annual_default ? $owns_annual : $owns_monthly;
-		$owns_other_view   = $show_annual_default ? $owns_monthly : $owns_annual;
-
-		// Determine Upgrade vs Downgrade based on tier hierarchy
-		$user_max_base_price = $this->get_user_max_tier_base_price($current_user_id);
-		$card_base_price     = $monthly_data['raw_price'];
-
-		if ($user_max_base_price > 0) {
-			$action_verb = ($card_base_price < $user_max_base_price) ? 'DOWNGRADE PLAN' : 'UPGRADE PLAN';
+		// Upgrade vs downgrade is decided on tier hierarchy — the base (Monthly) price of this level
+		// against the highest base price the visitor currently holds.
+		if ($context['user_max_base_price'] > 0) {
+			$action_verb = ($monthly_data['raw_price'] < $context['user_max_base_price']) ? 'DOWNGRADE PLAN' : 'UPGRADE PLAN';
 		} else {
 			$action_verb = 'SELECT PLAN';
 		}
 
-		// Inject dynamic free trial text strictly for users with no plan
-		$trial_text_html = '';
-		if ($user_max_base_price == 0) {
-			// Fetch dynamic trial days from PMPro Subscription Delays Add-on
-			$trial_days = get_option('pmpro_subscription_delay_' . $level_id, '');
+		$pending_downgrade_level_id = $context['pending_downgrade_level_id'];
+		$is_target_downgrade        = ($pending_downgrade_level_id && (int) $pending_downgrade_level_id === (int) $level_id);
+		$is_leaving_current_plan    = ($pending_downgrade_level_id && $has_any_plan);
 
-			// Only display if a numeric delay is explicitly set
-			if (!empty($trial_days) && is_numeric($trial_days)) {
-				$trial_text_html = '<div class="dd-trial-text"><span>' . esc_html($trial_days) . ' day <i>free</i> trial</span></div>';
-			}
-		}
+		$annual_url = ($annual_plan_id !== '')
+			? pmpro_url('checkout', '?level=' . (int) $level_id . '&pmpropp_chosen_plan=' . $annual_plan_id)
+			: '';
 
-		// Evaluate Structural Lockdown States
-		$is_target_downgrade = ($pending_downgrade_level_id && (int)$pending_downgrade_level_id === (int)$level_id);
-		$is_leaving_current_plan = ($pending_downgrade_level_id && $has_any_plan);
-
-		// Implement robust lock out evaluation based on states
-		if ($is_on_free_trial) {
-			if ($owns_current_view) {
-				$btn_text = 'CURRENT PLAN (TRIAL)';
-			} else {
-				$btn_text = 'LOCKED DURING TRIAL';
-			}
-			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
-			$current_url = '';
+		if ($context['is_on_free_trial']) {
+			$btn_text     = $owns_current_view ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
+			$btn_disabled = true;
 		} elseif ($is_target_downgrade) {
-			// This card is the target of a scheduled delayed downgrade — block checkout entirely
-			$btn_text    = 'PENDING DOWNGRADE';
-			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
-			$current_url = '';
+			// This plan is the target of a scheduled delayed downgrade — block checkout entirely
+			$btn_text     = 'PENDING DOWNGRADE';
+			$btn_disabled = true;
 		} elseif ($is_leaving_current_plan) {
-			// The user is actively leaving their current plan via a downgrade, lock other payment options to prevent errors
-			$btn_text    = $owns_current_view ? 'CURRENT PLAN' : 'CHANGES LOCKED';
-			$btn_class   = 'dd-btn dd-checkout-btn dd-btn-disabled';
-			$current_url = '';
+			// The visitor is actively leaving their current plan via a downgrade; lock the other
+			// payment options too, so they can't stack a term change on top of it.
+			$btn_text     = $owns_current_view ? 'CURRENT PLAN' : 'CHANGES LOCKED';
+			$btn_disabled = true;
+		} elseif ($owns_current_view) {
+			$btn_text     = 'CURRENT PLAN';
+			$btn_disabled = true;
 		} else {
-			$btn_text    = $owns_current_view ? 'CURRENT PLAN' : ($owns_other_view ? 'SWITCH PLAN' : $action_verb);
-			$btn_class   = $owns_current_view ? 'dd-btn dd-checkout-btn dd-btn-disabled' : 'dd-btn dd-checkout-btn';
-			$current_url = $owns_current_view ? '' : ($show_annual_default ? $annual_data['url'] : $monthly_data['url']);
+			$btn_text     = $owns_other_view ? 'SWITCH PLAN' : $action_verb;
+			$btn_disabled = false;
 		}
 
-		ob_start();
-	?>
-		<div class="<?php echo esc_attr($card_class); ?>"
-			data-price-monthly="<?php echo esc_attr($monthly_data['price']); ?>"
-			data-url-monthly="<?php echo esc_url($monthly_data['url']); ?>"
-			data-owns-monthly="<?php echo $owns_monthly ? 'true' : 'false'; ?>"
-			data-price-annual="<?php echo $annual_data ? esc_attr($annual_data['price']) : ''; ?>"
-			data-url-annual="<?php echo $annual_data ? esc_url($annual_data['url']) : ''; ?>"
-			data-owns-annual="<?php echo $owns_annual ? 'true' : 'false'; ?>"
-			data-action-verb="<?php echo esc_attr($action_verb); ?>"
-			data-is-on-trial="<?php echo $is_on_free_trial ? 'true' : 'false'; ?>"
-			data-is-pending-downgrade="<?php echo $is_target_downgrade ? 'true' : 'false'; ?>"
-			data-is-leaving-plan="<?php echo $is_leaving_current_plan ? 'true' : 'false'; ?>">
-			<?php echo wp_kses_post($badge_html); ?>
-			<h3 class="dd-plan-name"><?php echo esc_html($name); ?></h3>
-			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
-			<div class="dd-price-wrapper"><span class="dd-price-amount"><?php echo wp_kses_post($current_price); ?></span></div>
-			<?php if ($annual_data) : ?>
-				<div class="dd-toggle-wrapper">
-					<label class="dd-switch">
-						<input type="checkbox" class="dd-plan-toggle" <?php echo esc_attr($toggle_checked); ?>>
-						<span class="dd-slider round"></span>
-					</label>
-					<span class="dd-toggle-label">Yearly</span>
-					<span class="dd-discount">Save 20%</span>
-				</div>
-			<?php endif; ?>
-			<?php echo wp_kses_post($trial_text_html); ?>
-			<a <?php echo $current_url ? 'href="' . esc_url($current_url) . '"' : ''; ?> class="<?php echo esc_attr($btn_class); ?>"><?php echo esc_html($btn_text); ?></a>
-		</div>
-	<?php
-		return ob_get_clean();
+		return [
+			'owns_monthly'         => $owns_monthly,
+			'owns_annual'          => $owns_annual,
+			'has_any_plan'         => $has_any_plan,
+			'default_annual'       => $show_annual,
+			'action_verb'          => $action_verb,
+			'btn_text'             => $btn_text,
+			'btn_disabled'         => $btn_disabled,
+			'btn_url'              => $btn_disabled ? '' : ($show_annual && $annual_url !== '' ? $annual_url : $monthly_data['url']),
+			'is_on_trial'          => (bool) $context['is_on_free_trial'],
+			'is_pending_downgrade' => (bool) $is_target_downgrade,
+			'is_leaving_plan'      => (bool) $is_leaving_current_plan,
+		];
 	}
 
 	/**
-	 * Renders the shortcode output
+	 * The "N day free trial" notice for a level, from the PMPro Subscription Delays Add On.
+	 *
+	 * Shown strictly to visitors who hold no paid plan — to an existing member the delay is not on
+	 * offer, so advertising it there would be a lie.
+	 *
+	 * @param int $level_id
+	 * @return string HTML, or '' when no numeric delay is configured (or the visitor already pays).
+	 */
+	public function get_trial_notice($level_id)
+	{
+		$context = $this->get_membership_context();
+
+		if ($context['user_max_base_price'] != 0) {
+			return '';
+		}
+
+		$trial_days = get_option('pmpro_subscription_delay_' . (int) $level_id, '');
+		if (empty($trial_days) || ! is_numeric($trial_days)) {
+			return '';
+		}
+
+		return '<div class="dd-fc-trial-text"><span>' . esc_html($trial_days) . ' day <i>free</i> trial</span></div>';
+	}
+
+	/**
+	 * Renders the shortcode output.
+	 *
+	 * The markup is the shared grid owned by DD_Feature_Comparison_Table — same columns, feature
+	 * rows, sticky header and mobile tabs as the comparison table, authored on the one "Pricing
+	 * Tables" settings tab — rendered in "pricing mode" so each PMPro column picks up the
+	 * membership-aware button state and Current Plan badge this class resolves above.
+	 *
+	 * The dependency between the two modules is bidirectional (the comparison table already calls
+	 * this class's get_annual_payment_plan()), but both directions resolve at render time behind
+	 * class_exists(), so the functions.php require order stays irrelevant.
+	 *
+	 * @param array $atts Shortcode attributes. 'exclude' is a comma-separated list of column keys to
+	 *                    omit — the Pricing Table Elementor widget's "Hide Plans" control writes the
+	 *                    free Trial column here.
+	 * @return string
 	 */
 	public function render_pricing_table($atts)
 	{
@@ -1847,320 +1742,17 @@ class DD_PMPro_Frontend_Pricing
 			return '<p>Paid Memberships Pro is required for the pricing table to function.</p>';
 		}
 
-		// Optional explicit plan order (comma-separated level IDs), set by the Pricing Table
-		// Elementor widget's sortable list. Falls back to PMPro Membership Plans settings order
-		// when omitted (see get_dynamic_plan_pairs()).
-		$atts = shortcode_atts(['order' => ''], $atts, 'dd_pricing_table');
-		$preferred_order = array_filter(array_map('intval', array_filter(explode(',', $atts['order']))));
+		if (! class_exists('DD_Feature_Comparison_Table') || ! DD_Feature_Comparison_Table::instance()) {
+			return '';
+		}
 
-		// Calculate global trial state for the active user once
-		$current_user_id = get_current_user_id();
-		$is_on_free_trial = $current_user_id ? $this->is_user_on_free_trial($current_user_id) : false;
-		$user_max_base_price = $current_user_id ? $this->get_user_max_tier_base_price($current_user_id) : 0.00;
-		$pending_downgrade_level_id = $current_user_id ? $this->get_pending_downgrade_level_id($current_user_id) : false;
+		$atts    = shortcode_atts(['exclude' => ''], $atts, 'dd_pricing_table');
+		$exclude = array_values(array_filter(array_map('sanitize_key', explode(',', (string) $atts['exclude']))));
 
-		ob_start();
-	?>
-		<style>
-			.dd-pricing-container {
-				display: grid;
-				gap: 2rem;
-				grid-template-columns: repeat(3, 1fr);
-				font-family: Inter;
-			}
-
-			.dd-card {
-				background: var(--e-global-color-2ba2932);
-				border-radius: 20px;
-				padding: 55px clamp(20px, 2vw, 40px) clamp(20px, 2vw, 40px);
-				position: relative;
-				display: flex;
-				flex-direction: column;
-				border: 4px solid var(--e-global-color-2ba2932);
-				font-family: Work Sans, sans-serif;
-				font-size: clamp(12px, 0.938vw, 18px);
-
-			}
-
-			.dd-card:hover {
-				border-color: var(--e-global-color-primary);
-			}
-
-			.dd-card-active {
-				border-color: var(--e-global-color-secondary);
-			}
-
-			.dd-badge {
-				position: absolute;
-				top: -15px;
-				left: 50%;
-				transform: translateX(-50%);
-				background: #ffe270;
-				padding: 14px 22px;
-				border-radius: 20px;
-				font-size: 22px;
-				font-weight: 600;
-				max-width: 300px;
-				width: 100%;
-				text-align: center;
-			}
-
-			.dd-plan-name.dd-plan-name.dd-plan-name {
-				font-size: clamp(22px, 1.927vw, 37px);
-				color: var(--e-global-color-secondary);
-				margin: 0 0 20px;
-			}
-
-			.dd-plan-desc {
-				margin-bottom: 1.5rem;
-				flex-grow: 1;
-			}
-
-			.dd-price-wrapper {
-				font-size: clamp(22px, 1.927vw, 37px);
-				font-weight: bold;
-				color: var(--e-global-color-secondary);
-				margin-bottom: 1rem;
-			}
-
-			.dd-discount {
-				background-color: #ABFFB6;
-				padding: 0px 10px 0px 10px;
-				border-radius: 50px 50px 50px 50px;
-				font-size: var(--e-global-typography-0ffc5c1-font-size);
-				font-weight: var(--e-global-typography-0ffc5c1-font-weight);
-				line-height: var(--e-global-typography-0ffc5c1-line-height);
-				color: var(--e-global-color-primary);
-			}
-
-			.dd-toggle-wrapper {
-				display: flex;
-				align-items: center;
-				gap: 10px;
-				margin-bottom: 1.5rem;
-				/* Adjusted for trial text */
-			}
-
-			.dd-switch {
-				position: relative;
-				display: inline-block;
-				width: 60px;
-				height: 34px;
-			}
-
-			.dd-switch input {
-				opacity: 0;
-				width: 0;
-				height: 0;
-			}
-
-
-			.dd-slider {
-				position: absolute;
-				cursor: pointer;
-				top: 0;
-				left: 0;
-				right: 0;
-				bottom: 0;
-				background-color: #ccc;
-				transition: .4s;
-			}
-
-			.dd-slider:before {
-				position: absolute;
-				content: "";
-				height: 26px;
-				width: 26px;
-				left: 4px;
-				bottom: 4px;
-				background-color: white;
-				transition: .4s;
-			}
-
-			input:checked+.dd-slider {
-				background-color: var(--e-global-color-accent);
-				;
-			}
-
-			input:checked+.dd-slider:before {
-				transform: translateX(26px);
-			}
-
-			.dd-slider.round {
-				border-radius: 34px;
-			}
-
-			.dd-slider.round:before {
-				border-radius: 50%;
-			}
-
-			.dd-trial-text {
-				font-size: 14px;
-				margin-bottom: 15px;
-				font-weight: 500;
-			}
-
-			.dd-trial-text span {
-				background-color: var(--e-global-color-secondary);
-				padding: 10px;
-				display: inline-block;
-				border-radius: 5px;
-				font-weight: 600;
-				color: #fef6f3;
-				letter-spacing: 0.2px;
-			}
-
-			.dd-trial-text i {
-				font-style: italic;
-			}
-
-			.dd-btn {
-				background-color: var(--e-global-color-accent);
-				font-size: var(--e-global-typography-accent-font-size);
-				font-weight: var(--e-global-typography-accent-font-weight);
-				letter-spacing: var(--e-global-typography-accent-letter-spacing);
-				padding: clamp(10px, 1.25vw, 24px) clamp(15px, 1.563vw, 30px);
-				color: var(--e-global-color-2ba2932);
-				text-align: center;
-				border-radius: 5px;
-				transition: 400ms;
-			}
-
-			.dd-btn:hover {
-				background: var(--e-global-color-secondary);
-			}
-
-			.dd-btn-disabled {
-				background: #ffbbae;
-				pointer-events: none;
-				cursor: not-allowed;
-			}
-
-			.dd-pricing-disclaimer {
-				margin-top: 2.5rem;
-				text-align: center;
-				font-family: Inter;
-				font-size: 14px;
-				color: var(--e-global-color-secondary);
-				margin-left: auto;
-				margin-right: auto;
-				line-height: 1.5;
-			}
-
-			@media(max-width: 1300px) {
-				.dd-pricing-container {
-					grid-template-columns: repeat(2, 1fr);
-				}
-			}
-
-			@media(max-width: 767px) {
-				.dd-pricing-container {
-					grid-template-columns: repeat(1, 1fr);
-				}
-			}
-		</style>
-
-		<div class="dd-pricing-container">
-			<?php
-			$pairs = $this->get_dynamic_plan_pairs($preferred_order);
-
-			if (empty($pairs)) {
-				echo '<p>No paid membership plans are currently available.</p>';
-			} else {
-				foreach ($pairs as $pair) {
-					$default_desc = 'Discover features included in the ' . esc_html($pair['name']) . ' plan.';
-					$description  = get_option($pair['option_key'], $default_desc);
-					echo $this->build_pricing_card($pair['name'], $description, $pair['monthly_id'], $pair['annual_plan'], $is_on_free_trial, $pending_downgrade_level_id);
-				}
-			}
-
-			// Render Custom CTA Card if enabled
-			if (get_option('dd_cta_enable')) {
-				$cta_heading = get_option('dd_cta_heading', 'Scale');
-				$cta_desc    = get_option('dd_cta_desc', 'Manage multiple campaigns enjoy limit-free usage.');
-				$cta_btn     = get_option('dd_cta_btn_text', 'ENQUIRE NOW');
-				$cta_link    = get_option('dd_cta_btn_link', '/contact');
-			?>
-				<div class="dd-card">
-					<h3 class="dd-plan-name"><?php echo esc_html($cta_heading); ?></h3>
-					<div class="dd-plan-desc"><?php echo do_shortcode($cta_desc) ?></div>
-					<a href="<?php echo esc_url($cta_link); ?>" class="dd-btn"><?php echo esc_html($cta_btn); ?></a>
-				</div>
-			<?php
-			}
-			?>
-		</div>
-
-		<script>
-			(function() {
-				function initDDPricingToggles() {
-					const toggles = document.querySelectorAll('.dd-plan-toggle');
-					toggles.forEach(toggle => {
-						if (toggle.dataset.ddBound === 'true') return;
-						toggle.dataset.ddBound = 'true';
-						toggle.addEventListener('change', function() {
-							const card = this.closest('.dd-card');
-							const isYearly = this.checked;
-							const priceEl = card.querySelector('.dd-price-amount');
-							const btnEl = card.querySelector('.dd-checkout-btn');
-
-							const ownsMonthly = card.getAttribute('data-owns-monthly') === 'true';
-							const ownsAnnual = card.getAttribute('data-owns-annual') === 'true';
-							const actionVerb = card.getAttribute('data-action-verb') || 'SELECT PLAN';
-
-							const isOnTrial = card.getAttribute('data-is-on-trial') === 'true';
-							const isTargetDowngrade = card.getAttribute('data-is-pending-downgrade') === 'true';
-							const isLeavingPlan = card.getAttribute('data-is-leaving-plan') === 'true';
-
-							// Update visual price based on toggle state
-							priceEl.innerHTML = isYearly ? card.getAttribute('data-price-annual') : card.getAttribute('data-price-monthly');
-
-							const userOwnsSelectedView = isYearly ? ownsAnnual : ownsMonthly;
-							const userOwnsOtherView = isYearly ? ownsMonthly : ownsAnnual;
-
-							// Feature A: Trial Lockdown
-							if (isOnTrial) {
-								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN (TRIAL)' : 'LOCKED DURING TRIAL';
-								btnEl.classList.add('dd-btn-disabled');
-								btnEl.removeAttribute('href');
-							}
-							// Feature B: Target Downgrade Block (Disable BOTH Monthly and Yearly views of the target plan)
-							else if (isTargetDowngrade) {
-								btnEl.textContent = 'PENDING DOWNGRADE';
-								btnEl.classList.add('dd-btn-disabled');
-								btnEl.removeAttribute('href');
-							}
-							// Feature C: Leaving Current Plan Block (Disable changing terms on a plan actively being left)
-							else if (isLeavingPlan) {
-								btnEl.textContent = userOwnsSelectedView ? 'CURRENT PLAN' : 'CHANGES LOCKED';
-								btnEl.classList.add('dd-btn-disabled');
-								btnEl.removeAttribute('href');
-							}
-							// Evaluate standard button state based on explicit ownership
-							else if (userOwnsSelectedView) {
-								btnEl.textContent = 'CURRENT PLAN';
-								btnEl.classList.add('dd-btn-disabled');
-								btnEl.removeAttribute('href');
-							}
-							// Evaluate valid plan switch
-							else {
-								// Trigger 'SWITCH PLAN' if moving within same level but different term, else upgrade/downgrade/select verb
-								btnEl.textContent = userOwnsOtherView ? 'SWITCH PLAN' : actionVerb;
-								btnEl.classList.remove('dd-btn-disabled');
-								btnEl.setAttribute('href', isYearly ? card.getAttribute('data-url-annual') : card.getAttribute('data-url-monthly'));
-							}
-						});
-					});
-				}
-				if (document.readyState === 'loading') {
-					document.addEventListener('DOMContentLoaded', initDDPricingToggles);
-				} else {
-					initDDPricingToggles();
-				}
-			})();
-		</script>
-<?php
-		return ob_get_clean();
+		return DD_Feature_Comparison_Table::instance()->render_table([
+			'exclude'      => $exclude,
+			'pricing_mode' => true,
+		]);
 	}
 }
 
