@@ -616,8 +616,10 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   (`position: sticky` on `.dd-fc-head`/the head row's spacer cell), then condenses it once detached —
   a `.dd-fc-sticky-sentinel` (zero-height, rendered as the first child of `.dd-fc-wrap`) is watched by
   an `IntersectionObserver`; when it scrolls past `--dd-fc-sticky-offset` the script adds `.dd-fc-stuck`
-  to `.dd-fc-wrap`, which shrinks the head's padding/price size and hides the Yearly toggle and the
-  recommended banner. A sticky item's containing block is its own **grid area**, so the head/spacer
+  to `.dd-fc-wrap`, which shrinks the head's padding/price size and hides the recommended banner (plus,
+  in pricing mode, the Current Plan badge and trial notice). The **Yearly toggle deliberately stays
+  visible when stuck** — it's the one control a visitor still needs while scrolled down the feature
+  rows — and only tightens its margin. A sticky item's containing block is its own **grid area**, so the head/spacer
   cells carry `grid-row: 1 / -1` to span every row (not just row 1) and stay pinned for the table's
   whole scroll — every row is therefore listed explicitly in `grid-template-rows` (PHP
   `$grid_template_rows`, from `$row_count`) rather than left to `grid-auto-rows`, since `-1` resolves

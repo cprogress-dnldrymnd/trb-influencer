@@ -80,8 +80,7 @@ class DD_Feature_Comparison_Table
 	/**
 	 * Registers the single JSON-carrying option. All validation happens in sanitize().
 	 *
-	 * @param string $raw
-	 * @return string JSON-encoded ['columns' => [...], 'rows' => [...]]
+	 * @return void
 	 */
 	public function register_setting()
 	{
@@ -1715,11 +1714,19 @@ class DD_Feature_Comparison_Table
 					height: var(--dd-fc-stuck-h, auto);
 				}
 
-				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-toggle-wrapper,
+				/* The Yearly toggle deliberately survives the condense — it's the one control in
+				   the head a visitor still needs while scrolled down the feature rows. Only the
+				   purely decorative/one-off chrome is dropped. Its margin tightens instead, and
+				   measureHeadHeights() reads --dd-fc-stuck-h with .dd-fc-stuck applied, so the
+				   reserved row height accounts for the toggle automatically. */
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-recommended,
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-badge,
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-fc-trial-text {
 					display: none;
+				}
+
+				.dd-fc-wrap.dd-fc-stuck .dd-fc-head .dd-toggle-wrapper {
+					margin-top: 0;
 				}
 
 				.dd-fc-wrap.dd-fc-stuck .dd-fc-price {
