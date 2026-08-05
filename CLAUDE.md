@@ -146,11 +146,13 @@ append a tab here via the `dd_theme_settings_tabs` filter — each entry is
 `['id' => 'slug', 'label' => 'Tab Label', 'render' => callable]`; `render` prints its own
 self-contained `<form action="options.php">…</form>` (its own `settings_fields()` group) into a
 `<div class="dd-panel" id="dd-panel-{id}">` the hub renders for it — do not wrap it in
-`class="wrap"`/`<h1>`, the hub already provides those. Five registrants currently use this way:
-`DD_Global_Email_Manager` ("Email Templates" tab), `DD_PMPro_Frontend_Pricing` ("Pricing Settings"
-tab, still guarded on `defined('PMPRO_VERSION')`), `DD_PMPro_Rewards_Manager` ("Rewards" tab),
-`DD_Feature_Comparison_Table` ("Comparison Table" tab — see below), and
+`class="wrap"`/`<h1>`, the hub already provides those. Four registrants currently use this way:
+`DD_Global_Email_Manager` ("Email Templates" tab), `DD_PMPro_Rewards_Manager` ("Rewards" tab),
+`DD_Feature_Comparison_Table` ("Pricing Tables" tab, id `comparison-table` — feeds **both** pricing
+tables, see below), and
 `includes/core/messages-settings.php` ("Messages" tab, a plain file, not a class — see below).
+`DD_PMPro_Frontend_Pricing` used to register a fifth ("Pricing Settings"); that tab and its
+`dd_desc_*`/`dd_cta_*` options were removed when the pricing table moved onto the shared grid.
 Each of those modules' own admin JS/CSS must scope its selectors to its own
 `#dd-panel-{id}` root (e.g. `$('#dd-panel-rewards').find('.nav-tab')`) rather than querying
 `.nav-tab`/`.dd-tab-content` page-wide, since several modules' nested tab systems now share one
@@ -459,27 +461,37 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   > that delta (logged as an "Upgrade credit top-up" when `already_credited > 0`), and updates the
   > watermark meta afterward. A downgrade-then-reupgrade cycle therefore doesn't re-earn points
   > already banked.
-- **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — the
-  `[dd_pricing_table order="…"]` shortcode renders a card per paid signup level
-  (`get_orderable_plans()`, a public static method, excludes free/£0 levels, e.g. the Trial tier,
-  by checking `initial_payment`/`billing_amount`), auto-pairing each with its "Annual" Payment Plan
-  extension **when one is configured** — a level with no Annual plan still gets a card, just
-  monthly-only (`annual_plan` is `false`, and `build_pricing_card()` hides the Yearly toggle and
-  leaves the `data-price-annual`/`data-url-annual` attrs empty rather than excluding the level
-  entirely). Default card order follows the admin's drag-and-drop order on the PMPro **Membership
-  Plans** settings screen (`get_level_group_order()`: PMPro Level Groups `displayorder`, then each
-  level's `displayorder` within its group), not raw level-ID order — falls back to level-ID order
-  if the Level Groups tables don't exist (PMPro < 3.0 / groups unused). The `Widget_Pricing_Table`
-  Elementor widget (`elementor-widgets/class-widget-pricing-table.php`) can override that default
-  via a Content-tab **Plan Order** repeater — seeded from `get_orderable_plans()`, drag-reorderable,
-  one row per plan — which the widget serializes to the shortcode's `order` attr (comma-separated
-  level IDs) as `$preferred_order` into `get_dynamic_plan_pairs($preferred_order)`; any plan absent
-  from that order (e.g. newly added after the widget was last saved) is appended at the end so new
-  plans always render. The widget also exposes a responsive Style-tab **Columns** control
-  (`{{WRAPPER}} .dd-pricing-container` `grid-template-columns`). Cards also disable owned/pending-
-  downgrade plans, and lock plan changes during free trials (both in the UI and via a
-  `template_redirect` URL guard).
-  Also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
+- **Dynamic pricing table** (`pmpro-dynamic-pricing.php`, `DD_PMPro_Frontend_Pricing`) — this class
+  no longer renders any markup of its own. It owns the **membership-state layer**; the pricing
+  table's markup is the shared grid described under "Feature comparison table" below, rendered by
+  `DD_Feature_Comparison_Table::render_table(['pricing_mode' => true, 'exclude' => […]])`. The
+  `[dd_pricing_table exclude="col_key,…"]` shortcode is a thin delegate to it, and content (plan
+  columns, feature rows, column order) comes from the one authored `dd_feature_comparison_table`
+  option, **not** from `get_orderable_plans()`.
+  Three public methods supply the per-column state:
+  `get_membership_context()` (per-request memo of user id / on-trial / highest held tier price /
+  pending-downgrade target — the renderer asks once per column and
+  `get_pending_downgrade_level_id()` alone is several lookups), `get_plan_button_state($level_id,
+  $annual_plan_id)`, and `get_trial_notice($level_id)`. `get_plan_button_state()` is the **single
+  source of truth** for the button cascade, in this precedence: free trial → pending-downgrade
+  target → leaving current plan → owns shown term (`CURRENT PLAN`) → owns other term
+  (`SWITCH PLAN`) → `UPGRADE PLAN`/`DOWNGRADE PLAN`/`SELECT PLAN` (upgrade vs downgrade decided on
+  base-price hierarchy via `get_user_max_tier_base_price()`). It returns `null` when the level can't
+  be resolved, and the renderer then falls back to that column's authored static CTA — which is what
+  you'll see on any environment where the PMPro levels aren't imported. The **yearly-toggle JS**
+  (in `pmpro-comparison-table.php`, keyed off `data-action-verb` being present on the head cell)
+  reproduces the same cascade client-side from `data-*` attrs, so **any change to the precedence or
+  to a button string must be made in both places**.
+  Only a `pmpro`-type column with a real `level_id` gets state; a custom column keeps its authored
+  price/CTA with no badge. `get_orderable_plans()`/`get_annual_payment_plan()` remain public statics
+  (the latter is called by the comparison table), but `build_pricing_card()`,
+  `get_dynamic_plan_pairs()`, the `.dd-card`/`.dd-pricing-container` markup and CSS, the widget's
+  Plan Order repeater and the whole **"Pricing Settings"** tab (per-plan `dd_desc_*` descriptions +
+  the `dd_cta_*` CTA card) are **gone** — the orphaned options are left in `wp_options` rather than
+  migrated. The lockdowns are still enforced server-side by the `template_redirect` guards
+  (`prevent_checkout_during_trial()`, `prevent_checkout_for_pending_downgrade()`), which remain the
+  real boundary regardless of what the button shows.
+  This class also rewrites the native PMPro checkout DOM (`modify_checkout_plans_dom`,
   `influencer_style_pmpro_checkout`) into the influencer look. The summary card header
   prominently shows the **amount due today** (`dd-due-today-val`), not the recurring price; the
   recurring price is stored in a hidden `.membership-amount` span (`display:none`) for JS access.
@@ -503,12 +515,32 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   > `pmpro_getLevelAtCheckout()` can silently drop the trial depending on validation context (use
   > limits, login state); it falls back to `pmpro_getLevelAtCheckout()` then plain `pmpro_getLevel()`.
 - **Feature comparison table** (`pmpro-comparison-table.php`, `DD_Feature_Comparison_Table`) —
-  a Mailchimp-style feature-comparison grid, distinct from the pricing-card layout above: columns
-  (one per plan) and feature rows (each cell a tick/cross/free-text) are authored once on a
-  "Comparison Table" tab it registers via `dd_theme_settings_tabs` (see the settings-tab-indirection
-  section above), then rendered by the `[dd_feature_comparison]` shortcode and its
-  `Widget_Feature_Comparison_Table` wrapper (`class-widget-comparison-table.php` — widget controls
-  are Style-tab only, all content comes from the shortcode). All authored content lives in a single
+  a Mailchimp-style feature-comparison grid. Columns
+  (one per plan) and feature rows (each cell a tick/cross/free-text) are authored once on the
+  **"Pricing Tables"** tab it registers via `dd_theme_settings_tabs` (tab **id** is still
+  `comparison-table` — `#dd-panel-comparison-table` is what this module's admin JS/CSS scopes itself
+  to, so don't rename it; see the settings-tab-indirection section above).
+  **`render_table($args)` is the single renderer behind BOTH front-end tables**, so the grid CSS, the
+  desktop sticky-header measurement pass and the mobile tab script can't drift between them:
+  - default (`[dd_feature_comparison]` → `Widget_Feature_Comparison_Table`) — every column, each with
+    the plain static CTA it authored.
+  - `pricing_mode` (the `dd_pricing_table` shortcode → `Widget_Pricing_Table`) — same grid, but each
+    PMPro column's button/badge is resolved per visitor by `DD_PMPro_Frontend_Pricing` (see that
+    bullet above), and `exclude` (column keys) drops columns. The wrapper gains a `dd-fc-pricing`
+    class; head cells gain `data-owns-*`/`data-action-verb`/`data-is-*` attrs, a `.dd-fc-badge`
+    "CURRENT PLAN" tag (which **replaces** that column's recommended banner and sets `$has_recommended`
+    so `--dd-fc-rec-pad` is still reserved — `measureBannerPad()` selects both), `.dd-fc-current` on
+    the owned column's cells, `.dd-fc-trial-text`, and `.dd-fc-cta-disabled` with the href stripped.
+    The toggle also opens on the term the visitor holds (`default_annual`), unlike comparison mode
+    which always starts monthly. Mobile's `$initial_active` prefers the owned column over
+    recommended/highlight.
+  The dependency between the two modules is **bidirectional but runtime-only** (comparison calls
+  `DD_PMPro_Frontend_Pricing::get_annual_payment_plan()`/`::instance()`; pricing calls
+  `DD_Feature_Comparison_Table::instance()->render_table()`), both behind `class_exists()`, so the
+  `functions.php` require order is not load-bearing here. Each class keeps a `private static
+  $instance` set in its constructor with a public `instance()` accessor — reach the live object that
+  way, never `new` a second one, or every hook re-registers.
+  All authored content lives in a single
   JSON-encoded option (`dd_feature_comparison_table`) built entirely client-side against a hidden
   `#dd-fc-data-input` field and validated/re-encoded server-side in `sanitize()` (unknown cell types
   collapse to `text`; a cell referencing a column key that didn't survive column sanitation is
@@ -519,9 +551,11 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   A column can be a **PMPro plan column** — seeded via `get_pmpro_plans()`,
   which queries `pmpro_getAllLevels()` directly (filtered only on `allow_signups`) rather than reusing
   `DD_PMPro_Frontend_Pricing::get_orderable_plans()`, so free/£0 levels (e.g. Trial) **are** offered as
-  columns here even though that pricing-card widget deliberately excludes them — or a **custom column**
+  columns here; the pricing table hides that column instead via its widget's **Hide Plans** control —
+  or a **custom column**
   with its own price/CTA; on either type, a blank name/price/CTA URL is live-derived from the linked PMPro level
-  at render time (`resolve_column()`) so it never drifts stale — only fields the admin explicitly
+  at render time (`resolve_column()`, `private static`) so it never drifts stale — only fields the admin
+  explicitly
   filled in override the live plan data. `resolve_column()` also resolves an **annual price/CTA URL**
   pair the same way: a PMPro column with no manually-entered annual price auto-detects the level's
   "Annual" Payment Plan extension via `DD_PMPro_Frontend_Pricing::get_annual_payment_plan()` (made
@@ -529,17 +563,25 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   `get_orderable_plans()`); a custom column, or a PMPro column with no Annual plan configured, only
   gets an annual price if the admin typed one into the Columns editor's "Annual Price" field, and a
   filled-in annual price with no explicit annual CTA URL reuses the monthly CTA rather than dead-end.
-  `render_shortcode()` resolves every column once up front into `$resolved_columns` (avoiding a
+  It also returns `annual_plan_id` separately — pricing mode needs the Payment Plan **identifier**
+  (not just its price) to tell a monthly holder from an annual holder of the same level, which is what
+  makes `SWITCH PLAN` possible, so that lookup runs even when the admin overrode the annual price by
+  hand.
+  `render_table()` resolves every column once up front into `$resolved_columns` (avoiding a
   second DB-hitting `resolve_column()` call per column) and sets `$has_annual` when any column ends up
   with both a monthly and annual price. When `$has_annual` is true, each such column's head cell gets a
-  monthly/yearly toggle switch (`.dd-fc-plan-toggle`, styled as `.dd-switch`/`.dd-slider` — visually
-  identical markup/classes to the `dd_pricing_table` shortcode's own toggle in `pmpro-dynamic-pricing.php`, but
-  deliberately scoped under `.dd-fc-wrap`/a distinct `.dd-fc-plan-toggle` class rather than reusing
-  `.dd-plan-toggle`, since that shortcode's global toggle script assumes a `.dd-card`/`.dd-checkout-btn`
-  structure this table doesn't have) plus a `data-price-monthly`/`data-price-annual`/`data-period-*`/
+  monthly/yearly toggle switch (`.dd-fc-plan-toggle`, styled as `.dd-switch`/`.dd-slider`, scoped under
+  `.dd-fc-wrap`) plus a `data-price-monthly`/`data-price-annual`/`data-period-*`/
   `data-url-*` attribute set; a small inline script per instance swaps the displayed price, period, and
-  CTA `href` on toggle. Both the Columns editor and this rendering are shortcode-only — the widget
-  wrapper contributes no annual-specific controls, since content stays shortcode-authored.
+  CTA `href` on toggle — and, in pricing mode only (detected by `data-action-verb` on the head cell),
+  the button text/disabled state too. `Widget_Feature_Comparison_Table` contributes no annual-specific
+  controls, since content stays settings-authored.
+  **Both widgets' Style-tab controls live in one place**: the `DD_Comparison_Table_Style_Controls`
+  trait (`elementor-widgets/trait-comparison-table-styles.php`, `require_once`d in `register.php`
+  ahead of the widgets that `use` it). The control **names** in that trait are load-bearing — renaming
+  one orphans settings already saved on existing Comparison Pricing Table widgets. `Widget_Pricing_Table`
+  calls `register_comparison_style_controls()` then appends its own pricing-only groups (Current Plan
+  Badge, Current Plan Column outline, Locked/Current Button, Free Trial Notice) into the same section.
   Both the Columns and Feature Rows lists are drag-to-reorder
   (jQuery UI Sortable, enqueued only on the settings screen) via a `.dd-fc-drag` handle; the client-side
   `state` object (not the DOM) is authoritative, so a drag's `update` callback reads the new DOM order
