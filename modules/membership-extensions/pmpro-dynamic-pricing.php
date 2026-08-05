@@ -838,11 +838,14 @@ class DD_PMPro_Frontend_Pricing
 	?>
 		<style>
 			<?php if ($level_id === 9) : ?>
+
 			/* Level 9 (Growth): hide the checkout sidebar */
 			.checkout-sidebar {
 				display: none !important;
 			}
+
 			<?php endif; ?>
+
 			/* influencer-style CSS Overrides for PMPro */
 			#pmpro_form {
 				max-width: 600px;
@@ -1099,11 +1102,12 @@ class DD_PMPro_Frontend_Pricing
 				font-weight: 500;
 			}
 
-			.infl-content p + span {
+			.infl-content p+span {
 				font-size: 14px;
 				color: #b3b3b3;
 				font-weight: 500;
 			}
+
 			.dd-start-date.dd-start-date.dd-start-date {
 				color: var(--e-global-color-primary);
 			}
@@ -1419,7 +1423,7 @@ class DD_PMPro_Frontend_Pricing
 						// and give up after repeated failures so a slow/blocked network can't make us
 						// pile up hung requests and exhaust the browser's connection pool to the host.
 						var ddInFlight = false;
-						var ddSyncedCode = null;   // last code we successfully reflected in the UI
+						var ddSyncedCode = null; // last code we successfully reflected in the UI
 						var ddFailCount = 0;
 						var ddSyncEnabled = true;
 						var ddPollTimer = null;
@@ -1629,13 +1633,13 @@ class DD_PMPro_Frontend_Pricing
 			return;
 		}
 	?>
-			<form action="options.php" method="post">
-				<?php
-				settings_fields('dd_pricing_settings_group');
-				do_settings_sections('dd-pricing-settings');
-				submit_button('Save Pricing Table Settings', 'primary', 'dd_pricing_submit');
-				?>
-			</form>
+		<form action="options.php" method="post">
+			<?php
+			settings_fields('dd_pricing_settings_group');
+			do_settings_sections('dd-pricing-settings');
+			submit_button('Save Pricing Table Settings', 'primary', 'dd_pricing_submit');
+			?>
+		</form>
 	<?php
 	}
 
@@ -1818,14 +1822,14 @@ class DD_PMPro_Frontend_Pricing
 			<div class="dd-plan-desc"><?php echo do_shortcode($description) ?></div>
 			<div class="dd-price-wrapper"><span class="dd-price-amount"><?php echo wp_kses_post($current_price); ?></span></div>
 			<?php if ($annual_data) : ?>
-			<div class="dd-toggle-wrapper">
-				<label class="dd-switch">
-					<input type="checkbox" class="dd-plan-toggle" <?php echo esc_attr($toggle_checked); ?>>
-					<span class="dd-slider round"></span>
-				</label>
-				<span class="dd-toggle-label">Yearly</span>
-				<span class="dd-discount">Save 20%</span>
-			</div>
+				<div class="dd-toggle-wrapper">
+					<label class="dd-switch">
+						<input type="checkbox" class="dd-plan-toggle" <?php echo esc_attr($toggle_checked); ?>>
+						<span class="dd-slider round"></span>
+					</label>
+					<span class="dd-toggle-label">Yearly</span>
+					<span class="dd-discount">Save 20%</span>
+				</div>
 			<?php endif; ?>
 			<?php echo wp_kses_post($trial_text_html); ?>
 			<a <?php echo $current_url ? 'href="' . esc_url($current_url) . '"' : ''; ?> class="<?php echo esc_attr($btn_class); ?>"><?php echo esc_html($btn_text); ?></a>
@@ -2086,17 +2090,6 @@ class DD_PMPro_Frontend_Pricing
 			}
 			?>
 		</div>
-
-		<?php
-		// Render global disclaimer strictly for new members OR members actively on a trial lock.
-		if ($user_max_base_price == 0 || $is_on_free_trial) {
-		?>
-			<div class="dd-pricing-disclaimer">
-				<strong>Please note:</strong> During the free trial period, you are unable to change your plan. Plan adjustments can be made after your first paid month.
-			</div>
-		<?php
-		}
-		?>
 
 		<script>
 			(function() {
