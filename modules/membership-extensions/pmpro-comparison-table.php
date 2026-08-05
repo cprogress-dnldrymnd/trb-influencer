@@ -1795,6 +1795,13 @@ class DD_Feature_Comparison_Table
 
 						$is_current   = ($state && ! empty($state['has_any_plan']));
 						$trial_notice = ($pricing && $col['type'] === 'pmpro' && ! empty($col['level_id'])) ? $pricing->get_trial_notice($col['level_id']) : '';
+
+						// A plan column in pricing mode always links to its own PMPro checkout, never
+						// to whatever CTA URL the column authored — the toggle script rewrites the
+						// href from these, so an authored generic link here would drop the level (and
+						// the chosen annual Payment Plan) the moment someone flipped the switch.
+						$url_monthly = $state ? $state['url_monthly'] : $resolved['cta_url'];
+						$url_annual  = $state ? $state['url_annual']  : $resolved['cta_url_annual'];
 					?>
 						<div class="dd-fc-cell dd-fc-head<?php echo ! empty($col['highlight']) ? ' dd-fc-highlight' : ''; ?><?php echo $is_current ? ' dd-fc-current' : ''; ?><?php echo $active_class; ?>"
 							data-col-index="<?php echo (int) $index; ?>"
@@ -1804,8 +1811,8 @@ class DD_Feature_Comparison_Table
 							data-price-annual="<?php echo esc_attr($resolved['price_annual']); ?>"
 							data-period-monthly="<?php echo esc_attr($col['period']); ?>"
 							data-period-annual="<?php echo esc_attr($col['period_annual'] ?? ''); ?>"
-							data-url-monthly="<?php echo esc_url($resolved['cta_url']); ?>"
-							data-url-annual="<?php echo esc_url($resolved['cta_url_annual']); ?>"
+							data-url-monthly="<?php echo esc_url($url_monthly); ?>"
+							data-url-annual="<?php echo esc_url($url_annual); ?>"
 							<?php endif; ?>
 							<?php if ($state): ?>
 							data-owns-monthly="<?php echo ! empty($state['owns_monthly']) ? 'true' : 'false'; ?>"

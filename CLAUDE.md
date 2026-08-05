@@ -534,6 +534,12 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
     The toggle also opens on the term the visitor holds (`default_annual`), unlike comparison mode
     which always starts monthly. Mobile's `$initial_active` prefers the owned column over
     recommended/highlight.
+    > **Gotcha:** a plan column's `data-url-monthly`/`data-url-annual` in pricing mode come from the
+    > state's `url_monthly`/`url_annual` (`pmpro_url('checkout', '?level=N[&pmpropp_chosen_plan=…]')`),
+    > **not** from the column's authored `cta_url`. The toggle script rewrites the href from those
+    > attrs, so feeding it an authored generic link (these columns author `/sign-up/`) silently drops
+    > the level and the chosen Payment Plan the instant someone flips the switch — the button lands on
+    > a bare signup page instead of that plan's checkout.
   The dependency between the two modules is **bidirectional but runtime-only** (comparison calls
   `DD_PMPro_Frontend_Pricing::get_annual_payment_plan()`/`::instance()`; pricing calls
   `DD_Feature_Comparison_Table::instance()->render_table()`), both behind `class_exists()`, so the

@@ -1679,6 +1679,13 @@ class DD_PMPro_Frontend_Pricing
 			$btn_disabled = false;
 		}
 
+		// Checkout destinations for each term. These deliberately ignore any CTA URL the admin
+		// authored against the column in the Pricing Tables settings — a plan button has to land on
+		// that level's own checkout carrying the level (and, for annual, the chosen Payment Plan),
+		// exactly as the previous card layout did. A generic authored signup link would drop both.
+		$url_monthly = $monthly_data['url'];
+		$url_annual  = $annual_url !== '' ? $annual_url : $monthly_data['url'];
+
 		return [
 			'owns_monthly'         => $owns_monthly,
 			'owns_annual'          => $owns_annual,
@@ -1687,7 +1694,9 @@ class DD_PMPro_Frontend_Pricing
 			'action_verb'          => $action_verb,
 			'btn_text'             => $btn_text,
 			'btn_disabled'         => $btn_disabled,
-			'btn_url'              => $btn_disabled ? '' : ($show_annual && $annual_url !== '' ? $annual_url : $monthly_data['url']),
+			'btn_url'              => $btn_disabled ? '' : ($show_annual ? $url_annual : $url_monthly),
+			'url_monthly'          => $url_monthly,
+			'url_annual'           => $url_annual,
 			'is_on_trial'          => (bool) $context['is_on_free_trial'],
 			'is_pending_downgrade' => (bool) $is_target_downgrade,
 			'is_leaving_plan'      => (bool) $is_leaving_current_plan,
