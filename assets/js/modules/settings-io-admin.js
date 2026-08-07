@@ -35,7 +35,11 @@
             return descriptor.name + money;
         }
         if (kind === 'page') {
-            return descriptor.title + ' (/' + descriptor.slug + ')';
+            var label = descriptor.title + ' (/' + descriptor.slug + ')';
+            if (descriptor.from_default) {
+                label += ' [theme default — never explicitly assigned]';
+            }
+            return label;
         }
         if (kind === 'template') {
             return descriptor.title + ' [' + descriptor.tpl_type + ']';
@@ -51,7 +55,7 @@
         return '<span style="color:' + info[1] + ';">' + info[0] + '</span>';
     }
 
-    function renderGroup(groupKey, kind, entries, options) {
+    function renderGroup(groupKey, kind, entries) {
         var uids = Object.keys(entries || {});
         if (!uids.length) {
             return '';
@@ -61,28 +65,42 @@
             var entry = entries[uid];
             var d = entry.descriptor || {};
             var targetId = entry.target_id || '';
-            var placeholder = (kind === 'template' && !targetId) ? 'will create' : 'target ID';
+
+            var actionCell = '';
+            if (kind === 'page') {
+                var placeholder = targetId ? 'target ID (matched)' : 'target ID, or use action ->';
+                actionCell = '<input type="number" min="0" class="small-text dd-io-override" ' +
+                        'data-group="pages" data-uid="' + uid + '" value="' + targetId + '" placeholder="' + placeholder + '"> ' +
+                    '<select class="dd-io-page-action" data-uid="' + uid + '">' +
+                        '<option value="">(default)</option>' +
+                        '<option value="create">Force create new</option>' +
+                        '<option value="skip">Skip entirely</option>' +
+                    '</select>';
+            } else {
+                var ph = (kind === 'template' && !targetId) ? 'will create' : 'target ID';
+                actionCell = '<input type="number" min="0" class="small-text dd-io-override" ' +
+                    'data-group="' + groupKey + '" data-uid="' + uid + '" ' +
+                    'value="' + targetId + '" placeholder="' + ph + '">';
+            }
 
             return '<tr>' +
                 '<td>' + $('<div>').text(describe(kind, d)).html() + '</td>' +
                 '<td>' + badge(entry.confidence) + '</td>' +
-                '<td><input type="number" min="0" class="small-text dd-io-override" ' +
-                    'data-group="' + groupKey + '" data-uid="' + uid + '" ' +
-                    'value="' + targetId + '" placeholder="' + placeholder + '"></td>' +
+                '<td>' + actionCell + '</td>' +
                 '</tr>';
         }).join('');
 
         var note = (kind === 'level')
             ? '<p class="description">Levels are only matched, never created — enter an existing level ID to override, or leave blank to leave it unresolved.</p>'
             : (kind === 'page')
-                ? '<p class="description">Pages are only matched, never created.</p>'
+                ? '<p class="description">Pages are matched by default. "Force create new" ignores any match and always creates a fresh (draft) page; "Skip entirely" leaves this page — and any page-content changes to it — untouched even if "Import page content" is checked below.</p>'
                 : (kind === 'template')
                     ? '<p class="description">Blank = create a new template. A matched template is updated in place.</p>'
                     : '';
 
         return '<h4>' + GROUP_LABELS[groupKey] + '</h4>' + note +
             '<table class="widefat striped" style="max-width:900px;"><thead><tr>' +
-            '<th>Source</th><th>Match</th><th>Target ID on this site</th>' +
+            '<th>Source</th><th>Match</th><th>Target / Action</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>';
     }
 
@@ -105,7 +123,7 @@
         }).join('');
 
         return '<h4 style="color:#c0392b;">Blocked options</h4>' +
-            '<p class="description">These options will <strong>not</strong> be written unless you tick "write anyway" — writing a shrunken or empty allowed-levels list can silently lock members out of a feature, so this feature refuses to guess.</p>' +
+            '<p class="description">These options will <strong>not</strong> be written unless you tick "write anyway" — writing a shrunken or empty allowed-levels list can silently lock members out of a feature, so this feature refuses to guess. Note: a page reference here may resolve automatically once page content import creates the missing page — this list is computed before that happens, so it can be more pessimistic than the actual result.</p>' +
             '<table class="widefat striped" style="max-width:900px;"><thead><tr>' +
             '<th>Option</th><th>Impact</th><th>Override</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>';
@@ -131,7 +149,13 @@
     }
 
     function collectOverrides() {
-        var overrides = { pages: {}, templates: {}, levels: {}, attachments: {}, accept_partial: {} };
+        var overrides = {
+            pages: {}, templates: {}, levels: {}, attachments: {}, accept_partial: {},
+            import_pages: $('#dd-io-opt-import-pages').is(':checked'),
+            create_missing_pages: $('#dd-io-opt-create-pages').is(':checked'),
+            publish_created_pages: $('#dd-io-opt-publish-pages').is(':checked'),
+            update_hierarchy: $('#dd-io-opt-hierarchy').is(':checked')
+        };
 
         $('.dd-io-override').each(function () {
             var $el = $(this);
@@ -140,6 +164,15 @@
                 return;
             }
             overrides[$el.data('group')][$el.data('uid')] = parseInt(val, 10);
+        });
+
+        // A 'create'/'skip' action directive takes priority over a numeric override for the same page.
+        $('.dd-io-page-action').each(function () {
+            var $el = $(this);
+            var val = $el.val();
+            if (val === 'create' || val === 'skip') {
+                overrides.pages[$el.data('uid')] = val;
+            }
         });
 
         $('.dd-io-accept-partial:checked').each(function () {
@@ -154,6 +187,17 @@
         html += '<p>Templates: ' + report.templates.created + ' created, ' + report.templates.updated + ' updated' +
             (report.templates.failed ? (', ' + report.templates.failed + ' failed') : '') + '.</p>';
 
+        if (report.pages) {
+            html += '<p>Pages: ' + report.pages.created + ' created, ' + report.pages.updated + ' updated, ' +
+                report.pages.skipped + ' skipped' +
+                (report.pages.failed ? (', ' + report.pages.failed + ' failed') : '') + '.</p>';
+            if (report.pages.warnings && report.pages.warnings.length) {
+                html += '<p style="color:#b7860b;"><strong>Page warnings:</strong></p><ul style="margin-left:20px;">' +
+                    report.pages.warnings.map(function (w) { return '<li>' + $('<div>').text(w).html() + '</li>'; }).join('') +
+                    '</ul>';
+            }
+        }
+
         if (report.written.length) {
             html += '<p><strong>Written:</strong> ' + report.written.join(', ') + '</p>';
         }
@@ -163,7 +207,10 @@
         if (report.blocked.length) {
             html += '<p style="color:#c0392b;"><strong>Blocked (not written):</strong> ' + report.blocked.join(', ') + '</p>';
         }
-        html += '<p>Reload this page to see the restored "Restore" section reflect this import’s snapshot.</p>';
+        if (report.snapshot_overwritten) {
+            html += '<p style="color:#c0392b;">Note: a prior, unrestored snapshot from an earlier import was overwritten by this one.</p>';
+        }
+        html += '<p>Reload this page to see the "Restore" section reflect this import’s snapshot.</p>';
 
         $('#dd-io-report').html(html);
     }
@@ -213,27 +260,42 @@
         $panel.on('click', '#dd-io-commit', function () {
             var overrides = collectOverrides();
 
-            $('#dd-io-commit-spinner').addClass('is-active');
-            $('#dd-io-commit').prop('disabled', true);
+            var proceed = function () {
+                $('#dd-io-commit-spinner').addClass('is-active');
+                $('#dd-io-commit').prop('disabled', true);
 
-            $.post(ddSettingsIO.ajaxUrl, {
-                action: 'dd_settings_io_commit',
-                nonce: ddSettingsIO.nonce,
-                overrides: JSON.stringify(overrides)
-            }).done(function (res) {
-                if (res && res.success) {
-                    renderReport(res.data.report);
-                } else {
-                    var msg = (res && res.data && res.data.message) || 'Import failed.';
+                $.post(ddSettingsIO.ajaxUrl, {
+                    action: 'dd_settings_io_commit',
+                    nonce: ddSettingsIO.nonce,
+                    overrides: JSON.stringify(overrides)
+                }).done(function (res) {
+                    if (res && res.success) {
+                        renderReport(res.data.report);
+                    } else {
+                        var msg = (res && res.data && res.data.message) || 'Import failed.';
+                        window.ddAlert ? ddAlert(msg) : alert(msg);
+                    }
+                }).fail(function () {
+                    var msg = 'Import failed.';
                     window.ddAlert ? ddAlert(msg) : alert(msg);
+                }).always(function () {
+                    $('#dd-io-commit-spinner').removeClass('is-active');
+                    $('#dd-io-commit').prop('disabled', false);
+                });
+            };
+
+            if (overrides.create_missing_pages || overrides.publish_created_pages) {
+                var msg = overrides.publish_created_pages
+                    ? 'This import can create new PUBLISHED pages on this site. Continue?'
+                    : 'This import can create new (draft) pages on this site. Continue?';
+                if (window.ddConfirm) {
+                    ddConfirm(msg, proceed);
+                } else if (confirm(msg)) {
+                    proceed();
                 }
-            }).fail(function () {
-                var msg = 'Import failed.';
-                window.ddAlert ? ddAlert(msg) : alert(msg);
-            }).always(function () {
-                $('#dd-io-commit-spinner').removeClass('is-active');
-                $('#dd-io-commit').prop('disabled', false);
-            });
+            } else {
+                proceed();
+            }
         });
 
         $panel.on('click', '#dd-io-restore', function () {
@@ -252,8 +314,32 @@
             };
 
             if (window.ddConfirm) {
-                ddConfirm('Restore the settings to their pre-import state? This does not undo Elementor template changes.', proceed);
+                ddConfirm('Restore the settings to their pre-import state? This does not undo Elementor template or page changes.', proceed);
             } else if (confirm('Restore the settings to their pre-import state?')) {
+                proceed();
+            }
+        });
+
+        $panel.on('click', '#dd-io-restore-pages', function () {
+            var proceed = function () {
+                $.post(ddSettingsIO.ajaxUrl, {
+                    action: 'dd_settings_io_restore_pages',
+                    nonce: ddSettingsIO.nonce
+                }).done(function (res) {
+                    if (res && res.success) {
+                        var r = res.data.result;
+                        var msg = 'Restored ' + r.restored + ' page(s), trashed ' + r.trashed + ' created page(s).';
+                        window.ddAlert ? ddAlert(msg) : alert(msg);
+                    } else {
+                        var errMsg = (res && res.data && res.data.message) || 'Restore failed.';
+                        window.ddAlert ? ddAlert(errMsg) : alert(errMsg);
+                    }
+                });
+            };
+
+            if (window.ddConfirm) {
+                ddConfirm('Restore all pages touched by the most recent page-content import? Pages that import created will be trashed; pages it updated will revert via their revision.', proceed);
+            } else if (confirm('Restore all pages touched by the most recent page-content import?')) {
                 proceed();
             }
         });

@@ -5,11 +5,16 @@ if (! defined('ABSPATH')) {
 
 /**
  * Builds a portable settings bundle: every dd_settings_io_schema() option, with every environment-
- * local ID replaced by a {"$ref":kind,"uid":…} marker, plus the referenced Elementor templates'
- * full content and (when possible) their bundled media.
+ * local ID replaced by a {"$ref":kind,"uid":…} marker, plus the referenced Elementor templates' and
+ * pages' full content and (when possible) their bundled media.
  */
 class DD_Settings_Exporter
 {
+    const MISSING = "\0dd_settings_io_missing\0";
+
+    /** Ancestor-chain depth cap while closing the page graph under post_parent (insurance, not today's data — every currently-assigned page is top-level). */
+    const MAX_PAGE_DEPTH = 8;
+
     /** @var array uid => descriptor, keyed by kind: pages/templates/levels/attachments */
     private $refs = ['pages' => [], 'templates' => [], 'levels' => [], 'attachments' => []];
 
@@ -22,16 +27,33 @@ class DD_Settings_Exporter
 
         $options = [];
         foreach (dd_settings_io_schema() as $key => $spec) {
-            $value = get_option($key, null);
-            if ($value === null) {
-                continue; // never saved on this site — nothing to export
+            $raw = get_option($key, self::MISSING);
+            $exists = ($raw !== self::MISSING);
+            $from_default = false;
+
+            if ($exists) {
+                $value = $raw;
+            } elseif (in_array($spec['class'], ['page_ref', 'template_ref'], true)) {
+                // Never explicitly saved on this site — fall back to whatever the theme's own
+                // accessor would resolve to (dd_get_page_id()/dd_get_template_id()'s hardcoded
+                // fallback, surfaced here via register_setting()'s registered default), so a page
+                // assignment that's only ever been the hardcoded default still travels rather than
+                // the bundle silently having nothing for it.
+                $value = get_option($key); // triggers default_option_{$key} if one is registered
+                $from_default = true;
+                if (empty($value)) {
+                    continue; // genuinely nothing to export — not even a usable fallback id
+                }
+            } else {
+                continue; // never saved, and no fallback concept for this class (levels/attachments/plain)
             }
-            $options[$key] = $this->export_value($value, $spec);
+
+            $options[$key] = $this->export_value($value, $spec, $from_default);
         }
 
         $manifest = [
             'format'         => 'dd-theme-settings',
-            'format_version' => 1,
+            'format_version' => 2,
             'generated'      => gmdate('c'),
             'source'         => [
                 'site_url' => get_site_url(),
@@ -39,11 +61,14 @@ class DD_Settings_Exporter
             ],
         ];
 
+        $documents = $this->export_documents();
+
         return [
-            'manifest' => $manifest,
-            'refs'     => $this->refs,
-            'options'  => $options,
-            'templates' => $this->export_templates(),
+            'manifest'  => $manifest,
+            'refs'      => $this->refs,
+            'options'   => $options,
+            'templates' => $documents['templates'],
+            'pages'     => $documents['pages'],
         ];
     }
 
@@ -58,16 +83,14 @@ class DD_Settings_Exporter
         }
     }
 
-    private function export_value($value, $spec)
+    private function export_value($value, $spec, $from_default = false)
     {
         switch ($spec['class']) {
             case 'page_ref':
             case 'template_ref':
             case 'attachment_ref':
-                return $this->export_ref_shape($value, $spec);
-
             case 'level_ref':
-                return $this->export_ref_shape($value, $spec);
+                return $this->export_ref_shape($value, $spec, $from_default);
 
             case 'rewards_general':
                 $value = is_array($value) ? $value : [];
@@ -90,13 +113,13 @@ class DD_Settings_Exporter
         ][$class] ?? null;
     }
 
-    private function export_ref_shape($value, $spec)
+    private function export_ref_shape($value, $spec, $from_default = false)
     {
         $kind = $this->kind_for_class($spec['class']);
 
         switch ($spec['shape']) {
             case 'scalar':
-                return $this->id_to_ref((int) $value, $kind);
+                return $this->id_to_ref((int) $value, $kind, $from_default);
 
             case 'list':
                 if (! is_array($value)) {
@@ -149,7 +172,7 @@ class DD_Settings_Exporter
         }
     }
 
-    private function id_to_ref($id, $kind)
+    private function id_to_ref($id, $kind, $from_default = false, $depth = 0)
     {
         if ($id <= 0) {
             return null;
@@ -180,12 +203,62 @@ class DD_Settings_Exporter
             return null;
         }
 
+        // An explicit (non-default) reference always wins over a later default-derived one for the
+        // same object — evidence of deliberate configuration outranks a hardcoded fallback.
+        $existing = $this->refs[$group][$descriptor['uid']] ?? null;
+        $descriptor['from_default'] = ($existing && empty($existing['from_default'])) ? false : $from_default;
+
+        // Close the page graph under post_parent so a path can still be reconstructed on import —
+        // insurance for a future hierarchy, not something today's flat page set exercises.
+        if ($kind === 'page' && ! empty($descriptor['parent_source_id']) && $depth < self::MAX_PAGE_DEPTH) {
+            $parent_ref = $this->id_to_ref($descriptor['parent_source_id'], 'page', false, $depth + 1);
+            $descriptor['parent_ref'] = $parent_ref;
+        } else {
+            $descriptor['parent_ref'] = null;
+        }
+        unset($descriptor['parent_source_id']);
+
         $this->refs[$group][$descriptor['uid']] = $descriptor;
 
         return ['$ref' => $kind, 'uid' => $descriptor['uid']];
     }
 
-    private function export_templates()
+    /**
+     * DD_Page_Transfer::export() returns raw ids for 'special' (level/attachment meta) and
+     * 'pmpro_gating' (the pmpro_memberships_pages rows) — it has no access to this exporter's refs
+     * table. Convert those raw ids into $ref markers here (registering them into $this->refs the
+     * same way the options walk does), so a level referenced ONLY via page gating — never through
+     * any dd_*_allowed_levels option — still gets a descriptor and can resolve on import.
+     */
+    private function convert_page_refs($payload)
+    {
+        $classes = dd_page_meta_classes();
+        foreach ($payload['special'] as $key => $raw_id) {
+            $kind = ($classes[$key]['class'] ?? '') === 'level_ref' ? 'level' : 'attachment';
+            $ref = $this->id_to_ref((int) $raw_id, $kind);
+            $payload['special'][$key] = $ref; // null if it somehow no longer resolves to a real object
+        }
+
+        // Deliberately NOT array_filter()'d: a pmpro_memberships_pages row can reference a level
+        // that no longer exists (verified on this site — rows pointing at deleted levels 10/12).
+        // Dropping that entry here would silently shrink the exported gating set with no signal
+        // that anything was omitted, defeating apply_membership_pages()'s fail-closed guard (which
+        // needs to see EVERY original entry, resolvable or not, to correctly refuse a partial sync
+        // rather than silently importing a smaller-than-intended gating set). A null entry is that
+        // signal.
+        $payload['pmpro_gating'] = array_map(function ($level_id) {
+            return $this->id_to_ref((int) $level_id, 'level');
+        }, $payload['pmpro_gating']);
+
+        return $payload;
+    }
+
+    /**
+     * Exports every referenced template's and page's Elementor content inside a single
+     * Media_Collector window — starting/ending it once, not once per document type, so media
+     * referenced by page content is bundled exactly like media referenced by template content.
+     */
+    private function export_documents()
     {
         $collector = null;
         if (class_exists('\Elementor\TemplateLibrary\Classes\Media_Collector')) {
@@ -201,6 +274,14 @@ class DD_Settings_Exporter
             }
         }
 
+        $pages = [];
+        foreach ($this->refs['pages'] as $uid => $descriptor) {
+            $data = DD_Page_Transfer::export($descriptor['source_id']);
+            if (! is_wp_error($data)) {
+                $pages[$uid] = $this->convert_page_refs($data);
+            }
+        }
+
         if ($collector) {
             $urls = $collector->get_collected_urls();
             if (! empty($urls)) {
@@ -211,13 +292,13 @@ class DD_Settings_Exporter
             // into the bundle BEFORE we get here on the caller's next line, so don't cleanup() yet.
         }
 
-        return $templates;
+        return ['templates' => $templates, 'pages' => $pages];
     }
 
     /**
-     * Zips manifest.json + settings.json (refs+options) + templates/{uid}.json + media.zip (if any
-     * template referenced local/remote media) into the uploads dir, and returns the zip path.
-     * Caller is responsible for streaming and deleting it.
+     * Zips manifest.json + settings.json (refs+options) + templates/{uid}.json + pages/{uid}.json +
+     * media.zip (if any document referenced local/remote media) into the uploads dir, and returns
+     * the zip path. Caller is responsible for streaming and deleting it.
      */
     public function write_zip($bundle)
     {
@@ -246,6 +327,10 @@ class DD_Settings_Exporter
 
         foreach ($bundle['templates'] as $uid => $data) {
             $zip->addFromString('templates/' . $uid . '.json', wp_json_encode($data));
+        }
+
+        foreach ($bundle['pages'] as $uid => $data) {
+            $zip->addFromString('pages/' . $uid . '.json', wp_json_encode($data));
         }
 
         if ($this->media_zip_path && file_exists($this->media_zip_path)) {

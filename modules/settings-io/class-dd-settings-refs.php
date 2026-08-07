@@ -48,13 +48,22 @@ class DD_Settings_Refs
         if (! $post) {
             return null;
         }
+        $edit_mode = get_post_meta($post_id, '_elementor_edit_mode', true);
         return [
-            'uid'       => self::uid_for_post($post_id),
-            'slug'      => $post->post_name,
-            'path'      => get_page_uri($post_id),
-            'title'     => $post->post_title,
-            'post_type' => $post->post_type,
-            'source_id' => (int) $post_id,
+            'uid'                  => self::uid_for_post($post_id),
+            'slug'                 => $post->post_name,
+            'path'                 => get_page_uri($post_id),
+            'title'                => $post->post_title,
+            'post_type'            => $post->post_type,
+            'post_status'          => $post->post_status,
+            'menu_order'           => (int) $post->menu_order,
+            'post_excerpt'         => $post->post_excerpt,
+            'post_content'         => $edit_mode === 'builder' ? '' : $post->post_content,
+            'built_with_elementor' => $edit_mode === 'builder',
+            // Raw id, not yet a $ref marker — the exporter resolves + registers the ancestor chain
+            // (DD_Settings_Refs is a stateless helper with no refs table of its own to add it to).
+            'parent_source_id'     => (int) $post->post_parent,
+            'source_id'            => (int) $post_id,
         ];
     }
 
@@ -115,6 +124,9 @@ class DD_Settings_Refs
     /**
      * @return array{id:int, confidence:string}|null
      */
+    /** Every non-trash status worth matching against — a page a bundle references is never meant to resurrect a trashed one. */
+    const MATCHABLE_STATUSES = ['publish', 'draft', 'private', 'pending', 'future'];
+
     public static function resolve_page($descriptor)
     {
         if (empty($descriptor)) {
@@ -128,17 +140,34 @@ class DD_Settings_Refs
             return ['id' => $by_uid, 'confidence' => 'uid'];
         }
 
+        // get_page_by_path() does not filter by status, so a trashed page sharing the bundle's
+        // path would otherwise be matched and effectively resurrected in place on import.
         if (! empty($descriptor['path'])) {
             $post = get_page_by_path($descriptor['path'], OBJECT, $post_type);
-            if ($post) {
+            if ($post && $post->post_status !== 'trash') {
                 return ['id' => (int) $post->ID, 'confidence' => 'slug'];
             }
         }
 
+        if (! empty($descriptor['slug'])) {
+            $found = get_posts([
+                'post_type'      => $post_type,
+                'post_status'    => self::MATCHABLE_STATUSES,
+                'name'           => $descriptor['slug'],
+                'posts_per_page' => 1,
+                'fields'         => 'ids',
+            ]);
+            if ($found) {
+                return ['id' => (int) $found[0], 'confidence' => 'slug'];
+            }
+        }
+
+        // Widened beyond 'publish' — a target page that already exists as a draft/private/pending
+        // match with the same title must be matched, not duplicated by creating a second page.
         if (! empty($descriptor['title'])) {
             $found = get_posts([
                 'post_type'      => $post_type,
-                'post_status'    => 'publish',
+                'post_status'    => self::MATCHABLE_STATUSES,
                 'title'          => $descriptor['title'],
                 'posts_per_page' => 1,
                 'fields'         => 'ids',

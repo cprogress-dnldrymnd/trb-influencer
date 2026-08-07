@@ -11,6 +11,7 @@ if (! defined('ABSPATH')) {
 class DD_Settings_Importer
 {
     const SNAPSHOT_OPTION = 'dd_settings_io_snapshot';
+    const PAGE_SNAPSHOT_OPTION = 'dd_settings_io_page_snapshot';
 
     /**
      * Extract an uploaded .zip into a private uploads subfolder and parse manifest/refs/options.
@@ -60,7 +61,7 @@ class DD_Settings_Importer
         if (empty($manifest['format']) || $manifest['format'] !== 'dd-theme-settings') {
             return new WP_Error('bundle_invalid', 'This does not look like an Influencer Theme settings bundle.');
         }
-        if (empty($manifest['format_version']) || (int) $manifest['format_version'] > 1) {
+        if (empty($manifest['format_version']) || (int) $manifest['format_version'] > 2) {
             return new WP_Error('bundle_newer', 'This bundle was exported by a newer version of this feature.');
         }
 
@@ -69,6 +70,14 @@ class DD_Settings_Importer
         if (is_dir($tpl_dir)) {
             foreach (glob($tpl_dir . '*.json') as $file) {
                 $template_files[basename($file, '.json')] = $file;
+            }
+        }
+
+        $page_files = [];
+        $page_dir = $target_dir . 'pages/';
+        if (is_dir($page_dir)) {
+            foreach (glob($page_dir . '*.json') as $file) {
+                $page_files[basename($file, '.json')] = $file;
             }
         }
 
@@ -95,6 +104,7 @@ class DD_Settings_Importer
             'refs'           => is_array($settings['refs'] ?? null) ? $settings['refs'] : [],
             'options'        => is_array($settings['options'] ?? null) ? $settings['options'] : [],
             'template_files' => $template_files,
+            'page_files'     => $page_files,
             'media_dir'      => $media_dir,
             'media_mapping'  => $media_mapping,
         ];
@@ -194,19 +204,28 @@ class DD_Settings_Importer
     }
 
     /**
-     * Apply the bundle: snapshot current state, import templates, build final id maps (bundle
-     * resolution + explicit overrides), remap and write every option, deep-rewrite imported
-     * template content. Re-resolves from scratch rather than trusting a client-supplied plan.
+     * Apply the bundle: snapshot current state, import templates, (optionally) import page content,
+     * build final id maps (bundle resolution + explicit overrides + anything just created), remap
+     * and write every option, deep-rewrite imported template/page content. Re-resolves from scratch
+     * rather than trusting a client-supplied plan.
      *
-     * @param array $overrides ['pages'|'templates'|'levels'|'attachments' => [uid => target_id]],
-     *                         'accept_partial' => [option_key => true]
+     * @param array $overrides ['pages'|'templates'|'levels'|'attachments' => [uid => target_id|'create'|'skip']],
+     *                         'accept_partial' => [option_key => true],
+     *                         'import_pages' => bool (master switch, default false — settings-only,
+     *                             matching Phase 1 behaviour, when off),
+     *                         'create_missing_pages' => bool (default false),
+     *                         'publish_created_pages' => bool (default false),
+     *                         'update_hierarchy' => bool (default false — apply post_parent to
+     *                             *matched* pages too; created pages always get their parent set)
      * @return array report
      */
     public function apply($bundle, $overrides = [])
     {
         $plan = $this->plan($bundle);
         $accept_partial = $overrides['accept_partial'] ?? [];
+        $import_pages = ! empty($overrides['import_pages']);
 
+        $snapshot_warning = $this->has_snapshot();
         $this->snapshot();
 
         // --- 1. Import Elementor templates, building source_id => new_id -------------------
@@ -245,23 +264,105 @@ class DD_Settings_Importer
             $existing_id ? $template_report['updated']++ : $template_report['created']++;
         }
 
-        if ($media_mapped) {
-            \Elementor\TemplateLibrary\Classes\Media_Mapper::clear_mapping();
-        }
-
-        // --- 2. Build the remaining id maps from plan + overrides, stamping matched targets ---
-        $page_map = $this->build_map($bundle, $plan, $overrides, 'pages');
+        // --- 2. Build level/attachment maps (match-only — never created) --------------------
         $level_map = $this->build_map($bundle, $plan, $overrides, 'levels');
         $attachment_map = $this->build_map($bundle, $plan, $overrides, 'attachments');
-
-        foreach ($page_map as $uid => $id) {
-            DD_Settings_Refs::stamp_post_uid($id, $uid);
-        }
         foreach ($level_map as $uid => $id) {
             DD_Settings_Refs::stamp_level_uid($id, $uid);
         }
         foreach ($attachment_map as $uid => $id) {
             DD_Settings_Refs::stamp_post_uid($id, $uid);
+        }
+
+        // --- 3. Import page content (opt-in) or fall back to match-only resolution ----------
+        $page_map = [];
+        $page_map_by_source_id = [];
+        $page_report = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'warnings' => []];
+        $page_parent_queue = []; // page_id => source_parent_id, for the second pass below
+
+        if ($import_pages) {
+            foreach ($bundle['refs']['pages'] ?? [] as $uid => $descriptor) {
+                $source_id = (int) $descriptor['source_id'];
+                $override = $overrides['pages'][$uid] ?? null;
+                $plan_target = $plan['refs']['pages'][$uid]['target_id'] ?? null;
+
+                if ($override === 'skip') {
+                    $page_report['skipped']++;
+                    continue;
+                }
+
+                $will_create = ($override === 'create') || (! $override && ! $plan_target && ! empty($overrides['create_missing_pages']));
+                $existing_id = $will_create ? null : (is_numeric($override) ? (int) $override : ($plan_target ? (int) $plan_target : null));
+
+                if (! $existing_id && ! $will_create) {
+                    $page_report['skipped']++;
+                    continue; // unresolved and create-missing not enabled — leave it alone entirely
+                }
+
+                if (! isset($bundle['page_files'][$uid])) {
+                    $page_report['failed']++;
+                    continue;
+                }
+                $payload = json_decode(file_get_contents($bundle['page_files'][$uid]), true);
+                if (! is_array($payload)) {
+                    $page_report['failed']++;
+                    continue;
+                }
+
+                if ($existing_id) {
+                    $snapshot_entry = DD_Page_Transfer::snapshot_page($existing_id);
+                    if ($snapshot_entry) {
+                        $this->add_page_snapshot_entry($snapshot_entry);
+                    }
+                }
+
+                $result = DD_Page_Transfer::import($payload, $existing_id, [
+                    'level'      => $level_map,
+                    'attachment' => $attachment_map,
+                ], [
+                    'publish_created' => ! empty($overrides['publish_created_pages']),
+                ]);
+
+                if (is_wp_error($result)) {
+                    $page_report['failed']++;
+                    $page_report['warnings'][] = $descriptor['title'] . ': ' . $result->get_error_message();
+                    continue;
+                }
+
+                DD_Settings_Refs::stamp_post_uid($result['id'], $uid);
+                $page_map[$uid] = $result['id'];
+                $page_map_by_source_id[$source_id] = $result['id'];
+                $page_report[$result['action']]++;
+                foreach ($result['warnings'] as $w) {
+                    $page_report['warnings'][] = $descriptor['title'] . ': ' . $w;
+                }
+
+                if ($result['action'] === 'created') {
+                    $this->add_page_snapshot_entry(['page_id' => null, 'created_page_id' => $result['id']]);
+                }
+
+                $parent_source_id = $payload['post']['parent_source_id'] ?? 0;
+                if ($parent_source_id && ($result['action'] === 'created' || ! empty($overrides['update_hierarchy']))) {
+                    $page_parent_queue[$result['id']] = $parent_source_id;
+                }
+            }
+
+            // --- 3b. Parent pass — only once every page in this batch has a final id -----------
+            foreach ($page_parent_queue as $child_id => $source_parent_id) {
+                $parent_id = $page_map_by_source_id[$source_parent_id] ?? null;
+                if ($parent_id && $parent_id !== $child_id) {
+                    wp_update_post(['ID' => $child_id, 'post_parent' => $parent_id]);
+                } else {
+                    $page_report['warnings'][] = "Page #{$child_id}: parent page unresolved — left at the site root.";
+                }
+            }
+        } else {
+            // Settings-only (default): pages are matched, never created or content-touched —
+            // Phase 1 behaviour, preserved when the "Import page content" checkbox is off.
+            $page_map = $this->build_map($bundle, $plan, $overrides, 'pages');
+            foreach ($page_map as $uid => $id) {
+                DD_Settings_Refs::stamp_post_uid($id, $uid);
+            }
         }
 
         $maps = [
@@ -271,12 +372,30 @@ class DD_Settings_Importer
             'attachment' => $attachment_map,
         ];
 
-        // --- 3. Deep-rewrite ID-bearing settings inside the imported template content ---------
+        // --- 4. Deep-rewrite ID-bearing settings inside imported template AND page content ---
         foreach ($template_map_by_uid as $new_id) {
             DD_Template_Transfer::deep_rewrite($new_id, $template_map_by_source_id);
         }
+        if ($import_pages) {
+            foreach ($page_map as $new_id) {
+                DD_Document_Transfer::deep_rewrite($new_id, $template_map_by_source_id);
+            }
+            // Narrow page-ref conditions rewrite now that the page map is final (see step 1's note).
+            foreach ($bundle['refs']['templates'] ?? [] as $uid => $descriptor) {
+                if (isset($template_map_by_uid[$uid]) && isset($bundle['template_files'][$uid])) {
+                    $payload = json_decode(file_get_contents($bundle['template_files'][$uid]), true);
+                    if (! empty($payload['conditions'])) {
+                        DD_Template_Transfer::rewrite_conditions($template_map_by_uid[$uid], $payload['conditions'], $page_map_by_source_id);
+                    }
+                }
+            }
+        }
 
-        // --- 4. Remap and write every option ---------------------------------------------------
+        if ($media_mapped) {
+            \Elementor\TemplateLibrary\Classes\Media_Mapper::clear_mapping();
+        }
+
+        // --- 5. Remap and write every option ---------------------------------------------------
         $schema = dd_settings_io_schema();
         $source_home = $bundle['manifest']['source']['home_url'] ?? '';
         $target_home = get_home_url();
@@ -310,6 +429,13 @@ class DD_Settings_Importer
         }
 
         $report['templates'] = $template_report;
+        $report['pages'] = $page_report;
+        $report['snapshot_overwritten'] = $snapshot_warning;
+
+        if (class_exists('\Elementor\Plugin')) {
+            \Elementor\Plugin::$instance->files_manager->clear_cache();
+        }
+
         return $report;
     }
 
@@ -469,6 +595,69 @@ class DD_Settings_Importer
             'created' => current_time('mysql'),
             'options' => $captured,
         ], false);
+
+        // Reset the page-snapshot container; entries are appended per-page (via
+        // add_page_snapshot_entry()) immediately before each page is touched during apply(), so
+        // restore_pages() only ever reverses what actually changed in *this* import.
+        update_option(self::PAGE_SNAPSHOT_OPTION, [
+            'created' => current_time('mysql'),
+            'pages'   => [],
+        ], false);
+    }
+
+    /**
+     * Appends one page's pre-touch delta to the current import's page snapshot. Called immediately
+     * before DD_Page_Transfer::import() touches that page — never batched up front — so a partially
+     * failed import still has an accurate, restorable record of exactly what it changed.
+     */
+    private function add_page_snapshot_entry($entry)
+    {
+        $snapshot = get_option(self::PAGE_SNAPSHOT_OPTION, ['created' => current_time('mysql'), 'pages' => []]);
+        $snapshot['pages'][] = $entry;
+        update_option(self::PAGE_SNAPSHOT_OPTION, $snapshot, false);
+    }
+
+    /**
+     * Restores every page touched by the most recent import: matched/updated pages via
+     * DD_Page_Transfer::restore_page() (revision + schema meta + PMPro gating rows), and pages
+     * *created* by that import are trashed (never hard-deleted, and never touching pages this
+     * import only matched-and-updated).
+     */
+    public function restore_pages()
+    {
+        $snapshot = get_option(self::PAGE_SNAPSHOT_OPTION);
+        if (empty($snapshot['pages'])) {
+            return new WP_Error('no_page_snapshot', 'No page-content import has run on this site yet.');
+        }
+
+        $restored = 0;
+        $trashed = 0;
+        foreach ($snapshot['pages'] as $entry) {
+            if (! empty($entry['created_page_id'])) {
+                if (get_post($entry['created_page_id'])) {
+                    wp_trash_post($entry['created_page_id']);
+                    $trashed++;
+                }
+                continue;
+            }
+            if (DD_Page_Transfer::restore_page($entry)) {
+                $restored++;
+            }
+        }
+
+        return ['restored' => $restored, 'trashed' => $trashed];
+    }
+
+    public function has_page_snapshot()
+    {
+        $snapshot = get_option(self::PAGE_SNAPSHOT_OPTION);
+        return ! empty($snapshot['pages']);
+    }
+
+    public function page_snapshot_created_at()
+    {
+        $snapshot = get_option(self::PAGE_SNAPSHOT_OPTION);
+        return $snapshot['created'] ?? null;
     }
 
     public function restore_snapshot()

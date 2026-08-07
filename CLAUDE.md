@@ -221,6 +221,91 @@ SVG when set — everywhere that reads through this helper (switcher, `[platform
 > `dd_roi_calculator_page_id`, `dd_outreach_page_id` — added so those destinations are
 > configurable/portable even though nothing reads them yet.
 
+### Settings Export/Import (`modules/settings-io/`, "Export / Import" tab)
+
+Moves the settings above — plus Elementor template/page content and PMPro page-access gating —
+between environments (e.g. staging → live), where every referenced page/template/level/attachment
+ID is different. `dd_settings_io_schema()` (`schema.php`) is the single declarative registry driving
+both directions: `option_key => spec` with `class` (`page_ref`/`template_ref`/`level_ref`/
+`attachment_ref`/`plain`/`rewards_general`), `shape` (how the id sits in the value — `scalar`/`list`/
+`keys`/`rows`/`json_columns`), and `fail` (`closed` = never write a wrong/zeroed id over an existing
+one if a reference can't resolve, just leave it and report; `open` = a missing entry is *less*
+restrictive, e.g. `dd_search_limits`, so it's safe to drop). Adding a new ID-bearing option is a
+one-line schema entry — the exporter/importer both walk this table generically via
+`DD_Settings_Refs`, so they cannot drift.
+
+References are resolved by stable identity, not raw ID: `DD_Settings_Refs` stamps a UUID post meta
+(`_dd_settings_io_uid`) / PMPro levelmeta (`dd_settings_io_uid`) on export, and `resolve_*()` matches
+UID → slug/path → title/name → fuzzy on import, re-stamping the source UID onto whatever it resolves
+to so the *next* round-trip is UID-exact. PMPro levels are match-only — this feature never creates or
+edits a level, discount code, order, or membership.
+
+**The `from_default` fallback**: an option that was never explicitly saved (still riding
+`dd_get_page_id()`/`dd_get_template_id()`'s hardcoded fallback — common, since most `dd_*_page_id`/
+`dd_tpl_*` options are never touched until an admin visits that settings tab) still gets exported,
+by falling back to `get_option($key)`'s registered default when the option row genuinely doesn't
+exist (`DD_Settings_Exporter::build()`). Without this, "export everything" would silently omit any
+assignment nobody has explicitly re-saved since the theme was installed.
+
+**Elementor content** (`DD_Document_Transfer`, shared static helper — export via
+`documents->get()->get_export_data()` + the `elementor/template_library/export/build_snapshots`
+filter; import via the public `Source_Local::prepare_import_template_data()`) is used by both:
+- `DD_Template_Transfer` — library templates (`dd_tpl_*`). Updates a UID-matched template in place
+  (preserves element IDs — anything CSS-keyed to `#elementor-element-xxxx` keeps working); creates a
+  new one via `save_item()` otherwise. Also carries a narrow, best-effort rewrite of
+  `_elementor_conditions` (`singular/page/{id}` and `child_of/{id}` forms only — every other
+  condition type, e.g. `by_author`/`in_category`, has no identity layer here and is left untouched)
+  — currently inert on this site (no `dd_tpl_*` template carries theme-builder conditions), kept for
+  whichever template does in the future.
+- `DD_Page_Transfer` — ordinary pages. **Never** uses `save_item()` (it validates against
+  `wp-page` and creates unconditionally) — creation goes through
+  `documents->create('wp-page', ['post_status' => 'draft', …])` instead, and a created page is
+  **always a draft** unless the admin explicitly ticks "Publish created pages". `post_content` is
+  never carried/written for an Elementor-built page (`Document::save()` overwrites it with a
+  plain-text extraction of the elements regardless of what's sent — carrying it would be dead
+  weight); `_wp_page_template` and post_title/excerpt/menu_order go through
+  `Document::save(['settings' => […]])`'s own channel (`Page\Manager::ajax_before_save_settings()`),
+  not a raw meta write. `Document::save()` can both throw (missing post/capability) and silently
+  return `false` (not editable by the current user) — `DD_Document_Transfer::save_into()` wraps both
+  so a caller never mistakes "nothing thrown" for "it worked".
+
+**Page meta**: `dd_page_meta_classes()`/`dd_page_meta_denylist()`/`_prefixes()` (`schema.php`)
+classify raw `get_post_meta()` — `pmpro_default_level` and `_thumbnail_id`/Yoast image-id keys remap
+as refs (fail-closed); everything else copies verbatim (the "everything travels" product decision),
+*except* a denylist of derived/cached Elementor state (`_elementor_css`, `_elementor_version`, …),
+editing-session state (`_edit_lock`), another plugin's source-environment bookkeeping (`_dp_original`
+— Duplicate Post's raw source post ID), and this module's own `_dd_settings_io_uid`. Deletion
+semantics are merge, not sync: a meta key on the target but absent from the bundle is left alone.
+
+> **PMPro page-access gating is a separate DB table, not post meta** —
+> `{$wpdb->prefix}pmpro_memberships_pages` (`page_id`, `membership_id`), read by
+> `pmpro_has_membership_access()`. `pmpro_default_level` postmeta is a real but different thing. A
+> page's gating rows are exported/remapped as level refs and **replaced wholesale** on import (a real
+> sync, unlike general meta) — but only once *every* referenced level resolves; if even one doesn't,
+> the entire existing gating set is left untouched and reported, never partially applied (a partial
+> sync could be *less* restrictive than either environment intended). This table can and does contain
+> rows referencing since-deleted levels (verified on this site) — the exporter deliberately does
+> **not** `array_filter()` those out when building ref markers, since silently dropping an
+> unresolvable entry would defeat the fail-closed guard on the import side (which needs to see every
+> original entry, resolvable or not, to know a page's gating set isn't safe to sync).
+
+**Rollback**: option changes are a snapshot/restore pair (`dd_settings_io_snapshot`) rewritten each
+import — restoring a prior import's snapshot after a second import has run is not possible (a second
+import overwrites the first's snapshot; the report flags this). Pages get their own,
+cheaper mechanism (`dd_settings_io_page_snapshot`): immediately before touching a page,
+`DD_Page_Transfer::snapshot_page()` calls `wp_save_post_revision()` (which already copies
+`_elementor_data`/`_wp_page_template`/`_thumbnail_id` onto the revision —
+`safe_copy_elementor_meta()`) plus the small delta of schema-declared meta/post-fields/gating rows;
+restore reverses via `wp_restore_post_revision()` + rewriting that delta. A page the import *created*
+is trashed on restore, never a page it only matched-and-updated.
+
+> Testing gotcha: `Source_Local::save_item()` skips its `is_valid_template_type()` check entirely
+> under WP-CLI (`is_wp_cli()`) — a wp-cli test can't rely on it rejecting `'wp-page'` the way a real
+> web request would. Also, `Document::save()`'s "not editable by current user" false-return only
+> reproduces under wp-cli with `wp_set_current_user()` set to a real capable user first — an
+> anonymous CLI session (uid 0) fails silently in a way that's easy to mistake for success if the
+> return value isn't checked.
+
 ### Influencer search pipeline (the core feature)
 
 `Influencer_Search::my_custom_loop_filter_handler` (AJAX action `my_custom_loop_filter`, nonce

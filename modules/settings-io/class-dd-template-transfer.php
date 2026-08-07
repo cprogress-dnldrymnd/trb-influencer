@@ -5,55 +5,42 @@ if (! defined('ABSPATH')) {
 
 /**
  * Export/import of Elementor template *content* (not just the dd_tpl_* option pointing at it).
- * Mirrors what Elementor's own (private) Source_Local::prepare_template_export()/import_single_template()
- * do internally, using only their public entry points, so a bundle produced here is also importable
- * through Elementor's own Templates → Saved Templates → Import as a manual fallback.
+ * Delegates the shared document mechanics to DD_Document_Transfer; owns only what's specific to
+ * the library-template path — the save_item() create branch (rejected for pages, see
+ * DD_Page_Transfer) and a narrow rewrite of _elementor_conditions.
+ *
+ * Note on _elementor_conditions: verified against pro-elements/modules/theme-builder/classes/
+ * conditions-manager.php — Conditions_Manager::save_conditions() stores each condition as a flat
+ * "type/sub_name/sub_id" string (e.g. "include/singular/page/1555"), the whole set serialized into
+ * one `_elementor_conditions` meta row. Only the "singular/page/{id}" and "child_of/{id}" forms
+ * carry a resolvable post reference; every other condition type (by_author/{user_id},
+ * in_category/{term_id}, etc.) has no identity layer in this feature and is left untouched. On this
+ * site every dd_tpl_* template's conditions are empty (`a:0:{}` — templates are injected by
+ * shortcode/ID, not theme-builder location), so this path is exercised by nothing today; it exists
+ * for whichever template a future admin adds that IS a theme-builder location.
  */
 class DD_Template_Transfer
 {
-    /** Widget setting name => ref kind, for the deep-rewrite pass over imported template content. */
     public static function id_bearing_settings()
     {
-        return apply_filters('dd_settings_io_template_id_keys', [
-            'at_limit_template' => 'template',
-            'template_id'       => 'template',
-        ]);
+        return DD_Document_Transfer::id_bearing_settings();
     }
 
     public static function export($template_id)
     {
-        if (! class_exists('\Elementor\Plugin')) {
-            return new WP_Error('elementor_missing', 'Elementor is not active.');
+        $data = DD_Document_Transfer::export_document($template_id);
+        if (is_wp_error($data)) {
+            return $data;
         }
 
-        $document = \Elementor\Plugin::$instance->documents->get($template_id);
-        if (! $document) {
-            return new WP_Error('template_missing', 'Template #' . $template_id . ' no longer exists.');
-        }
+        $raw_conditions = $data['metadata']['_elementor_conditions'][0] ?? null;
+        unset($data['metadata']); // don't ship raw template postmeta — everything else is derived/cache noise
 
-        $export = $document->get_export_data();
-        if (empty($export['content'])) {
-            return new WP_Error('template_empty', 'Template #' . $template_id . ' has no content.');
-        }
-
-        $content = apply_filters('elementor/template_library/sources/local/export/elements', $export['content']);
-
-        $data = [
-            'content'       => $content,
-            'page_settings' => $export['settings'],
-            'version'       => class_exists('\Elementor\DB') ? \Elementor\DB::DB_VERSION : '',
-            'title'         => get_the_title($template_id),
-            'type'          => class_exists('\Elementor\TemplateLibrary\Source_Local')
-                ? \Elementor\TemplateLibrary\Source_Local::get_template_type($template_id)
-                : 'page',
-        ];
-
-        $snapshots = apply_filters('elementor/template_library/export/build_snapshots', [], $content, $template_id, $data);
-        if (! empty($snapshots['global_classes'])) {
-            $data['global_classes'] = $snapshots['global_classes'];
-        }
-        if (! empty($snapshots['global_variables'])) {
-            $data['global_variables'] = $snapshots['global_variables'];
+        if ($raw_conditions) {
+            $conditions = maybe_unserialize($raw_conditions);
+            if (is_array($conditions) && ! empty($conditions)) {
+                $data['conditions'] = $conditions;
+            }
         }
 
         return $data;
@@ -70,15 +57,7 @@ class DD_Template_Transfer
             return new WP_Error('elementor_missing', 'Elementor is not active.');
         }
 
-        $tmp_dir = \Elementor\Plugin::$instance->uploads_manager->create_unique_dir();
-        $tmp_path = trailingslashit($tmp_dir) . 'template.json';
-        file_put_contents($tmp_path, wp_json_encode($payload));
-
-        $source = \Elementor\Plugin::$instance->templates_manager->get_source('local');
-        $prepared = $source->prepare_import_template_data($tmp_path, 'match_site');
-
-        \Elementor\Plugin::$instance->uploads_manager->remove_file_or_dir($tmp_dir);
-
+        $prepared = DD_Document_Transfer::prepare($payload);
         if (is_wp_error($prepared)) {
             return $prepared;
         }
@@ -89,19 +68,17 @@ class DD_Template_Transfer
                 : null;
 
             if ($existing_type === $prepared['type']) {
-                $document = \Elementor\Plugin::$instance->documents->get($existing_id);
-                if ($document) {
-                    $document->save([
-                        'elements' => $prepared['content'],
-                        'settings' => $prepared['page_settings'],
-                    ]);
-                    wp_update_post(['ID' => $existing_id, 'post_title' => $prepared['title']]);
-                    return $existing_id;
+                $result = DD_Document_Transfer::save_into($existing_id, $prepared);
+                if (is_wp_error($result)) {
+                    return $result;
                 }
+                wp_update_post(['ID' => $existing_id, 'post_title' => $prepared['title']]);
+                return $existing_id;
             }
             // Type changed since export — fall through to create-new rather than corrupting the document.
         }
 
+        $source = \Elementor\Plugin::$instance->templates_manager->get_source('local');
         $new_id = $source->save_item([
             'content'       => $prepared['content'],
             'title'         => $prepared['title'],
@@ -112,57 +89,74 @@ class DD_Template_Transfer
         return $new_id;
     }
 
-    /**
-     * Rewrites ID-bearing widget settings (see id_bearing_settings()) inside an imported template's
-     * content so a widget pointing at another *template* (not media, which Elementor already handles)
-     * lands on the correct local object. Must run only after every template in the batch has been
-     * imported, so $template_map is complete.
-     *
-     * @return int Number of settings values rewritten.
-     */
     public static function deep_rewrite($template_post_id, array $template_map)
     {
-        if (! class_exists('\Elementor\Plugin')) {
-            return 0;
+        return DD_Document_Transfer::deep_rewrite($template_post_id, $template_map);
+    }
+
+    /**
+     * Best-effort rewrite of post-ID-bearing conditions ("singular/page/{id}", "child_of/{id}")
+     * inside an already-imported template's _elementor_conditions, using the completed page map
+     * (source page id => target page id). Every other condition form is left byte-identical.
+     *
+     * @param array $payload_conditions The 'conditions' array captured at export(), if any.
+     * @return array{rewritten:int, left:int} counts, for the import report.
+     */
+    public static function rewrite_conditions($template_post_id, $payload_conditions, array $page_map_by_source_id)
+    {
+        $counts = ['rewritten' => 0, 'left' => 0];
+
+        if (empty($payload_conditions) || ! is_array($payload_conditions)) {
+            return $counts;
         }
 
-        $raw = get_post_meta($template_post_id, '_elementor_data', true);
-        $data = is_string($raw) ? json_decode($raw, true) : $raw;
-        if (! is_array($data)) {
-            return 0;
-        }
+        $new_conditions = [];
+        foreach ($payload_conditions as $condition_str) {
+            $segments = explode('/', (string) $condition_str);
+            $rewritten_this = false;
 
-        $id_keys = self::id_bearing_settings();
-        $rewritten = 0;
-
-        $callback = function ($element) use ($id_keys, $template_map, &$rewritten) {
-            if (empty($element['settings']) || ! is_array($element['settings'])) {
-                return $element;
-            }
-            foreach ($id_keys as $setting_key => $kind) {
-                if ($kind !== 'template' || empty($element['settings'][$setting_key])) {
-                    continue;
+            if (count($segments) === 4 && $segments[1] === 'singular' && $segments[2] === 'page' && ctype_digit($segments[3])) {
+                $source_page_id = (int) $segments[3];
+                if (isset($page_map_by_source_id[$source_page_id])) {
+                    $segments[3] = (string) $page_map_by_source_id[$source_page_id];
+                    $rewritten_this = true;
                 }
-                $old_id = (int) $element['settings'][$setting_key];
-                if ($old_id && isset($template_map[$old_id])) {
-                    $element['settings'][$setting_key] = $template_map[$old_id];
-                    $rewritten++;
+            } elseif (count($segments) === 2 && $segments[0] === 'child_of' && ctype_digit($segments[1])) {
+                $source_page_id = (int) $segments[1];
+                if (isset($page_map_by_source_id[$source_page_id])) {
+                    $segments[1] = (string) $page_map_by_source_id[$source_page_id];
+                    $rewritten_this = true;
                 }
             }
-            return $element;
-        };
 
-        $rewritten_data = \Elementor\Plugin::$instance->db->iterate_data($data, $callback);
+            $rewritten_this ? $counts['rewritten']++ : $counts['left']++;
+            $new_conditions[] = implode('/', $segments);
+        }
 
-        if ($rewritten > 0) {
-            $document = \Elementor\Plugin::$instance->documents->get($template_post_id);
-            if ($document) {
-                $document->save(['elements' => $rewritten_data]);
-            } else {
-                update_post_meta($template_post_id, '_elementor_data', wp_slash(wp_json_encode($rewritten_data)));
+        if ($counts['rewritten'] > 0) {
+            self::save_conditions($template_post_id, $new_conditions);
+        }
+
+        return $counts;
+    }
+
+    private static function save_conditions($post_id, array $flat_conditions)
+    {
+        $parsed = array_map(function ($flat) {
+            return explode('/', $flat);
+        }, $flat_conditions);
+
+        if (class_exists('\ElementorPro\Modules\ThemeBuilder\Module')) {
+            $manager = \ElementorPro\Modules\ThemeBuilder\Module::instance()->get_conditions_manager();
+            if ($manager && method_exists($manager, 'save_conditions')) {
+                $manager->save_conditions($post_id, $parsed);
+                return; // save_conditions() also regenerates the theme-builder conditions cache
             }
         }
 
-        return $rewritten;
+        // Pro theme-builder module unavailable — write the raw meta directly. The cached
+        // elementor_pro_theme_builder_conditions option will be stale until something else
+        // regenerates it (e.g. saving the document in the editor).
+        update_post_meta($post_id, '_elementor_conditions', $flat_conditions);
     }
 }
