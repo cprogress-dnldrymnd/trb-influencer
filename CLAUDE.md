@@ -175,9 +175,12 @@ that are flushed on `save_post`/`delete_post` of an influencer.
 
 On the **filtered search** form (`filtered-search` block in `search.php`), Location is the
 required field (`required-on-search` class + JS validation in `filter-validation.js`) and
-Hashtags Used sits in the main filter row; Niche has been moved into Advanced filters. Keep
-the markup, the `required-on-search`/`field-required` classes, and the validation message text
-in sync if this layout changes again.
+Niche sits in the main filter row; Hashtags Used lives in Advanced filters (alongside Gender
+and the verified/engagement/expert checkbox group). Keep the markup, the
+`required-on-search`/`field-required` classes, and the validation message text in sync if this
+layout changes again. The Advanced panel auto-opens on load (`initAdvancedSearchAutoOpen` in
+`search-toggle.js`) whenever it already contains a checked/selected filter — e.g. from a URL or
+saved search — so those selections are never hidden inside a collapsed panel.
 
 The hashtag (`content_tag`) typeahead AJAX handler over-fetches 100 candidates by name
 (`name__like`) rather than querying only `$limit`, then re-ranks them client-independent in PHP —

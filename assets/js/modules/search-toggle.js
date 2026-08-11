@@ -166,4 +166,26 @@
         });
     };
 
+    /**
+     * Opens the Advanced panel on load if it already contains active filter
+     * selections (e.g. from a URL or saved search), so checked boxes are never
+     * hidden inside a collapsed panel with no indication they're applied.
+     */
+    InfluencerApp.initAdvancedSearchAutoOpen = function () {
+        $('.influencer-search-main').each(function () {
+            var $form = $(this);
+
+            // Full Brief mode already hides the trigger and collapses the panel.
+            if ($form.find('#my-toggle').is(':checked')) return;
+
+            var $filtersWrap = $form.find('.advanced-search-filters');
+            var hasActive    = $filtersWrap.find('input[type="checkbox"]:checked, input[type="radio"]:checked').length > 0;
+
+            if (hasActive) {
+                $filtersWrap.show();
+                $form.find('.advanced-search-trigger').addClass('open');
+            }
+        });
+    };
+
 })(jQuery);
