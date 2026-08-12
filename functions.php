@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.6.0');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.7.0');
 
 /**
  * Load child theme scripts & styles.
@@ -45,6 +45,7 @@ function hello_elementor_child_scripts_styles()
     // ------------------------------------------------------------------
     $modules = [
         'dd-modal'             => 'modules/dd-modal.js',           // global ddAlert / ddConfirm — must be first
+        'dd-page-gate'         => 'modules/dd-page-gate.js',        // restricted-page popup click interceptor — needs dd-modal
         'inf-tag-prioritizer'  => 'modules/tag-prioritizer.js',   // no deps on other modules
         'inf-ui-utils'         => 'modules/ui-utils.js',           // no deps on other modules
         'inf-search-toggle'    => 'modules/search-toggle.js',      // no deps on other modules
@@ -68,6 +69,10 @@ function hello_elementor_child_scripts_styles()
         );
         $prev_handle = $handle; // each module depends on the previous one to guarantee load order
     }
+
+    // Restricted-page popup: which paths are gated for this visitor, and the notice to pop
+    // immediately if the current request itself just bounced off a gate (?dd_gate=…).
+    wp_localize_script('dd-page-gate', 'dd_gate', function_exists('dd_page_gate_client_map') ? dd_page_gate_client_map() : ['enabled' => false, 'paths' => [], 'prefixes' => [], 'notice' => null]);
 
     // ------------------------------------------------------------------
     // 2. Main orchestrator — must load last.
@@ -136,6 +141,7 @@ require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/plan-capabilities.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/messages-settings.php';
+require $dir . '/includes/core/page-gate.php';
 require $dir . '/includes/core/hooks.php';
 require $dir . '/includes/core/shortcodes.php';
 // 2. Third-Party Integrations (Base handshakes and bridges)

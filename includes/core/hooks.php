@@ -144,35 +144,39 @@ add_action('wp_head', 'action_wp_head');
 
 
 /**
- * Restrict access to specific pages based on ACF 'members_only' field.
- * Redirects non-logged-in users to a specified page.
+ * Restrict access to gated pages — members-only pages, Dashboard-template pages, single
+ * influencer profiles (all logged-out only), the search pages once a plan's creator-search
+ * cap is hit, and PMPro level-gated pages. dd_page_gate_for_post() (includes/core/page-gate.php)
+ * is the single authority for whether a page is gated and what a visitor should see.
+ *
+ * When the popup gate is enabled (dd_gate_use_popup, on by default), a gated request bounces
+ * back to a safe page it came from with ?dd_gate={reason} so dd-page-gate.js can pop the
+ * explanation there — the click interceptor in that same script is what stops a normal
+ * in-app click from ever reaching this redirect in the first place. With the toggle off,
+ * this falls back to the theme's original behaviour of redirecting straight to login/upgrade.
  *
  * @return void
  */
 function dd_restrict_dashboard_template_access()
 {
-    // specific template check (if needed in future) can go here.
-
-    // 1. Get the current Object ID (Page/Post ID) to ensure correct context outside the loop.
-    $object_id = get_queried_object_id();
-
-    // 2. Check the ACF 'members_only' field. 
-    // We check if function_exists to prevent fatal errors if ACF is deactivated.
-    $is_restricted = function_exists('get_field') ? get_field('members_only', $object_id) : false;
-
-    // 3. Condition: User is NOT logged in AND the page is restricted.
-    if (! is_user_logged_in() && $is_restricted || ! is_user_logged_in() && is_single() && get_post_type() == 'influencer') {
-
-        // Check if the current page is using the specific template file.
-        // Note: This path is relative to the active theme's root directory.
-
-        wp_redirect(get_the_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144)));
-
-        // Always exit after a redirect to stop further script execution.
-        exit;
+    if (is_admin() || wp_doing_ajax() || wp_is_json_request()) {
+        return;
     }
+
+    $gate = dd_page_gate_for_post(get_queried_object_id());
+    if (! $gate) {
+        return;
+    }
+
+    if (function_exists('dd_page_gate_enabled') && dd_page_gate_enabled()) {
+        dd_page_gate_bounce($gate);
+        return;
+    }
+
+    wp_redirect($gate['cta_url']);
+    exit;
 }
-add_action('template_redirect', 'dd_restrict_dashboard_template_access');
+add_action('template_redirect', 'dd_restrict_dashboard_template_access', 5);
 
 /**
  * Injects JavaScript into the footer to intercept and prevent context menus 

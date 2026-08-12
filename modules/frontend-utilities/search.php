@@ -144,10 +144,19 @@ class Influencer_Search
      * my_custom_loop_filter_handler() so arriving at the page and submitting a new search
      * enforce the same limit — unlimited/unconfigured levels (dd_user_search_limit() < 0)
      * are never redirected.
+     *
+     * Superseded by the popup gate (dd_restrict_dashboard_template_access() in hooks.php,
+     * priority 5, via dd_page_gate_for_post()) when dd_gate_use_popup is on — that runs
+     * first and already covers this same cap check, so this body only still runs as the
+     * plain-redirect fallback when the popup gate is switched off.
      */
     public function enforce_search_page_limit()
     {
         if (! is_user_logged_in() || is_admin() || wp_doing_ajax() || wp_is_json_request()) {
+            return;
+        }
+
+        if (function_exists('dd_page_gate_enabled') && dd_page_gate_enabled()) {
             return;
         }
 

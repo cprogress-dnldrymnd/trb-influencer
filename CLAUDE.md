@@ -347,8 +347,11 @@ users and any level with no configured limit (`dd_search_limits` empty/blank for
 unrestricted (`dd_user_search_limit()` fails **open**, unlike the other capability checks below).
 `Influencer_Search::enforce_search_page_limit()` (`template_redirect`) mirrors this same check on
 plain page loads of the search/search-results pages — a logged-in user already at/over their cap
-is redirected to `dd_plan_upgrade_url()` before the page even renders, not just blocked on AJAX
-submit.
+is blocked before the page even renders, not just on AJAX submit. That blocking now normally goes
+through the restricted-page popup gate (`includes/core/page-gate.php`, see "Restricted-page popup
+gate" below), which pops a `ddConfirm()` rather than redirecting; `enforce_search_page_limit()`
+itself only still fires the old straight `wp_redirect()` to `dd_plan_upgrade_url()` when that
+popup gate is switched off.
 
 Country meta is stored as **ISO alpha-3** (e.g. `GBR`); `helpers.php` has alpha-3→alpha-2 and
 country-name→alpha-2 maps for flags and matching. Filter dropdown option lists
@@ -785,14 +788,59 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   Visibility"** control to *every* Elementor element (show/hide by points balance) and suppresses
   the parent header/footer on the dashboard template and influencer singles.
 - **ACF** (`acf.php`) — populates header colour select fields from **Elementor global colours**,
-  and the `members_only` field gates page access (enforced in `hooks.php`).
+  and the `members_only` field gates page access (enforced via `includes/core/page-gate.php`,
+  see below).
 - **Dompdf** (`dompdf.php`) — `Dompdf_Service` singleton wrapping the manually-vendored library
   for server-side PDF generation.
 
-### Access control & page gating (`includes/core/hooks.php`)
+### Restricted-page popup gate (`includes/core/page-gate.php`)
 
-- Non-logged-in users hitting a `members_only` page or any single `influencer` are redirected to
-  the configured login page (`dd_login_redirect_page_id`).
+A visitor hitting a page they can't access sees an in-page `ddConfirm()` popup instead of being
+silently redirected. `dd_page_gate_for_post($post_id, $user_id = null)` is the single authority —
+every consumer (the click interceptor's payload, the `template_redirect` boundary, and the
+localizer) reads through it so a gate's rule/message/CTA can never drift between them. It returns
+`null` when a page is allowed, otherwise `['reason' => 'login'|'upgrade', 'message', 'cta_label',
+'cta_url']`. Gated, in check order:
+
+1. A logged-out visitor on an ACF `members_only` page.
+2. A logged-out visitor on any single `influencer` profile.
+3. A logged-out visitor on **any page using the Dashboard template**
+   (`templates/page-dashboard.php`, matched via `get_page_template_slug()`) — this is enforced
+   independently of `members_only`, not merely inferred from it, since not every Dashboard-template
+   page is expected to also carry that checkbox.
+4. A logged-in visitor on the search/search-results page who has hit their plan's creator-search
+   cap (`dd_user_search_limit()`/`number_of_searches`, same check `Influencer_Search::enforce_search_page_limit()`
+   used to own outright — that method now defers to this gate and only still redirects on its own
+   when the popup is switched off, see below).
+5. Any visitor PMPro's own `pmpro_has_membership_access()` would block. Unlike the other four, this
+   changes PMPro pages' *character*, not just presentation — PMPro used to render those pages with
+   its content filter swapped for a "no access" message rather than blocking navigation at all.
+
+**Two delivery layers, one shared authority:**
+- **Click interception is the happy path** — `assets/js/modules/dd-page-gate.js` (enqueued right
+  after `dd-modal`, localized as `dd_gate` via `dd_page_gate_client_map()`) delegates a `click`
+  listener on `document`, cancels navigation to any gated path/prefix, and pops the modal without
+  the visitor ever leaving the page.
+- **`template_redirect` is the real boundary and the fallback** for whatever the client can't
+  catch (direct URL entry, a bookmark, JS disabled) — `dd_restrict_dashboard_template_access()`
+  (`hooks.php`, priority 5) calls `dd_page_gate_bounce($gate)`, which redirects *back* to a safe
+  page the request came from (`wp_get_referer()`, else the dashboard/home) with `?dd_gate={reason}`
+  appended, itself checked against `dd_page_gate_for_post()` at each candidate to avoid a bounce
+  loop. `dd-page-gate.js` reads that flag on load, pops the same modal, then strips it via
+  `history.replaceState()`.
+
+`dd_gate_use_popup` (Influencer Theme → Functionality, default on) reverts all of the above to the
+theme's original behaviour — a straight `wp_redirect()` to login or `dd_plan_upgrade_url()` — with
+no code change. Client-side interception is convenience only; disabling the option (or a visitor
+with JS off) never weakens what `template_redirect` actually enforces.
+
+Wording lives in the `dd_msg_gate_*` keys in `includes/core/messages-settings.php`'s registry
+(`plan_gates` group) alongside the pre-existing plan-gate messages — search-cap wording reuses
+`dd_msg_search_limit`/`dd_msg_company_trial_block`, plan-gate wording reuses
+`dd_msg_notice_upgrade_cta`, and everything else has its own `dd_msg_gate_*` key (Dashboard-template
+pages deliberately share `dd_msg_gate_members_only` with the ACF gate rather than getting their own
+string).
+
 - `wp_head` emits a dynamic `<style id="custom--css">` block that conditionally hides dashboard
   widgets/stats based on the user's data and membership, and switches the search layout between
   "full brief" and "filtered" modes from the `?search-brief` query var.
