@@ -1,0 +1,227 @@
+/* Welcome popup + guided-tour spotlight. Built by assets/js/modules/dd-onboarding.js.
+   Visually matches the existing .inf-modal-* framework (style.css) without depending on its
+   ID-scoped selectors, since this modal lives outside #inf-modal-overlay. */
+
+.dd-ob-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+}
+
+.dd-ob-overlay * {
+    box-sizing: border-box;
+}
+
+.dd-ob-box {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    background: #fdfdfd;
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    font-family: inherit;
+}
+
+/* !important throughout: Elementor's global Kit CSS styles bare <button> elements
+   site-wide (background/border/padding/min-height), which otherwise overrides this —
+   .dd-ob-close needs to win regardless of what page/kit it's injected into. */
+button.dd-ob-close {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    color: #8c8f94 !important;
+}
+
+button.dd-ob-close svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
+button.dd-ob-close:hover,
+button.dd-ob-close:focus {
+    background: #f1f1f1 !important;
+    color: #333 !important;
+    outline: none !important;
+}
+
+.dd-ob-title.dd-ob-title {
+    margin: 0 0 10px;
+    font-size: 3rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.dd-ob-body {
+    margin: 0 0 22px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #4b4b4b;
+}
+
+.dd-ob-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dd-ob-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    box-sizing: border-box;
+}
+
+.dd-ob-btn-primary {
+    background: var(--e-global-color-primary, #034146);
+    color: #fff;
+}
+
+.dd-ob-btn-primary:hover {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.dd-ob-btn-secondary {
+    background: transparent;
+    color: #4b4b4b;
+    border: 1px solid #e2e2e2;
+}
+
+.dd-ob-btn-secondary:hover {
+    background: #f3f3f3;
+}
+
+@media (max-width: 767px) {
+    .dd-ob-title.dd-ob-title {
+        font-size: 2rem !important;
+    }
+}
+@media (max-width: 575px) {
+    .dd-ob-title.dd-ob-title {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Guided tour ------------------------------------------------------------- */
+
+.dd-ob-spotlight {
+    position: fixed;
+    z-index: 100000;
+    border-radius: 6px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+    transition:
+        top 0.25s ease,
+        left 0.25s ease,
+        width 0.25s ease,
+        height 0.25s ease;
+}
+
+.dd-ob-tooltip {
+    position: fixed;
+    z-index: 100001;
+    width: 300px;
+    max-width: calc(100vw - 24px);
+    background: #fdfdfd;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    padding: 18px 20px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.dd-ob-tooltip__step {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgb(102, 112, 133);
+}
+
+.dd-ob-tooltip__title {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.dd-ob-tooltip__body {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #4b4b4b;
+}
+
+.dd-ob-tooltip__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.dd-ob-tooltip__nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dd-ob-link-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    font-size: 13px;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.dd-ob-link-btn:hover {
+    color: #1a1a1a;
+}
+
+.dd-ob-tooltip .dd-ob-btn {
+    width: auto;
+    padding: 8px 16px;
+}
+
+.dd-start-tour {
+    cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    .dd-ob-box {
+        padding: 22px 20px;
+    }
+    .dd-ob-title {
+        font-size: 17px;
+    }
+}

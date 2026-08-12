@@ -1,0 +1,105 @@
+/* Plan-lock overlay — "grey out + padlock" treatment for premium features a viewer's plan
+   doesn't include. See includes/core/plan-locks.php (dd_render_feature_lock) and
+   includes/integrations/elementor.php (the per-widget "Plan Lock" control) for the two ways
+   this markup is produced. */
+
+.dd-locked {
+    position: relative;
+    isolation: isolate;
+}
+
+.dd-locked__content {
+    filter: blur(var(--dd-lock-blur, 2px));
+    opacity: var(--dd-lock-opacity, 0.45);
+    pointer-events: none;
+    user-select: none;
+}
+
+.dd-locked__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+    padding: 16px;
+    background: var(--dd-lock-overlay-bg, rgba(255, 255, 255, 0.35));
+    -webkit-backdrop-filter: blur(1px);
+    backdrop-filter: blur(1px);
+}
+
+.dd-locked__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--e-global-color-primary, #034146);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    margin-bottom: 2px;
+}
+
+.dd-locked__title {
+    margin: 0;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.dd-locked__blurb {
+    margin: 0;
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #4b4b4b;
+}
+
+.dd-locked__cta {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    background: var(--e-global-color-primary, #034146);
+    color: #fff;
+    font-size: 14px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
+}
+
+.dd-locked__cta:hover,
+.dd-locked__cta:focus {
+    opacity: 0.85;
+    color: #fff;
+}
+
+@media (max-width: 480px) {
+    .dd-locked__blurb {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dd-locked__cta {
+        transition: none;
+    }
+}
+
+/* Small inline padlock badge reused on individual locked buttons/triggers that are too small
+   to carry the full .dd-locked overlay (the save button, the "Save this search" trigger) — the
+   same .inf-btn-lock-icon markup the Export PDF button already used, generalized here so it
+   isn't scoped to just that one button. */
+.inf-btn-lock-icon {
+    margin-left: 4px;
+    vertical-align: -2px;
+    opacity: 0.85;
+}
+
+.save-search-locked {
+    opacity: var(--dd-lock-opacity, 0.45);
+    cursor: pointer;
+}

@@ -1,0 +1,67 @@
+/* Scoped to #dd-panel-onboarding — see the settings-tab-indirection note in CLAUDE.md. */
+#dd-panel-onboarding .dd-ob-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+#dd-panel-onboarding .dd-ob-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+#dd-panel-onboarding .dd-ob-drag {
+    cursor: grab;
+    color: #8c8f94;
+}
+
+#dd-panel-onboarding .dd-ob-card__title {
+    flex: 1 1 auto;
+}
+
+#dd-panel-onboarding .dd-ob-card__actions .button-link {
+    color: #b32d2e;
+    text-decoration: none;
+}
+
+#dd-panel-onboarding .dd-ob-card__body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px;
+}
+
+#dd-panel-onboarding .dd-ob-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+
+#dd-panel-onboarding .dd-ob-field--wide {
+    grid-column: 1 / -1;
+}
+
+#dd-panel-onboarding .dd-ob-field input,
+#dd-panel-onboarding .dd-ob-field select,
+#dd-panel-onboarding .dd-ob-field textarea {
+    width: 100%;
+}
+
+#dd-panel-onboarding .ui-sortable-placeholder {
+    border: 1px dashed #8c8f94;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    visibility: visible !important;
+}
+
+@media (max-width: 782px) {
+    #dd-panel-onboarding .dd-ob-card__body {
+        grid-template-columns: 1fr;
+    }
+}
