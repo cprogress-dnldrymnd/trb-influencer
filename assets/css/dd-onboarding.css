@@ -86,7 +86,7 @@ button.dd-ob-close:focus {
     gap: 10px;
 }
 
-.dd-ob-btn {
+.dd-ob-btn.dd-ob-btn.dd-ob-btn {
     display: block;
     width: 100%;
     padding: 12px 20px;
@@ -110,13 +110,13 @@ button.dd-ob-close:focus {
     color: #fff;
 }
 
-.dd-ob-btn-secondary {
+.dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary {
     background: transparent;
     color: #4b4b4b;
     border: 1px solid #e2e2e2;
 }
 
-.dd-ob-btn-secondary:hover {
+.dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary:hover {
     background: #f3f3f3;
 }
 
