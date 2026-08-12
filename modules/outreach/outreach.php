@@ -2953,6 +2953,7 @@ class DD_Outreach_Manager
         $influencer_id = get_the_ID();
         $is_unlocked   = is_influencer_unlocked($influencer_id);
         $can_outreach  = dd_user_can('outreach');
+        $can_afford    = dd_user_can_afford_unlock();
 
         ob_start();
     ?>
@@ -2961,6 +2962,11 @@ class DD_Outreach_Manager
 
                 <?php echo $this->render_outreach_unlocked_badge($atts['unlocked_text'], $atts['unlocked_icon']); ?>
                 <?php echo $this->render_outreach_contact_button($atts['contact_text'], $atts['contact_icon'], $can_outreach, !$can_outreach); ?>
+
+            <?php elseif (!$can_afford) : ?>
+
+                <?php echo $this->render_outreach_out_of_credits_button($atts['unlock_text'], $atts['unlock_icon']); ?>
+                <?php echo $this->render_outreach_contact_button($atts['contact_locked_text'], $atts['contact_locked_icon'], false, false, true); ?>
 
             <?php else : ?>
 
@@ -3040,19 +3046,52 @@ class DD_Outreach_Manager
     }
 
     /**
+     * Renders the unlock CTA in place of the myCred Sell Content button when the
+     * viewer's credit balance can't cover an unlock (dd_user_can_afford_unlock()
+     * is false). Deliberately does NOT call [mycred_sell_this] — myCred would
+     * render its own "cantafford" template (a dead-end "Insufficient Funds"
+     * notice with no button) — and instead opens the shared out-of-credits
+     * popup (#inf-view-unlock-blocked) offering "buy credits" / "upgrade plan".
+     *
+     * @param string $text Button label (reuses the widget's unlock_text field).
+     * @param string $icon Optional custom icon URL.
+     * @return string
+     */
+    private function render_outreach_out_of_credits_button($text, $icon)
+    {
+        $icon_html = $this->render_outreach_button_icon($icon);
+
+        ob_start();
+    ?>
+        <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_no_credits_hint')); ?>" style="display:inline-block;">
+            <a href="#" class="elementor-button outreach-button spend-credit-notice dd-unlock-blocked-trigger" style="cursor:pointer; text-decoration:none;">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                    <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
+                </span>
+            </a>
+        </span>
+    <?php
+        return ob_get_clean();
+    }
+
+    /**
      * Renders the outreach contact CTA button.
      *
      * @param string $text            Button label.
      * @param string $icon            Optional custom icon URL (falls back to the bundled padlock SVG).
      * @param bool   $enabled         When true the button opens the outreach popup; otherwise it is
-     *                                shown disabled with a hint (unlock-first, or upgrade — see
-     *                                $upgrade_locked).
+     *                                shown disabled with a hint (unlock-first, upgrade, or
+     *                                out-of-credits — see $upgrade_locked / $unlock_blocked).
      * @param bool   $upgrade_locked  When $enabled is false, true means the influencer IS unlocked
      *                                but the user's plan doesn't include outreach — routes to the
      *                                plan upgrade page instead of the generic "unlock first" hint.
+     * @param bool   $unlock_blocked  When $enabled and $upgrade_locked are both false, true means
+     *                                the influencer isn't unlocked AND the viewer is out of credits —
+     *                                opens the out-of-credits popup instead of a dead-end hint.
      * @return string
      */
-    private function render_outreach_contact_button($text, $icon, $enabled, $upgrade_locked = false)
+    private function render_outreach_contact_button($text, $icon, $enabled, $upgrade_locked = false, $unlock_blocked = false)
     {
         $icon_html = $this->render_outreach_button_icon($icon);
 
@@ -3071,6 +3110,16 @@ class DD_Outreach_Manager
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
                         <span class="elementor-button-text"><?php echo esc_html(dd_get_message('dd_msg_contact_upgrade_btn')); ?></span>
+                    </span>
+                </a>
+            </span>
+        <?php elseif ($unlock_blocked) : ?>
+            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_no_credits_hint')); ?>" style="display:inline-block; width: 100%;">
+                <a href="#" class="elementor-button outreach-button dd-unlock-blocked-trigger"
+                    style="opacity: 0.6; cursor: pointer;">
+                    <span class="elementor-button-content-wrapper">
+                        <span class="elementor-button-icon"><?php echo $icon_html; ?></span>
+                        <span class="elementor-button-text"><?php echo esc_html($text); ?></span>
                     </span>
                 </a>
             </span>

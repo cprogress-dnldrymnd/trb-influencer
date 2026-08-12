@@ -522,6 +522,27 @@ class Saves_Manager
 
         // --- UNLOCKED CHECK ---
         if (!is_influencer_unlocked($influencer_id)) {
+            // Out of credits: the "unlock first" hint is a dead end since the user has no way
+            // to unlock at all right now — open the buy-credits/upgrade popup instead.
+            if (!dd_user_can_afford_unlock($user_id)) {
+                ob_start();
+?>
+                <div class="elementor-button-wrapper add-to-groups dd-tip dd-unlock-blocked-trigger" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: pointer;" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_no_credits_hint')); ?>">
+                    <button type="button" class="elementor-button elementor-button-link elementor-size-sm" aria-disabled="true" style="opacity: 0.6;">
+                        <span class="elementor-button-content-wrapper">
+                            <span class="elementor-button-icon">
+                                <svg aria-hidden="true" class="e-font-icon-svg e-fas-bookmark" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill="currentColor" d="M0 512V48C0 21.49 21.49 0 48 0h288c26.51 0 48 21.49 48 48v464L192 400 0 512z"></path>
+                                </svg>
+                            </span>
+                            <span class="elementor-button-text"><?php echo esc_html($locked_text); ?></span>
+                        </span>
+                    </button>
+                </div>
+            <?php
+                return ob_get_clean();
+            }
+
             ob_start();
 ?>
             <div class="elementor-button-wrapper add-to-groups dd-tip" data-locked="true" influencer-id="<?php echo esc_attr($influencer_id); ?>" style="cursor: not-allowed;" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_locked_hint')); ?>">
@@ -1522,6 +1543,21 @@ class Saves_Manager
                 <div class="inf-modal-actions">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>
                     <button type="button" class="inf-btn inf-btn-save" id="inf-confirm-unlock-btn">Confirm & Unlock</button>
+                </div>
+            </div>
+            <div id="inf-view-unlock-blocked" class="inf-modal-content">
+                <div class="inf-modal-header">
+                    <h3><?php echo esc_html(dd_get_message('dd_msg_unlock_no_credits_heading')); ?></h3>
+                    <button type="button" class="inf-btn-icon inf-close-modal inf-modal-close" aria-label="Close">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div style="padding: 10px 0 20px; font-size: 15px; color: #444; line-height: 1.5; font-family: 'Work Sans', sans-serif;">
+                    <?php echo dd_get_message('dd_msg_unlock_no_credits_body'); ?>
+                </div>
+                <div class="inf-modal-actions">
+                    <a class="inf-btn inf-btn-cancel" href="<?php echo esc_url(dd_get_buy_credits_url()); ?>"><?php echo esc_html(dd_get_message('dd_msg_unlock_buy_credits_btn')); ?></a>
+                    <a class="inf-btn inf-btn-save" href="<?php echo esc_url(dd_plan_upgrade_url()); ?>"><?php echo esc_html(dd_get_message('dd_msg_unlock_upgrade_btn')); ?></a>
                 </div>
             </div>
             <div id="inf-view-save-search" class="inf-modal-content">

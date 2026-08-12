@@ -715,7 +715,8 @@ input:checked + .slider:before {
   padding: 30px;
   gap: 40px;
 }
-.premium-content-notice.premium-content-notice.premium-content-notice .spend-credit-notice {
+.premium-content-notice.premium-content-notice.premium-content-notice .spend-credit-notice,
+.dd-outreach-actions .outreach-button.spend-credit-notice.spend-credit-notice {
   background: transparent linear-gradient(251deg, #ecf799 0%, #caf7a1 30%, #d6f79e 67%, #bbf7a6 100%) 0% 0% no-repeat
     padding-box;
   border: 1px solid #034146;
@@ -726,6 +727,11 @@ input:checked + .slider:before {
   border-radius: 5px;
   letter-spacing: 0.6px;
   font-family: Inter, sans-serif;
+}
+.dd-outreach-actions .outreach-button.spend-credit-notice.spend-credit-notice .elementor-button-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .mycred-buy-this-content-button.mycred-buy-this-content-button.mycred-buy-this-content-button {
   background: transparent linear-gradient(251deg, #ecf799 0%, #caf7a1 30%, #d6f79e 67%, #bbf7a6 100%) 0% 0% no-repeat
@@ -4191,7 +4197,8 @@ body {
   margin-top: 24px;
 }
 
-button.inf-btn {
+button.inf-btn,
+a.inf-btn {
   flex: 1 !important;
   padding: 10px !important;
   margin: 0 !important;
@@ -4203,27 +4210,38 @@ button.inf-btn {
   font-size: 14px !important;
   border: none !important;
   font-family: inherit !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
 }
 
-button.inf-btn-cancel {
+button.inf-btn-cancel,
+a.inf-btn-cancel {
   background-color: transparent !important;
   color: var(--e-global-color-primary) !important;
   border: 1px solid var(--e-global-color-primary) !important;
 }
 
-button.inf-btn-cancel:hover {
+button.inf-btn-cancel:hover,
+a.inf-btn-cancel:hover {
   opacity: 0.88 !important;
 }
 
-button.inf-btn-save {
+button.inf-btn-save,
+a.inf-btn-save {
   background-color: var(--e-global-color-primary) !important;
   color: #fff !important;
 }
 
 button.inf-btn-save:hover,
 button.inf-btn-save:focus,
-button.inf-btn-save:active {
+button.inf-btn-save:active,
+a.inf-btn-save:hover,
+a.inf-btn-save:focus,
+a.inf-btn-save:active {
   background-color: var(--e-global-color-secondary) !important;
+  color: #fff !important;
 }
 
 button.inf-btn-save.inf-btn-locked,

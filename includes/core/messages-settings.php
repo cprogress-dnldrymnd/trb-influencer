@@ -172,6 +172,38 @@ function dd_message_definitions()
             'multiline' => true,
             'html'      => true,
         ],
+        'dd_msg_unlock_no_credits_hint' => [
+            'label'   => 'Out of Credits Hint',
+            'default' => "You're out of credits — top up or upgrade to unlock more creators",
+            'group'   => 'unlock',
+            'desc'    => 'Tooltip on the locked save/contact buttons when the user has run out of credits (rather than simply not having unlocked this creator yet).',
+        ],
+        'dd_msg_unlock_no_credits_heading' => [
+            'label'   => 'Out of Credits Modal Heading',
+            'default' => "You're out of credits",
+            'group'   => 'unlock',
+            'desc'    => 'Heading of the popup shown when a user with 0 credits tries to unlock a creator.',
+        ],
+        'dd_msg_unlock_no_credits_body' => [
+            'label'     => 'Out of Credits Modal Body',
+            'default'   => "You've used all the creator unlocks included in your plan. Top up your credits to carry on unlocking, or upgrade your plan for a bigger monthly allowance.",
+            'group'     => 'unlock',
+            'desc'      => 'Body text of the out-of-credits popup. Supports <strong> tags.',
+            'multiline' => true,
+            'html'      => true,
+        ],
+        'dd_msg_unlock_buy_credits_btn' => [
+            'label'   => 'Out of Credits — Buy Credits Button',
+            'default' => 'Buy more credits',
+            'group'   => 'unlock',
+            'desc'    => 'Label of the "buy credits" button on the out-of-credits popup.',
+        ],
+        'dd_msg_unlock_upgrade_btn' => [
+            'label'   => 'Out of Credits — Upgrade Button',
+            'default' => 'Upgrade your plan',
+            'group'   => 'unlock',
+            'desc'    => 'Label of the "upgrade plan" button on the out-of-credits popup.',
+        ],
 
         // --- Confirmation Dialogs ---------------------------------------------------------
         'dd_msg_confirm_delete_group' => [

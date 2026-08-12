@@ -604,6 +604,36 @@ function is_influencer_unlocked($influencer_id)
 }
 
 /**
+ * Credit cost of a single creator unlock. Matches the hardcoded amount
+ * mycred_subtract() charges in Saves_Manager::handle_unlock_and_save_ajax()
+ * and myCred's own Sell Content configuration for the influencer post type.
+ */
+function dd_unlock_credit_cost()
+{
+    return (int) apply_filters('dd_unlock_credit_cost', 1);
+}
+
+/**
+ * Whether the given user's myCred balance covers one unlock. Fails open
+ * (true) for a logged-out user or when myCred isn't available, matching
+ * dd_user_search_limit()'s posture — the real boundary stays server-side
+ * in the unlock handlers, this only drives which UI state to render.
+ */
+function dd_user_can_afford_unlock($user_id = null)
+{
+    if (! function_exists('mycred_get_users_balance')) {
+        return true;
+    }
+
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (! $user_id) {
+        return true;
+    }
+
+    return mycred_get_users_balance($user_id) >= dd_unlock_credit_cost();
+}
+
+/**
  * Calculate Influencer Match Score
  */
 function calculate_match_score($post_id, $criteria)

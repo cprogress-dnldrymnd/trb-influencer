@@ -543,6 +543,13 @@ jQuery(document).ready(function($) {
         switchModalView('inf-view-unlock-confirm');
     });
 
+    // Out-of-credits: locked unlock/contact/save buttons rendered with this class
+    // (instead of being dead/disabled) open the "buy credits or upgrade" popup.
+    $(document).on('click', '.dd-unlock-blocked-trigger', function(e) {
+        e.preventDefault();
+        switchModalView('inf-view-unlock-blocked');
+    });
+
     $('#inf-confirm-unlock-btn').on('click', function() {
         let $btn = $(this);
         let ogText = $btn.text();
