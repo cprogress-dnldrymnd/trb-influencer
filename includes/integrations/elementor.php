@@ -285,6 +285,95 @@ add_filter('elementor/frontend/column/should_render', 'dd_evaluate_mycred_elemen
 
 
 /**
+ * Adds a "Plan Lock" control to every widget's Advanced tab, mirroring the "MyCred
+ * Visibility" control above — same section_id hook, same pattern. Where MyCred Visibility
+ * hides an element outright, this instead wraps the widget's own rendered output in
+ * dd_render_feature_lock() (includes/core/plan-locks.php): visitors whose plan includes the
+ * chosen feature (and anyone in the Elementor editor) see the widget exactly as built;
+ * everyone else sees the same real widget, blurred/dimmed behind a padlock + upgrade CTA.
+ *
+ * @param \Elementor\Controls_Stack $element
+ * @param string                    $section_id
+ * @return void
+ */
+function dd_add_plan_lock_control($element, $section_id)
+{
+    if (! ($element instanceof \Elementor\Controls_Stack)) {
+        return;
+    }
+
+    if ('section_effects' !== $section_id) {
+        return;
+    }
+
+    $features = function_exists('dd_plan_lockable_features') ? dd_plan_lockable_features() : [];
+    if (empty($features)) {
+        return;
+    }
+
+    $options = ['' => esc_html__('None', 'trb-influencer')];
+    foreach ($features as $key => $def) {
+        $options[$key] = $def['label'];
+    }
+
+    $element->start_controls_section(
+        'dd_plan_lock_section',
+        [
+            'label' => esc_html__('Plan Lock', 'trb-influencer'),
+            'tab'   => \Elementor\Controls_Manager::TAB_ADVANCED,
+        ]
+    );
+
+    $element->add_control(
+        'dd_plan_lock_feature',
+        [
+            'label'       => esc_html__('Show as Locked Unless Plan Includes:', 'trb-influencer'),
+            'type'        => \Elementor\Controls_Manager::SELECT,
+            'default'     => '',
+            'options'     => $options,
+            'description' => esc_html__('Visitors whose plan doesn\'t include this feature see this widget blurred/dimmed behind a padlock and an upgrade button, instead of hiding it.', 'trb-influencer'),
+        ]
+    );
+
+    $element->end_controls_section();
+}
+add_action('elementor/element/after_section_end', 'dd_add_plan_lock_control', 10, 2);
+
+/**
+ * Wraps a widget's rendered output in the plan-lock overlay when its "Plan Lock" control is
+ * set and the current visitor's plan doesn't include the chosen feature.
+ *
+ * Reads raw database settings (not get_settings_for_display()) for the same reason the
+ * MyCred visibility check does above — Elementor Popups can strip custom control data from
+ * processed frontend settings.
+ *
+ * @param string                $content
+ * @param \Elementor\Widget_Base $widget
+ * @return string
+ */
+function dd_wrap_widget_in_plan_lock($content, $widget)
+{
+    if (\Elementor\Plugin::$instance->editor->is_edit_mode()) {
+        return $content;
+    }
+
+    if (! method_exists($widget, 'get_data')) {
+        return $content;
+    }
+
+    $raw_data = $widget->get_data();
+    $feature  = isset($raw_data['settings']['dd_plan_lock_feature']) ? $raw_data['settings']['dd_plan_lock_feature'] : '';
+
+    if (empty($feature) || ! function_exists('dd_render_feature_lock')) {
+        return $content;
+    }
+
+    return dd_render_feature_lock($feature, $content);
+}
+add_filter('elementor/widget/render_content', 'dd_wrap_widget_in_plan_lock', 20, 2);
+
+
+/**
  * Injects a meta query into the Elementor 'featured_influencers' custom query.
  *
  * This function intercepts the WP_Query instance specifically targeting the 

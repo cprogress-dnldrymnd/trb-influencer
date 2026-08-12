@@ -504,7 +504,7 @@ class Saves_Manager
         if (!dd_user_can('saved_lists')) {
             ob_start();
         ?>
-            <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button-wrapper add-to-groups dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_save_upgrade_tooltip')); ?>" style="cursor: pointer; text-decoration: none;">
+            <a href="<?php echo esc_url(dd_plan_upgrade_url()); ?>" class="elementor-button-wrapper add-to-groups dd-tip inf-btn-locked" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_save_upgrade_tooltip')); ?>" style="cursor: pointer; text-decoration: none;">
                 <button type="button" class="elementor-button elementor-button-link elementor-size-sm" disabled style="pointer-events: none; opacity: 0.6;">
                     <span class="elementor-button-content-wrapper">
                         <span class="elementor-button-icon">
@@ -514,6 +514,9 @@ class Saves_Manager
                         </span>
                         <span class="elementor-button-text"><?php echo esc_html($locked_text); ?></span>
                     </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-lock-fill inf-btn-lock-icon" viewBox="0 0 16 16">
+                        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+                    </svg>
                 </button>
             </a>
         <?php

@@ -1145,6 +1145,45 @@ function shortcode_account_notice($atts)
 add_shortcode('account_notice', 'shortcode_account_notice');
 
 
+/**
+ * [locked_feature feature="saved_lists" template_id="1234"]Fallback content[/locked_feature]
+ *
+ * Renders the wrapped Elementor template (or, with no template_id, the shortcode's own
+ * enclosed content) through dd_render_feature_lock() (includes/core/plan-locks.php) — the
+ * real feature UI, blurred/dimmed with a padlock + upgrade CTA overlay, for any visitor whose
+ * plan doesn't include $feature. Lets an admin drop a "what you're missing" preview of a
+ * premium feature anywhere in Elementor, since the dashboard itself has no PHP-authored UI.
+ */
+function shortcode_locked_feature($atts, $content = null)
+{
+    $atts = shortcode_atts([
+        'feature'     => '',
+        'template_id' => 0,
+        'title'       => '',
+        'blurb'       => '',
+        'cta_label'   => '',
+        'cta_url'     => '',
+    ], $atts, 'locked_feature');
+
+    if (empty($atts['feature']) || ! function_exists('dd_render_feature_lock')) {
+        return do_shortcode((string) $content);
+    }
+
+    $template_id = (int) $atts['template_id'];
+    $inner       = $template_id
+        ? do_shortcode('[elementor-template id="' . $template_id . '"]')
+        : do_shortcode((string) $content);
+
+    return dd_render_feature_lock($atts['feature'], $inner, array_filter([
+        'title'     => $atts['title'],
+        'blurb'     => $atts['blurb'],
+        'cta_label' => $atts['cta_label'],
+        'cta_url'   => $atts['cta_url'],
+    ]));
+}
+add_shortcode('locked_feature', 'shortcode_locked_feature');
+
+
 function roi_calculator()
 {
     ob_start();

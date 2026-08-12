@@ -589,8 +589,48 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
 add_filter('pmpro_checkout_level', 'dd_pmpro_append_billing_cycle_on_switch', 5, 1);
 
 /**
- * Intercepts frontend page loads to redirect users completing checkout for the Free
- * Level (15) directly to the pricing page.
+ * Where a Free-level checkout confirmation sends the new member — the Dashboard (with the
+ * onboarding welcome popup triggered via ?dd_welcome=1) by default, or the pricing page as
+ * before. Switchable without a code change, same on/off posture as dd_gate_use_popup
+ * (includes/core/page-gate.php).
+ *
+ * @return string 'dashboard'|'pricing'
+ */
+function dd_post_signup_destination()
+{
+    $value = get_option('dd_post_signup_destination', 'dashboard');
+    return $value === 'pricing' ? 'pricing' : 'dashboard';
+}
+
+add_action('admin_init', function () {
+    register_setting('dd_theme_page_ids', 'dd_post_signup_destination', [
+        'type'              => 'string',
+        'sanitize_callback' => function ($value) {
+            return $value === 'pricing' ? 'pricing' : 'dashboard';
+        },
+        'default' => 'dashboard',
+    ]);
+
+    add_settings_field('dd_post_signup_destination', 'Post-Signup Destination', function () {
+        $current = dd_post_signup_destination();
+    ?>
+        <label style="display:block;margin-bottom:6px;">
+            <input type="radio" name="dd_post_signup_destination" value="dashboard" <?php checked($current, 'dashboard'); ?>>
+            Dashboard (shows the onboarding welcome popup)
+        </label>
+        <label style="display:block;">
+            <input type="radio" name="dd_post_signup_destination" value="pricing" <?php checked($current, 'pricing'); ?>>
+            Pricing page (original behaviour)
+        </label>
+        <p class="description">Where a new member lands right after completing checkout for the Free level.</p>
+<?php
+    }, 'dd-theme-settings-functionality', 'dd_functionality_section');
+});
+
+/**
+ * Intercepts frontend page loads to redirect users completing checkout for the Free Level
+ * onward to dd_post_signup_destination() — the Dashboard (triggering the onboarding welcome
+ * popup) by default, or the pricing page as this redirect originally did.
  *
  * Note: this used to also force Free members off every Dashboard-template page (search,
  * unlocked-influencers, dashboard, etc.) back to the pricing page. That blanket lockout was
@@ -619,7 +659,13 @@ function dd_force_free_members_to_upgrade()
         $level_id = isset($_GET['pmpro_level']) ? intval($_GET['pmpro_level']) : 0;
 
         if ($level_id === (int) get_option('dd_free_level_id', 15)) {
-            $redirect_url = pmpro_url('levels');
+            if (dd_post_signup_destination() === 'dashboard') {
+                $dashboard_id = function_exists('dd_get_page_id') ? dd_get_page_id('dd_dashboard_page_id', 1565) : 0;
+                $redirect_url = $dashboard_id ? add_query_arg('dd_welcome', '1', get_permalink($dashboard_id)) : '';
+            } else {
+                $redirect_url = pmpro_url('levels');
+            }
+
             if ($redirect_url) {
                 wp_safe_redirect($redirect_url);
                 exit;

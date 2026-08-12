@@ -85,8 +85,18 @@ function action_wp_head()
     if ($is_no_membership) {
         echo ".hide-on-free-trial{ display: none; }";
     }
-    if ($is_no_membership || (function_exists('dd_user_can') && !dd_user_can('outreach'))) {
+
+    // A visitor with no membership at all still gets the outreach trigger hidden outright
+    // (there's no plan to upgrade to that would explain the button). A member whose plan
+    // simply doesn't include outreach instead sees the real trigger greyed out — same visual
+    // language as dd_render_feature_lock() (includes/core/plan-locks.php) — and a click
+    // routes to the upgrade page instead of opening the outreach popup.
+    $outreach_trigger_locked = false;
+    if ($is_no_membership) {
         echo ".outreach-form-trigger{ display: none !important}";
+    } elseif (function_exists('dd_user_can') && !dd_user_can('outreach')) {
+        echo ".outreach-form-trigger{ filter: blur(var(--dd-lock-blur, 2px)); opacity: var(--dd-lock-opacity, .45); cursor: pointer; }";
+        $outreach_trigger_locked = true;
     }
 
 
@@ -135,6 +145,22 @@ function action_wp_head()
     }
 
     echo '</style>';
+
+    if ($outreach_trigger_locked) {
+    ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('.outreach-form-trigger').forEach(function (el) {
+                    el.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        window.location.href = <?php echo wp_json_encode(function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : home_url('/')); ?>;
+                    }, true);
+                });
+            });
+        </script>
+    <?php
+    }
 ?>
 
 <?php

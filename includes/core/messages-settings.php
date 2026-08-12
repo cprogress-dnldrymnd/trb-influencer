@@ -141,6 +141,109 @@ function dd_message_definitions()
             'group'   => 'plan_gates',
             'desc'    => 'Tooltip on the disabled save/contact buttons for a creator the user hasn\'t unlocked yet.',
         ],
+        'dd_msg_lock_cta' => [
+            'label'   => 'Locked Feature Upgrade Button',
+            'default' => 'Upgrade your plan',
+            'group'   => 'plan_gates',
+            'desc'    => 'Button label shown on the padlock overlay covering a premium feature a user\'s plan doesn\'t include.',
+            'js'      => true,
+        ],
+        'dd_msg_lock_blurb_export_pdf' => [
+            'label'   => 'Locked Feature Blurb — Export PDF',
+            'default' => 'Export your saved lists as a polished, shareable PDF.',
+            'group'   => 'plan_gates',
+            'desc'    => 'One-line benefit shown on the padlock overlay for the Export PDF feature.',
+        ],
+        'dd_msg_lock_blurb_outreach' => [
+            'label'   => 'Locked Feature Blurb — Outreach',
+            'default' => 'Contact creators directly from their profile.',
+            'group'   => 'plan_gates',
+            'desc'    => 'One-line benefit shown on the padlock overlay for the Outreach/Contact feature.',
+        ],
+        'dd_msg_lock_blurb_saved_lists' => [
+            'label'   => 'Locked Feature Blurb — Saved Lists',
+            'default' => 'Organise creators into campaign-ready lists.',
+            'group'   => 'plan_gates',
+            'desc'    => 'One-line benefit shown on the padlock overlay for the Saved Lists feature.',
+        ],
+        'dd_msg_lock_blurb_custom_outreach_message' => [
+            'label'   => 'Locked Feature Blurb — Custom Outreach Message',
+            'default' => 'Write your own outreach message instead of the standard template.',
+            'group'   => 'plan_gates',
+            'desc'    => 'One-line benefit shown on the padlock overlay for the Custom Outreach Message feature.',
+        ],
+        'dd_msg_lock_blurb_saved_search' => [
+            'label'   => 'Locked Feature Blurb — Saved Search',
+            'default' => 'Save this search and get back to it any time.',
+            'group'   => 'plan_gates',
+            'desc'    => 'One-line benefit shown on the padlock overlay for the Saved Search feature.',
+        ],
+
+        // --- Onboarding ---------------------------------------------------------------------
+        'dd_msg_ob_welcome_title' => [
+            'label'   => 'Welcome Popup Title',
+            'default' => "You're in! Let's find your first creators.",
+            'group'   => 'onboarding',
+            'desc'    => 'Heading of the welcome popup shown the first time a new member reaches the dashboard.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_welcome_body' => [
+            'label'     => 'Welcome Popup Body',
+            'default'   => "Describe your brand and what you're looking for, and we'll match you with creators in seconds. Ready to run your first search?",
+            'group'     => 'onboarding',
+            'desc'      => 'Body copy of the welcome popup.',
+            'js'        => true,
+            'multiline' => true,
+        ],
+        'dd_msg_ob_welcome_cta' => [
+            'label'   => 'Welcome Popup Primary Button',
+            'default' => 'Start your first search',
+            'group'   => 'onboarding',
+            'desc'    => 'Primary button label on the welcome popup — links to the search page.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_tour_cta' => [
+            'label'   => 'Welcome Popup Tour Button',
+            'default' => 'Show me around first',
+            'group'   => 'onboarding',
+            'desc'    => 'Secondary button on the welcome popup that starts the step-by-step guided tour instead.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_skip' => [
+            'label'   => 'Tour Skip Button',
+            'default' => 'Skip',
+            'group'   => 'onboarding',
+            'desc'    => 'Skip-button label shown on every guided tour step.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_next' => [
+            'label'   => 'Tour Next Button',
+            'default' => 'Next',
+            'group'   => 'onboarding',
+            'desc'    => 'Next-button label shown on every guided tour step.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_back' => [
+            'label'   => 'Tour Back Button',
+            'default' => 'Back',
+            'group'   => 'onboarding',
+            'desc'    => 'Back-button label shown on every guided tour step after the first.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_step_counter' => [
+            'label'   => 'Tour Step Counter',
+            'default' => 'Step %s of %s',
+            'group'   => 'onboarding',
+            'desc'    => 'Step counter shown on each guided tour tooltip. Keep both %s tokens — they are replaced with the current step and total step count.',
+            'js'      => true,
+        ],
+        'dd_msg_ob_done' => [
+            'label'   => 'Tour Final Step Button',
+            'default' => 'Done',
+            'group'   => 'onboarding',
+            'desc'    => 'Button label shown on the last step of the guided tour instead of "Next".',
+            'js'      => true,
+        ],
 
         // --- Unlock & Credit Confirmations -----------------------------------------------
         'dd_msg_unlock_spend_confirm' => [
@@ -376,11 +479,12 @@ function dd_render_message_field($args)
 add_action('admin_init', function () {
     $definitions = dd_message_definitions();
     $groups = [
-        'plan_gates' => 'Plan & Upgrade Prompts',
-        'unlock'     => 'Unlock & Credit Confirmations',
-        'confirm'    => 'Confirmation Dialogs',
-        'success'    => 'Success Notices',
-        'validation' => 'Validation',
+        'plan_gates'  => 'Plan & Upgrade Prompts',
+        'onboarding'  => 'Onboarding',
+        'unlock'      => 'Unlock & Credit Confirmations',
+        'confirm'     => 'Confirmation Dialogs',
+        'success'     => 'Success Notices',
+        'validation'  => 'Validation',
     ];
 
     foreach ($groups as $group_key => $group_label) {

@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.7.1');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.8.1');
 
 /**
  * Load child theme scripts & styles.
@@ -37,6 +37,18 @@ function hello_elementor_child_scripts_styles()
         ['influencer-style'],
         HELLO_ELEMENTOR_CHILD_VERSION
     );
+    wp_enqueue_style(
+        'dd-plan-locks',
+        get_stylesheet_directory_uri() . '/assets/css/dd-plan-locks.css',
+        ['influencer-style'],
+        HELLO_ELEMENTOR_CHILD_VERSION
+    );
+    wp_enqueue_style(
+        'dd-onboarding',
+        get_stylesheet_directory_uri() . '/assets/css/dd-onboarding.css',
+        ['influencer-style'],
+        HELLO_ELEMENTOR_CHILD_VERSION
+    );
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
 
     // ------------------------------------------------------------------
@@ -46,6 +58,7 @@ function hello_elementor_child_scripts_styles()
     $modules = [
         'dd-modal'             => 'modules/dd-modal.js',           // global ddAlert / ddConfirm — must be first
         'dd-page-gate'         => 'modules/dd-page-gate.js',        // restricted-page popup click interceptor — needs dd-modal
+        'dd-onboarding'        => 'modules/dd-onboarding.js',       // welcome popup + guided tour
         'inf-tag-prioritizer'  => 'modules/tag-prioritizer.js',   // no deps on other modules
         'inf-ui-utils'         => 'modules/ui-utils.js',           // no deps on other modules
         'inf-search-toggle'    => 'modules/search-toggle.js',      // no deps on other modules
@@ -73,6 +86,9 @@ function hello_elementor_child_scripts_styles()
     // Restricted-page popup: which paths are gated for this visitor, and the notice to pop
     // immediately if the current request itself just bounced off a gate (?dd_gate=…).
     wp_localize_script('dd-page-gate', 'dd_gate', function_exists('dd_page_gate_client_map') ? dd_page_gate_client_map() : ['enabled' => false, 'paths' => [], 'prefixes' => [], 'notice' => null]);
+
+    // Welcome popup + guided tour state/config for the current visitor.
+    wp_localize_script('dd-onboarding', 'dd_onboarding', class_exists('DD_Onboarding') ? DD_Onboarding::client_map() : ['enabled' => false]);
 
     // ------------------------------------------------------------------
     // 2. Main orchestrator — must load last.
@@ -139,6 +155,7 @@ $dir = get_stylesheet_directory();
 // 1. Core Includes (Load foundational dependencies first)
 require $dir . '/includes/core/helpers.php';
 require $dir . '/includes/core/plan-capabilities.php';
+require $dir . '/includes/core/plan-locks.php';
 require $dir . '/includes/core/admin-settings.php';
 require $dir . '/includes/core/messages-settings.php';
 require $dir . '/includes/core/page-gate.php';
@@ -170,6 +187,8 @@ require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';
 require $dir . '/modules/saves/saves-manager.php';
+
+require $dir . '/modules/onboarding/onboarding.php';
 
 require $dir . '/modules/settings-io/settings-io.php';
 
