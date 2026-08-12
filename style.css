@@ -4681,7 +4681,9 @@ button.inf-bulk-remove-btn:disabled {
 .pmpro-level-trial #menu-outreach,
 .pmpro-level-trial #menu-savedlists,
 .pmpro-level-starter #menu-savedlists,
+.pmpro-level-starter #menu-savedsearches,
 .pmpro-level-trial #menu-savedsearches,
-.pmpro-level-starter #menu-savedsearches {
+.pmpro-level-starter #menu-savedsearches,
+.pmpro-level-trial #menu-savedsearches {
   display: none !important;
 }
