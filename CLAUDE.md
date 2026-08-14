@@ -527,13 +527,38 @@ Every gate follows the same **UI-hint + server-boundary** pattern — never trus
   every Dashboard-template page (search, unlocked-influencers, dashboard, etc.); that lockout was
   removed — Free/trial members may now use those pages, with access capped instead by the per-level
   creator-search limit (see below).
-  > **Anti-Ladder Protocol** (`dd_pmpro_switch_credit()`): the monetary credit for unused days on
-  > an old level (used by `dd_pmpro_append_billing_cycle_on_switch()`'s upgrade-proration branches)
-  > is capped by what the user **actually paid** for that level — `min(billing_amount, last order
-  > total)` — not the level's nominal `billing_amount` alone. Without this cap a $0 trial or a
-  > heavily-discounted signup could still earn a full-rate cash credit toward an expensive upgrade.
-  > The daily rate is also computed against the old level's real cycle length (`cycle_period`/
-  > `cycle_number`), not a hardcoded 30-day divisor.
+  > **Plan-switch proration is owned entirely by the theme, not the PMPro Proration Add On**
+  > (`plugins/pmpro-proration`, still active). The add-on's own `pmpro_checkout_level` filter
+  > (`pmprorate_pmpro_checkout_level`) is unhooked on `init` in `pmpro.php` so it never recomputes
+  > on top of `dd_pmpro_append_billing_cycle_on_switch()` — running both stacked a second credit on
+  > cross-cycle upgrades, and the add-on's cost-per-day downgrade test misclassified a discounted
+  > annual plan as a downgrade from a cheaper-per-day monthly plan (its own `pmprorate_isDowngrade()`
+  > only skips same-*level*-ID switches, not same-tier-different-term ones). The add-on's
+  > delayed-downgrade machinery (custom `pmprorate_downgrades` table, expiry processing, emails) is
+  > kept — `dd_pmpro_append_billing_cycle_on_switch()` opts a switch into it by setting
+  > `$level->pmprorate_is_downgrade = true`, which the add-on's own
+  > `pmprorate_checkout_before_change_membership_level_remember_downgrade()` hooks off directly.
+  >
+  > Upgrade vs. downgrade is decided on each level's own term-independent base price
+  > (`dd_pmpro_level_base_price()` — `billing_amount`, falling back to `initial_payment`), with one
+  > override: switching onto **any** annual term is always treated as an upgrade regardless of
+  > relative cost-per-day, since the annual price is a discount on the same tier, not a separate one.
+  > `get_user_max_tier_base_price()` (`pmpro-dynamic-pricing.php`) reads through the same helper so
+  > the pricing table's UPGRADE/DOWNGRADE button label can never disagree with what checkout charges.
+  >
+  > **Anti-Ladder Protocol** (`dd_pmpro_switch_credit()`): the monetary credit for unused time on
+  > the old level is the *unused fraction of what the user actually paid for their current billing
+  > period* — the most recent order's `subtotal` on the current `PMPro_Subscription`, times the
+  > fraction of that period remaining — never the level's nominal `billing_amount`. A $0 trial or a
+  > previously-prorated cheap period therefore earns a correspondingly small credit with no
+  > separate cap needed. The credit is applied against the new plan's `initial_payment` (not
+  > `billing_amount`, which can differ from what's actually charged once a Payment Plan promotional
+  > first payment is in play); if the credit would exceed the new plan's price — only reachable
+  > downgrading a paid-in-full annual plan's cycle length — the excess is banked as free future
+  > cycles rather than forfeited. `dd_pmpro_append_billing_cycle_on_switch()` stamps its decision
+  > onto `$level->dd_switch_mode` (`'upgrade'`/`'downgrade'`) so the checkout summary's "Paying Now"
+  > reasoning (`influencer_style_pmpro_checkout()`) reads it directly instead of re-guessing from
+  > price comparisons.
 - **myCred** (`mycred.php`) — credits/points: deduct/balance helpers, restyles the buy-credits
   checkout (`#buycred-checkout-form`) into the influencer look, a click-confirm gate before
   spending a credit (`mycred-buy-confirm.js`), and bank-transfer pending-notification handling.

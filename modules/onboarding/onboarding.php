@@ -184,12 +184,62 @@ class DD_Onboarding
     public static function get_steps()
     {
         $raw = get_option(self::STEPS_OPTION, '');
-        if (empty($raw)) {
-            return [];
+
+        // Strict '' check, not empty(): the option row is '' only when it has never been
+        // saved at all (the explicit '' passed above beats register_setting()'s own '[]'
+        // default — see register_settings()). Once an admin saves the Onboarding tab, even
+        // with every step removed, the row becomes the real string '[]' and this fallback
+        // must no longer apply — "delete all steps" has to actually stick.
+        if ($raw === '') {
+            return self::default_steps();
         }
 
         $decoded = json_decode($raw, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Starter steps offered only while dd_onboarding_steps has never been saved (see
+     * get_steps()) — targets elements that exist on the Dashboard today (page 1565 + templates
+     * 1640/1571, confirmed against the live _elementor_data). Fully editable/removable from
+     * Influencer Theme → Onboarding like any other step.
+     *
+     * @return array<int, array{id:string,title:string,body:string,target:string,placement:string,page:string,cta_label:string,cta_url:string}>
+     */
+    private static function default_steps()
+    {
+        return [
+            [
+                'id' => 'sidebar', 'title' => 'Your navigation',
+                'body' => 'Everything you need is here — search, saved lists, outreach, and your account.',
+                'target' => '#dashboard-sidebar', 'placement' => 'right', 'page' => 'dashboard',
+                'cta_label' => '', 'cta_url' => '',
+            ],
+            [
+                'id' => 'header', 'title' => 'Your plan at a glance',
+                'body' => 'Keep an eye on your searches and unlocks remaining here.',
+                'target' => '#members-area-header', 'placement' => 'bottom', 'page' => 'dashboard',
+                'cta_label' => '', 'cta_url' => '',
+            ],
+            [
+                'id' => 'snapshot', 'title' => "Today's snapshot",
+                'body' => 'A quick summary of your account activity.',
+                'target' => '.usage-summary', 'placement' => 'top', 'page' => 'dashboard',
+                'cta_label' => '', 'cta_url' => '',
+            ],
+            [
+                'id' => 'activity', 'title' => 'Your activity',
+                'body' => 'Recently viewed creators and your top niches show up here as you search.',
+                'target' => '#dashboard-activity', 'placement' => 'top', 'page' => 'dashboard',
+                'cta_label' => '', 'cta_url' => '',
+            ],
+            [
+                'id' => 'upgrade', 'title' => 'Need more?',
+                'body' => 'Upgrade any time for more searches, unlocks, and outreach.',
+                'target' => '.upgrade--plan', 'placement' => 'bottom', 'page' => 'dashboard',
+                'cta_label' => '', 'cta_url' => '',
+            ],
+        ];
     }
 
     /**
@@ -214,6 +264,23 @@ class DD_Onboarding
         return 'any';
     }
 
+    /**
+     * Steps applicable to the current request — every 'any'-page step plus any step tagged
+     * for the page current_page_key() resolves to. Shared by client_map() (the JS payload)
+     * and [onboarding_tour_button] (which needs to know, server-side, whether a tour exists
+     * here at all) so the two can never disagree about it.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function steps_for_current_page()
+    {
+        $current_page = self::current_page_key();
+        return array_values(array_filter(self::get_steps(), function ($step) use ($current_page) {
+            $page = isset($step['page']) ? $step['page'] : 'any';
+            return $page === 'any' || $page === $current_page;
+        }));
+    }
+
     // -----------------------------------------------------------------
     // Front-end payload
     // -----------------------------------------------------------------
@@ -232,10 +299,7 @@ class DD_Onboarding
         }
 
         $current_page = self::current_page_key();
-        $steps = array_values(array_filter(self::get_steps(), function ($step) use ($current_page) {
-            $page = isset($step['page']) ? $step['page'] : 'any';
-            return $page === 'any' || $page === $current_page;
-        }));
+        $steps = self::steps_for_current_page();
 
         $search_page_url = function_exists('dd_get_page_id')
             ? get_permalink(dd_get_page_id('dd_search_page_id', 2149))
@@ -246,6 +310,12 @@ class DD_Onboarding
             'ajax_url'         => admin_url('admin-ajax.php'),
             'nonce'            => wp_create_nonce(self::NONCE_ACTION),
             'welcome_url'      => get_option('dd_onboarding_welcome_url', '') ?: $search_page_url,
+            // Restricts the welcome popup to the Dashboard — the post-signup landing page —
+            // so it can never resurface on the search/results/profile pages a "Start your
+            // first search" click (or any other link) leads to. ?dd_welcome=1 still overrides
+            // this client-side (see dd-onboarding.js), same as it already overrides the
+            // seen/unseen state.
+            'show_welcome'     => ($current_page === 'dashboard'),
             'show_tour_button' => (bool) get_option('dd_onboarding_show_tour_button', true) && ! empty($steps),
             'steps'            => $steps,
             'state'            => self::get_state(),
@@ -302,6 +372,69 @@ class DD_Onboarding
     public function register_shortcode()
     {
         add_shortcode('onboarding_checklist', [$this, 'render_checklist_shortcode']);
+        add_shortcode('onboarding_tour_button', [$this, 'render_tour_button_shortcode']);
+    }
+
+    /**
+     * [onboarding_tour_button text="" icon=""]
+     *
+     * A dedicated launcher for the guided tour, safe to place anywhere — including a global
+     * header/sidebar, where the current page may have no tour steps of its own:
+     *
+     * - Page has tour steps: renders with the `dd-start-tour` class, which the delegated
+     *   listener in assets/js/modules/dd-onboarding.js already intercepts to start the tour
+     *   in place — no page reload.
+     * - Page has none: links to the Dashboard with `?dd_tour=1`, which dd-onboarding.js reads
+     *   on arrival and auto-starts there — so the button is never a dead click.
+     *
+     * Renders nothing for logged-out visitors or while Onboarding is switched off (with it
+     * off, dd-onboarding.js bails at its very first line and never binds the click listener,
+     * so the button would otherwise silently do nothing). Always renders inside the Elementor
+     * editor, regardless of the admin's own account/page state, so it can be styled.
+     */
+    public function render_tour_button_shortcode($atts)
+    {
+        $is_editor_preview = class_exists('\Elementor\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode();
+
+        if (! $is_editor_preview && (! is_user_logged_in() || ! self::is_enabled())) {
+            return '';
+        }
+
+        $atts = shortcode_atts([
+            'text' => '',
+            'icon' => '',
+        ], $atts, 'onboarding_tour_button');
+
+        $has_steps_here = $is_editor_preview || ! empty(self::steps_for_current_page());
+
+        $label = $atts['text'] !== ''
+            ? $atts['text']
+            : (function_exists('dd_get_message') ? dd_get_message('dd_msg_ob_tour_button') : 'Take a quick tour');
+
+        $classes = ['dd-onboarding-tour-btn'];
+        if ($has_steps_here) {
+            $classes[] = 'dd-start-tour';
+        }
+
+        if ($has_steps_here) {
+            $href = '#';
+        } else {
+            $dashboard_url = function_exists('dd_get_page_id')
+                ? get_permalink(dd_get_page_id('dd_dashboard_page_id', 1565))
+                : home_url('/');
+            $href = add_query_arg('dd_tour', '1', $dashboard_url);
+        }
+
+        ob_start();
+    ?>
+        <a href="<?php echo esc_url($href); ?>" class="<?php echo esc_attr(implode(' ', $classes)); ?>">
+            <?php if ($atts['icon']) : ?>
+                <img src="<?php echo esc_url($atts['icon']); ?>" alt="" class="dd-onboarding-tour-btn__icon">
+            <?php endif; ?>
+            <span class="dd-onboarding-tour-btn__label"><?php echo esc_html($label); ?></span>
+        </a>
+    <?php
+        return ob_get_clean();
     }
 
     /**
@@ -582,7 +715,8 @@ class DD_Onboarding
             </table>
 
             <h3>Tour Steps</h3>
-            <p class="description">Each step highlights one element on the page. "Target" is a CSS selector (e.g. <code>#search-header</code>) — a step is skipped automatically if its target isn't found on the page, so it's safe to author steps for elements a template edit might later remove.</p>
+            <p class="description">Each step highlights one element on the page. "Target" is a CSS selector (e.g. <code>#search-header</code>) — a step is skipped automatically if its target isn't found on the page, so it's safe to author steps for elements a template edit might later remove. These start pre-filled with a suggested set targeting the Dashboard — edit or remove any of them.</p>
+            <p class="description">To let members re-open the tour on their own, add the CSS class <code>dd-start-tour</code> to any button or link in Elementor (Advanced tab → CSS Classes) — clicking it starts the tour immediately, anywhere it's placed.</p>
 
             <div id="dd-ob-steps-list"></div>
             <p><button type="button" class="button" id="dd-ob-add-step">Add Step</button></p>

@@ -61,6 +61,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     require_once $dir . 'class-widget-influencer-unlocked-badge.php';
     require_once $dir . 'class-widget-locked-feature.php';
     require_once $dir . 'class-widget-onboarding-checklist.php';
+    require_once $dir . 'class-widget-onboarding-tour-button.php';
 
     // ── Register core widgets ─────────────────────────────────────────────────
     $wm->register( new Influencer_Match_Score_Widget() );
@@ -99,4 +100,5 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     $wm->register( new Widget_Influencer_Unlocked_Badge() );
     $wm->register( new Widget_Locked_Feature() );
     $wm->register( new Widget_Onboarding_Checklist() );
+    $wm->register( new Widget_Onboarding_Tour_Button() );
 } );

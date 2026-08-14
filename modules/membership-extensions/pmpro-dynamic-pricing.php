@@ -777,7 +777,20 @@ class DD_PMPro_Frontend_Pricing
 
 		$payment_reason = 'Standard initial payment';
 
-		if ($paying_now == 0) {
+		// dd_pmpro_append_billing_cycle_on_switch() (pmpro.php) stamps its own upgrade/downgrade
+		// decision onto the level as dd_switch_mode — read that directly rather than re-guessing it
+		// from price comparisons, which can't tell a deferred downgrade apart from a fully-banked
+		// credit (both land on $0 due today for different reasons).
+		$switch_mode = isset($pmpro_level->dd_switch_mode) ? $pmpro_level->dd_switch_mode : null;
+
+		if ($switch_mode === 'downgrade') {
+			$payment_reason = 'Adjusted for banked time';
+		} elseif ($switch_mode === 'upgrade' && $paying_now == 0) {
+			// Banked credit from the old plan fully covered the new plan's price.
+			$payment_reason = 'Adjusted for banked time';
+		} elseif ($switch_mode === 'upgrade' && $paying_now > 0) {
+			$payment_reason = 'Prorated upgrade cost';
+		} elseif ($paying_now == 0) {
 			// Evaluate if a trial is actively configured via Core or the Subscription Delays Add On
 			$has_native_trial = isset($pmpro_level->trial_limit) && $pmpro_level->trial_limit > 0;
 			$delay_days = get_option('pmpro_subscription_delay_' . $level_id, '');
@@ -1548,14 +1561,14 @@ class DD_PMPro_Frontend_Pricing
 		$user_levels = pmpro_getMembershipLevelsForUser($user_id);
 		$max_base_price = 0.00;
 
-		if (!empty($user_levels)) {
+		if (!empty($user_levels) && function_exists('dd_pmpro_level_base_price')) {
 			foreach ($user_levels as $l) {
-				$base_level = pmpro_getLevel($l->id);
-				if ($base_level) {
-					$price = (float)$base_level->initial_payment > 0 ? (float)$base_level->initial_payment : (float)$base_level->billing_amount;
-					if ($price > $max_base_price) {
-						$max_base_price = $price;
-					}
+				// Read through the same term-independent base price checkout uses to decide
+				// upgrade vs. downgrade (dd_pmpro_append_billing_cycle_on_switch(), pmpro.php),
+				// so this button's UPGRADE/DOWNGRADE label can never disagree with what's charged.
+				$price = dd_pmpro_level_base_price($l->id);
+				if ($price > $max_base_price) {
+					$max_base_price = $price;
 				}
 			}
 		}

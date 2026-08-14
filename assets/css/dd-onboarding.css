@@ -86,39 +86,52 @@ button.dd-ob-close:focus {
     gap: 10px;
 }
 
+/* !important on background/border/padding/width: Elementor's active Kit (post-16.css) styles
+   every bare <button>, input[type=button|submit], and .elementor-button site-wide —
+   `.elementor-kit-{id} button { background-color: var(--e-global-color-primary);
+   border: 1px solid var(--e-global-color-accent); border-radius: 5px; padding: 23px 30px; }`,
+   plus a :hover/:focus variant swapping background/border to a different global color — via a
+   class+element selector. `.dd-ob-btn-secondary` and the tour tooltip's Skip/Back/Next/Done are
+   real <button> elements (the popup's primary CTA is an <a>, which the kit selector doesn't
+   touch), so every property the kit rule sets must be forced here, on both states, exactly like
+   .dd-ob-close above. */
 .dd-ob-btn.dd-ob-btn.dd-ob-btn {
     display: block;
-    width: 100%;
-    padding: 12px 20px;
-    border-radius: 8px;
+    width: 100% !important;
+    padding: 12px 20px !important;
+    border-radius: 8px !important;
     font-size: 14px;
     font-weight: 600;
     text-align: center;
     text-decoration: none;
     cursor: pointer;
-    border: none;
+    border: none !important;
     box-sizing: border-box;
-    font-family: inherit;
+    font-family: "Work Sans", sans-serif !important;
 }
 
 .dd-ob-btn-primary {
-    background: var(--e-global-color-primary, #034146);
-    color: #fff;
+    background: var(--e-global-color-primary, #034146) !important;
+    color: #fff !important;
 }
 
-.dd-ob-btn-primary:hover {
+.dd-ob-btn-primary:hover,
+.dd-ob-btn-primary:focus {
+    background: var(--e-global-color-primary, #034146) !important;
+    color: #fff !important;
     opacity: 0.9;
-    color: #fff;
 }
 
 .dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary {
-    background: transparent;
-    color: #4b4b4b;
-    border: 1px solid #e2e2e2;
+    background: transparent !important;
+    color: #4b4b4b !important;
+    border: 1px solid #e2e2e2 !important;
 }
 
-.dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary:hover {
-    background: #f3f3f3;
+.dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary:hover,
+.dd-ob-btn-secondary.dd-ob-btn-secondary.dd-ob-btn-secondary:focus {
+    background: #f3f3f3 !important;
+    border-color: #e2e2e2 !important;
 }
 
 @media (max-width: 767px) {
@@ -196,22 +209,32 @@ button.dd-ob-close:focus {
     gap: 8px;
 }
 
+/* Skip/Back are real <button>s too — same Elementor Kit interference as .dd-ob-btn above (see
+   that comment), so background/border/padding need the same !important guard here. */
 .dd-ob-link-btn {
-    background: transparent;
-    border: none;
-    padding: 6px 4px;
+    background: transparent !important;
+    border: none !important;
+    padding: 6px 4px !important;
+    border-radius: 0 !important;
     font-size: 13px;
+    font-family: "Work Sans", sans-serif !important;
     color: #6b7280;
     cursor: pointer;
 }
 
-.dd-ob-link-btn:hover {
+.dd-ob-link-btn:hover,
+.dd-ob-link-btn:focus {
+    background: transparent !important;
+    border: none !important;
     color: #1a1a1a;
 }
 
+/* Also !important: without it this loses on specificity to .dd-ob-btn.dd-ob-btn.dd-ob-btn's own
+   width/padding (three classes beats one-descendant-plus-one-class), so the Next/Done button
+   would render full-width at the popup's larger padding instead of sized for the tooltip. */
 .dd-ob-tooltip .dd-ob-btn {
-    width: auto;
-    padding: 8px 16px;
+    width: auto !important;
+    padding: 8px 16px !important;
 }
 
 .dd-start-tour {
@@ -225,4 +248,45 @@ button.dd-ob-close:focus {
     .dd-ob-title {
         font-size: 17px;
     }
+}
+
+/* Start Guided Tour button — [onboarding_tour_button] shortcode / Widget_Onboarding_Tour_Button
+   (modules/frontend-utilities/elementor-widgets/class-widget-onboarding-tour-button.php). This
+   is the default look before any Style-tab override: the widget's controls target
+   {{WRAPPER}} .dd-onboarding-tour-btn, which is strictly higher specificity than the bare class
+   below, so admin styling always wins with no !important needed — unlike .dd-ob-close above,
+   which has to fight Elementor's global bare-<button> kit rules; this is an <a> with its own
+   class, so that problem doesn't arise here. */
+
+.dd-onboarding-tour-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: var(--e-global-color-primary, #034146);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: "Work Sans", sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    box-sizing: border-box;
+}
+
+.dd-onboarding-tour-btn:hover,
+.dd-onboarding-tour-btn:focus {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.dd-onboarding-tour-btn__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.dd-onboarding-tour-btn__label {
+    line-height: 1;
 }

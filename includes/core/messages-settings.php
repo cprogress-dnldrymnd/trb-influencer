@@ -244,6 +244,19 @@ function dd_message_definitions()
             'desc'    => 'Button label shown on the last step of the guided tour instead of "Next".',
             'js'      => true,
         ],
+        'dd_msg_ob_tour_unavailable' => [
+            'label'   => 'Tour Unavailable Notice',
+            'default' => "The guided tour isn't available on this page yet.",
+            'group'   => 'onboarding',
+            'desc'    => 'Shown when a "Take a tour" trigger is clicked but no tour steps apply to the current page (e.g. none are configured, or none of their targets are found here).',
+            'js'      => true,
+        ],
+        'dd_msg_ob_tour_button' => [
+            'label'   => 'Tour Button Label',
+            'default' => 'Take a quick tour',
+            'group'   => 'onboarding',
+            'desc'    => 'Default label for the "Start Guided Tour" Elementor widget/[onboarding_tour_button] shortcode — overridden per-instance by the widget\'s own Text field when set.',
+        ],
 
         // --- Unlock & Credit Confirmations -----------------------------------------------
         'dd_msg_unlock_spend_confirm' => [

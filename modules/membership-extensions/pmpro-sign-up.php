@@ -47,15 +47,18 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
         {
             add_action('wp_footer', array($this, 'inject_inline_script'));
             add_action('init', array($this, 'add_avatar_field'));
-            
+
             // Shift the acceptance field to the 'wp' hook at priority 0.
-            // This delays execution until the main query is parsed, allowing us to accurately 
-            // use is_page() for conditional rendering, while executing just before PMPro 
+            // This delays execution until the main query is parsed, allowing us to accurately
+            // use is_page() for conditional rendering, while executing just before PMPro
             // processes the checkout logic (which runs at priority 1).
             add_action('wp', array($this, 'add_acceptance_field'), 0);
-            
+
             // Hook early into checkout validation to prevent ghost user creation.
             add_filter('pmpro_registration_checks', array($this, 'validate_acceptance_field'));
+
+            // Renders the (hidden) loading-state status message right after the Sign Up button.
+            add_action('pmpro_signup_form_after_submit', array($this, 'render_busy_status_block'));
         }
 
         /**
@@ -75,12 +78,18 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                 return;
             }
             if (is_page(dd_get_page_id('dd_login_redirect_page_id', 4144))) {
+
+                // Shared busy-state CSS + window.ddFormBusy helper (also used by checkout — see
+                // dd_pmpro_checkout_submit_feedback() in includes/integrations/pmpro.php).
+                if (function_exists('dd_pmpro_print_form_busy_assets')) {
+                    dd_pmpro_print_form_busy_assets();
+                }
 ?>
                 <script type="text/javascript">
                     /**
                      * PMPro AJAX Signup Form Handler
                      * Intercepts the checkout submission, processes the POST request silently,
-                     * and dynamically injects validation errors back into the shortcode UI 
+                     * and dynamically injects validation errors back into the shortcode UI
                      * without allowing the browser to redirect to the main checkout page.
                      */
                     document.addEventListener('DOMContentLoaded', function() {
@@ -88,7 +97,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                         const form = document.getElementById('pmpro_form');
                         if (!form) return;
 
-                        form.addEventListener('submit', async function(e) {
+                        async function handleSignupSubmit(e) {
                             e.preventDefault();
 
                             const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
@@ -99,10 +108,14 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
 
                             const originalText = submitBtn.value || submitBtn.textContent || 'Processing...';
 
+                            if (window.ddFormBusy) {
+                                window.ddFormBusy.set(form, true);
+                            }
+
                             if (submitBtn.tagName.toLowerCase() === 'input') {
-                                submitBtn.value = 'Processing...';
+                                submitBtn.value = 'Creating your account…';
                             } else {
-                                submitBtn.textContent = 'Processing...';
+                                submitBtn.textContent = 'Creating your account…';
                             }
                             submitBtn.disabled = true;
 
@@ -113,7 +126,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                             }
 
                             // Inject a context identifier into the payload.
-                            // This allows the server-side logic to enforce required field validation 
+                            // This allows the server-side logic to enforce required field validation
                             // specifically for this custom AJAX flow, distinguishing it from the native checkout.
                             formData.append('is_custom_ajax_signup', '1');
 
@@ -121,7 +134,7 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                             const fetchUrl = form.action || window.location.href;
 
                             try {
-                                // Execute POST request. redirect: 'follow' ensures the Fetch API 
+                                // Execute POST request. redirect: 'follow' ensures the Fetch API
                                 // transparently resolves the 302 redirect returning the final HTML.
                                 const response = await fetch(fetchUrl, {
                                     method: 'POST',
@@ -147,7 +160,10 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                                         form.parentNode.insertBefore(pmproMessage, form);
                                     }
 
-                                    // Restore button state
+                                    // Restore button + busy state so the form is usable again
+                                    if (window.ddFormBusy) {
+                                        window.ddFormBusy.set(form, false);
+                                    }
                                     if (submitBtn.tagName.toLowerCase() === 'input') {
                                         submitBtn.value = originalText;
                                     } else {
@@ -161,7 +177,8 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
                                     });
 
                                 } else {
-                                    // No errors detected. Safely process the success redirect.
+                                    // No errors detected. Leave the busy state up — the page is
+                                    // about to navigate away below — and process the success redirect.
                                     if (response.redirected) {
                                         window.location.href = response.url;
                                     } else if (doc.querySelector('.pmpro_confirmation_wrap')) {
@@ -175,13 +192,54 @@ if (! class_exists('DD_PMPro_Ajax_Signup')) {
 
                             } catch (error) {
                                 console.error('PMPro AJAX Validation Error:', error);
-                                form.removeEventListener('submit', arguments.callee);
+                                // Stay busy through the native fallback submit below — the page
+                                // will do a full navigation, so the browser's own loading state
+                                // takes over rather than leaving the overlay stranded.
+                                form.removeEventListener('submit', handleSignupSubmit);
                                 form.submit();
+                            }
+                        }
+
+                        form.addEventListener('submit', handleSignupSubmit);
+
+                        // A successful signup navigates away while the busy overlay is still up.
+                        // If the visitor then presses Back, some browsers restore this exact page
+                        // from bfcache with the overlay/disabled button still in place — clear it
+                        // so the form isn't left looking permanently busy.
+                        window.addEventListener('pageshow', function(event) {
+                            if (!event.persisted) return;
+                            if (window.ddFormBusy) {
+                                window.ddFormBusy.set(form, false);
+                            }
+                            const submitBtn = form.querySelector('input[type="submit"], button[type="submit"], #pmpro_btn-submit');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
                             }
                         });
                     });
                 </script>
 <?php
+            }
+        }
+
+        /**
+         * Renders the (initially hidden) busy-state status message right after the Sign Up
+         * button, so it lands inside .pmpro_form_submit with no JS DOM relocation needed.
+         *
+         * Hooked to 'pmpro_signup_form_after_submit', fired by the pmpro-signup-shortcode
+         * plugin immediately after the submit button (pmpro-signup-shortcode.php). Toggled
+         * visible by window.ddFormBusy.set() in inject_inline_script() above.
+         *
+         * @return void
+         */
+        public function render_busy_status_block()
+        {
+            if (! is_page(dd_get_page_id('dd_login_redirect_page_id', 4144))) {
+                return;
+            }
+
+            if (function_exists('dd_pmpro_render_form_busy_block')) {
+                dd_pmpro_render_form_busy_block(__('Creating your account…', 'hello-elementor-child'));
             }
         }
 

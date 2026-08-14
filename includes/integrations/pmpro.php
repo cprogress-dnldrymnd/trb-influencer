@@ -118,6 +118,264 @@ add_action('wp_footer', 'dd_pmpro_force_checkout_text_observer', 99);
 
 
 /**
+ * Description: Shared "form busy" loading feedback — dimmed overlay over the form fields, an
+ * animated status message, and a spinner on the submit button — for both PMPro submit flows: the
+ * custom AJAX signup form (DD_PMPro_Ajax_Signup, modules/membership-extensions/pmpro-sign-up.php)
+ * and native PMPro checkout. Assets are printed once per request; each caller only supplies its
+ * own status message text and drives window.ddFormBusy.set() from its own submit lifecycle.
+ */
+
+if (! function_exists('dd_pmpro_print_form_busy_assets')) {
+
+    /**
+     * Prints the shared busy-state CSS + the window.ddFormBusy.set(form, on) helper.
+     * Safe to call from multiple hooks — only prints once per request.
+     *
+     * @return void
+     */
+    function dd_pmpro_print_form_busy_assets()
+    {
+        static $printed = false;
+        if ($printed) {
+            return;
+        }
+        $printed = true;
+?>
+        <style>
+            /* Dimmed overlay over the form's own fields — appended as a direct child of #pmpro_form
+               by ddFormBusy.set() below, so `inset:0` always resolves against the whole form
+               regardless of which submit-area hook rendered the status message. */
+            #pmpro_form.dd-form-busy {
+                position: relative;
+            }
+            .dd-form-busy__overlay {
+                display: none;
+            }
+            #pmpro_form.dd-form-busy>.dd-form-busy__overlay {
+                display: block;
+                position: absolute;
+                inset: 0;
+                z-index: 20;
+                background: rgba(255, 255, 255, 0.85);
+                cursor: wait;
+            }
+            /* Lifted above the overlay so the button + status message stay crisp and usable. */
+            #pmpro_form.dd-form-busy .pmpro_form_submit {
+                position: relative;
+                z-index: 21;
+            }
+
+            .dd-form-busy__status {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                width: 100%;
+                flex-basis: 100%;
+                margin-top: 10px;
+                font-family: "Work Sans", sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--e-global-color-primary, #034146);
+            }
+            .dd-form-busy__status[hidden] {
+                display: none;
+            }
+            .dd-form-busy__dots {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .dd-form-busy__dots span {
+                display: inline-block;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background-color: currentColor;
+                opacity: 0;
+                animation: loading-dots-fade 1.4s infinite;
+            }
+            .dd-form-busy__dots span:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+            .dd-form-busy__dots span:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+
+            /* Button spinner. #pmpro_submit_span gets its own positioning context only while
+               loading, so this works the same whether or not the page's own CSS already
+               positions the span (checkout does; signup doesn't). */
+            #pmpro_submit_span.is-loading {
+                display: inline-block;
+                position: relative;
+            }
+            #pmpro_submit_span.is-loading #pmpro_btn-submit {
+                cursor: wait;
+            }
+            #pmpro_submit_span.is-loading:after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                right: 16px;
+                z-index: 5;
+                width: 14px;
+                height: 14px;
+                margin-top: -8px;
+                border: 2px solid currentColor;
+                border-top-color: transparent;
+                border-radius: 50%;
+                color: #fff;
+                animation:
+                    load-more-spinner-in 0.3s ease-out forwards,
+                    load-more-spin 0.7s linear infinite;
+            }
+            /* Checkout's "Confirm Payment" label is itself a CSS pseudo-element (style.css ~2354,
+               ~2489) since the real #pmpro_btn-submit is opacity:0 there — swap just its text
+               while busy rather than touching the box styling the base rule already provides. */
+            body:not(.page-id-4144) #pmpro_form.dd-form-busy span#pmpro_submit_span:before {
+                content: "Processing payment…";
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+
+                .dd-form-busy__dots span,
+                #pmpro_submit_span.is-loading:after {
+                    animation: none;
+                    opacity: 1;
+                }
+            }
+        </style>
+        <script type="text/javascript">
+            window.ddFormBusy = (function() {
+                function ensureOverlay(form) {
+                    var overlay = form.querySelector('.dd-form-busy__overlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'dd-form-busy__overlay';
+                        form.appendChild(overlay);
+                    }
+                    return overlay;
+                }
+
+                function set(form, on) {
+                    if (!form) {
+                        return;
+                    }
+                    ensureOverlay(form);
+                    form.classList.toggle('dd-form-busy', !!on);
+                    form.setAttribute('aria-busy', on ? 'true' : 'false');
+
+                    var span = document.getElementById('pmpro_submit_span');
+                    if (span) {
+                        span.classList.toggle('is-loading', !!on);
+                    }
+
+                    var status = form.querySelector('.dd-form-busy__status');
+                    if (status) {
+                        status.hidden = !on;
+                    }
+                }
+
+                return {
+                    set: set
+                };
+            })();
+        </script>
+<?php
+    }
+}
+
+if (! function_exists('dd_pmpro_render_form_busy_block')) {
+
+    /**
+     * Echoes the (initially hidden) busy-state status message — animated dots + text — meant to
+     * be printed adjacent to a submit button. Toggled visible by window.ddFormBusy.set().
+     *
+     * @param string $message Text shown while the form is busy.
+     * @return void
+     */
+    function dd_pmpro_render_form_busy_block($message)
+    {
+?>
+        <div class="dd-form-busy__status" role="status" aria-live="polite" hidden>
+            <span class="dd-form-busy__text"><?php echo esc_html($message); ?></span>
+            <span class="dd-form-busy__dots"><span></span><span></span><span></span></span>
+        </div>
+<?php
+    }
+}
+
+/**
+ * Description: Drives the shared form-busy overlay/spinner on native PMPro checkout by mirroring
+ * PMPro's own #pmpro_processing_message visibility, rather than owning a second submit-state
+ * machine. pmpro-checkout.js / pmpro-stripe.js / the reCAPTCHA handlers already show that element
+ * on submit and hide it again on every client-side validation or gateway error, so riding its
+ * flag means those error paths clear our overlay for free.
+ */
+function dd_pmpro_checkout_submit_feedback()
+{
+    if (! function_exists('pmpro_is_checkout') || ! pmpro_is_checkout()) {
+        return;
+    }
+
+    dd_pmpro_print_form_busy_assets();
+?>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var form = document.getElementById('pmpro_form');
+            if (!form) {
+                return;
+            }
+
+            var status = document.createElement('div');
+            status.className = 'dd-form-busy__status';
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
+            status.hidden = true;
+            status.innerHTML =
+                '<span class="dd-form-busy__text"><?php echo esc_js(__('Processing payment…', 'hello-elementor-child')); ?></span>' +
+                '<span class="dd-form-busy__dots"><span></span><span></span><span></span></span>';
+
+            var processingMsg = document.getElementById('pmpro_processing_message');
+
+            if (processingMsg && processingMsg.parentNode) {
+                processingMsg.parentNode.insertBefore(status, processingMsg);
+            } else {
+                form.appendChild(status);
+            }
+
+            if (!processingMsg) {
+                // No native processing indicator to mirror (a gateway/template override removed
+                // it) — fall back to a plain submit-triggered busy state with a hard timeout so
+                // the form can never be left looking busy forever.
+                form.addEventListener('submit', function() {
+                    window.ddFormBusy.set(form, true);
+                    setTimeout(function() {
+                        window.ddFormBusy.set(form, false);
+                    }, 15000);
+                });
+                return;
+            }
+
+            var syncFromProcessingMessage = function() {
+                var isVisible = window.getComputedStyle(processingMsg).visibility === 'visible';
+                window.ddFormBusy.set(form, isVisible);
+            };
+
+            syncFromProcessingMessage();
+
+            new MutationObserver(syncFromProcessingMessage).observe(processingMsg, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        });
+    </script>
+<?php
+}
+add_action('wp_footer', 'dd_pmpro_checkout_submit_feedback', 99);
+
+
+/**
  * Description: Restructures the [pmpro_member_profile_edit] form into a tabbed layout.
  *
  * PMPro renders this shortcode's "Account Information", "More Information", and
@@ -442,57 +700,133 @@ function dd_custom_pmpro_logout_redirect($redirect_to, $requested_redirect_to, $
 add_filter('logout_redirect', 'dd_custom_pmpro_logout_redirect', 10, 3);
 
 /**
- * Anti-Ladder Protocol: Calculates the monetary credit owed for unused time on the OLD
- * level, capped by what the user actually paid for it — never the level's list price alone.
- * Without this cap, a $0 trial or a heavily-discounted signup on a cheap level still earns
- * a full-rate cash credit against an expensive upgrade, letting a user pay a fraction of the
- * expensive level's price for a full cycle of access.
- *
- * @param int    $user_id        The user ID switching levels.
- * @param object $old_level      The level object being switched away from.
- * @param float  $days_remaining Days left in the old level's current billing cycle (uncapped).
- * @return float The monetary credit to apply to the new level's initial payment.
+ * The PMPro Proration Add On (plugins/pmpro-proration) is active for its delayed-downgrade
+ * machinery (custom pmprorate_downgrades table, expiry processing, emails) which
+ * DD_PMPro_Frontend_Pricing::get_pending_downgrade_level_id() (pmpro-dynamic-pricing.php) and the
+ * pricing table both depend on. Its own pricing filter is unhooked here so it never recomputes on
+ * top of dd_pmpro_append_billing_cycle_on_switch()
+ * below — running both stacked a second credit on top of the first on cross-cycle upgrades, and
+ * its cost-per-day downgrade test misclassified a discounted annual plan as a downgrade from a
+ * cheaper-per-day monthly plan. Deferring a switch is done here instead by flagging
+ * $level->pmprorate_is_downgrade, which the add-on's own delayed-downgrade hooks key off directly —
+ * see pmprorate_checkout_before_change_membership_level_remember_downgrade() in
+ * plugins/pmpro-proration/includes/delayed-downgrades.php.
  */
-function dd_pmpro_switch_credit($user_id, $old_level, $days_remaining)
+add_action('init', function () {
+    remove_filter('pmpro_checkout_level', 'pmprorate_pmpro_checkout_level', 10);
+}, 20);
+
+/**
+ * A level's own base recurring price, independent of which payment plan (monthly/annual) is
+ * being checked out. This is what tier comparisons must use — comparing initial_payment/billing_amount
+ * after a payment plan override has been applied would compare a discounted annual price against
+ * a monthly one and get the tier ordering wrong.
+ *
+ * @param int $level_id The PMPro level ID.
+ * @return float The level's base billing_amount, or its initial_payment if it has no recurring billing.
+ */
+function dd_pmpro_level_base_price($level_id)
 {
-    global $wpdb;
-
-    $old_cycle_period = ! empty($old_level->cycle_period) ? $old_level->cycle_period : 'Month';
-    $old_cycle_number  = ! empty($old_level->cycle_number) ? (int) $old_level->cycle_number : 1;
-    $old_cycle_days    = ($old_cycle_period === 'Year' ? 365 : 30) * max(1, $old_cycle_number);
-
-    // Never credit more days than the old cycle actually contains (guards against a
-    // Subscription-Delay-extended next-payment date sitting far in the future).
-    $credit_days = min((float) $days_remaining, $old_cycle_days);
-    if ($credit_days <= 0) {
+    $level = pmpro_getLevel((int) $level_id);
+    if (empty($level)) {
         return 0.0;
     }
 
-    // What was actually charged for the old level, most recent order first.
-    $paid = $wpdb->get_var($wpdb->prepare(
-        "SELECT total FROM {$wpdb->prefix}pmpro_membership_orders
-         WHERE user_id = %d AND membership_id = %d AND status IN ('success', 'pending')
-         ORDER BY timestamp DESC LIMIT 1",
-        $user_id,
-        $old_level->id
-    ));
-    $paid = ($paid !== null) ? (float) $paid : 0.0;
-
-    // Cap the daily rate by what was actually paid — a discounted/free cycle can only ever
-    // credit a discounted/zero amount, regardless of the level's nominal billing_amount.
-    $basis = min((float) $old_level->billing_amount, $paid);
-    if ($basis <= 0) {
-        return 0.0;
-    }
-
-    $daily_rate = $basis / $old_cycle_days;
-
-    return $daily_rate * $credit_days;
+    return (float) $level->billing_amount > 0 ? (float) $level->billing_amount : (float) $level->initial_payment;
 }
 
 /**
- * Adjusts the profile_start_date and initial_payment for the new membership level during checkout.
- * Manually calculates monetary proration for users upgrading with scheduled downgrades.
+ * Anti-Ladder Protocol: the monetary credit owed for the unused portion of the CURRENT billing
+ * period on the old level, based on what the user actually paid for that period — never the
+ * level's list price. Without this, a $0 trial or a previously-prorated cheap period would still
+ * earn a full-rate cash credit against an expensive upgrade.
+ *
+ * @param int    $user_id   The user ID switching levels.
+ * @param object $old_level The level object being switched away from.
+ * @return float The monetary credit to apply to the new level's initial payment.
+ */
+function dd_pmpro_switch_credit($user_id, $old_level)
+{
+    global $wpdb;
+
+    $period_start = null;
+    $period_end   = null;
+    $paid         = 0.0;
+
+    // PMPro v3.0+: read the real subscription's most recent order and next payment date.
+    if (class_exists('PMPro_Subscription')) {
+        $subs = PMPro_Subscription::get_subscriptions_for_user($user_id, $old_level->id);
+        $sub  = ! empty($subs) ? current($subs) : null;
+
+        if (! empty($sub)) {
+            $orders     = $sub->get_orders(['limit' => 1]);
+            $prev_order = ! empty($orders) ? current($orders) : null;
+
+            if (! empty($prev_order)) {
+                $period_start = (int) $prev_order->timestamp;
+                $paid         = (float) $prev_order->subtotal;
+            }
+
+            $next_payment = $sub->get_next_payment_date('timestamp');
+            if (! empty($next_payment)) {
+                $period_end = (int) $next_payment;
+            }
+        }
+    }
+
+    // Fallback (no subscription object found, or pre-3.0): most recent order for this level,
+    // and PMPro's own pmpro_next_payment() / the level's enddate for the period end.
+    if (empty($period_start)) {
+        $last_order = $wpdb->get_row($wpdb->prepare(
+            "SELECT timestamp, subtotal FROM {$wpdb->prefix}pmpro_membership_orders
+             WHERE user_id = %d AND membership_id = %d AND status IN ('success', 'pending')
+             ORDER BY timestamp DESC LIMIT 1",
+            $user_id,
+            $old_level->id
+        ));
+
+        if (empty($last_order)) {
+            return 0.0;
+        }
+
+        $period_start = strtotime($last_order->timestamp);
+        $paid         = (float) $last_order->subtotal;
+
+        $next_payment_timestamp = pmpro_next_payment($user_id);
+        if (! empty($next_payment_timestamp)) {
+            $period_end = (int) $next_payment_timestamp;
+        } elseif (! empty($old_level->enddate)) {
+            $period_end = (int) $old_level->enddate;
+        }
+    }
+
+    if (empty($period_end) || $period_end <= $period_start || $paid <= 0) {
+        return 0.0;
+    }
+
+    $now = current_time('timestamp');
+    $fraction_remaining = ($period_end - max($now, $period_start)) / ($period_end - $period_start);
+    $fraction_remaining = max(0.0, min(1.0, $fraction_remaining));
+
+    return round($paid * $fraction_remaining, 2);
+}
+
+/**
+ * Adjusts the profile_start_date and initial_payment for the new membership level during checkout,
+ * for a member switching from an existing level/term to a different one. Decides upgrade vs.
+ * downgrade on the levels' term-independent base prices (dd_pmpro_level_base_price()) — a monthly
+ * plan switching to ANY annual plan is always treated as an upgrade (monetary proration, charged
+ * today), matching how the pricing table advertises annual pricing as a discount rather than a
+ * separate tier.
+ *
+ * Upgrade -> monetary proration: initial payment is the new plan's price minus the Anti-Ladder
+ * credit for unused time on the old plan, new cycle starts today. If the credit would exceed the
+ * new plan's price (only reachable switching from a paid-in-full annual plan down to a cheaper
+ * cycle), the excess is banked as free future cycles instead of being forfeited.
+ *
+ * Downgrade -> deferred: nothing is owed today; the switch is flagged via
+ * $level->pmprorate_is_downgrade so the PMPro Proration Add On's delayed-downgrade machinery keeps
+ * the member on their current level/term until its period ends, then applies the new level.
  *
  * @param object $level The membership level object being processed at checkout.
  * @return object The modified membership level object.
@@ -516,7 +850,7 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     // Retrieve the UNIX timestamp for the next scheduled payment of the current active subscription.
     $next_payment_timestamp = pmpro_next_payment($user_id);
 
-    // Fallback: If no future payment date exists (due to scheduled downgrades cancelling the gateway profile), 
+    // Fallback: If no future payment date exists (due to scheduled downgrades cancelling the gateway profile),
     // utilize the old level's expiration date if it exists in the future.
     if (! $next_payment_timestamp || $next_payment_timestamp <= current_time('timestamp')) {
         if (! empty($old_level->enddate) && $old_level->enddate > current_time('timestamp')) {
@@ -532,53 +866,41 @@ function dd_pmpro_append_billing_cycle_on_switch($level)
     $new_cycle_period = ! empty($level->cycle_period) ? $level->cycle_period : 'Month';
     $old_cycle_period = ! empty($old_level->cycle_period) ? $old_level->cycle_period : 'Month';
 
-    // Calculate remaining time for monetary credit mapping
     $current_time = current_time('timestamp');
-    $days_remaining = ceil(($next_payment_timestamp - $current_time) / DAY_IN_SECONDS);
 
-    // -------------------------------------------------------------------------
-    // SCENARIO LOGIC
-    // -------------------------------------------------------------------------
+    // Any switch onto an annual term is treated as an upgrade regardless of relative cost-per-day —
+    // the annual price is a discount on the same tier, not a different tier. Otherwise, compare
+    // the levels' own base prices (term-independent) to decide upgrade vs. downgrade.
+    $is_upgrade = ($old_cycle_period !== 'Year' && $new_cycle_period === 'Year')
+        || (dd_pmpro_level_base_price($level->id) > dd_pmpro_level_base_price($old_level->id));
 
-    if ($old_cycle_period === 'Year' && $new_cycle_period === 'Month') {
-        // SCENARIO 1: Annual to Monthly (Downgrade)
-        // Action: Time Proration. Owe nothing today, append new cycle to the end of the paid year.
-        $level->initial_payment = 0;
-        $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
-    } elseif ($old_cycle_period === 'Month' && $new_cycle_period === 'Year') {
-        // SCENARIO 2: Monthly to Annual (Upgrade)
-        // Action: Monetary Proration. Start new cycle today, discount the initial payment.
+    if ($is_upgrade) {
+        // Monetary Proration: start today, discount the initial payment by the Anti-Ladder credit.
+        $credit = dd_pmpro_switch_credit($user_id, $old_level);
+        $target_price = (float) $level->initial_payment;
 
-        // 1. Calculate the monetary credit for the unused days of the current cycle, capped by
-        // what the user actually paid for the old level (Anti-Ladder Protocol).
-        $credit = dd_pmpro_switch_credit($user_id, $old_level, $days_remaining);
-
-        // 2. Apply the credit to the initial payment (ensure it doesn't drop below 0 mathematically)
-        $new_initial_payment = (float) $level->billing_amount - $credit;
-        $level->initial_payment = max(0, round($new_initial_payment, 2));
-
-        // 3. Start the new Annual cycle exactly from TODAY
-        $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
-        $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
-        $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
-    } else {
-        // SCENARIO 3: Same Cycle Switch (Month-to-Month or Year-to-Year switch to a different tier)
-        if ((float)$level->billing_amount > (float)$old_level->billing_amount) {
-            // Upgrade Action: Monetary Proration. Start today, discount the initial payment,
-            // capped by what the user actually paid for the old level (Anti-Ladder Protocol).
-            $credit = dd_pmpro_switch_credit($user_id, $old_level, $days_remaining);
-
-            $new_initial_payment = (float) $level->billing_amount - $credit;
-            $level->initial_payment = max(0, round($new_initial_payment, 2));
-
+        if ($credit >= $target_price && $target_price > 0) {
+            // Credit covers the new plan's price entirely (only reachable downgrading a paid-in-full
+            // annual plan's cycle length) — bank the excess as free future cycles instead of losing it.
+            $free_cycles = floor($credit / $target_price);
+            $level->initial_payment = 0;
+            $strtotime_modifier = '+' . ($new_cycle_number * $free_cycles) . ' ' . $new_cycle_period;
+            $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
+        } else {
+            $level->initial_payment = max(0, round($target_price - $credit, 2));
             $strtotime_modifier = '+' . $new_cycle_number . ' ' . $new_cycle_period;
             $new_start_timestamp = strtotime($strtotime_modifier, $current_time);
-            $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
-        } else {
-            // Downgrade Action: Time Proration. Owe nothing today, append time.
-            $level->initial_payment = 0;
-            $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
         }
+
+        $level->profile_start_date = date("Y-m-d\TH:i:s", $new_start_timestamp);
+        $level->dd_switch_mode = 'upgrade';
+    } else {
+        // Deferred: owe nothing today, keep the member on their current level/term until it ends,
+        // then let the add-on's delayed-downgrade flow apply the new (cheaper) level.
+        $level->initial_payment = 0;
+        $level->profile_start_date = date("Y-m-d\TH:i:s", $next_payment_timestamp);
+        $level->pmprorate_is_downgrade = true;
+        $level->dd_switch_mode = 'downgrade';
     }
 
     // Ensure the PMPro Subscription Delays add-on doesn't overwrite our newly calculated date

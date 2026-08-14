@@ -15,16 +15,69 @@
         return (typeof dd_messages !== 'undefined' && dd_messages[key]) || fallback;
     }
 
+    /**
+     * Persists a state change. Prefers navigator.sendBeacon(), which the browser guarantees to
+     * deliver even if the page navigates/unloads immediately after — unlike a plain jQuery.post(),
+     * whose in-flight XHR is aborted by an <a href> click's default navigation before the request
+     * ever reaches the server. Falls back to jQuery.post() (returning its promise, so a caller
+     * about to navigate can wait on it) when sendBeacon isn't available.
+     *
+     * @param {string} event
+     * @param {object} [extra]
+     * @return {jQuery.jqXHR|null} null when delivery is already guaranteed (beacon sent, or no
+     *                             jQuery available) — non-null only when the caller may need to
+     *                             wait for completion before navigating away.
+     */
     function postEvent(event, extra) {
-        if (typeof jQuery === 'undefined') {
-            return;
-        }
         var data = Object.assign({
             action: 'dd_onboarding_state',
             security: dd_onboarding.nonce,
             event: event
         }, extra || {});
-        jQuery.post(dd_onboarding.ajax_url, data);
+
+        if (navigator.sendBeacon) {
+            var formData = new FormData();
+            Object.keys(data).forEach(function (key) {
+                formData.append(key, data[key]);
+            });
+            if (navigator.sendBeacon(dd_onboarding.ajax_url, formData)) {
+                return null;
+            }
+            // sendBeacon can return false (e.g. its queue is full) — fall through.
+        }
+
+        if (typeof jQuery === 'undefined') {
+            return null;
+        }
+        return jQuery.post(dd_onboarding.ajax_url, data);
+    }
+
+    // ------------------------------------------------------------------
+    // Local same-browser guard — server state (dd_onboarding.state.welcome_seen) is always
+    // authoritative; this only suppresses a same-browser flicker while a postEvent() beacon is
+    // still in flight to the server on the very next page load. Set ONLY on a real interaction
+    // (never on mere display), matching the server-side rule, so a visitor who closes the tab
+    // without touching the popup still gets it again next visit.
+    // ------------------------------------------------------------------
+
+    var LOCAL_SEEN_KEY = 'dd_ob_welcome_seen';
+
+    function localWelcomeSeen() {
+        try {
+            return window.localStorage && localStorage.getItem(LOCAL_SEEN_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function markWelcomeSeenLocally() {
+        try {
+            if (window.localStorage) {
+                localStorage.setItem(LOCAL_SEEN_KEY, '1');
+            }
+        } catch (e) {
+            // Storage unavailable (private mode, quota) — server state remains authoritative.
+        }
     }
 
     // ------------------------------------------------------------------
@@ -51,6 +104,7 @@
         closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/></svg>';
         closeBtn.addEventListener('click', function () {
             closeOverlay(overlay);
+            markWelcomeSeenLocally();
             postEvent('dismiss');
         });
 
@@ -69,8 +123,29 @@
         primary.className = 'dd-ob-btn dd-ob-btn-primary';
         primary.href = dd_onboarding.welcome_url;
         primary.textContent = msg('dd_msg_ob_welcome_cta', 'Start your first search');
-        primary.addEventListener('click', function () {
-            postEvent('welcome_seen');
+        primary.addEventListener('click', function (e) {
+            markWelcomeSeenLocally();
+            var xhr = postEvent('welcome_seen');
+
+            // postEvent() returns null when delivery is already guaranteed (sendBeacon queued
+            // it, or there's no jQuery to fall back to) — the default navigation can proceed
+            // immediately. It returns the jqXHR only on the jQuery.post() fallback path, where
+            // an immediate <a href> navigation would otherwise abort the in-flight request
+            // before it reaches the server — hold navigation open just long enough to let it
+            // land (capped at 1.5s so a hung/broken request never traps the user here).
+            if (xhr && typeof xhr.always === 'function') {
+                e.preventDefault();
+                var navigated = false;
+                var go = function () {
+                    if (navigated) {
+                        return;
+                    }
+                    navigated = true;
+                    window.location.href = primary.href;
+                };
+                xhr.always(go);
+                setTimeout(go, 1500);
+            }
         });
         actions.appendChild(primary);
 
@@ -81,6 +156,8 @@
             tourBtn.textContent = msg('dd_msg_ob_tour_cta', 'Show me around first');
             tourBtn.addEventListener('click', function () {
                 closeOverlay(overlay);
+                markWelcomeSeenLocally();
+                postEvent('welcome_seen');
                 startTour();
             });
             actions.appendChild(tourBtn);
@@ -138,6 +215,13 @@
     function startTour() {
         tourSteps = visibleSteps();
         if (!tourSteps.length) {
+            // Never fail silently — either no steps are authored at all, or none target
+            // something on the current page (each step is dropped by visibleSteps() above if
+            // its selector isn't found here). Either way the visitor asked for a tour and
+            // clicking should never appear to do nothing.
+            if (typeof window.ddAlert === 'function') {
+                window.ddAlert(msg('dd_msg_ob_tour_unavailable', "The guided tour isn't available on this page yet."));
+            }
             return;
         }
         tourIndex = 0;
@@ -330,13 +414,39 @@
     document.addEventListener('DOMContentLoaded', function () {
         var url = new URL(window.location.href);
         var forceWelcome = url.searchParams.get('dd_welcome') === '1';
+        var forceTour = url.searchParams.get('dd_tour') === '1';
 
-        if (forceWelcome) {
+        if (forceWelcome || forceTour) {
             url.searchParams.delete('dd_welcome');
+            url.searchParams.delete('dd_tour');
             window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
         }
 
-        if (forceWelcome || !dd_onboarding.state.welcome_seen) {
+        if (forceWelcome) {
+            // An explicit ?dd_welcome=1 (e.g. the post-signup redirect) always wins, even if a
+            // stale local flag says otherwise.
+            try {
+                if (window.localStorage) {
+                    localStorage.removeItem(LOCAL_SEEN_KEY);
+                }
+            } catch (e) {}
+        }
+
+        if (forceTour) {
+            // A visitor arrived specifically to take the tour — e.g. the "Start Guided Tour"
+            // widget linked here with ?dd_tour=1 because the page they clicked from had no
+            // steps of its own (see [onboarding_tour_button] in modules/onboarding/onboarding.php).
+            // Start it immediately and skip the welcome popup entirely so the two never stack.
+            startTour();
+            return;
+        }
+
+        // dd_onboarding.show_welcome restricts the popup to the configured Dashboard page (see
+        // DD_Onboarding::client_map()) so it can never resurface on the search/results/profile
+        // pages a "Start your first search" click (or any other link) leads to.
+        var shouldShow = forceWelcome || (dd_onboarding.show_welcome && !dd_onboarding.state.welcome_seen && !localWelcomeSeen());
+
+        if (shouldShow) {
             showWelcome();
         }
     });
