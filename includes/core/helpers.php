@@ -785,6 +785,78 @@ function dd_credit_capacity_sentence($user_id = null)
 }
 
 /**
+ * The user's next scheduled monthly allowance top-up: how many credits are
+ * currently eligible to be added, and (approximately) when.
+ *
+ * This deliberately never represents credits being taken away — there is no
+ * "reset" in this system. DD_PMPro_Rewards_Manager::process_monthly_points()
+ * runs on a daily cron and, on a rolling ~30-day window measured from each
+ * user's own last award (not a calendar date), tops up their allowance
+ * tracker to their level's cap — it only ever calls mycred_add(), never
+ * subtracts or clears a balance. If a user hasn't touched their allowance
+ * this cycle, `amount` comes back 0 (nothing to add, not "0 remaining").
+ * `next_date` is the date that 30-day window elapses, read directly off
+ * `_dd_last_monthly_point_date`; the cron then still has to run (daily) to
+ * actually apply it, so treat the date as "on or shortly after".
+ *
+ * Reads `dd_pmpro_rewards_settings` directly rather than through
+ * DD_PMPro_Rewards_Manager::get_rewards_config() (private to that class) —
+ * same option, same per-level {level_id, reg_points, monthly_points} shape
+ * that class's own award_registration_points()/process_monthly_points() read.
+ *
+ * Returns null when the user has no active PMPro level, that level has no
+ * monthly allowance configured (monthly_points <= 0 — nothing ever tops up),
+ * or PMPro isn't available.
+ *
+ * @param int|null $user_id
+ * @return array{amount:int, cap:int, next_date:int|null}|null
+ */
+function dd_credit_next_topup($user_id = null)
+{
+    if (! function_exists('pmpro_getMembershipLevelForUser')) {
+        return null;
+    }
+
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (! $user_id) {
+        return null;
+    }
+
+    $level = pmpro_getMembershipLevelForUser($user_id);
+    if (empty($level->id)) {
+        return null;
+    }
+
+    $config = get_option('dd_pmpro_rewards_settings');
+    if (empty($config) || ! is_array($config)) {
+        return null;
+    }
+
+    $monthly_points = 0;
+    foreach ($config as $row) {
+        if (isset($row['level_id']) && (int) $row['level_id'] === (int) $level->id) {
+            $monthly_points = isset($row['monthly_points']) ? (int) $row['monthly_points'] : 0;
+            break;
+        }
+    }
+
+    if ($monthly_points <= 0) {
+        return null;
+    }
+
+    $current_allowance = get_user_meta($user_id, '_dd_current_allowance_balance', true);
+    $current_allowance = $current_allowance !== '' ? (float) $current_allowance : 0.0;
+
+    $last_awarded = get_user_meta($user_id, '_dd_last_monthly_point_date', true);
+
+    return [
+        'amount'    => (int) max(0, $monthly_points - $current_allowance),
+        'cap'       => $monthly_points,
+        'next_date' => $last_awarded !== '' ? ((int) $last_awarded + 2592000) : null,
+    ];
+}
+
+/**
  * Registry of every myCred log `ref` this theme writes or displays, keyed
  * exactly as stored in wp_myCRED_log.ref. Drives the credit-history filter
  * dropdown and its Type column badge. Labels are admin-editable via the

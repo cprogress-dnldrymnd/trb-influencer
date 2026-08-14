@@ -65,6 +65,47 @@
 }
 
 /* ---------------------------------------------------------------
+   Top-up banner — reassurance that unused credits roll over rather
+   than expire (Custom_MyCred_Frontend_Log::get_topup_banner_html()).
+   Calm/informational tone, deliberately not the amber "warning" look
+   used elsewhere (.dd-account-notice) since this isn't a problem.
+   --------------------------------------------------------------- */
+.mycred-topup-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+}
+
+.mycred-topup-banner-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #2563eb;
+}
+
+.mycred-topup-banner-text {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #1e3a5f;
+}
+
+.mycred-topup-banner-text strong {
+    font-weight: 700;
+}
+
+@media (max-width: 480px) {
+    .mycred-topup-banner {
+        flex-direction: column;
+        gap: 6px;
+    }
+}
+
+/* ---------------------------------------------------------------
    Filter bar
    --------------------------------------------------------------- */
 .mycred-filter-bar {

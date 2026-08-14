@@ -341,10 +341,11 @@ class Custom_MyCred_Frontend_Log
     public function render_shortcode($atts)
     {
         $args = shortcode_atts(array(
-            'limit'          => 20,
-            'ctype'          => 'mycred_default',
-            'show_summary'   => 'yes',
-            'show_export'    => 'yes',
+            'limit'            => 20,
+            'ctype'            => 'mycred_default',
+            'show_summary'     => 'yes',
+            'show_export'      => 'yes',
+            'show_topup_info'  => 'yes',
         ), $atts, 'custom_mycred_log');
 
         return $this->get_layout_html($args);
@@ -547,6 +548,17 @@ class Custom_MyCred_Frontend_Log
             $month_start
         ));
 
+        // Lifetime, not month-scoped like the tiles above — myCred keeps one fungible
+        // balance, not per-source buckets, so "how many of my CURRENT credits are
+        // purchased" has no well-defined answer once spend and allowance top-ups have
+        // mixed into the same pool. "How many have I ever bought" does, and is what
+        // this answers: every credit added via a Stripe or bank-transfer purchase.
+        $purchased = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(creds) FROM {$table} WHERE user_id = %d AND ctype = %s AND ref IN ('buy_creds_with_stripe', 'buy_creds_with_bank_pending')",
+            $user_id,
+            $ctype
+        ));
+
         $split_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT ref, COUNT(id) as cnt FROM {$table} WHERE user_id = %d AND ctype = %s AND time >= %d AND ref IN ('unlock_influencer', 'buy_content', 'outreach_submission') GROUP BY ref",
             $user_id,
@@ -582,6 +594,10 @@ class Custom_MyCred_Frontend_Log
                 <span class="mycred-summary-label"><?php echo esc_html(dd_get_message('dd_msg_credit_log_summary_earned')); ?></span>
                 <span class="mycred-summary-value mycred-summary-value--earn"><?php echo esc_html($mycred->format_creds($earned)); ?></span>
             </div>
+            <div class="mycred-summary-tile">
+                <span class="mycred-summary-label"><?php echo esc_html(dd_get_message('dd_msg_credit_log_summary_purchased')); ?></span>
+                <span class="mycred-summary-value"><?php echo esc_html($mycred->format_creds($purchased)); ?></span>
+            </div>
             <?php if ($unlock_costed && $message_costed) : ?>
                 <div class="mycred-summary-tile">
                     <span class="mycred-summary-label"><?php echo esc_html(dd_get_message('dd_msg_credit_log_summary_split')); ?></span>
@@ -598,6 +614,59 @@ class Custom_MyCred_Frontend_Log
                     <span class="mycred-summary-value"><?php echo esc_html($messages_count); ?></span>
                 </div>
             <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Explains the plan's monthly credit top-up — how many credits are still
+     * eligible to be added this cycle, and roughly when — via
+     * dd_credit_next_topup() (includes/core/helpers.php). Deliberately framed
+     * as a top-up, never a "reset": nothing in this system claws back or
+     * expires credits already in a user's balance; unused allowance simply
+     * isn't topped up further until they spend some of it. The reassurance
+     * line (dd_msg_credit_log_topup_note) is always shown, regardless of
+     * which amount-due branch renders, since that's the point of the banner.
+     *
+     * Renders nothing for a user whose plan has no monthly allowance
+     * configured (dd_credit_next_topup() returns null) — same "just don't
+     * show it" posture as the summary strip's split tile.
+     *
+     * @param int $user_id
+     * @return string
+     */
+    private function get_topup_banner_html($user_id)
+    {
+        $topup = function_exists('dd_credit_next_topup') ? dd_credit_next_topup($user_id) : null;
+        if ($topup === null) {
+            return '';
+        }
+
+        $when_phrase = $topup['next_date']
+            ? sprintf(
+                /* translators: %s: formatted date the next top-up window opens */
+                __('on %s', 'hello-elementor-child'),
+                date_i18n(get_option('date_format'), $topup['next_date'])
+            )
+            : __('soon', 'hello-elementor-child');
+
+        $body  = dd_get_message('dd_msg_credit_log_topup_intro', [number_format_i18n($topup['cap'])]);
+        $body .= ' ';
+        $body .= ($topup['amount'] > 0)
+            ? dd_get_message('dd_msg_credit_log_topup_due', [number_format_i18n($topup['amount']), esc_html($when_phrase)])
+            : dd_get_message('dd_msg_credit_log_topup_at_cap');
+        $body .= ' ' . dd_get_message('dd_msg_credit_log_topup_note');
+
+        ob_start();
+        ?>
+        <div class="mycred-topup-banner">
+            <svg class="mycred-topup-banner-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <p class="mycred-topup-banner-text"><?php echo wp_kses_post($body); ?></p>
         </div>
         <?php
         return ob_get_clean();
@@ -764,9 +833,10 @@ class Custom_MyCred_Frontend_Log
             'ctype'     => $ctype ?: 'mycred_default',
         ));
 
-        $log          = $this->get_log($user_id, $filters);
-        $show_summary = $args['show_summary'] !== 'no';
-        $show_export  = $args['show_export'] !== 'no';
+        $log             = $this->get_log($user_id, $filters);
+        $show_summary    = $args['show_summary'] !== 'no';
+        $show_export     = $args['show_export'] !== 'no';
+        $show_topup_info = $args['show_topup_info'] !== 'no';
 
         ob_start();
         ?>
@@ -779,6 +849,11 @@ class Custom_MyCred_Frontend_Log
             <?php if ($show_summary) : ?>
                 <div class="mycred-summary-container"><?php echo $this->get_summary_html($user_id, $filters['ctype']); // phpcs:ignore -- self-built, already-escaped markup
                 ?></div>
+            <?php endif; ?>
+
+            <?php if ($show_topup_info) : ?>
+                <?php echo $this->get_topup_banner_html($user_id); // phpcs:ignore -- self-built, already-escaped markup
+                ?>
             <?php endif; ?>
 
             <?php echo $this->get_filter_bar_html($filters, $show_export); // phpcs:ignore -- self-built, already-escaped markup

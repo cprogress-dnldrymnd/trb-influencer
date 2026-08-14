@@ -586,6 +586,38 @@ function dd_message_definitions()
             'group'   => 'credit_log',
             'desc'    => 'Heading of the summary strip\'s single-stat tile shown instead of the split in the reverse case — creator unlocks are currently free but outreach messages still cost credits.',
         ],
+        'dd_msg_credit_log_summary_purchased' => [
+            'label'   => 'Summary Tile — Credits Purchased',
+            'default' => 'Credits Purchased',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the summary strip\'s lifetime "Credits Purchased" tile — total credits ever bought via Stripe or bank transfer. Not scoped to a calendar month like the other tiles, since it\'s an all-time total.',
+        ],
+        'dd_msg_credit_log_topup_intro' => [
+            'label'   => 'Top-Up Banner — Intro',
+            'default' => 'Your plan tops up your credits automatically, up to <strong>%s</strong> a month.',
+            'group'   => 'credit_log',
+            'desc'    => 'First sentence of the credit-history top-up banner. Keep the %s token — it\'s replaced with the plan\'s monthly allowance cap. Supports <strong> tags.',
+            'html'    => true,
+        ],
+        'dd_msg_credit_log_topup_due' => [
+            'label'   => 'Top-Up Banner — Amount Due',
+            'default' => "You're eligible for up to <strong>%1\$s more</strong> %2\$s.",
+            'group'   => 'credit_log',
+            'desc'    => 'Second sentence of the top-up banner, shown when some allowance is still due. Keep both tokens — %1$s is the amount, %2$s is a ready-made "on [date]" / "soon" phrase. Supports <strong> tags.',
+            'html'    => true,
+        ],
+        'dd_msg_credit_log_topup_at_cap' => [
+            'label'   => 'Top-Up Banner — At Cap',
+            'default' => "You're at your monthly cap for now — nothing more will be added until you use some of your current allowance.",
+            'group'   => 'credit_log',
+            'desc'    => 'Shown instead of the "amount due" sentence when the user hasn\'t used any of this cycle\'s allowance yet, so there\'s nothing left to top up.',
+        ],
+        'dd_msg_credit_log_topup_note' => [
+            'label'   => 'Top-Up Banner — Reassurance Note',
+            'default' => 'Unused credits never expire — they simply roll over.',
+            'group'   => 'credit_log',
+            'desc'    => 'Closing line of the top-up banner, always shown regardless of the branch above — the key point this banner exists to make.',
+        ],
     ];
 }
 

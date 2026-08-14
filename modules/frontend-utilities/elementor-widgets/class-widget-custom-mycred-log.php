@@ -40,6 +40,16 @@ class Widget_Custom_Mycred_Log extends \Elementor\Widget_Base {
             'description'  => esc_html__( '"Export CSV" button, downloading whatever the table\'s active filters currently show.', 'trb-influencer' ),
         ] );
 
+        $this->add_control( 'show_topup_info', [
+            'label'        => esc_html__( 'Show Top-Up Banner', 'trb-influencer' ),
+            'type'         => \Elementor\Controls_Manager::SWITCHER,
+            'label_on'     => esc_html__( 'Show', 'trb-influencer' ),
+            'label_off'    => esc_html__( 'Hide', 'trb-influencer' ),
+            'return_value' => 'yes',
+            'default'      => 'yes',
+            'description'  => esc_html__( 'Explains the plan\'s monthly credit top-up (amount + next date) and that unused credits never expire. Hidden automatically for a user whose plan has no monthly allowance configured.', 'trb-influencer' ),
+        ] );
+
         $this->add_control( 'limit', [
             'label'   => esc_html__( 'Rows Per Page', 'trb-influencer' ),
             'type'    => \Elementor\Controls_Manager::SELECT,
@@ -88,9 +98,10 @@ class Widget_Custom_Mycred_Log extends \Elementor\Widget_Base {
         $settings = $this->get_settings_for_display();
 
         $atts = [
-            'show_summary' => ! empty( $settings['show_summary'] ) ? 'yes' : 'no',
-            'show_export'  => ! empty( $settings['show_export'] ) ? 'yes' : 'no',
-            'limit'        => ! empty( $settings['limit'] ) ? (int) $settings['limit'] : 20,
+            'show_summary'    => ! empty( $settings['show_summary'] ) ? 'yes' : 'no',
+            'show_export'     => ! empty( $settings['show_export'] ) ? 'yes' : 'no',
+            'show_topup_info' => ! empty( $settings['show_topup_info'] ) ? 'yes' : 'no',
+            'limit'           => ! empty( $settings['limit'] ) ? (int) $settings['limit'] : 20,
         ];
 
         $attr_string = '';
