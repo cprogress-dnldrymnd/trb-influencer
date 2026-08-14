@@ -112,6 +112,40 @@ jQuery(function ($) {
         renderAll();
     });
 
+    $panel.on('click', '#dd-ob-restore-steps', function () {
+        var defaults = (window.dd_onboarding_admin && Array.isArray(dd_onboarding_admin.defaults))
+            ? dd_onboarding_admin.defaults
+            : [];
+
+        if (!defaults.length) {
+            return;
+        }
+
+        var restore = function () {
+            // Deep copy — a shallow slice() would share step objects with the localized
+            // payload, so editing a restored step then restoring again would hand back the
+            // edited object instead of the default.
+            state = defaults.map(function (step) {
+                return $.extend({}, step);
+            });
+            renderAll();
+        };
+
+        if (!state.length) {
+            restore();
+            return;
+        }
+
+        var msg = 'Replace the current ' + state.length + ' step(s) with the ' + defaults.length +
+            ' default steps? This takes effect when you save.';
+
+        if (window.ddConfirm) {
+            ddConfirm(msg, restore);
+        } else if (window.confirm(msg)) {
+            restore();
+        }
+    });
+
     $panel.on('click', '.dd-ob-remove', function () {
         var index = $(this).closest('.dd-ob-card').data('index');
         state.splice(index, 1);

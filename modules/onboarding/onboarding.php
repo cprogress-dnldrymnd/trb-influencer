@@ -199,14 +199,16 @@ class DD_Onboarding
     }
 
     /**
-     * Starter steps offered only while dd_onboarding_steps has never been saved (see
-     * get_steps()) — targets elements that exist on the Dashboard today (page 1565 + templates
-     * 1640/1571, confirmed against the live _elementor_data). Fully editable/removable from
-     * Influencer Theme → Onboarding like any other step.
+     * Starter steps — pre-fill the tour the first time dd_onboarding_steps is saved (see
+     * get_steps()), and are also offered to the admin UI so a site that has since deleted every
+     * step can bring them back via the "Restore Default Steps" button. Targets elements that
+     * exist on the Dashboard today (page 1565 + templates 1640/1571, confirmed against the live
+     * _elementor_data). Fully editable/removable from Influencer Theme → Onboarding like any
+     * other step.
      *
      * @return array<int, array{id:string,title:string,body:string,target:string,placement:string,page:string,cta_label:string,cta_url:string}>
      */
-    private static function default_steps()
+    public static function default_steps()
     {
         return [
             [
@@ -669,7 +671,8 @@ class DD_Onboarding
             true
         );
         wp_localize_script('dd-onboarding-admin', 'dd_onboarding_admin', [
-            'steps' => self::get_steps(),
+            'steps'    => self::get_steps(),
+            'defaults' => self::default_steps(),
         ]);
     }
 
@@ -715,11 +718,14 @@ class DD_Onboarding
             </table>
 
             <h3>Tour Steps</h3>
-            <p class="description">Each step highlights one element on the page. "Target" is a CSS selector (e.g. <code>#search-header</code>) — a step is skipped automatically if its target isn't found on the page, so it's safe to author steps for elements a template edit might later remove. These start pre-filled with a suggested set targeting the Dashboard — edit or remove any of them.</p>
+            <p class="description">Each step highlights one element on the page. "Target" is a CSS selector (e.g. <code>#search-header</code>) — a step is skipped automatically if its target isn't found on the page, so it's safe to author steps for elements a template edit might later remove. These start pre-filled with a suggested set targeting the Dashboard — edit, remove, or add to them. If you've deleted them all, "Restore Default Steps" brings the suggested set back.</p>
             <p class="description">To let members re-open the tour on their own, add the CSS class <code>dd-start-tour</code> to any button or link in Elementor (Advanced tab → CSS Classes) — clicking it starts the tour immediately, anywhere it's placed.</p>
 
             <div id="dd-ob-steps-list"></div>
-            <p><button type="button" class="button" id="dd-ob-add-step">Add Step</button></p>
+            <p>
+                <button type="button" class="button" id="dd-ob-add-step">Add Step</button>
+                <button type="button" class="button" id="dd-ob-restore-steps">Restore Default Steps</button>
+            </p>
 
             <input type="hidden" name="<?php echo esc_attr(self::STEPS_OPTION); ?>" id="dd-ob-steps-input" value="<?php echo esc_attr(wp_json_encode($steps)); ?>">
 
