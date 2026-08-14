@@ -649,6 +649,51 @@ function digitally_disruptive_standardize_mycred_log_text( $content, $log_entry 
 add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_log_text', 10, 2 );
 
 /**
+ * Character budget for a creator/post title rendered inside a myCred notice toast.
+ * The toast is capped at 400px, so a long title otherwise pushes the amount and
+ * the credit-history link into a tall, narrow column.
+ */
+if ( ! defined( 'DD_MYCRED_NOTICE_TITLE_LIMIT' ) ) {
+    define( 'DD_MYCRED_NOTICE_TITLE_LIMIT', 38 );
+}
+
+/**
+ * Shortens linked post titles inside a myCred notice toast so long creator names
+ * don't blow out the notice. Only the visible anchor text is trimmed — the href,
+ * and the full title in the credit history ledger, are left untouched.
+ *
+ * @param string $template Parsed notice HTML (content_template with tags replaced).
+ * @return string
+ */
+function dd_mycred_notice_shorten_titles( $template ) {
+    if ( $template === '' || stripos( $template, '<a' ) === false ) {
+        return $template;
+    }
+
+    $limit = (int) apply_filters( 'dd_mycred_notice_title_limit', DD_MYCRED_NOTICE_TITLE_LIMIT );
+    if ( $limit < 1 ) {
+        return $template;
+    }
+
+    return preg_replace_callback(
+        '#(<a\b[^>]*>)(.*?)(</a>)#is',
+        function ( $matches ) use ( $limit ) {
+            $title = trim( wp_strip_all_tags( $matches[2] ) );
+
+            if ( $title === '' || mb_strlen( $title ) <= $limit ) {
+                return $matches[0];
+            }
+
+            $short = rtrim( mb_substr( $title, 0, $limit ) ) . '…';
+
+            return $matches[1] . esc_html( $short ) . $matches[3];
+        },
+        $template
+    );
+}
+add_filter( 'mycred_notifications_note', 'dd_mycred_notice_shorten_titles', 9 );
+
+/**
  * Appends a "View Credit History" link to myCred Notice Plus toasts for credit spends
  * (unlocks, outreach, etc.) when a Credit History page is assigned.
  *

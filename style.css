@@ -4209,15 +4209,19 @@ a.dd-credit-history-link:hover {
   color: var(--e-global-color-secondary) !important;
 }
 
-.dd-credit-history-notice-link {
+.my-cred-notice-text .dd-credit-history-notice-link {
   margin: 6px 0 0 !important;
   padding: 0 !important;
   line-height: 1.4 !important;
 }
 
-#mycred-notificiation-wrap .dd-credit-history-notice-link,
-.notice-wrap .dd-credit-history-notice-link {
-  margin-top: 6px !important;
+/* The myCred Notice Plus toast lays entry/amount out in a row and is capped at
+   400px, so the link stays on that row and only the creator name may wrap. */
+#mycred-notificiation-wrap .dd-credit-history-notice-link {
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
 }
 
 button.inf-btn,
