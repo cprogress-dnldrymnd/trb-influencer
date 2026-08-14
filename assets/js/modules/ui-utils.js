@@ -23,6 +23,56 @@
         });
     };
 
+    /**
+     * Refreshes every credits ticker on the page ([credits_remaining]
+     * shortcode output — banner + unlock modal) after an AJAX action
+     * changes the balance, without a full reload. Reads the per-action
+     * costs off each ticker's own data-* attributes and the noun templates
+     * off the localized dd_messages global, so the recomputed detail text
+     * ("24 creator unlocks or 24 messages") can never disagree with what
+     * the server just charged — it uses the exact same costs the server
+     * rendered the ticker with.
+     *
+     * @param {number|string} balance New credit balance to display.
+     */
+    InfluencerApp.updateCreditsRemaining = function (balance) {
+        balance = parseInt(balance, 10);
+        if (isNaN(balance)) {
+            return;
+        }
+
+        var $tickers = $('.dd-credits-remaining');
+        if (!$tickers.length) {
+            return;
+        }
+
+        var msgs = (typeof dd_messages !== 'undefined') ? dd_messages : {};
+        var join = msgs.dd_msg_credits_detail_join || 'or';
+
+        $tickers.each(function () {
+            var $ticker      = $(this);
+            var unlockCost   = parseInt($ticker.attr('data-unlock-cost'), 10) || 0;
+            var messageCost  = parseInt($ticker.attr('data-message-cost'), 10) || 0;
+            var parts        = [];
+
+            $ticker.find('.dd-credits-remaining-value').text(balance);
+
+            if (unlockCost > 0) {
+                var unlockTpl = msgs.dd_msg_credits_detail_unlock || '%s creator unlocks';
+                parts.push(unlockTpl.replace('%s', Math.max(0, Math.floor(balance / unlockCost))));
+            }
+            if (messageCost > 0) {
+                var messageTpl = msgs.dd_msg_credits_detail_message || '%s messages';
+                parts.push(messageTpl.replace('%s', Math.max(0, Math.floor(balance / messageCost))));
+            }
+
+            var $detail = $ticker.find('.dd-credits-remaining-detail');
+            if ($detail.length) {
+                $detail.text(parts.length ? parts.join(' ' + join + ' ') : '');
+            }
+        });
+    };
+
     InfluencerApp.share_profile = function () {
         var shareButton = document.querySelector('.share-profile a');
 

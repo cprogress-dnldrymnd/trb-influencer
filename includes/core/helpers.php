@@ -634,6 +634,211 @@ function dd_user_can_afford_unlock($user_id = null)
 }
 
 /**
+ * Credit cost of one outreach message. Admin-editable (Influencer Theme →
+ * Outreach → "Outreach Credit Cost"); mirrors the option read at the point
+ * of sale in DD_Outreach_Manager::process_elementor_form_response().
+ */
+function dd_outreach_credit_cost()
+{
+    return (int) apply_filters('dd_outreach_credit_cost', (int) get_option('dd_outreach_credit_cost', 1));
+}
+
+/**
+ * Registry of every action a credit can be spent on. Each entry names its
+ * myCred log `ref`, its per-use cost, and the dd_msg_* key for its noun
+ * ("creator unlocks" / "messages"). An entry carrying a `capability` is
+ * dropped for a user whose plan lacks that dd_user_can() feature, so an
+ * action nobody can actually take is never advertised as spendable.
+ * Filterable so a future credit sink is a one-line addition here rather
+ * than a change to every caller that enumerates actions.
+ *
+ * @param int|null $user_id
+ * @return array<string, array{ref:string, cost:int, label_key:string, capability:?string}>
+ */
+function dd_credit_actions($user_id = null)
+{
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+
+    $actions = [
+        'unlock' => [
+            'ref'        => 'unlock_influencer',
+            'cost'       => dd_unlock_credit_cost(),
+            'label_key'  => 'dd_msg_credits_detail_unlock',
+            'capability' => null,
+        ],
+        'message' => [
+            'ref'        => 'outreach_submission',
+            'cost'       => dd_outreach_credit_cost(),
+            'label_key'  => 'dd_msg_credits_detail_message',
+            'capability' => 'outreach',
+        ],
+    ];
+
+    foreach ($actions as $key => $action) {
+        if ($action['capability'] && ! dd_user_can($action['capability'], $user_id)) {
+            unset($actions[$key]);
+        }
+    }
+
+    return apply_filters('dd_credit_actions', $actions, $user_id);
+}
+
+/**
+ * A user's current balance translated into "how many of each spendable
+ * action can I still take" — the single source of truth behind the credits
+ * ticker (banner + unlock modal) so a cost change in dd_credit_actions()
+ * can never leave the UI advertising more than the balance actually covers.
+ *
+ * Returns null wherever dd_searches_remaining() does (logged out, myCred
+ * unavailable) so callers can render nothing rather than a bogus number.
+ * A zero-cost action is omitted rather than shown as "0" or "unlimited".
+ *
+ * @param int|null $user_id
+ * @return array{balance:int, actions:array<string,int>}|null
+ */
+function dd_credit_capacity($user_id = null)
+{
+    if (! function_exists('mycred_get_users_balance')) {
+        return null;
+    }
+
+    $user_id = $user_id ? (int) $user_id : get_current_user_id();
+    if (! $user_id) {
+        return null;
+    }
+
+    $balance = (int) mycred_get_users_balance($user_id);
+    $actions = [];
+
+    foreach (dd_credit_actions($user_id) as $key => $action) {
+        if ($action['cost'] <= 0) {
+            continue;
+        }
+        $actions[$key] = intdiv(max(0, $balance), $action['cost']);
+    }
+
+    return [
+        'balance' => $balance,
+        'actions' => $actions,
+    ];
+}
+
+/**
+ * Plain-English "24 creator unlocks or 24 messages" conversion of a user's
+ * balance, composed from the admin-editable dd_msg_credits_detail_* parts
+ * so an omitted action (capability-gated or zero-cost) disappears from the
+ * sentence instead of leaving a dangling "or".
+ *
+ * @param int|null $user_id
+ * @return string|null
+ */
+function dd_credit_capacity_text($user_id = null)
+{
+    $capacity = dd_credit_capacity($user_id);
+    if ($capacity === null || empty($capacity['actions'])) {
+        return null;
+    }
+
+    $actions   = dd_credit_actions($user_id);
+    $sentences = [];
+
+    foreach ($capacity['actions'] as $key => $count) {
+        if (! isset($actions[$key])) {
+            continue;
+        }
+        $sentences[] = dd_get_message($actions[$key]['label_key'], [number_format_i18n($count)]);
+    }
+
+    if (empty($sentences)) {
+        return null;
+    }
+
+    if (count($sentences) === 1) {
+        return $sentences[0];
+    }
+
+    $last = array_pop($sentences);
+    return implode(', ', $sentences) . ' ' . dd_get_message('dd_msg_credits_detail_join') . ' ' . $last;
+}
+
+/**
+ * dd_credit_capacity_text() wrapped into a standalone sentence ("You have 24
+ * creator unlocks or 24 messages left.") for interpolation into longer
+ * notice bodies. Returns '' (never null) so it's always safe to drop into a
+ * %s token even when capacity text is unavailable.
+ *
+ * @param int|null $user_id
+ * @return string
+ */
+function dd_credit_capacity_sentence($user_id = null)
+{
+    $text = dd_credit_capacity_text($user_id);
+    if (! $text) {
+        return '';
+    }
+
+    return sprintf(
+        /* translators: %s: plain-English credit capacity, e.g. "24 creator unlocks or 24 messages" */
+        __('You have %s left.', 'hello-elementor-child'),
+        $text
+    );
+}
+
+/**
+ * Registry of every myCred log `ref` this theme writes or displays, keyed
+ * exactly as stored in wp_myCRED_log.ref. Drives the credit-history filter
+ * dropdown and its Type column badge. Labels are admin-editable via the
+ * dd_msg_credit_log_* messages so the ledger's wording can be changed
+ * without a code deploy. Filterable so a new credit sink registers here
+ * once rather than being silently excluded from filtering ("All
+ * Transactions" still shows unregistered refs — see get_rows_html()).
+ *
+ * @return array<string, array{label:string, direction:'earn'|'spend', links_creator:bool}>
+ */
+function dd_credit_log_refs()
+{
+    $refs = [
+        'unlock_influencer' => [
+            'label'         => dd_get_message('dd_msg_credit_log_unlock_influencer'),
+            'direction'     => 'spend',
+            'links_creator' => true,
+        ],
+        'buy_content' => [
+            'label'         => dd_get_message('dd_msg_credit_log_buy_content'),
+            'direction'     => 'spend',
+            'links_creator' => true,
+        ],
+        'outreach_submission' => [
+            'label'         => dd_get_message('dd_msg_credit_log_outreach_submission'),
+            'direction'     => 'spend',
+            'links_creator' => true,
+        ],
+        'pmpro_monthly_recurring' => [
+            'label'         => dd_get_message('dd_msg_credit_log_monthly_allowance'),
+            'direction'     => 'earn',
+            'links_creator' => false,
+        ],
+        'pmpro_registration' => [
+            'label'         => dd_get_message('dd_msg_credit_log_registration'),
+            'direction'     => 'earn',
+            'links_creator' => false,
+        ],
+        'buy_creds_with_stripe' => [
+            'label'         => dd_get_message('dd_msg_credit_log_credits_purchase'),
+            'direction'     => 'earn',
+            'links_creator' => false,
+        ],
+        'buy_creds_with_bank_pending' => [
+            'label'         => dd_get_message('dd_msg_credit_log_bank_transfer'),
+            'direction'     => 'earn',
+            'links_creator' => false,
+        ],
+    ];
+
+    return apply_filters('dd_credit_log_refs', $refs);
+}
+
+/**
  * Calculate Influencer Match Score
  */
 function calculate_match_score($post_id, $criteria)

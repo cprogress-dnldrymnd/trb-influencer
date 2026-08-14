@@ -1056,6 +1056,59 @@ add_shortcode('searches_remaining', 'shortcode_searches_remaining');
 
 
 /**
+ * Renders the user's credit balance plus a plain-English conversion of what
+ * it currently buys, e.g. "24 credits" / "24 creator unlocks or 24
+ * messages". The conversion always comes from dd_credit_capacity_text(), so
+ * it can never drift from what an unlock/message actually costs — unlike a
+ * hand-authored Elementor text widget, it stays correct if either cost
+ * changes. Mirrors [searches_remaining]'s shape/at-zero-template behaviour.
+ *
+ * @param array $atts { template_id?: string, show_detail?: 'yes'|'no' }
+ */
+function shortcode_credits_remaining($atts)
+{
+    $atts = shortcode_atts([
+        'template_id' => '',
+        'show_detail' => 'yes',
+    ], $atts, 'credits_remaining');
+
+    if (! function_exists('dd_credit_capacity')) {
+        return '';
+    }
+
+    $capacity = dd_credit_capacity();
+    if ($capacity === null) {
+        return '';
+    }
+
+    $balance = $capacity['balance'];
+
+    if ($balance <= 0 && ! empty($atts['template_id'])) {
+        return do_shortcode('[elementor-template id="' . absint($atts['template_id']) . '"]');
+    }
+
+    $user_id = get_current_user_id();
+    $actions = dd_credit_actions($user_id);
+    $detail  = ($atts['show_detail'] !== 'no') ? dd_credit_capacity_text($user_id) : null;
+
+    $out  = '<span class="dd-credits-remaining"';
+    $out .= ' data-unlock-cost="' . esc_attr($actions['unlock']['cost'] ?? 0) . '"';
+    $out .= ' data-message-cost="' . esc_attr($actions['message']['cost'] ?? 0) . '"';
+    $out .= '>';
+    $out .= '<span class="dd-credits-remaining-value mycred-balance current-points">' . esc_html($balance) . '</span> ';
+    $out .= '<span class="dd-credits-remaining-label">' . esc_html(_n('credit', 'credits', $balance, 'trb-influencer')) . '</span>';
+    if (! empty($detail)) {
+        $out .= ' <span class="dd-credits-remaining-detail">' . esc_html($detail) . '</span>';
+    }
+    $out .= '</span>';
+
+    return $out;
+}
+
+add_shortcode('credits_remaining', 'shortcode_credits_remaining');
+
+
+/**
  * Persistent on-page notice for a user who has no creator searches left —
  * either because their plan's search cap is exhausted, or because their
  * company already claimed its one trial (dd_user_trial_restricted()), which

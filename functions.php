@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.8.5');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.9.2');
 
 /**
  * Load child theme scripts & styles.
@@ -49,6 +49,12 @@ function hello_elementor_child_scripts_styles()
         ['influencer-style'],
         HELLO_ELEMENTOR_CHILD_VERSION
     );
+    wp_enqueue_style(
+        'dd-credit-history',
+        get_stylesheet_directory_uri() . '/assets/css/dd-credit-history.css',
+        ['influencer-style'],
+        HELLO_ELEMENTOR_CHILD_VERSION
+    );
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], null, true);
 
     // ------------------------------------------------------------------
@@ -59,6 +65,7 @@ function hello_elementor_child_scripts_styles()
         'dd-modal'             => 'modules/dd-modal.js',           // global ddAlert / ddConfirm — must be first
         'dd-page-gate'         => 'modules/dd-page-gate.js',        // restricted-page popup click interceptor — needs dd-modal
         'dd-onboarding'        => 'modules/dd-onboarding.js',       // welcome popup + guided tour
+        'dd-credit-history'    => 'modules/dd-credit-history.js',   // [custom_mycred_log] filters/pagination/export
         'inf-tag-prioritizer'  => 'modules/tag-prioritizer.js',   // no deps on other modules
         'inf-ui-utils'         => 'modules/ui-utils.js',           // no deps on other modules
         'inf-search-toggle'    => 'modules/search-toggle.js',      // no deps on other modules
@@ -106,6 +113,7 @@ function hello_elementor_child_scripts_styles()
     //    and main.js can reference it via the global ajax_vars object.
     // ------------------------------------------------------------------
     $searches_remaining = function_exists('dd_searches_remaining') ? dd_searches_remaining() : null;
+    $credits_capacity   = function_exists('dd_credit_capacity') ? dd_credit_capacity() : null;
 
     wp_localize_script('influencer-js', 'ajax_vars', [
         'ajax_url'              => admin_url('admin-ajax.php'),
@@ -113,6 +121,8 @@ function hello_elementor_child_scripts_styles()
         'search_results_page_id' => $search_results_page_id,
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
         'searches_remaining'    => is_null($searches_remaining) ? '' : (string) $searches_remaining,
+        'credits_remaining'     => is_null($credits_capacity) ? '' : (string) $credits_capacity['balance'],
+        'credits_capacity_text' => function_exists('dd_credit_capacity_text') ? (string) dd_credit_capacity_text() : '',
         'search_upgrade_url'    => function_exists('dd_plan_upgrade_url') ? dd_plan_upgrade_url() : '',
         'search_limit_message'  => function_exists('dd_get_message')
             ? dd_get_message((function_exists('dd_user_trial_restricted') && dd_user_trial_restricted()) ? 'dd_msg_company_trial_block' : 'dd_msg_search_limit')

@@ -1202,9 +1202,10 @@ class Saves_Manager
         }
 
         // 1. Verify MyCred Balance
+        $unlock_cost = function_exists('dd_unlock_credit_cost') ? dd_unlock_credit_cost() : 1;
         if (function_exists('mycred_get_users_balance')) {
             $balance = mycred_get_users_balance($user_id);
-            if ($balance < 1) {
+            if ($balance < $unlock_cost) {
                 wp_send_json_error([
                     'action' => 'redirect',
                     'url' => dd_get_buy_credits_url(),
@@ -1217,7 +1218,7 @@ class Saves_Manager
 
         // 2. Deduct Credit & Suppress Reload Notice
         if (function_exists('mycred_subtract')) {
-            mycred_subtract('unlock_influencer', $user_id, 1, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
+            mycred_subtract('unlock_influencer', $user_id, $unlock_cost, 'Unlocked creator ID: ' . $influencer_id, $influencer_id);
 
             // Delete the queued myCred notice to prevent it from showing on the next page reload
             delete_user_meta($user_id, 'mycred_notice');
@@ -1277,13 +1278,22 @@ class Saves_Manager
         }
 
         // Construct custom notice to return to JS
+        $deducted_phrase = sprintf(
+            /* translators: %s: number of credits just deducted */
+            _n('%s credit', '%s credits', $unlock_cost, 'hello-elementor-child'),
+            number_format_i18n($unlock_cost)
+        );
         $custom_notice = sprintf(
             '<div class="my-cred-notice-text">
                 <h4>%s</h4>
                 <p>%s</p>
              </div>',
             esc_html(dd_get_message('dd_msg_creator_unlocked_heading')),
-            dd_get_message('dd_msg_creator_unlocked_body', [esc_html($new_balance)])
+            dd_get_message('dd_msg_creator_unlocked_body', [
+                esc_html($deducted_phrase),
+                esc_html($new_balance),
+                esc_html(function_exists('dd_credit_capacity_sentence') ? dd_credit_capacity_sentence($user_id) : ''),
+            ])
         );
 
         wp_send_json_success([
@@ -1542,6 +1552,22 @@ class Saves_Manager
                 </div>
                 <div style="padding: 10px 0 20px; font-size: 15px; color: #444; line-height: 1.5; font-family: 'Work Sans', sans-serif;">
                     <?php echo dd_get_message('dd_msg_unlock_modal_body'); ?>
+                    <?php
+                    // Refreshed in place after every unlock by InfluencerApp.updateCreditsRemaining()
+                    // (ui-utils.js), which targets every .dd-credits-remaining on the page — this one
+                    // just omits the value/label spans so only the sentence itself renders here.
+                    $modal_capacity_text = function_exists('dd_credit_capacity_text') ? dd_credit_capacity_text() : null;
+                    if (! empty($modal_capacity_text)) :
+                        $modal_actions = function_exists('dd_credit_actions') ? dd_credit_actions() : [];
+                    ?>
+                        <p class="dd-credits-remaining dd-unlock-modal-capacity"
+                           data-unlock-cost="<?php echo esc_attr($modal_actions['unlock']['cost'] ?? 0); ?>"
+                           data-message-cost="<?php echo esc_attr($modal_actions['message']['cost'] ?? 0); ?>"
+                           style="margin: 8px 0 0; font-size: 13px; color: #64748b;">
+                            <?php esc_html_e('Your balance currently covers:', 'hello-elementor-child'); ?>
+                            <span class="dd-credits-remaining-detail"><?php echo esc_html($modal_capacity_text); ?></span>
+                        </p>
+                    <?php endif; ?>
                 </div>
                 <div class="inf-modal-actions">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>

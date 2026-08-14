@@ -1957,8 +1957,11 @@ class DD_Outreach_Manager
 
                             var $summaryTarget = jQuery('#outreach-form-summary');
 
+                            var ddNewBalance = null;
+
                             if (response.data.updated_points !== undefined) {
                                 jQuery('.current-points').text(response.data.updated_points);
+                                ddNewBalance = parseInt(response.data.updated_points, 10);
                                 if (response.data.updated_points == 0 || response.data.updated_points == '0') {
                                     jQuery('.submit-new').remove();
                                 }
@@ -1969,8 +1972,13 @@ class DD_Outreach_Manager
                                     var cost = response.data.deducted_points ? parseInt(response.data.deducted_points, 10) : 1;
                                     if (!isNaN(currentVal) && currentVal >= cost) {
                                         jQuery(this).text(currentVal - cost);
+                                        ddNewBalance = currentVal - cost;
                                     }
                                 });
+                            }
+
+                            if (ddNewBalance !== null && !isNaN(ddNewBalance) && window.InfluencerApp && typeof InfluencerApp.updateCreditsRemaining === 'function') {
+                                InfluencerApp.updateCreditsRemaining(ddNewBalance);
                             }
 
                             if ($summaryTarget.length) {

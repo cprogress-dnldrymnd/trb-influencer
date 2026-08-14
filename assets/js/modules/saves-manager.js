@@ -574,6 +574,9 @@ jQuery(document).ready(function($) {
                     if ($('.mycred-balance').length) {
                         $('.mycred-balance').text(res.data.new_balance);
                     }
+                    if (window.InfluencerApp && typeof InfluencerApp.updateCreditsRemaining === 'function') {
+                        InfluencerApp.updateCreditsRemaining(res.data.new_balance);
+                    }
 
                     // 3. Instantly swap the button to a normal "SAVE" button without reloading
                     state.triggerBtn

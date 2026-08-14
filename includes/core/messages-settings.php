@@ -282,9 +282,9 @@ function dd_message_definitions()
         ],
         'dd_msg_creator_unlocked_body' => [
             'label'     => 'Creator Unlocked Notice Body',
-            'default'   => '1 credit deducted. New balance: <strong>%s</strong>.',
+            'default'   => '%1$s deducted. New balance: <strong>%2$s</strong>. %3$s',
             'group'     => 'unlock',
-            'desc'      => 'Body of the toast notice shown right after a creator is unlocked. Keep the %s token — it is replaced with the new credit balance.',
+            'desc'      => 'Body of the toast notice shown right after a creator is unlocked. Keep the tokens — %1$s is the amount just deducted (e.g. "1 credit"), %2$s is the new balance, %3$s is a sentence naming what that balance still buys (blank when unavailable).',
             'multiline' => true,
             'html'      => true,
         ],
@@ -302,7 +302,7 @@ function dd_message_definitions()
         ],
         'dd_msg_unlock_no_credits_body' => [
             'label'     => 'Out of Credits Modal Body',
-            'default'   => "You've used all the creator unlocks included in your plan. Top up your credits to carry on unlocking, or upgrade your plan for a bigger monthly allowance.",
+            'default'   => "You've used all the creator unlocks and messages included in your plan. Top up your credits to keep going, or upgrade your plan for a bigger monthly allowance.",
             'group'     => 'unlock',
             'desc'      => 'Body text of the out-of-credits popup. Supports <strong> tags.',
             'multiline' => true,
@@ -319,6 +319,27 @@ function dd_message_definitions()
             'default' => 'Upgrade your plan',
             'group'   => 'unlock',
             'desc'    => 'Label of the "upgrade plan" button on the out-of-credits popup.',
+        ],
+        'dd_msg_credits_detail_unlock' => [
+            'label'   => 'Credits Ticker — Unlocks Noun',
+            'default' => '%s creator unlocks',
+            'group'   => 'unlock',
+            'desc'    => 'One clause of the credits ticker\'s "24 creator unlocks or 24 messages" conversion line. Keep the %s token — it is replaced with how many unlocks the current balance covers.',
+            'js'      => true,
+        ],
+        'dd_msg_credits_detail_message' => [
+            'label'   => 'Credits Ticker — Messages Noun',
+            'default' => '%s messages',
+            'group'   => 'unlock',
+            'desc'    => 'The other clause of the credits ticker\'s conversion line, omitted entirely for a plan without outreach access. Keep the %s token — it is replaced with how many messages the current balance covers.',
+            'js'      => true,
+        ],
+        'dd_msg_credits_detail_join' => [
+            'label'   => 'Credits Ticker — Join Word',
+            'default' => 'or',
+            'group'   => 'unlock',
+            'desc'    => 'Word joining the credits ticker\'s clauses, e.g. "24 creator unlocks OR 24 messages".',
+            'js'      => true,
         ],
 
         // --- Confirmation Dialogs ---------------------------------------------------------
@@ -413,6 +434,158 @@ function dd_message_definitions()
             'desc'    => 'Shown when confirming a saved search without a name.',
             'js'      => true,
         ],
+
+        // --- Credit History Labels ---------------------------------------------------------
+        'dd_msg_credit_log_unlock_influencer' => [
+            'label'   => 'Transaction Type — Creator Unlock',
+            'default' => 'Creator Unlock',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "unlock_influencer" (the in-app unlock button).',
+        ],
+        'dd_msg_credit_log_buy_content' => [
+            'label'   => 'Transaction Type — Creator Unlock (Store)',
+            'default' => 'Creator Unlock',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "buy_content" (myCred\'s own Sell Content button). Shares the same user-facing label as the in-app unlock — both mean the same thing to a member.',
+        ],
+        'dd_msg_credit_log_outreach_submission' => [
+            'label'   => 'Transaction Type — Outreach Message',
+            'default' => 'Outreach Message',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "outreach_submission".',
+        ],
+        'dd_msg_credit_log_monthly_allowance' => [
+            'label'   => 'Transaction Type — Monthly Allowance',
+            'default' => 'Monthly Allowance',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "pmpro_monthly_recurring".',
+        ],
+        'dd_msg_credit_log_registration' => [
+            'label'   => 'Transaction Type — Plan Credits',
+            'default' => 'Plan Credits',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "pmpro_registration" — credits included with a paid plan, awarded on signup and topped up on upgrade (DD_PMPro_Rewards_Manager::award_registration_points()). Deliberately not called a "bonus": these are credits the member paid for as part of their plan, not a free extra.',
+        ],
+        'dd_msg_credit_log_credits_purchase' => [
+            'label'   => 'Transaction Type — Credits Purchase',
+            'default' => 'Credits Purchase',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "buy_creds_with_stripe".',
+        ],
+        'dd_msg_credit_log_bank_transfer' => [
+            'label'   => 'Transaction Type — Bank Transfer',
+            'default' => 'Credits Purchase (Bank Transfer)',
+            'group'   => 'credit_log',
+            'desc'    => 'Type badge / filter label for the credit-history ref "buy_creds_with_bank_pending".',
+        ],
+        'dd_msg_credit_log_col_date' => [
+            'label'   => 'Column Heading — Date',
+            'default' => 'Date',
+            'group'   => 'credit_log',
+            'desc'    => 'Credit history table column heading.',
+        ],
+        'dd_msg_credit_log_col_type' => [
+            'label'   => 'Column Heading — Type',
+            'default' => 'Type',
+            'group'   => 'credit_log',
+            'desc'    => 'Credit history table column heading.',
+        ],
+        'dd_msg_credit_log_col_details' => [
+            'label'   => 'Column Heading — Details',
+            'default' => 'Transaction Details',
+            'group'   => 'credit_log',
+            'desc'    => 'Credit history table column heading.',
+        ],
+        'dd_msg_credit_log_col_amount' => [
+            'label'   => 'Column Heading — Amount',
+            'default' => 'Amount',
+            'group'   => 'credit_log',
+            'desc'    => 'Credit history table column heading.',
+        ],
+        'dd_msg_credit_log_col_balance' => [
+            'label'   => 'Column Heading — Balance',
+            'default' => 'Balance',
+            'group'   => 'credit_log',
+            'desc'    => 'Credit history table column heading for the running balance-after-transaction column.',
+        ],
+        'dd_msg_credit_log_empty' => [
+            'label'   => 'Empty State',
+            'default' => "You haven't used any credits yet. Unlock a creator or send a message to see your history here.",
+            'group'   => 'credit_log',
+            'desc'    => 'Shown in place of the table when a filtered (or unfiltered) credit history has no matching rows.',
+        ],
+        'dd_msg_credit_log_auth_required' => [
+            'label'   => 'Login Required',
+            'default' => 'Please log in to view your credit history.',
+            'group'   => 'credit_log',
+            'desc'    => 'Shown in place of the credit history widget for a logged-out visitor.',
+        ],
+        'dd_msg_credit_log_filter_all' => [
+            'label'   => 'Filter — All',
+            'default' => 'All',
+            'group'   => 'credit_log',
+            'desc'    => 'Label of the "show everything" segmented filter pill above the credit history table.',
+        ],
+        'dd_msg_credit_log_filter_spent' => [
+            'label'   => 'Filter — Spent',
+            'default' => 'Spent',
+            'group'   => 'credit_log',
+            'desc'    => 'Label of the "spend transactions only" segmented filter pill above the credit history table.',
+        ],
+        'dd_msg_credit_log_filter_earned' => [
+            'label'   => 'Filter — Earned',
+            'default' => 'Earned',
+            'group'   => 'credit_log',
+            'desc'    => 'Label of the "earn transactions only" segmented filter pill above the credit history table.',
+        ],
+        'dd_msg_credit_log_search_placeholder' => [
+            'label'   => 'Search Field Placeholder',
+            'default' => 'Search transactions…',
+            'group'   => 'credit_log',
+            'desc'    => 'Placeholder text of the free-text search box above the credit history table.',
+        ],
+        'dd_msg_credit_log_export_btn' => [
+            'label'   => 'Export Button',
+            'default' => 'Export CSV',
+            'group'   => 'credit_log',
+            'desc'    => 'Label of the credit history "download as CSV" button.',
+        ],
+        'dd_msg_credit_log_summary_balance' => [
+            'label'   => 'Summary Tile — Balance',
+            'default' => 'Current Balance',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the credit history summary strip\'s balance tile.',
+        ],
+        'dd_msg_credit_log_summary_spent' => [
+            'label'   => 'Summary Tile — Spent',
+            'default' => 'Spent This Month',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the credit history summary strip\'s monthly-spend tile.',
+        ],
+        'dd_msg_credit_log_summary_earned' => [
+            'label'   => 'Summary Tile — Earned',
+            'default' => 'Earned This Month',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the credit history summary strip\'s monthly-earn tile.',
+        ],
+        'dd_msg_credit_log_summary_split' => [
+            'label'   => 'Summary Tile — Unlocks vs. Messages',
+            'default' => 'Unlocks vs. Messages',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the credit history summary strip\'s tile splitting this month\'s spend between creator unlocks and outreach messages. Only shown when both currently cost credits — see the two labels below for when only one side does.',
+        ],
+        'dd_msg_credit_log_summary_unlocks_only' => [
+            'label'   => 'Summary Tile — Unlocks Only',
+            'default' => 'Creator Unlocks',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the summary strip\'s single-stat tile shown instead of the split when outreach messages are currently free (Outreach Credit Cost is 0, or outreach isn\'t on this user\'s plan) — a free action is never logged, so comparing it would always read 0.',
+        ],
+        'dd_msg_credit_log_summary_messages_only' => [
+            'label'   => 'Summary Tile — Messages Only',
+            'default' => 'Messages Sent',
+            'group'   => 'credit_log',
+            'desc'    => 'Heading of the summary strip\'s single-stat tile shown instead of the split in the reverse case — creator unlocks are currently free but outreach messages still cost credits.',
+        ],
     ];
 }
 
@@ -498,6 +671,7 @@ add_action('admin_init', function () {
         'confirm'     => 'Confirmation Dialogs',
         'success'     => 'Success Notices',
         'validation'  => 'Validation',
+        'credit_log'  => 'Credit History Labels',
     ];
 
     foreach ($groups as $group_key => $group_label) {
