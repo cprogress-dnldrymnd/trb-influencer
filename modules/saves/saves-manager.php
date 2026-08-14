@@ -1287,13 +1287,15 @@ class Saves_Manager
             '<div class="my-cred-notice-text">
                 <h4>%s</h4>
                 <p>%s</p>
+                %s
              </div>',
             esc_html(dd_get_message('dd_msg_creator_unlocked_heading')),
             dd_get_message('dd_msg_creator_unlocked_body', [
                 esc_html($deducted_phrase),
                 esc_html($new_balance),
                 esc_html(function_exists('dd_credit_capacity_sentence') ? dd_credit_capacity_sentence($user_id) : ''),
-            ])
+            ]),
+            function_exists('dd_credit_history_link_html') ? dd_credit_history_link_html() : ''
         );
 
         wp_send_json_success([

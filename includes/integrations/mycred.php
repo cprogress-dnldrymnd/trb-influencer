@@ -649,6 +649,33 @@ function digitally_disruptive_standardize_mycred_log_text( $content, $log_entry 
 add_filter( 'mycred_parse_log_entry', 'digitally_disruptive_standardize_mycred_log_text', 10, 2 );
 
 /**
+ * Appends a "View Credit History" link to myCred Notice Plus toasts for credit spends
+ * (unlocks, outreach, etc.) when a Credit History page is assigned.
+ *
+ * @param string $template Parsed notice HTML (content_template with tags replaced).
+ * @param array  $request  myCred add/subtract request (amount, ref, user_id, …).
+ * @param object $mycred   myCred point-type instance.
+ * @return string
+ */
+function dd_mycred_notice_append_credit_history_link( $template, $request, $mycred ) {
+    if ( $template === '' || empty( $request['amount'] ) || (float) $request['amount'] >= 0 ) {
+        return $template;
+    }
+
+    if ( ! function_exists( 'dd_credit_history_link_html' ) ) {
+        return $template;
+    }
+
+    $link = dd_credit_history_link_html();
+    if ( $link === '' ) {
+        return $template;
+    }
+
+    return $template . $link;
+}
+add_filter( 'mycred_notifications_note', 'dd_mycred_notice_append_credit_history_link', 10, 3 );
+
+/**
  * Enqueues the confirmation gate for the myCred "Sell Content" buy button.
  *
  * myCred spends the user's credit and unlocks the content immediately on

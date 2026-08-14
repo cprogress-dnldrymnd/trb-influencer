@@ -4209,6 +4209,17 @@ a.dd-credit-history-link:hover {
   color: var(--e-global-color-secondary) !important;
 }
 
+.dd-credit-history-notice-link {
+  margin: 6px 0 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+}
+
+#mycred-notificiation-wrap .dd-credit-history-notice-link,
+.notice-wrap .dd-credit-history-notice-link {
+  margin-top: 6px !important;
+}
+
 button.inf-btn,
 a.inf-btn {
   flex: 1 !important;

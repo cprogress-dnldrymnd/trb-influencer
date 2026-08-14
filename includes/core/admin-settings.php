@@ -37,6 +37,30 @@ function dd_get_credit_history_url()
 }
 
 /**
+ * Markup for the "View Credit History" link used on spend confirmations and myCred notices.
+ * Empty when no Credit History page is assigned.
+ *
+ * @return string
+ */
+function dd_credit_history_link_html()
+{
+    $url = dd_get_credit_history_url();
+    if ($url === '') {
+        return '';
+    }
+
+    $label = function_exists('dd_get_message')
+        ? dd_get_message('dd_msg_unlock_credit_history_btn')
+        : __('View Credit History', 'hello-elementor-child');
+
+    return sprintf(
+        '<p class="dd-credit-history-notice-link"><a class="dd-credit-history-link" href="%s">%s</a></p>',
+        esc_url($url),
+        esc_html($label)
+    );
+}
+
+/**
  * Renders a checkbox list of all PMPro membership levels.
  *
  * @param string $name        The option/field name (rendered as `{$name}[]`).
