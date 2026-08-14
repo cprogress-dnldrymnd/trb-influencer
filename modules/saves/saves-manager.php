@@ -1568,6 +1568,16 @@ class Saves_Manager
                             <span class="dd-credits-remaining-detail"><?php echo esc_html($modal_capacity_text); ?></span>
                         </p>
                     <?php endif; ?>
+                    <?php
+                    $credit_history_url = function_exists('dd_get_credit_history_url') ? dd_get_credit_history_url() : '';
+                    if ($credit_history_url !== '') :
+                    ?>
+                        <p style="margin: 12px 0 0;">
+                            <a class="dd-credit-history-link" href="<?php echo esc_url($credit_history_url); ?>">
+                                <?php echo esc_html(dd_get_message('dd_msg_unlock_credit_history_btn')); ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
                 </div>
                 <div class="inf-modal-actions">
                     <button type="button" class="inf-btn inf-btn-cancel inf-close-modal">Cancel</button>

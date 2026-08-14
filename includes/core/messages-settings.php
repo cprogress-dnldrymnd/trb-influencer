@@ -274,6 +274,13 @@ function dd_message_definitions()
             'desc'    => 'Confirm dialog shown before spending a credit via the myCred "buy content" button.',
             'js'      => true,
         ],
+        'dd_msg_unlock_credit_history_btn' => [
+            'label'   => 'Credit Spend — Credit History Link',
+            'default' => 'View Credit History',
+            'group'   => 'unlock',
+            'desc'    => 'Label of the link on credit-spend confirmation popups that opens the Credit History page (assigned under Page Assignment).',
+            'js'      => true,
+        ],
         'dd_msg_unlock_modal_body' => [
             'label'     => 'Unlock Confirm Modal Body',
             'default'   => 'Unlocking this creator will deduct <strong>1 credit</strong> from your balance and automatically add them to your <strong>"Unlocked Influencers"</strong> saved list.',

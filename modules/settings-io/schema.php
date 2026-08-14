@@ -39,6 +39,7 @@ function dd_settings_io_schema()
         'dd_roi_calculator_page_id' => ['class' => 'page_ref', 'shape' => 'scalar', 'fail' => 'closed'],
         'dd_outreach_page_id'       => ['class' => 'page_ref', 'shape' => 'scalar', 'fail' => 'closed'],
         'dd_buy_credits_page_id'    => ['class' => 'page_ref', 'shape' => 'scalar', 'fail' => 'closed'],
+        'dd_credit_history_page_id' => ['class' => 'page_ref', 'shape' => 'scalar', 'fail' => 'closed'],
 
         // PMPro's own core page assignments (includes/init.php in the paid-memberships-pro plugin).
         // These are PMPro's own options, not dd_* — writing a wrong/zeroed value here doesn't just

@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.9.4');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.9.5');
 
 /**
  * Load child theme scripts & styles.
@@ -120,6 +120,7 @@ function hello_elementor_child_scripts_styles()
         'page_id'               => $page_id,
         'search_results_page_id' => $search_results_page_id,
         'search_page_url'       => get_permalink(dd_get_page_id('dd_search_page_id', 2149)),
+        'credit_history_url'    => function_exists('dd_get_credit_history_url') ? dd_get_credit_history_url() : '',
         'searches_remaining'    => is_null($searches_remaining) ? '' : (string) $searches_remaining,
         'credits_remaining'     => is_null($credits_capacity) ? '' : (string) $credits_capacity['balance'],
         'credits_capacity_text' => function_exists('dd_credit_capacity_text') ? (string) dd_credit_capacity_text() : '',

@@ -26,6 +26,17 @@ function dd_get_buy_credits_url()
 }
 
 /**
+ * URL of the Credit History page (member ledger). Empty when no page is assigned.
+ *
+ * @return string
+ */
+function dd_get_credit_history_url()
+{
+    $id = dd_get_page_id('dd_credit_history_page_id', 0);
+    return $id ? (string) get_permalink($id) : '';
+}
+
+/**
  * Renders a checkbox list of all PMPro membership levels.
  *
  * @param string $name        The option/field name (rendered as `{$name}[]`).
@@ -256,6 +267,7 @@ add_action('admin_init', function () {
         'dd_roi_calculator_page_id'   => 0,
         'dd_outreach_page_id'         => 0,
         'dd_buy_credits_page_id'      => 4191,
+        'dd_credit_history_page_id'   => 0,
     ];
     foreach ($page_keys as $key => $default) {
         register_setting('dd_theme_page_ids', $key, [
@@ -386,6 +398,7 @@ add_action('admin_init', function () {
         'dd_roi_calculator_page_id' => ['ROI Calculator Page',   0,    'Page hosting the [roi_calculator] shortcode.'],
         'dd_outreach_page_id'       => ['Outreach Page',         0,    'Page hosting the outreach dashboard/history.'],
         'dd_buy_credits_page_id'    => ['Buy Credits Page',      4191, 'Page where members purchase myCred credits.'],
+        'dd_credit_history_page_id' => ['Credit History Page',   0,    'Page hosting the member credit ledger ([custom_mycred_log]). Linked from credit-spend confirmation popups.'],
     ];
     foreach ($page_fields as $key => [$label, $default, $description]) {
         add_settings_field($key, $label, function () use ($key, $default, $description) {

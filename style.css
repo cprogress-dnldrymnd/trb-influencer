@@ -4197,6 +4197,18 @@ body {
   margin-top: 24px;
 }
 
+a.dd-credit-history-link {
+  color: var(--e-global-color-primary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+a.dd-credit-history-link:hover {
+  color: var(--e-global-color-secondary) !important;
+}
+
 button.inf-btn,
 a.inf-btn {
   flex: 1 !important;

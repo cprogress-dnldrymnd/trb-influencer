@@ -29,6 +29,8 @@ window.ddAlert = function (msg) {
  * @param {string}   [options.processingText] Label shown on the confirm button while keepOpen is active.
  * @param {string}   [options.confirmText]    Overrides the default "Confirm" button label.
  * @param {string}   [options.cancelText]     Overrides the default "Cancel" button label.
+ * @param {string}   [options.linkUrl]        Optional secondary link shown under the message.
+ * @param {string}   [options.linkText]       Label for options.linkUrl.
  */
 window.ddConfirm = function (msg, onOk, options) {
     options = options || {};
@@ -39,6 +41,17 @@ window.ddConfirm = function (msg, onOk, options) {
     var p = document.createElement('p');
     Object.assign(p.style, {margin:'0 0 20px',fontSize:'15px',lineHeight:'1.5'});
     p.textContent = msg;
+    if (options.linkUrl && options.linkText) {
+        p.style.marginBottom = '10px';
+        var linkWrap = document.createElement('p');
+        Object.assign(linkWrap.style, {margin:'0 0 20px'});
+        var link = document.createElement('a');
+        link.href = options.linkUrl;
+        link.textContent = options.linkText;
+        link.className = 'dd-credit-history-link';
+        Object.assign(link.style, {fontSize:'13px',fontWeight:'500',textDecoration:'underline'});
+        linkWrap.appendChild(link);
+    }
     var row = document.createElement('div');
     Object.assign(row.style, {display:'flex',gap:'12px',justifyContent:'flex-end'});
     var cancelBtn = document.createElement('button');
@@ -70,6 +83,9 @@ window.ddConfirm = function (msg, onOk, options) {
     row.appendChild(cancelBtn);
     row.appendChild(okBtn);
     box.appendChild(p);
+    if (linkWrap) {
+        box.appendChild(linkWrap);
+    }
     box.appendChild(row);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
