@@ -179,6 +179,14 @@ function dd_message_definitions()
             'desc'    => 'One-line benefit shown on the padlock overlay for the Saved Search feature.',
         ],
 
+        // --- Dashboard Activity --------------------------------------------------------------
+        'dd_msg_no_recently_viewed' => [
+            'label'   => 'No Recently Viewed Creators',
+            'default' => "You haven't viewed any creators yet.",
+            'group'   => 'dashboard',
+            'desc'    => 'Shown in place of the Recently Viewed Influencers list on the dashboard when the current user has no viewed creators.',
+        ],
+
         // --- Onboarding ---------------------------------------------------------------------
         'dd_msg_ob_welcome_title' => [
             'label'   => 'Welcome Popup Title',
@@ -698,6 +706,7 @@ add_action('admin_init', function () {
     $definitions = dd_message_definitions();
     $groups = [
         'plan_gates'  => 'Plan & Upgrade Prompts',
+        'dashboard'   => 'Dashboard Activity',
         'onboarding'  => 'Onboarding',
         'unlock'      => 'Unlock & Credit Confirmations',
         'confirm'     => 'Confirmation Dialogs',

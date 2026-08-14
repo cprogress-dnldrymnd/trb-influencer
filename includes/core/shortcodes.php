@@ -897,6 +897,35 @@ function unlocked_influencer_count()
 add_shortcode('unlocked_influencer_count', 'unlocked_influencer_count');
 
 
+/**
+ * Shortcode handler that prints a fallback message when the current user has
+ * no recently viewed influencers, and nothing otherwise. Pair it inside the
+ * "Recently Viewed Influencers" dashboard block so it fills the gap left by
+ * an empty Loop Grid (the `recently_view_influencers` Elementor query id,
+ * see includes/integrations/elementor.php).
+ *
+ * Usage: [recently_viewed_influencers_empty] or
+ *        [recently_viewed_influencers_empty text="Custom message"]
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string      The empty-state message, or '' when there's data.
+ */
+function shortcode_recently_viewed_influencers_empty($atts)
+{
+    $recently_viewed = get_viewed_influencer();
+
+    if (!empty($recently_viewed)) {
+        return '';
+    }
+
+    $atts = shortcode_atts(['text' => ''], $atts);
+    $message = $atts['text'] !== '' ? $atts['text'] : dd_get_message('dd_msg_no_recently_viewed');
+
+    return '<p class="dd-no-recently-viewed">' . esc_html($message) . '</p>';
+}
+add_shortcode('recently_viewed_influencers_empty', 'shortcode_recently_viewed_influencers_empty');
+
+
 
 function most_engage_niches()
 {
