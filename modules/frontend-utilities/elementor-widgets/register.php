@@ -63,6 +63,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     require_once $dir . 'class-widget-locked-feature.php';
     require_once $dir . 'class-widget-onboarding-checklist.php';
     require_once $dir . 'class-widget-onboarding-tour-button.php';
+    require_once $dir . 'class-widget-ic-cta.php';
 
     // ── Register core widgets ─────────────────────────────────────────────────
     $wm->register( new Influencer_Match_Score_Widget() );
@@ -103,4 +104,5 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     $wm->register( new Widget_Locked_Feature() );
     $wm->register( new Widget_Onboarding_Checklist() );
     $wm->register( new Widget_Onboarding_Tour_Button() );
+    $wm->register( new Widget_IC_CTA() );
 } );

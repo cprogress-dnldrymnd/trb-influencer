@@ -203,6 +203,8 @@ require $dir . '/modules/onboarding/onboarding.php';
 
 require $dir . '/modules/settings-io/settings-io.php';
 
+require $dir . '/modules/cta-block/ic-cta-block.php';
+
 
 function influencers_meta()
 {
