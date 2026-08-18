@@ -151,6 +151,8 @@ require $dir . '/modules/membership-extensions/pmpro-trial-protection.php';
 require $dir . '/modules/mycred-components/mycred-frontend-log.php';
 require $dir . '/modules/saves/saves-manager.php';
 
+require $dir . '/modules/cta-block/ic-cta-block.php';
+
 
 function influencers_meta()
 {

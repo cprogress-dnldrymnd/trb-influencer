@@ -53,6 +53,7 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     require_once $dir . 'class-widget-influencer-topics.php';
     require_once $dir . 'class-widget-influencer-hashtags.php';
     require_once $dir . 'class-widget-influencer-unlocked-badge.php';
+    require_once $dir . 'class-widget-ic-cta.php';
 
     // ── Register core widgets ─────────────────────────────────────────────────
     $wm->register( new Influencer_Match_Score_Widget() );
@@ -86,4 +87,5 @@ add_action( 'elementor/widgets/register', function ( \Elementor\Widgets_Manager 
     $wm->register( new Widget_Influencer_Topics() );
     $wm->register( new Widget_Influencer_Hashtags() );
     $wm->register( new Widget_Influencer_Unlocked_Badge() );
+    $wm->register( new Widget_IC_CTA() );
 } );
