@@ -11,7 +11,7 @@
 
     function show_gate_popup(entry) {
         window.ddConfirm(entry.message, function () {
-            window.location.href = entry.cta_url;
+            window.location.replace(entry.cta_url);
         }, { confirmText: entry.cta_label, cancelText: close_label() });
     }
 

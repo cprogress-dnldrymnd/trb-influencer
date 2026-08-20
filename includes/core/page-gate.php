@@ -356,8 +356,29 @@ function dd_page_gate_bounce($gate)
 
     $current_url = home_url(add_query_arg([], $_SERVER['REQUEST_URI'] ?? ''));
 
+    // Login (and the gate CTA) are ungated, so they used to win as "safe" bounce targets
+    // whenever they were the HTTP referer — Back after logout then felt like "go to login".
+    $skip_urls = [];
+    $login_url = get_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144));
+    if ($login_url) {
+        $skip_urls[] = $login_url;
+    }
+    if (function_exists('pmpro_url')) {
+        $pmpro_login = pmpro_url('login');
+        if (! empty($pmpro_login)) {
+            $skip_urls[] = $pmpro_login;
+        }
+    }
+    if (! empty($gate['cta_url'])) {
+        $skip_urls[] = $gate['cta_url'];
+    }
+    $skip_norm = array_unique(array_map('untrailingslashit', array_filter($skip_urls)));
+
     foreach ($candidates as $candidate) {
         if (! $candidate || untrailingslashit($candidate) === untrailingslashit($current_url)) {
+            continue;
+        }
+        if (in_array(untrailingslashit($candidate), $skip_norm, true)) {
             continue;
         }
         $candidate_id = url_to_postid($candidate);
