@@ -211,6 +211,7 @@
         var newUrl = window.location.protocol + '//' + window.location.host +
             window.location.pathname + '?' + urlParams.toString();
         window.history.pushState({ path: newUrl }, '', newUrl);
+        try { sessionStorage.setItem('dd_last_search_url', newUrl); } catch (e) {}
     }
 
     /**

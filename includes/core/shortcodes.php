@@ -586,8 +586,19 @@ function breadcrumbs()
                     <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>">Influencer Discovery</a></li>
                 <?php } ?>
 
-                <?php if (is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= esc_url(get_the_permalink($search_results_page_id)) ?>">Search Results</a></li>
+                <?php if (is_single() && get_post_type() == 'influencer') {
+                    $results_url = get_the_permalink($search_results_page_id);
+                    $referer     = wp_get_referer();
+                    if ($referer && $results_url) {
+                        $results_path = wp_parse_url($results_url, PHP_URL_PATH);
+                        $referer_path = wp_parse_url($referer, PHP_URL_PATH);
+                        $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
+                        if ($results_path && $referer_path === $results_path && !empty($referer_query)) {
+                            $results_url = $referer;
+                        }
+                    }
+                    ?>
+                    <li><a class="dd-crumb-search-results" href="<?= esc_url($results_url) ?>">Search Results</a></li>
                     <li><span>Creator Profile</span></li>
 
                 <?php } ?>
