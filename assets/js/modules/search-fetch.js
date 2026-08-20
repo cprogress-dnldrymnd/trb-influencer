@@ -189,7 +189,9 @@
     }
 
     /**
-     * Pushes current filter state to the browser URL bar (no reload).
+     * Syncs current filter state into the browser URL bar without stacking history.
+     * replaceState (not pushState) so Back from results returns to /search/ in one step
+     * instead of walking duplicate results URLs and then into a stale gate landing.
      */
     function push_url_state(filters, search_brief) {
         var urlParams = new URLSearchParams();
@@ -210,7 +212,9 @@
 
         var newUrl = window.location.protocol + '//' + window.location.host +
             window.location.pathname + '?' + urlParams.toString();
-        window.history.pushState({ path: newUrl }, '', newUrl);
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+        }
         try { sessionStorage.setItem('dd_last_search_url', newUrl); } catch (e) {}
     }
 

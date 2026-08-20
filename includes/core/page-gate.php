@@ -232,10 +232,12 @@ add_action('pmpro_save_membership_level', 'dd_page_gate_flush_pmpro_page_ids');
 function dd_page_gate_client_map()
 {
     $map = [
-        'enabled'  => dd_page_gate_enabled(),
-        'paths'    => [],
-        'prefixes' => [],
-        'notice'   => null,
+        'enabled'    => dd_page_gate_enabled(),
+        'paths'      => [],
+        'prefixes'   => [],
+        'notice'     => null,
+        'logged_in'  => is_user_logged_in(),
+        'block_page' => false,
     ];
 
     if (! $map['enabled']) {
@@ -280,20 +282,109 @@ function dd_page_gate_client_map()
         $add_path($post_id);
     }
 
-    // Direct-navigation fallback: if the current request itself is gated, tell the JS to
-    // pop the modal immediately (dd_page_gate_bounce() lands here with ?dd_gate=<reason>).
-    if (isset($_GET['dd_gate']) && function_exists('dd_get_message')) {
-        $reason        = sanitize_key(wp_unslash($_GET['dd_gate']));
-        $message_key   = $reason === 'upgrade' ? 'dd_msg_gate_plan' : 'dd_msg_gate_members_only';
-        $map['notice'] = [
-            'reason'    => $reason,
-            'message'   => dd_get_message($message_key),
-            'cta_label' => $reason === 'upgrade' ? dd_get_message('dd_msg_notice_upgrade_cta') : dd_get_message('dd_msg_gate_login_cta'),
-            'cta_url'   => $reason === 'upgrade' ? dd_plan_upgrade_url() : get_the_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144)),
-        ];
+    // Fresh bounce flash (cookie) wins; legacy ?dd_gate= is still honoured for old history
+    // entries, but both go through dd_page_gate_notice_payload() so a logged-in visitor
+    // never re-sees "please log in" from a stale Back navigation.
+    $reason = dd_page_gate_consume_flash();
+    if (! $reason && isset($_GET['dd_gate'])) {
+        $reason = sanitize_key(wp_unslash($_GET['dd_gate']));
     }
+    $map['notice'] = dd_page_gate_notice_payload($reason);
 
     return $map;
+}
+
+/**
+ * One-shot flash cookie (legacy). New gates use dd_page_gate_render_block() instead of
+ * redirecting; this remains so an old cookie still surfaces a notice once if present.
+ *
+ * @param string $reason
+ * @return void
+ */
+function dd_page_gate_set_flash($reason)
+{
+    $reason = sanitize_key($reason);
+    if (! $reason) {
+        return;
+    }
+
+    $path   = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $domain = defined('COOKIE_DOMAIN') ? COOKIE_DOMAIN : '';
+    setcookie('dd_gate_flash', $reason, [
+        'expires'  => time() + 120,
+        'path'     => $path,
+        'domain'   => $domain,
+        'secure'   => is_ssl(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+/**
+ * Read and clear the bounce flash cookie for this request.
+ *
+ * @return string Empty when none.
+ */
+function dd_page_gate_consume_flash()
+{
+    if (empty($_COOKIE['dd_gate_flash'])) {
+        return '';
+    }
+
+    $reason = sanitize_key(wp_unslash($_COOKIE['dd_gate_flash']));
+    $path   = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $domain = defined('COOKIE_DOMAIN') ? COOKIE_DOMAIN : '';
+    setcookie('dd_gate_flash', '', [
+        'expires'  => time() - YEAR_IN_SECONDS,
+        'path'     => $path,
+        'domain'   => $domain,
+        'secure'   => is_ssl(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    unset($_COOKIE['dd_gate_flash']);
+
+    return $reason;
+}
+
+/**
+ * Build the client notice payload for a bounce reason, or null when it no longer applies
+ * (e.g. logged-in user hitting a leftover ?dd_gate=login history entry).
+ *
+ * @param string $reason
+ * @return array{reason:string,message:string,cta_label:string,cta_url:string}|null
+ */
+function dd_page_gate_notice_payload($reason)
+{
+    $reason = sanitize_key($reason);
+    if (! $reason || ! function_exists('dd_get_message')) {
+        return null;
+    }
+
+    if ($reason === 'login' && is_user_logged_in()) {
+        return null;
+    }
+
+    if ($reason === 'upgrade' && is_user_logged_in() && function_exists('dd_user_search_limit')) {
+        $user_id = get_current_user_id();
+        $limit   = dd_user_search_limit($user_id);
+        if ($limit < 0) {
+            return null;
+        }
+        $used = (int) get_user_meta($user_id, 'number_of_searches', true);
+        if ($used < $limit) {
+            return null;
+        }
+    }
+
+    $is_upgrade = ($reason === 'upgrade');
+
+    return [
+        'reason'    => $reason,
+        'message'   => dd_get_message($is_upgrade ? 'dd_msg_gate_plan' : 'dd_msg_gate_members_only'),
+        'cta_label' => $is_upgrade ? dd_get_message('dd_msg_notice_upgrade_cta') : dd_get_message('dd_msg_gate_login_cta'),
+        'cta_url'   => $is_upgrade ? dd_plan_upgrade_url() : get_the_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144)),
+    ];
 }
 
 /**
@@ -329,67 +420,71 @@ function dd_page_gate_for_post_type_sample($post_type)
 
 /**
  * Server-side fallback for a gated request that wasn't intercepted client-side (direct URL
- * entry, a bookmark, JS disabled). Bounces back to a safe, ungated origin with
- * ?dd_gate={reason} so the popup opens there instead of showing the restricted page.
+ * entry, a bookmark, JS disabled). Renders a minimal blocked page in place (HTTP 200) and
+ * pops the gate modal there — no redirect. Redirecting used to leave /?dd_gate=login in
+ * history; browsers skip 302 sources on Back, so every Back felt like "go to login".
+ *
+ * @param array $gate
+ * @return void
+ */
+function dd_page_gate_render_block($gate)
+{
+    if (function_exists('nocache_headers')) {
+        nocache_headers();
+    }
+
+    status_header(200);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
+    $version   = defined('HELLO_ELEMENTOR_CHILD_VERSION') ? HELLO_ELEMENTOR_CHILD_VERSION : '1.0';
+    $theme_uri = get_stylesheet_directory_uri();
+    $notice    = [
+        'reason'    => $gate['reason'],
+        'message'   => $gate['message'],
+        'cta_label' => $gate['cta_label'],
+        'cta_url'   => $gate['cta_url'],
+    ];
+    $payload = [
+        'enabled'    => true,
+        'paths'      => new stdClass(),
+        'prefixes'   => [],
+        'notice'     => $notice,
+        'logged_in'  => is_user_logged_in(),
+        'block_page' => true,
+    ];
+    $messages = function_exists('dd_js_messages') ? dd_js_messages() : [];
+
+    ?><!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><?php echo esc_html(wp_strip_all_tags($gate['message'])); ?></title>
+    <style>html,body{margin:0;min-height:100%;background:#f3f4f6;}</style>
+</head>
+<body>
+<script src="<?php echo esc_url($theme_uri . '/assets/js/modules/dd-modal.js?ver=' . rawurlencode($version)); ?>"></script>
+<script>
+var dd_gate = <?php echo wp_json_encode($payload); ?>;
+var dd_messages = <?php echo wp_json_encode($messages); ?>;
+</script>
+<script src="<?php echo esc_url($theme_uri . '/assets/js/modules/dd-page-gate.js?ver=' . rawurlencode($version)); ?>"></script>
+</body>
+</html>
+    <?php
+    exit;
+}
+
+/**
+ * @deprecated Use dd_page_gate_render_block() — kept as an alias so any leftover callers still work.
  *
  * @param array $gate
  * @return void
  */
 function dd_page_gate_bounce($gate)
 {
-    $current_user_id = get_current_user_id();
-    $candidates       = [];
-
-    $referer = wp_get_referer();
-    if ($referer) {
-        $referer_host = wp_parse_url($referer, PHP_URL_HOST);
-        if ($referer_host && $referer_host === wp_parse_url(home_url(), PHP_URL_HOST)) {
-            $candidates[] = $referer;
-        }
-    }
-
-    $candidates[] = $current_user_id
-        ? get_permalink(dd_get_page_id('dd_dashboard_page_id', 1565))
-        : home_url('/');
-
-    $candidates[] = home_url('/');
-
-    $current_url = home_url(add_query_arg([], $_SERVER['REQUEST_URI'] ?? ''));
-
-    // Login (and the gate CTA) are ungated, so they used to win as "safe" bounce targets
-    // whenever they were the HTTP referer — Back after logout then felt like "go to login".
-    $skip_urls = [];
-    $login_url = get_permalink(dd_get_page_id('dd_login_redirect_page_id', 4144));
-    if ($login_url) {
-        $skip_urls[] = $login_url;
-    }
-    if (function_exists('pmpro_url')) {
-        $pmpro_login = pmpro_url('login');
-        if (! empty($pmpro_login)) {
-            $skip_urls[] = $pmpro_login;
-        }
-    }
-    if (! empty($gate['cta_url'])) {
-        $skip_urls[] = $gate['cta_url'];
-    }
-    $skip_norm = array_unique(array_map('untrailingslashit', array_filter($skip_urls)));
-
-    foreach ($candidates as $candidate) {
-        if (! $candidate || untrailingslashit($candidate) === untrailingslashit($current_url)) {
-            continue;
-        }
-        if (in_array(untrailingslashit($candidate), $skip_norm, true)) {
-            continue;
-        }
-        $candidate_id = url_to_postid($candidate);
-        if ($candidate_id && dd_page_gate_for_post($candidate_id, $current_user_id ?: null)) {
-            continue; // still gated — try the next candidate rather than looping.
-        }
-        wp_safe_redirect(add_query_arg('dd_gate', $gate['reason'], $candidate));
-        exit;
-    }
-
-    // Every candidate was gated or unusable (shouldn't happen in practice) — go home plain.
-    wp_safe_redirect(home_url('/'));
-    exit;
+    dd_page_gate_render_block($gate);
 }

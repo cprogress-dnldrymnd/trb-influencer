@@ -15,7 +15,7 @@ if (! defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-define('HELLO_ELEMENTOR_CHILD_VERSION', '2.9.11');
+define('HELLO_ELEMENTOR_CHILD_VERSION', '2.9.13');
 
 /**
  * Load child theme scripts & styles.
@@ -90,9 +90,9 @@ function hello_elementor_child_scripts_styles()
         $prev_handle = $handle; // each module depends on the previous one to guarantee load order
     }
 
-    // Restricted-page popup: which paths are gated for this visitor, and the notice to pop
-    // immediately if the current request itself just bounced off a gate (?dd_gate=…).
-    wp_localize_script('dd-page-gate', 'dd_gate', function_exists('dd_page_gate_client_map') ? dd_page_gate_client_map() : ['enabled' => false, 'paths' => [], 'prefixes' => [], 'notice' => null]);
+    // Restricted-page popup: which paths are gated for this visitor, plus any notice to pop
+    // (legacy ?dd_gate= / flash cookie). Direct hits on gated URLs render an in-place block page.
+    wp_localize_script('dd-page-gate', 'dd_gate', function_exists('dd_page_gate_client_map') ? dd_page_gate_client_map() : ['enabled' => false, 'paths' => [], 'prefixes' => [], 'notice' => null, 'logged_in' => false, 'block_page' => false]);
 
     // Welcome popup + guided tour state/config for the current visitor.
     wp_localize_script('dd-onboarding', 'dd_onboarding', class_exists('DD_Onboarding') ? DD_Onboarding::client_map() : ['enabled' => false]);

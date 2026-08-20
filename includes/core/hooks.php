@@ -176,11 +176,11 @@ add_action('wp_head', 'action_wp_head');
  * cap is hit, and PMPro level-gated pages. dd_page_gate_for_post() (includes/core/page-gate.php)
  * is the single authority for whether a page is gated and what a visitor should see.
  *
- * When the popup gate is enabled (dd_gate_use_popup, on by default), a gated request bounces
- * back to a safe page it came from with ?dd_gate={reason} so dd-page-gate.js can pop the
- * explanation there — the click interceptor in that same script is what stops a normal
- * in-app click from ever reaching this redirect in the first place. With the toggle off,
- * this falls back to the theme's original behaviour of redirecting straight to login/upgrade.
+ * When the popup gate is enabled (dd_gate_use_popup, on by default), a gated request renders
+ * an in-place blocked page with the popup (no redirect — redirects polluted Back history with
+ * /?dd_gate=login). The click interceptor in dd-page-gate.js stops a normal in-app click from
+ * ever reaching this boundary. With the toggle off, this falls back to the theme's original
+ * behaviour of redirecting straight to login/upgrade.
  *
  * @return void
  */
@@ -196,10 +196,13 @@ function dd_restrict_dashboard_template_access()
     }
 
     if (function_exists('dd_page_gate_enabled') && dd_page_gate_enabled()) {
-        dd_page_gate_bounce($gate);
+        dd_page_gate_render_block($gate);
         return;
     }
 
+    if (function_exists('nocache_headers')) {
+        nocache_headers();
+    }
     wp_redirect($gate['cta_url']);
     exit;
 }

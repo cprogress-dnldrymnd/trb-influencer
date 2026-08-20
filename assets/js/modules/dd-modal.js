@@ -29,6 +29,7 @@ window.ddAlert = function (msg) {
  * @param {string}   [options.processingText] Label shown on the confirm button while keepOpen is active.
  * @param {string}   [options.confirmText]    Overrides the default "Confirm" button label.
  * @param {string}   [options.cancelText]     Overrides the default "Cancel" button label.
+ * @param {function} [options.onCancel]       Called after the dialog closes on Cancel.
  * @param {string}   [options.linkUrl]        Optional secondary link shown under the message.
  * @param {string}   [options.linkText]       Label for options.linkUrl.
  */
@@ -41,9 +42,10 @@ window.ddConfirm = function (msg, onOk, options) {
     var p = document.createElement('p');
     Object.assign(p.style, {margin:'0 0 20px',fontSize:'15px',lineHeight:'1.5'});
     p.textContent = msg;
+    var linkWrap;
     if (options.linkUrl && options.linkText) {
         p.style.marginBottom = '10px';
-        var linkWrap = document.createElement('p');
+        linkWrap = document.createElement('p');
         Object.assign(linkWrap.style, {margin:'0 0 20px'});
         var link = document.createElement('a');
         link.href = options.linkUrl;
@@ -67,7 +69,12 @@ window.ddConfirm = function (msg, onOk, options) {
             document.body.removeChild(overlay);
         }
     };
-    cancelBtn.addEventListener('click', close);
+    cancelBtn.addEventListener('click', function () {
+        close();
+        if (typeof options.onCancel === 'function') {
+            options.onCancel();
+        }
+    });
     okBtn.addEventListener('click', function () {
         if (options.keepOpen) {
             cancelBtn.disabled = true;
