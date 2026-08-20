@@ -717,9 +717,16 @@ function dd_render_message_field($args)
     }
 }
 
-add_action('admin_init', function () {
-    $definitions = dd_message_definitions();
-    $groups = [
+/**
+ * Message-group labels keyed by the `group` value used in
+ * dd_message_definitions(). Shared by settings registration and the
+ * nested-tab renderer so the two can't drift.
+ *
+ * @return array<string, string>
+ */
+function dd_message_groups()
+{
+    return [
         'plan_gates'  => 'Plan & Upgrade Prompts',
         'dashboard'   => 'Dashboard Activity',
         'onboarding'  => 'Onboarding',
@@ -730,6 +737,11 @@ add_action('admin_init', function () {
         'validation'  => 'Validation',
         'credit_log'  => 'Credit History Labels',
     ];
+}
+
+add_action('admin_init', function () {
+    $definitions = dd_message_definitions();
+    $groups      = dd_message_groups();
 
     foreach ($groups as $group_key => $group_label) {
         add_settings_section('dd_messages_section_' . $group_key, $group_label, '__return_false', 'dd-messages-settings');
@@ -776,21 +788,59 @@ add_action('admin_init', function () {
 
 /**
  * Self-contained "Messages" tab panel body (the hub provides the surrounding
- * `<div class="dd-panel">`).
+ * `<div class="dd-panel">`). Each message group is a nested nav-tab so the
+ * panel stays scannable instead of one long scroll of every section.
  */
 function dd_render_messages_tab_panel()
 {
     if (! current_user_can('manage_options')) {
         return;
     }
+
+    $groups    = dd_message_groups();
+    $first_key = array_key_first($groups);
 ?>
     <p class="dd-tab-desc">Edit the wording of notices, confirmations, and prompts shown to users across the site. Leaving a field blank and saving restores its default text.</p>
+
+    <h2 class="nav-tab-wrapper dd-messages-admin-tabs">
+        <?php foreach ($groups as $group_key => $group_label) : ?>
+            <a href="#dd-messages-tab-<?php echo esc_attr($group_key); ?>"
+               class="nav-tab<?php echo $group_key === $first_key ? ' nav-tab-active' : ''; ?>">
+                <?php echo esc_html($group_label); ?>
+            </a>
+        <?php endforeach; ?>
+    </h2>
+
     <form action="options.php" method="post">
-        <?php
-        settings_fields('dd_messages_group');
-        do_settings_sections('dd-messages-settings');
-        submit_button('Save Messages');
-        ?>
+        <?php settings_fields('dd_messages_group'); ?>
+
+        <?php foreach ($groups as $group_key => $group_label) : ?>
+            <div id="dd-messages-tab-<?php echo esc_attr($group_key); ?>"
+                 class="dd-tab-content"
+                 style="margin-top:20px;<?php echo $group_key === $first_key ? '' : ' display:none;'; ?>">
+                <table class="form-table" role="presentation">
+                    <?php do_settings_fields('dd-messages-settings', 'dd_messages_section_' . $group_key); ?>
+                </table>
+            </div>
+        <?php endforeach; ?>
+
+        <?php submit_button('Save Messages'); ?>
     </form>
+
+    <script>
+    jQuery(function ($) {
+        // Scoped to this module's own panel so it doesn't clobber the
+        // active/visible state of other modules' nested tabs sharing the
+        // consolidated Influencer Theme page.
+        var $scope = $('#dd-panel-messages');
+        $scope.find('.dd-messages-admin-tabs .nav-tab').on('click', function (e) {
+            e.preventDefault();
+            $scope.find('.dd-messages-admin-tabs .nav-tab').removeClass('nav-tab-active');
+            $(this).addClass('nav-tab-active');
+            $scope.find('.dd-tab-content').hide();
+            $scope.find($(this).attr('href')).show();
+        });
+    });
+    </script>
 <?php
 }
