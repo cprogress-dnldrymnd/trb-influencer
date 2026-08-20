@@ -427,6 +427,14 @@ function dd_message_definitions()
             'desc'    => 'Returned after deleting a saved-creators group.',
         ],
 
+        // --- Search UI ----------------------------------------------------------------------
+        'dd_msg_search_loading' => [
+            'label'   => 'Search Loading Text',
+            'default' => 'Scouring the globe for influencers who fit your brand',
+            'group'   => 'search',
+            'desc'    => 'Shown under the loading animation while influencer search results are fetching.',
+        ],
+
         // --- Validation ---------------------------------------------------------------------
         'dd_msg_filter_required' => [
             'label'   => 'Required Filter Missing',
@@ -718,6 +726,7 @@ add_action('admin_init', function () {
         'unlock'      => 'Unlock & Credit Confirmations',
         'confirm'     => 'Confirmation Dialogs',
         'success'     => 'Success Notices',
+        'search'      => 'Search UI',
         'validation'  => 'Validation',
         'credit_log'  => 'Credit History Labels',
     ];
