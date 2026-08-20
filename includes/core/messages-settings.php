@@ -105,6 +105,12 @@ function dd_message_definitions()
             'group'   => 'plan_gates',
             'desc'    => 'Server-side rejection when saving a search without access.',
         ],
+        'dd_msg_saved_search_duplicate' => [
+            'label'   => 'Duplicate Saved Search',
+            'default' => 'You already saved this search as "%s".',
+            'group'   => 'validation',
+            'desc'    => 'Server-side rejection when saving a search whose filters match an existing saved search. %s is the existing search name.',
+        ],
         'dd_msg_outreach_gate' => [
             'label'   => 'Outreach/Contact Gate',
             'default' => 'Your plan does not include contacting creators. Please upgrade to continue.',

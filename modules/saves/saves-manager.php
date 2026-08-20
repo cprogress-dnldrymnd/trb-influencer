@@ -918,6 +918,118 @@ class Saves_Manager
     }
 
     /**
+     * Canonicalize raw search_data into the stored search_query meta shape.
+     *
+     * Empty values are dropped and multi-select arrays are sorted so the same
+     * filter set always produces the same string (order-independent).
+     *
+     * @param array $raw_data Filter payload from the save-search AJAX request.
+     * @return string Query string beginning with '?' (e.g. "?niche%5B%5D=…").
+     */
+    private function normalize_search_data_for_query($raw_data)
+    {
+        if (!is_array($raw_data)) {
+            $raw_data = [];
+        }
+
+        $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score', 'filter'];
+        $clean_data   = [];
+
+        foreach ($allowed_keys as $key) {
+            if (!isset($raw_data[$key])) {
+                continue;
+            }
+
+            if (is_array($raw_data[$key])) {
+                $values = array_values(array_filter(
+                    array_map('sanitize_text_field', $raw_data[$key]),
+                    static function ($v) {
+                        return $v !== '';
+                    }
+                ));
+                if (empty($values)) {
+                    continue;
+                }
+                sort($values, SORT_STRING);
+                $clean_data[$key] = $values;
+            } else {
+                $value = sanitize_text_field($raw_data[$key]);
+                if ($value === '') {
+                    continue;
+                }
+                $clean_data[$key] = $value;
+            }
+        }
+
+        ksort($clean_data);
+
+        $query_string = http_build_query($clean_data);
+        $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
+
+        return '?' . $query_string;
+    }
+
+    /**
+     * Re-canonicalize a stored search_query meta value so legacy (unsorted /
+     * empty-key) rows compare equal to newly normalized saves.
+     *
+     * @param string $query_string Stored meta (with or without leading '?').
+     * @return string Canonical query string beginning with '?'.
+     */
+    private function canonicalize_stored_search_query($query_string)
+    {
+        $query_string = ltrim((string) $query_string, '?');
+        if ($query_string === '') {
+            return '?';
+        }
+
+        $parsed = [];
+        parse_str($query_string, $parsed);
+
+        return $this->normalize_search_data_for_query($parsed);
+    }
+
+    /**
+     * Find an existing saved-search for the user with the same canonical filters.
+     *
+     * @param int    $user_id         Owner user ID.
+     * @param string $canonical_query Canonical search_query meta value.
+     * @return int|false Matching post ID, or false if none.
+     */
+    private function get_existing_saved_search_id($user_id, $canonical_query)
+    {
+        $existing = get_posts([
+            'post_type'      => 'saved-search',
+            'author'         => $user_id,
+            'meta_key'       => 'search_query',
+            'meta_value'     => $canonical_query,
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+        ]);
+
+        if (!empty($existing)) {
+            return (int) $existing[0];
+        }
+
+        // Legacy rows may differ only by value order / empty keys — re-canonicalize.
+        $posts = get_posts([
+            'post_type'      => 'saved-search',
+            'author'         => $user_id,
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+        ]);
+
+        foreach ($posts as $post_id) {
+            $stored = get_post_meta($post_id, 'search_query', true);
+            if ($this->canonicalize_stored_search_query($stored) === $canonical_query) {
+                return (int) $post_id;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * AJAX Handler: Save User Search
      */
     public function handle_save_search_ajax()
@@ -932,27 +1044,19 @@ class Saves_Manager
             ]);
         }
 
-        $user_id = get_current_user_id();
-        $raw_data = isset($_POST['search_data']) ? $_POST['search_data'] : [];
-        $search_name = isset($_POST['search_name']) ? sanitize_text_field($_POST['search_name']) : '';
+        $user_id     = get_current_user_id();
+        $raw_data    = isset($_POST['search_data']) ? wp_unslash($_POST['search_data']) : [];
+        $search_name = isset($_POST['search_name']) ? sanitize_text_field(wp_unslash($_POST['search_name'])) : '';
 
-        // Added 'filter' to allowed keys
-        $allowed_keys = ['niche', 'platform', 'followers', 'country', 'lang', 'gender', 'score', 'filter'];
-        $clean_data = [];
+        $final_string = $this->normalize_search_data_for_query($raw_data);
 
-        foreach ($allowed_keys as $key) {
-            if (isset($raw_data[$key])) {
-                if (is_array($raw_data[$key])) {
-                    $clean_data[$key] = array_map('sanitize_text_field', $raw_data[$key]);
-                } else {
-                    $clean_data[$key] = sanitize_text_field($raw_data[$key]);
-                }
-            }
+        $duplicate_id = $this->get_existing_saved_search_id($user_id, $final_string);
+        if ($duplicate_id) {
+            $existing_title = get_the_title($duplicate_id);
+            wp_send_json_error([
+                'message' => dd_get_message('dd_msg_saved_search_duplicate', [$existing_title]),
+            ]);
         }
-
-        $query_string = http_build_query($clean_data);
-        $query_string = preg_replace('/%5B\d+%5D/', '%5B%5D', $query_string);
-        $final_string = '?' . $query_string;
 
         $post_title = !empty($search_name) ? $search_name : 'Search saved on ' . current_time('M j, Y @ g:i a');
 
