@@ -3122,7 +3122,7 @@ class DD_Outreach_Manager
                 </a>
             </span>
         <?php elseif ($unlock_blocked) : ?>
-            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_no_credits_hint')); ?>" style="display:inline-block; width: 100%;">
+            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_no_credits_hint')); ?>" style="display:inline-block;">
                 <a href="#" class="elementor-button outreach-button dd-unlock-blocked-trigger"
                     style="opacity: 0.6; cursor: pointer;">
                     <span class="elementor-button-content-wrapper">
@@ -3132,7 +3132,7 @@ class DD_Outreach_Manager
                 </a>
             </span>
         <?php else : ?>
-            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_locked_hint')); ?>" style="display:inline-block; width: 100%;">
+            <span class="dd-tip" data-tooltip="<?php echo esc_attr(dd_get_message('dd_msg_unlock_locked_hint')); ?>" style="display:inline-block;">
                 <a href="#" class="elementor-button outreach-button"
                     style="opacity: 0.6; cursor: not-allowed;"
                     onclick="event.preventDefault();">
