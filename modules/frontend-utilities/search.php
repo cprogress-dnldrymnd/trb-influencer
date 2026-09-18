@@ -112,10 +112,7 @@ class Influencer_Search
 
         $filter_options = array(
             'Include only verified influencers' => 'Include only verified influencers',
-            'Prioritise engagement over reach' => [
-                'label'       => 'Show higher engagement first',
-                'description' => 'That only changes the order of results. It does not remove anyone from the list.',
-            ],
+            'Prioritise engagement over reach' => 'Show higher engagement first',
             'Professional experts only' => 'Professional experts only',
         );
 
