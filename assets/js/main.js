@@ -70,6 +70,52 @@
         } catch (e) { /* malformed stored URL */ }
     }
 
+    /**
+     * Show .dd-back-to-search buttons only when a filtered results URL is known
+     * (sessionStorage from discovery, or a PHP-seeded referer href that already
+     * carries a query string). Same destination as the Search Results crumb.
+     */
+    function restore_back_to_search_buttons() {
+        var $btns = $('.dd-back-to-search');
+        if (!$btns.length) {
+            return;
+        }
+
+        var stored;
+        try {
+            stored = sessionStorage.getItem(LAST_SEARCH_URL_KEY);
+        } catch (e) {
+            stored = null;
+        }
+
+        $btns.each(function () {
+            var $btn = $(this);
+            var targetHref = null;
+
+            try {
+                var btnUrl = new URL($btn.attr('href'), window.location.origin);
+
+                if (stored) {
+                    var storedUrl = new URL(stored, window.location.origin);
+                    if (storedUrl.pathname === btnUrl.pathname && storedUrl.search) {
+                        targetHref = storedUrl.href;
+                    }
+                }
+
+                // PHP may already have seeded a filtered referer into href.
+                if (!targetHref && btnUrl.search) {
+                    targetHref = btnUrl.href;
+                }
+            } catch (e) { /* malformed URL */ }
+
+            if (targetHref) {
+                $btn.attr('href', targetHref)
+                    .removeAttr('hidden')
+                    .removeAttr('aria-hidden');
+            }
+        });
+    }
+
     // -------------------------------------------------------------------------
     // Boot
     // -------------------------------------------------------------------------
@@ -109,6 +155,7 @@
         }
 
         restore_search_results_crumb();
+        restore_back_to_search_buttons();
 
         var resizeTimer = null;
         $(window).on('resize', function () {

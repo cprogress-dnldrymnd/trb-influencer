@@ -624,6 +624,91 @@ add_shortcode('breadcrumbs', 'breadcrumbs');
 
 
 /**
+ * [back_to_search text="" icon=""]
+ *
+ * Customizable link back to the filtered search-results URL (same destination as the
+ * profile "Search Results" breadcrumb). Hidden on the front end until JS (or a matching
+ * HTTP referer) confirms the visitor arrived from Influencer Discovery with filters;
+ * always visible in the Elementor editor so it can be styled.
+ */
+function shortcode_back_to_search($atts)
+{
+    $is_editor_preview = class_exists('\Elementor\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode();
+
+    $atts = shortcode_atts([
+        'text' => 'Back to Search Results',
+        'icon' => '',
+    ], $atts, 'back_to_search');
+
+    $results_page_id = function_exists('dd_get_page_id')
+        ? dd_get_page_id('dd_search_results_page_id', 1949)
+        : 1949;
+    $results_url = get_permalink($results_page_id);
+    $has_filtered_referer = false;
+
+    $referer = wp_get_referer();
+    if ($referer && $results_url) {
+        $results_path  = wp_parse_url($results_url, PHP_URL_PATH);
+        $referer_path  = wp_parse_url($referer, PHP_URL_PATH);
+        $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
+        if ($results_path && $referer_path === $results_path && ! empty($referer_query)) {
+            $results_url          = $referer;
+            $has_filtered_referer = true;
+        }
+    }
+
+    // Show immediately when the referer already proves a filtered discovery visit;
+    // otherwise stay hidden until main.js restores from sessionStorage.
+    $visible = $is_editor_preview || $has_filtered_referer;
+
+    $label = $atts['text'] !== '' ? $atts['text'] : 'Back to Search Results';
+
+    static $styles_printed = false;
+    ob_start();
+    if (! $styles_printed) {
+        $styles_printed = true;
+        ?>
+        <style>
+            .dd-back-to-search {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+                box-sizing: border-box;
+            }
+            .dd-back-to-search[hidden] {
+                display: none !important;
+            }
+            .dd-back-to-search__icon {
+                display: block;
+                width: 18px;
+                height: 18px;
+                object-fit: contain;
+                flex-shrink: 0;
+            }
+        </style>
+        <?php
+    }
+    ?>
+    <a
+        class="dd-back-to-search"
+        href="<?php echo esc_url($results_url); ?>"
+        <?php echo $visible ? '' : 'hidden'; ?>
+        <?php echo $visible ? '' : 'aria-hidden="true"'; ?>
+    >
+        <?php if ($atts['icon']) : ?>
+            <img src="<?php echo esc_url($atts['icon']); ?>" alt="" class="dd-back-to-search__icon">
+        <?php endif; ?>
+        <span class="dd-back-to-search__label"><?php echo esc_html($label); ?></span>
+    </a>
+    <?php
+    return ob_get_clean();
+}
+
+add_shortcode('back_to_search', 'shortcode_back_to_search');
+
+
+/**
  * Helper Function: Generates the HTML for the current user's avatar.
  * Retrieves the avatar from Paid Memberships Pro or falls back to
  * generating initials based on the user's name or email.
