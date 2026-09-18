@@ -71,6 +71,49 @@
     }
 
     /**
+     * Point the Discovery (search form) crumb at the search page with the same
+     * filter query as the last results URL, so the form reopens pre-filled.
+     */
+    function restore_search_discovery_crumb() {
+        var $crumb = $('.dd-crumb-search-discovery');
+        if (!$crumb.length) {
+            return;
+        }
+
+        var query = '';
+
+        try {
+            var stored = sessionStorage.getItem(LAST_SEARCH_URL_KEY);
+            if (stored) {
+                var storedUrl = new URL(stored, window.location.origin);
+                if (storedUrl.search) {
+                    query = storedUrl.search;
+                }
+            }
+        } catch (e) { /* private mode / malformed */ }
+
+        // On the results page, prefer the live URL when sessionStorage is empty/stale.
+        if (!query && window.location.search
+            && typeof ajax_vars !== 'undefined'
+            && String(ajax_vars.search_results_page_id) === String(ajax_vars.page_id)) {
+            query = window.location.search;
+        }
+
+        if (!query) {
+            return;
+        }
+
+        try {
+            var base = (typeof ajax_vars !== 'undefined' && ajax_vars.search_page_url)
+                ? ajax_vars.search_page_url
+                : $crumb.attr('href');
+            var dest = new URL(base, window.location.origin);
+            dest.search = query.charAt(0) === '?' ? query.slice(1) : query;
+            $crumb.attr('href', dest.href);
+        } catch (e) { /* malformed URL */ }
+    }
+
+    /**
      * Show .dd-back-to-search buttons only when a filtered results URL is known
      * (sessionStorage from discovery, or a PHP-seeded referer href that already
      * carries a query string). Same destination as the Search Results crumb.
@@ -155,6 +198,7 @@
         }
 
         restore_search_results_crumb();
+        restore_search_discovery_crumb();
         restore_back_to_search_buttons();
 
         var resizeTimer = null;

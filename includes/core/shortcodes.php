@@ -583,8 +583,31 @@ function breadcrumbs()
                 <?php } ?>
 
 
-                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') { ?>
-                    <li><a href="<?= esc_url(get_the_permalink($search_page_id)) ?>"><?= esc_html($search_page_title) ?></a></li>
+                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') {
+                    $discovery_url = get_the_permalink($search_page_id);
+
+                    // Carry filter query onto Discovery so the form reopens with the same state.
+                    // Results page: use the live request query. Profile: reuse a filtered results referer.
+                    $filter_query = '';
+                    if (get_the_ID() == $search_results_page_id && ! empty($_SERVER['QUERY_STRING'])) {
+                        $filter_query = wp_unslash($_SERVER['QUERY_STRING']);
+                    } elseif (is_single() && get_post_type() == 'influencer') {
+                        $referer = wp_get_referer();
+                        $results_url_for_ref = get_the_permalink($search_results_page_id);
+                        if ($referer && $results_url_for_ref) {
+                            $results_path  = wp_parse_url($results_url_for_ref, PHP_URL_PATH);
+                            $referer_path  = wp_parse_url($referer, PHP_URL_PATH);
+                            $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
+                            if ($results_path && $referer_path === $results_path && ! empty($referer_query)) {
+                                $filter_query = $referer_query;
+                            }
+                        }
+                    }
+                    if ($filter_query) {
+                        $discovery_url .= (strpos($discovery_url, '?') === false ? '?' : '&') . $filter_query;
+                    }
+                    ?>
+                    <li><a class="dd-crumb-search-discovery" href="<?= esc_url($discovery_url) ?>"><?= esc_html($search_page_title) ?></a></li>
                 <?php } ?>
 
                 <?php if (is_single() && get_post_type() == 'influencer') {

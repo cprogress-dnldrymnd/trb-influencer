@@ -216,6 +216,17 @@
             window.history.replaceState({ path: newUrl }, '', newUrl);
         }
         try { sessionStorage.setItem('dd_last_search_url', newUrl); } catch (e) {}
+
+        // Keep the Discovery breadcrumb in sync with the latest filter query so
+        // clicking it reopens the search form with the same filters applied.
+        var $discovery = $('.dd-crumb-search-discovery');
+        if ($discovery.length && typeof ajax_vars !== 'undefined' && ajax_vars.search_page_url) {
+            try {
+                var dest = new URL(ajax_vars.search_page_url, window.location.origin);
+                dest.search = urlParams.toString();
+                $discovery.attr('href', dest.href);
+            } catch (e) { /* malformed base URL */ }
+        }
     }
 
     /**
