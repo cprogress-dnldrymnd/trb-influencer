@@ -112,7 +112,10 @@ class Influencer_Search
 
         $filter_options = array(
             'Include only verified influencers' => 'Include only verified influencers',
-            'Prioritise engagement over reach' => 'Prioritise engagement over reach',
+            'Prioritise engagement over reach' => [
+                'label'       => 'Show higher engagement first',
+                'description' => 'That only changes the order of results. It does not remove anyone from the list.',
+            ],
             'Professional experts only' => 'Professional experts only',
         );
 
@@ -489,9 +492,17 @@ class Influencer_Search
             <div class="dropdown-menu checkbox-lists">
                 <?php foreach ($options as $key => $option) {
                     $is_checked = in_array((string)$key, $selected_values) ? 'checked="checked"' : '';
+                    $opt_label = is_array($option) ? (string) ($option['label'] ?? $key) : (string) $option;
+                    $opt_desc  = is_array($option) ? (string) ($option['description'] ?? '') : '';
                 ?>
-                    <label class="dropdown-item checkbox-list-item">
-                        <input class="pseudo-checkbox-input" type="checkbox" value="<?= $key ?>" data-label="<?= $option ?>" name="<?= $name  ?>[]" <?= $is_checked ?>> <span class="pseudo-checkbox"></span> <?= $option ?>
+                    <label class="dropdown-item checkbox-list-item<?= $opt_desc !== '' ? ' checkbox-list-item--has-desc' : '' ?>">
+                        <input class="pseudo-checkbox-input" type="checkbox" value="<?= esc_attr($key) ?>" data-label="<?= esc_attr($opt_label) ?>" name="<?= esc_attr($name) ?>[]" <?= $is_checked ?>> <span class="pseudo-checkbox"></span>
+                        <span class="dd-filter-option-text">
+                            <span class="dd-filter-option-label"><?= esc_html($opt_label) ?></span>
+                            <?php if ($opt_desc !== '') : ?>
+                                <span class="dd-filter-option-desc"><?= esc_html($opt_desc) ?></span>
+                            <?php endif; ?>
+                        </span>
                     </label>
                 <?php } ?>
             </div>
@@ -1676,7 +1687,7 @@ class Influencer_Search
                         ? creatordb_brief_summary_note_labels()
                         : [];
                     if ($prioritise_engagement) {
-                        $notes[] = '<span>' . esc_html($summary_copy['engagement_hard'] ?? 'Prioritising engagement over reach') . '</span>';
+                        $notes[] = '<span>' . esc_html($summary_copy['engagement_hard'] ?? 'Showing higher engagement first') . '</span>';
                     } elseif ($engagement_boost_soft) {
                         $notes[] = '<span>' . esc_html($summary_copy['engagement_soft'] ?? 'Engagement preference (sort boost — not a hard filter)') . '</span>';
                     }

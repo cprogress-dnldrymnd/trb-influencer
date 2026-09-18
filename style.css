@@ -894,6 +894,24 @@ input:checked + .slider:before {
   height: 23px;
 }
 
+.dd-filter-option-text {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  vertical-align: middle;
+}
+.checkbox-list-item--has-desc {
+  align-items: flex-start;
+}
+.dd-filter-option-desc {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #6b7280;
+  max-width: 28rem;
+}
+
 .break-word {
   overflow-wrap: break-word;
   word-wrap: break-word;
