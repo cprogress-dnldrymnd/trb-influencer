@@ -17,7 +17,7 @@ class Widget_Back_To_Search extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Returns to the filtered search-results URL (same behaviour as the profile Search Results breadcrumb). On the front end it only appears when the visitor arrived from Influencer Discovery with filters intact; always visible in the Elementor editor so it can be styled. Pick a library icon or upload an SVG/image.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Returns to the filtered search-results URL (same behaviour as the profile Search Results breadcrumb). On the front end it only appears when the visitor arrived from the Search Results page; always visible in the Elementor editor so it can be styled. Pick a library icon or upload an SVG/image.', 'trb-influencer' ),
         ] );
         $this->add_control( 'text', [
             'label'   => esc_html__( 'Button Text', 'trb-influencer' ),

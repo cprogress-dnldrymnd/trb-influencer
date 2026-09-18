@@ -2,6 +2,10 @@
     'use strict';
 
     var LAST_SEARCH_URL_KEY = 'dd_last_search_url';
+    // Same-tab flag: set on the results page, cleared on any non-profile page.
+    // Lets a profile refresh keep the search trail without re-showing it after
+    // the visitor leaves search and opens a profile from elsewhere.
+    var SEARCH_NAV_KEY = 'dd_search_nav';
 
     // -------------------------------------------------------------------------
     // Sync URL parameters → checkboxes BEFORE any module runs so that filter
@@ -34,7 +38,102 @@
     function remember_last_search_url(url) {
         try {
             sessionStorage.setItem(LAST_SEARCH_URL_KEY, url);
+            sessionStorage.setItem(SEARCH_NAV_KEY, '1');
         } catch (e) { /* private mode / quota */ }
+    }
+
+    function clear_search_nav_flag() {
+        try {
+            sessionStorage.removeItem(SEARCH_NAV_KEY);
+        } catch (e) { /* private mode */ }
+    }
+
+    function has_search_nav_flag() {
+        try {
+            return sessionStorage.getItem(SEARCH_NAV_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function get_stored_search_url() {
+        try {
+            return sessionStorage.getItem(LAST_SEARCH_URL_KEY);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * True when document.referrer is the search-results page (path match).
+     * $resultsPathHint is an optional pathname from a crumb/button href.
+     */
+    function referrer_is_search_results(resultsPathHint) {
+        if (!document.referrer) {
+            return false;
+        }
+        try {
+            var ref = new URL(document.referrer, window.location.origin);
+            if (resultsPathHint) {
+                return ref.pathname === resultsPathHint;
+            }
+            // Fall back to comparing against a crumb/button already in the DOM.
+            var $probe = $('.dd-crumb-search-results, .dd-back-to-search').first();
+            if (!$probe.length) {
+                return false;
+            }
+            var probeUrl = new URL($probe.attr('href'), window.location.origin);
+            return ref.pathname === probeUrl.pathname;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Visitor is in the search→profile flow: live referer is results, or the
+     * same-tab session flag is still set (profile refresh / profile→profile).
+     */
+    function arrived_from_search_results() {
+        return referrer_is_search_results() || has_search_nav_flag();
+    }
+
+    /**
+     * Track whether this tab is still in the search→profile journey.
+     */
+    function sync_search_nav_flag() {
+        var onResults = typeof ajax_vars !== 'undefined'
+            && String(ajax_vars.search_results_page_id) === String(ajax_vars.page_id);
+        var onProfile = $('body').hasClass('single-influencer');
+
+        if (onResults) {
+            if (window.location.search) {
+                remember_last_search_url(window.location.href);
+            } else {
+                try { sessionStorage.setItem(SEARCH_NAV_KEY, '1'); } catch (e) { /* */ }
+            }
+            return;
+        }
+
+        if (onProfile) {
+            // Arriving from results: keep/set the flag. Arriving from elsewhere: clear.
+            if (referrer_is_search_results()) {
+                try { sessionStorage.setItem(SEARCH_NAV_KEY, '1'); } catch (e) { /* */ }
+            } else if (!has_search_nav_flag()) {
+                // Already cleared — nothing to do.
+            } else if (document.referrer) {
+                // Referer is some other page (dashboard, saved lists, etc.) — leave the flow.
+                try {
+                    var ref = new URL(document.referrer, window.location.origin);
+                    if (ref.pathname !== window.location.pathname) {
+                        clear_search_nav_flag();
+                    }
+                } catch (e) { /* keep flag on malformed referer */ }
+            }
+            return;
+        }
+
+        // Any other page ends the search→profile journey.
+        clear_search_nav_flag();
     }
 
     /**
@@ -51,12 +150,7 @@
             return;
         }
 
-        var stored;
-        try {
-            stored = sessionStorage.getItem(LAST_SEARCH_URL_KEY);
-        } catch (e) {
-            return;
-        }
+        var stored = get_stored_search_url();
         if (!stored) {
             return;
         }
@@ -83,7 +177,7 @@
         var query = '';
 
         try {
-            var stored = sessionStorage.getItem(LAST_SEARCH_URL_KEY);
+            var stored = get_stored_search_url();
             if (stored) {
                 var storedUrl = new URL(stored, window.location.origin);
                 if (storedUrl.search) {
@@ -114,9 +208,30 @@
     }
 
     /**
-     * Show .dd-back-to-search buttons only when a filtered results URL is known
-     * (sessionStorage from discovery, or a PHP-seeded referer href that already
-     * carries a query string). Same destination as the Search Results crumb.
+     * Show profile search-trail crumbs only when the visitor is in the
+     * search→profile flow (not when opening a profile from elsewhere).
+     */
+    function restore_profile_search_crumbs() {
+        if (!$('body').hasClass('single-influencer')) {
+            return;
+        }
+
+        var $crumbs = $('.dd-crumb-from-search');
+        if (!$crumbs.length) {
+            return;
+        }
+
+        if (arrived_from_search_results()) {
+            $crumbs.removeAttr('hidden');
+        } else {
+            $crumbs.attr('hidden', 'hidden');
+        }
+    }
+
+    /**
+     * Show .dd-back-to-search buttons only when the visitor arrived via the
+     * search→profile flow. sessionStorage alone (stale from an earlier search)
+     * is not enough — that was re-showing the button from saved lists / dashboard.
      */
     function restore_back_to_search_buttons() {
         var $btns = $('.dd-back-to-search');
@@ -124,12 +239,8 @@
             return;
         }
 
-        var stored;
-        try {
-            stored = sessionStorage.getItem(LAST_SEARCH_URL_KEY);
-        } catch (e) {
-            stored = null;
-        }
+        var show = arrived_from_search_results();
+        var stored = show ? get_stored_search_url() : null;
 
         $btns.each(function () {
             var $btn = $(this);
@@ -149,12 +260,19 @@
                 if (!targetHref && btnUrl.search) {
                     targetHref = btnUrl.href;
                 }
+
+                if (!targetHref && show) {
+                    targetHref = btnUrl.href;
+                }
             } catch (e) { /* malformed URL */ }
 
-            if (targetHref) {
+            if (show && targetHref) {
                 $btn.attr('href', targetHref)
                     .removeAttr('hidden')
                     .removeAttr('aria-hidden');
+            } else {
+                $btn.attr('hidden', 'hidden')
+                    .attr('aria-hidden', 'true');
             }
         });
     }
@@ -165,6 +283,7 @@
     $(document).ready(function () {
 
         sync_url_params_to_dom();
+        sync_search_nav_flag();
 
         InfluencerApp.sync_follower_min_max_states();
 
@@ -199,6 +318,7 @@
 
         restore_search_results_crumb();
         restore_search_discovery_crumb();
+        restore_profile_search_crumbs();
         restore_back_to_search_buttons();
 
         var resizeTimer = null;

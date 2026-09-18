@@ -215,7 +215,10 @@
         if (window.history && window.history.replaceState) {
             window.history.replaceState({ path: newUrl }, '', newUrl);
         }
-        try { sessionStorage.setItem('dd_last_search_url', newUrl); } catch (e) {}
+        try {
+            sessionStorage.setItem('dd_last_search_url', newUrl);
+            sessionStorage.setItem('dd_search_nav', '1');
+        } catch (e) {}
 
         // Keep the Discovery breadcrumb in sync with the latest filter query so
         // clicking it reopens the search form with the same filters applied.

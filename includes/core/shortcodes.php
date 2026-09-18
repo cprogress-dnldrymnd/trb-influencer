@@ -550,6 +550,53 @@ function shortcode_influencer_niches()
 add_shortcode('influencer_niches', 'shortcode_influencer_niches');
 
 
+/**
+ * Whether the HTTP referer is the configured search-results page.
+ *
+ * @param bool $require_query When true, the referer must also carry a query string
+ *                            (filtered results). When false, path match alone is enough.
+ */
+function dd_referer_is_search_results($require_query = false)
+{
+    $results_page_id = function_exists('dd_get_page_id')
+        ? dd_get_page_id('dd_search_results_page_id', 1949)
+        : 1949;
+    $results_url = get_permalink($results_page_id);
+    $referer     = wp_get_referer();
+
+    if (! $referer || ! $results_url) {
+        return false;
+    }
+
+    $results_path  = wp_parse_url($results_url, PHP_URL_PATH);
+    $referer_path  = wp_parse_url($referer, PHP_URL_PATH);
+    $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
+
+    if (! $results_path || $referer_path !== $results_path) {
+        return false;
+    }
+
+    if ($require_query && empty($referer_query)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Filtered search-results referer URL, or empty string if the visitor did not
+ * arrive from a filtered results page.
+ */
+function dd_filtered_search_results_referer_url()
+{
+    if (! dd_referer_is_search_results(true)) {
+        return '';
+    }
+
+    $referer = wp_get_referer();
+    return is_string($referer) ? $referer : '';
+}
+
 function breadcrumbs()
 {
     ob_start();
@@ -559,14 +606,31 @@ function breadcrumbs()
     $search_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="45.416" height="45.401" viewBox="0 0 45.416 45.401"><path id="search" d="M39.3,20a19.295,19.295,0,1,0,11.35,34.9l9.609,9.609a3.028,3.028,0,1,0,4.283-4.283l-9.609-9.609A19.279,19.279,0,0,0,39.3,20Zm0,32.536A13.241,13.241,0,1,1,52.538,39.295,13.241,13.241,0,0,1,39.3,52.536Z" transform="translate(-20.01 -20)" fill="currentColor"/></svg>';
     $search_page_title = get_the_title($search_page_id) ?: 'Influencer Discovery';
 
+    $is_influencer = is_single() && get_post_type() == 'influencer';
+    $is_editor     = class_exists('\Elementor\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode();
+    // Profile search trail (Discovery + Search Results) only when the visitor
+    // arrived from results — JS may unhide after a same-tab refresh via session flag.
+    $show_profile_search_trail = $is_editor || dd_referer_is_search_results();
+
     if (get_the_ID() == $dashboard_page_id) {
         $type = 'dashboard';
-    } else if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) {
+    } else if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || $is_influencer) {
         $type = 'search';
     } else {
         $type = 'other';
     }
+
+    static $crumb_hidden_styles_printed = false;
 ?>
+    <?php if (! $crumb_hidden_styles_printed) {
+        $crumb_hidden_styles_printed = true;
+        ?>
+    <style>
+        .breadcrumbs ul li[hidden] {
+            display: none !important;
+        }
+    </style>
+    <?php } ?>
     <nav class="breadcrumbs breadcrumbs-<?= esc_attr($type) ?>" aria-label="Breadcrumbs">
         <ul>
             <li>
@@ -577,13 +641,13 @@ function breadcrumbs()
                 <?php } ?>
             </li>
 
-            <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || (is_single() && get_post_type() == 'influencer')) { ?>
+            <?php if (get_the_ID() == $search_page_id || get_the_ID() == $search_results_page_id || $is_influencer) { ?>
                 <?php if (get_the_ID() == $search_page_id) { ?>
                     <li><?= $search_icon ?> <span><?= esc_html($search_page_title) ?></span></li>
                 <?php } ?>
 
 
-                <?php if (get_the_ID() == $search_results_page_id || is_single() && get_post_type() == 'influencer') {
+                <?php if (get_the_ID() == $search_results_page_id || $is_influencer) {
                     $discovery_url = get_the_permalink($search_page_id);
 
                     // Carry filter query onto Discovery so the form reopens with the same state.
@@ -591,38 +655,30 @@ function breadcrumbs()
                     $filter_query = '';
                     if (get_the_ID() == $search_results_page_id && ! empty($_SERVER['QUERY_STRING'])) {
                         $filter_query = wp_unslash($_SERVER['QUERY_STRING']);
-                    } elseif (is_single() && get_post_type() == 'influencer') {
-                        $referer = wp_get_referer();
-                        $results_url_for_ref = get_the_permalink($search_results_page_id);
-                        if ($referer && $results_url_for_ref) {
-                            $results_path  = wp_parse_url($results_url_for_ref, PHP_URL_PATH);
-                            $referer_path  = wp_parse_url($referer, PHP_URL_PATH);
-                            $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
-                            if ($results_path && $referer_path === $results_path && ! empty($referer_query)) {
-                                $filter_query = $referer_query;
-                            }
+                    } elseif ($is_influencer) {
+                        $referer = dd_filtered_search_results_referer_url();
+                        if ($referer) {
+                            $filter_query = (string) wp_parse_url($referer, PHP_URL_QUERY);
                         }
                     }
                     if ($filter_query) {
                         $discovery_url .= (strpos($discovery_url, '?') === false ? '?' : '&') . $filter_query;
                     }
+
+                    $discovery_hidden = ($is_influencer && ! $show_profile_search_trail) ? ' hidden' : '';
                     ?>
-                    <li><a class="dd-crumb-search-discovery" href="<?= esc_url($discovery_url) ?>"><?= esc_html($search_page_title) ?></a></li>
+                    <li class="dd-crumb-from-search"<?php echo $discovery_hidden; ?>><a class="dd-crumb-search-discovery" href="<?= esc_url($discovery_url) ?>"><?= esc_html($search_page_title) ?></a></li>
                 <?php } ?>
 
-                <?php if (is_single() && get_post_type() == 'influencer') {
+                <?php if ($is_influencer) {
                     $results_url = get_the_permalink($search_results_page_id);
-                    $referer     = wp_get_referer();
-                    if ($referer && $results_url) {
-                        $results_path = wp_parse_url($results_url, PHP_URL_PATH);
-                        $referer_path = wp_parse_url($referer, PHP_URL_PATH);
-                        $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
-                        if ($results_path && $referer_path === $results_path && !empty($referer_query)) {
-                            $results_url = $referer;
-                        }
+                    $referer     = dd_filtered_search_results_referer_url();
+                    if ($referer) {
+                        $results_url = $referer;
                     }
+                    $results_hidden = $show_profile_search_trail ? '' : ' hidden';
                     ?>
-                    <li><a class="dd-crumb-search-results" href="<?= esc_url($results_url) ?>">Search Results</a></li>
+                    <li class="dd-crumb-from-search"<?php echo $results_hidden; ?>><a class="dd-crumb-search-results" href="<?= esc_url($results_url) ?>">Search Results</a></li>
                     <li><span>Creator Profile</span></li>
 
                 <?php } ?>
@@ -651,7 +707,8 @@ add_shortcode('breadcrumbs', 'breadcrumbs');
  * Resolve the filtered search-results URL + whether the button should start visible.
  *
  * Same referer logic as the profile "Search Results" breadcrumb. Returns
- * [ 'url' => string, 'visible' => bool ].
+ * [ 'url' => string, 'visible' => bool ]. JS may still unhide after a refresh
+ * when the same-tab search→profile session flag is set.
  */
 function dd_back_to_search_context()
 {
@@ -661,22 +718,15 @@ function dd_back_to_search_context()
         ? dd_get_page_id('dd_search_results_page_id', 1949)
         : 1949;
     $results_url = get_permalink($results_page_id);
-    $has_filtered_referer = false;
 
-    $referer = wp_get_referer();
-    if ($referer && $results_url) {
-        $results_path  = wp_parse_url($results_url, PHP_URL_PATH);
-        $referer_path  = wp_parse_url($referer, PHP_URL_PATH);
-        $referer_query = wp_parse_url($referer, PHP_URL_QUERY);
-        if ($results_path && $referer_path === $results_path && ! empty($referer_query)) {
-            $results_url          = $referer;
-            $has_filtered_referer = true;
-        }
+    $filtered_referer = dd_filtered_search_results_referer_url();
+    if ($filtered_referer) {
+        $results_url = $filtered_referer;
     }
 
     return [
         'url'     => $results_url,
-        'visible' => $is_editor_preview || $has_filtered_referer,
+        'visible' => $is_editor_preview || dd_referer_is_search_results(),
     ];
 }
 
@@ -768,8 +818,8 @@ function dd_render_back_to_search_button(array $args = [])
  *
  * Customizable link back to the filtered search-results URL (same destination as the
  * profile "Search Results" breadcrumb). Hidden on the front end until JS (or a matching
- * HTTP referer) confirms the visitor arrived from Influencer Discovery with filters;
- * always visible in the Elementor editor so it can be styled.
+ * HTTP referer) confirms the visitor arrived from the search-results page; always
+ * visible in the Elementor editor so it can be styled.
  *
  * The `icon` attr accepts an image URL. The Elementor widget uses Icons_Manager instead
  * (library icons + uploaded SVG/image) and calls dd_render_back_to_search_button() directly.
