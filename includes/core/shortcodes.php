@@ -625,21 +625,14 @@ add_shortcode('breadcrumbs', 'breadcrumbs');
 
 
 /**
- * [back_to_search text="" icon=""]
+ * Resolve the filtered search-results URL + whether the button should start visible.
  *
- * Customizable link back to the filtered search-results URL (same destination as the
- * profile "Search Results" breadcrumb). Hidden on the front end until JS (or a matching
- * HTTP referer) confirms the visitor arrived from Influencer Discovery with filters;
- * always visible in the Elementor editor so it can be styled.
+ * Same referer logic as the profile "Search Results" breadcrumb. Returns
+ * [ 'url' => string, 'visible' => bool ].
  */
-function shortcode_back_to_search($atts)
+function dd_back_to_search_context()
 {
     $is_editor_preview = class_exists('\Elementor\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode();
-
-    $atts = shortcode_atts([
-        'text' => 'Back to Search Results',
-        'icon' => '',
-    ], $atts, 'back_to_search');
 
     $results_page_id = function_exists('dd_get_page_id')
         ? dd_get_page_id('dd_search_results_page_id', 1949)
@@ -658,11 +651,40 @@ function shortcode_back_to_search($atts)
         }
     }
 
-    // Show immediately when the referer already proves a filtered discovery visit;
-    // otherwise stay hidden until main.js restores from sessionStorage.
-    $visible = $is_editor_preview || $has_filtered_referer;
+    return [
+        'url'     => $results_url,
+        'visible' => $is_editor_preview || $has_filtered_referer,
+    ];
+}
 
-    $label = $atts['text'] !== '' ? $atts['text'] : 'Back to Search Results';
+/**
+ * Render the Back to Search Results button markup.
+ *
+ * @param array $args {
+ *     @type string $text      Button label.
+ *     @type string $icon_html Pre-rendered icon markup (Elementor Icons_Manager output).
+ *     @type string $icon_url  Optional image URL fallback (shortcode attr).
+ * }
+ * @return string
+ */
+function dd_render_back_to_search_button(array $args = [])
+{
+    $args = wp_parse_args($args, [
+        'text'      => 'Back to Search Results',
+        'icon_html' => '',
+        'icon_url'  => '',
+    ]);
+
+    $ctx   = dd_back_to_search_context();
+    $label = $args['text'] !== '' ? $args['text'] : 'Back to Search Results';
+
+    $icon_html = $args['icon_html'];
+    if ($icon_html === '' && $args['icon_url'] !== '') {
+        $icon_html = sprintf(
+            '<img src="%s" alt="" class="dd-back-to-search__icon">',
+            esc_url($args['icon_url'])
+        );
+    }
 
     static $styles_printed = false;
     ob_start();
@@ -681,11 +703,22 @@ function shortcode_back_to_search($atts)
                 display: none !important;
             }
             .dd-back-to-search__icon {
-                display: block;
-                width: 18px;
-                height: 18px;
-                object-fit: contain;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
                 flex-shrink: 0;
+                line-height: 1;
+                font-size: 18px;
+                width: 1em;
+                height: 1em;
+            }
+            .dd-back-to-search__icon svg,
+            .dd-back-to-search__icon img {
+                display: block;
+                width: 1em;
+                height: 1em;
+                object-fit: contain;
+                fill: currentColor;
             }
         </style>
         <?php
@@ -693,17 +726,42 @@ function shortcode_back_to_search($atts)
     ?>
     <a
         class="dd-back-to-search"
-        href="<?php echo esc_url($results_url); ?>"
-        <?php echo $visible ? '' : 'hidden'; ?>
-        <?php echo $visible ? '' : 'aria-hidden="true"'; ?>
+        href="<?php echo esc_url($ctx['url']); ?>"
+        <?php echo $ctx['visible'] ? '' : 'hidden'; ?>
+        <?php echo $ctx['visible'] ? '' : 'aria-hidden="true"'; ?>
     >
-        <?php if ($atts['icon']) : ?>
-            <img src="<?php echo esc_url($atts['icon']); ?>" alt="" class="dd-back-to-search__icon">
-        <?php endif; ?>
+        <?php
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- icon HTML from Icons_Manager or escaped img above.
+        echo $icon_html;
+        ?>
         <span class="dd-back-to-search__label"><?php echo esc_html($label); ?></span>
     </a>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * [back_to_search text="" icon=""]
+ *
+ * Customizable link back to the filtered search-results URL (same destination as the
+ * profile "Search Results" breadcrumb). Hidden on the front end until JS (or a matching
+ * HTTP referer) confirms the visitor arrived from Influencer Discovery with filters;
+ * always visible in the Elementor editor so it can be styled.
+ *
+ * The `icon` attr accepts an image URL. The Elementor widget uses Icons_Manager instead
+ * (library icons + uploaded SVG/image) and calls dd_render_back_to_search_button() directly.
+ */
+function shortcode_back_to_search($atts)
+{
+    $atts = shortcode_atts([
+        'text' => 'Back to Search Results',
+        'icon' => '',
+    ], $atts, 'back_to_search');
+
+    return dd_render_back_to_search_button([
+        'text'     => $atts['text'],
+        'icon_url' => $atts['icon'],
+    ]);
 }
 
 add_shortcode('back_to_search', 'shortcode_back_to_search');

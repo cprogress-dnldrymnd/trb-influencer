@@ -17,16 +17,20 @@ class Widget_Back_To_Search extends \Elementor\Widget_Base {
         ] );
         $this->add_control( 'info', [
             'type' => \Elementor\Controls_Manager::RAW_HTML,
-            'raw'  => esc_html__( 'Renders a button that returns to the filtered search-results URL (same behaviour as the profile Search Results breadcrumb). On the front end it only appears when the visitor arrived from Influencer Discovery with filters intact; always visible in the Elementor editor so it can be styled.', 'trb-influencer' ),
+            'raw'  => esc_html__( 'Returns to the filtered search-results URL (same behaviour as the profile Search Results breadcrumb). On the front end it only appears when the visitor arrived from Influencer Discovery with filters intact; always visible in the Elementor editor so it can be styled. Pick a library icon or upload an SVG/image.', 'trb-influencer' ),
         ] );
         $this->add_control( 'text', [
             'label'   => esc_html__( 'Button Text', 'trb-influencer' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
             'default' => esc_html__( 'Back to Search Results', 'trb-influencer' ),
         ] );
-        $this->add_control( 'icon', [
-            'label' => esc_html__( 'Icon', 'trb-influencer' ),
-            'type'  => \Elementor\Controls_Manager::MEDIA,
+        $this->add_control( 'selected_icon', [
+            'label'   => esc_html__( 'Icon', 'trb-influencer' ),
+            'type'    => \Elementor\Controls_Manager::ICONS,
+            'default' => [
+                'value'   => 'fas fa-arrow-left',
+                'library' => 'fa-solid',
+            ],
         ] );
         $this->end_controls_section();
 
@@ -90,7 +94,9 @@ class Widget_Back_To_Search extends \Elementor\Widget_Base {
             'range'     => [ 'px' => [ 'min' => 8, 'max' => 60 ] ],
             'default'   => [ 'unit' => 'px', 'size' => 18 ],
             'selectors' => [
-                '{{WRAPPER}} .dd-back-to-search__icon' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .dd-back-to-search__icon'     => 'font-size: {{SIZE}}{{UNIT}}; width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .dd-back-to-search__icon svg' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
+                '{{WRAPPER}} .dd-back-to-search__icon img' => 'width: {{SIZE}}{{UNIT}}; height: {{SIZE}}{{UNIT}};',
             ],
         ] );
         $this->add_responsive_control( 'icon_gap', [
@@ -163,24 +169,29 @@ class Widget_Back_To_Search extends \Elementor\Widget_Base {
     }
 
     protected function render() {
+        if ( ! function_exists( 'dd_render_back_to_search_button' ) ) {
+            return;
+        }
+
         $settings = $this->get_settings_for_display();
+        $text     = ! empty( $settings['text'] ) ? $settings['text'] : 'Back to Search Results';
 
-        $atts = [];
-        if ( ! empty( $settings['text'] ) ) {
-            $atts[] = 'text="' . esc_attr( $this->sanitize_attr( $settings['text'] ) ) . '"';
+        $icon_html = '';
+        if ( ! empty( $settings['selected_icon']['value'] ) ) {
+            ob_start();
+            \Elementor\Icons_Manager::render_icon(
+                $settings['selected_icon'],
+                [
+                    'aria-hidden' => 'true',
+                    'class'       => 'dd-back-to-search__icon',
+                ]
+            );
+            $icon_html = ob_get_clean();
         }
-        if ( ! empty( $settings['icon']['url'] ) ) {
-            $atts[] = 'icon="' . esc_url( $settings['icon']['url'] ) . '"';
-        }
 
-        echo do_shortcode( '[back_to_search' . ( $atts ? ' ' . implode( ' ', $atts ) : '' ) . ']' );
-    }
-
-    /**
-     * Strips double quotes/brackets so user text cannot break out of the shortcode attribute
-     * (same guard class-widget-outreach-button.php uses).
-     */
-    private function sanitize_attr( $value ) {
-        return str_replace( [ '"', '[', ']' ], '', $value );
+        echo dd_render_back_to_search_button( [
+            'text'      => $text,
+            'icon_html' => $icon_html,
+        ] );
     }
 }
